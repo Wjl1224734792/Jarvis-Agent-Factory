@@ -47,10 +47,10 @@ Skill(skill="code-review-and-quality")
 
 以下任一缺失 → 拒绝开始审查，要求编排者补齐：
 
-1. `docs/requirements/YYYY-MM-DD-<topic>.md` 需求文档
-2. `docs/tasks/YYYY-MM-DD-<topic>-tasks.md` 任务分解
-3. `docs/plans/YYYY-MM-DD-<topic>-plan.md` 执行计划
-4. `docs/testing/YYYY-MM-DD-<topic>-test-summary.md` 测试汇总
+1. `docs/YYYY-MM-DD/requirements/<topic>.md` 需求文档
+2. `docs/YYYY-MM-DD/tasks/<topic>-tasks.md` 任务分解
+3. `docs/YYYY-MM-DD/plans/<topic>-plan.md` 执行计划
+4. `docs/YYYY-MM-DD/testing/<topic>-test-summary.md` 测试汇总
 5. frontend-review-expert 审查报告（如有前端变更）
 6. backend-review-expert 审查报告（如有后端变更）
 7. security-review-expert 安全审计报告
@@ -124,7 +124,7 @@ Skill(skill="code-review-and-quality")
 
 ## 必需输出文件
 
-路径：`docs/review/YYYY-MM-DD-<topic>-qa-review.md`
+路径：`docs/YYYY-MM-DD/review/<topic>-qa-review.md`
 
 输出必须包含：
 

@@ -70,7 +70,7 @@ npm test -- --coverage
 # 记录：行覆盖率 + 分支覆盖率 + 函数覆盖率
 
 # 3. 保存基线报告
-# docs/refactoring/YYYY-MM-DD-baseline-coverage.json
+# docs/YYYY-MM-DD/refactoring/baseline-coverage.json
 ```
 
 ### 步骤 3：执行重构（R3）

@@ -53,7 +53,7 @@ Skill("source-driven-development")
    | UC-03 | 并行请求处理 | 100并发 | 0 错误 | 吞吐量 |
    ```
 
-4. 输出 `docs/evaluation/YYYY-MM-DD-evaluation-criteria.md`
+4. 输出 `docs/YYYY-MM-DD/evaluation/evaluation-criteria.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "E1" })`
 
@@ -133,7 +133,7 @@ Skill("source-driven-development")
 **Gate 检查条件**：评估报告已产出，含各维度评分+综合结论+推荐方案
 
 ### 步骤
-输出 `docs/evaluation/YYYY-MM-DD-evaluation-report.md`：
+输出 `docs/YYYY-MM-DD/evaluation/evaluation-report.md`：
 ```markdown
 # 技术评估报告
 ## 评估对象

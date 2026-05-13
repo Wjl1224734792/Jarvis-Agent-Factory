@@ -13,12 +13,12 @@ model: deepseek-v4-pro
 
 ## 核心职责
 1. 加载 `browser-testing` 技能获取测试用例编写规范
-2. 阅读需求文档（`docs/requirements/`）了解功能目标
+2. 阅读需求文档（`docs/YYYY-MM-DD/requirements/`）了解功能目标
 3. 如有前端代码变更，阅读变更文件理解 UI 修改点
 4. 编写结构化测试用例文档
 
 ## 输出格式
-输出到 `docs/testing/YYYY-MM-DD-<topic>-test-cases.md`
+输出到 `docs/YYYY-MM-DD/testing/<topic>-test-cases.md`
 
 ### 测试用例文档结构
 

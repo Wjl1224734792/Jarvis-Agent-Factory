@@ -389,11 +389,7 @@ export function registerMcpTools(server, db, root) {
           runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
           const today = new Date().toISOString().slice(0, 10);
           ensureDateDocs(root, today);
-          const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
-          const now = new Date();
-          const mm = String(now.getMonth() + 1).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+          setRunTaskName(db, runId, task_name || '未命名');
           // TASK-005: 发布恢复会话 + 新 run 事件
           emitEvent('session:changed', { sessionId: sid, action: 'join' });
           emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
@@ -414,11 +410,7 @@ export function registerMcpTools(server, db, root) {
       const runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
       const today = new Date().toISOString().slice(0, 10);
       ensureDateDocs(root, today);
-      const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
-      const now = new Date();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+      setRunTaskName(db, runId, task_name || '未命名');
       // TASK-005: 发布新会话 + 新 run 事件
       emitEvent('session:changed', { sessionId: sid, action: 'join' });
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
@@ -493,18 +485,7 @@ export function registerMcpTools(server, db, root) {
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
       updateRunGateEnteredAt(db, runId, new Date().toISOString());
-      // 自动设置任务名称（若用户已传入则使用传入值）
-      if (task_name) {
-        setRunTaskName(db, runId, task_name);
-      } else {
-        const effectiveProject = project_name || root;
-        const projectShortName = effectiveProject.split(/[\\/]/).filter(Boolean).pop() || effectiveProject;
-        const now = new Date();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const defaultTaskName = `${projectShortName} 流水线任务 · ${mm}-${dd}`;
-        setRunTaskName(db, runId, defaultTaskName);
-      }
+      setRunTaskName(db, runId, task_name || '未命名');
       return resp({
         ok: true, session_id: sid, run_id: runId, pipeline_type: pt,
         message: 'New pipeline run created. Next: Gate A',
@@ -604,14 +585,6 @@ export function registerMcpTools(server, db, root) {
               }
             }
 
-            // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
-            const flatDir = join(root, 'docs', gateSubdir);
-            if (existsSync(flatDir)) {
-              const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
-              for (const f of mdFiles) {
-                insertArtifact(db, runId, cur, `${gateSubdir}/${f}`);
-              }
-            }
           }
         } catch (e) {
           console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, e.message);

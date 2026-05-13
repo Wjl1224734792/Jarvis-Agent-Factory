@@ -337,8 +337,7 @@ export const AVAILABLE_MODELS = [
 
 /**
  * 扫描 Gate 产物文档（返回相对 docs/ 的完整路径）。
- * 优先从日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，
- * 空时回退到旧扁平结构 docs/{subdir}/。
+ * 仅从日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，旧扁平结构不再兼容。
  * @param {string} docsDir 文档根目录
  * @param {string} gate Gate 名称
  * @returns {string[]} 相对路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
@@ -364,17 +363,12 @@ export function findGateArtifacts(docsDir, gate) {
     if (files.length > 0) return files.slice(0, 5);
   }
 
-  // 向后兼容：旧扁平结构 docs/{subdir}/
-  const flatDir = join(docsDir, subdir);
-  if (!existsSync(flatDir)) return [];
-  const flatFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
-  return flatFiles.map(f => `${subdir}/${f}`).slice(0, 5);
+  return [];
 }
 
 /**
- * 按会话过滤 Gate 产物文档。
- * 优先查 artifacts 表（精确匹配，避免跨 run 污染），
- * 空时回退日期匹配（兼容旧数据）。
+ * 按会话过滤 Gate 产物文档——仅查 artifacts 表，杜绝跨会话污染。
+ * 无 artifacts 记录时回退当日日期目录扫描（当前 Gate 实时可见，无需等到 Gate 通过）。
  * @param docsDir 文档根目录
  * @param gate Gate 名称
  * @param sessionId 会话 ID
@@ -386,59 +380,21 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   const subdir = GATE_DIRS[gate];
   if (!subdir) return [];
 
-  // 优先：按 run_id + gate 精确查询 artifacts 表
+  // 按 run_id + gate 精确查询 artifacts 表
   if (runId && db) {
     const rows = getArtifactsByRunAndGate(db, runId, gate);
     if (rows.length > 0) {
-      // filepath 已含完整相对路径（如 "2026-05-10/requirements/REQ-001.md"），直接返回
       return rows.map(r => r.filepath).slice(0, 5);
     }
   }
 
-  // 回退：日期匹配（兼容旧数据、无 runId 的调用）
-  const checkpoints = db.prepare(
-    'SELECT passed_at FROM checkpoints WHERE session_id = ? AND gate = ?'
-  ).all(sessionId, gate);
-
-  if (checkpoints.length > 0) {
-    const dates = new Set(checkpoints.map(c => c.passed_at.slice(0, 10)));
-
-    // 新结构：匹配日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/
-    if (existsSync(docsDir)) {
-      const dateDirs = readdirSync(docsDir, { withFileTypes: true })
-        .filter(d => d.isDirectory() && dates.has(d.name));
-      const files: string[] = [];
-      for (const dd of dateDirs) {
-        const dir = join(docsDir, dd.name, subdir);
-        if (existsSync(dir)) {
-          const mdFiles = readdirSync(dir).filter(f => f.endsWith('.md'));
-          for (const f of mdFiles) {
-            files.push(`${dd.name}/${subdir}/${f}`);
-          }
-        }
-      }
-      if (files.length > 0) return files.slice(0, 5);
-    }
-
-    // 向后兼容：旧扁平结构 docs/{subdir}/，文件名含日期前缀
-    const flatDir = join(docsDir, subdir);
-    if (existsSync(flatDir)) {
-      return readdirSync(flatDir)
-        .filter(f => f.endsWith('.md') && dates.has(f.slice(0, 10)))
-        .map(f => `${subdir}/${f}`)
-        .slice(0, 5);
-    }
-  }
-
-  // 无 checkpoint 时，使用当前日期扫描（当前 Gate 实时可见，无需等到 Gate 通过）
-  if (checkpoints.length === 0) {
-    const today = new Date().toISOString().slice(0, 10);
-    const todayDir = join(docsDir, today, subdir);
-    if (existsSync(todayDir)) {
-      const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
-      if (mdFiles.length > 0) {
-        return mdFiles.map(f => `${today}/${subdir}/${f}`).slice(0, 5);
-      }
+  // 无 artifacts 记录时使用当日日期目录扫描（当前 Gate 实时可见）
+  const today = new Date().toISOString().slice(0, 10);
+  const todayDir = join(docsDir, today, subdir);
+  if (existsSync(todayDir)) {
+    const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
+    if (mdFiles.length > 0) {
+      return mdFiles.map(f => `${today}/${subdir}/${f}`).slice(0, 5);
     }
   }
 

@@ -118,7 +118,7 @@ Skill(skill="code-review-and-quality")
 
 ## 输出文件
 
-路径：docs/review/YYYY-MM-DD-<topic>-diff-review.md
+路径：docs/YYYY-MM-DD/review/<topic>-diff-review.md
 
 文档必须包含：
 1. 审查范围（diff / PR / 文件列表）

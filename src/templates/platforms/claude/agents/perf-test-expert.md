@@ -94,7 +94,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-路径：`docs/testing/YYYY-MM-DD-<topic>-performance-test-report.md`
+路径：`docs/YYYY-MM-DD/testing/<topic>-performance-test-report.md`
 
 报告必须包含：
 1. 测试目标与场景

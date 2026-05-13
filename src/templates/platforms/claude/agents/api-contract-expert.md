@@ -25,7 +25,7 @@ effort: max
 2. 定位项目的 OpenAPI spec 来源（`/openapi.json` 端点、`swagger.yaml` 文件、`@nestjs/swagger` 插件输出等）
 3. 逐端点对比：路径、HTTP 方法、参数名/类型/必填、响应 status/schema
 4. 标记每条端点的状态：✅ 一致 / ⚠ spec 过时（代码改了文档没更新）/ ❌ 未文档化（缺少注解）/ 🔴 breaking change
-5. 输出 `docs/testing/YYYY-MM-DD-<topic>-api-contract-report.md`
+5. 输出 `docs/YYYY-MM-DD/testing/<topic>-api-contract-report.md`
 
 **常见框架的 spec 来源**：
 | 框架 | 自动生成机制 | 获取方式 |

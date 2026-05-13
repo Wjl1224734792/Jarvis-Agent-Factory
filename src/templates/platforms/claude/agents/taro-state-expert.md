@@ -36,7 +36,7 @@ Skill(skill="code-standards")
 | 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 输出
-`docs/implementation/YYYY-MM-DD-<topic>-taro-state.md`
+`docs/YYYY-MM-DD/implementation/<topic>-taro-state.md`
 
 
 ## 红线

@@ -139,7 +139,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
     - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
 17. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步，配置文件仅保留作为历史参考。CLI 中 `jarvis add opencode/codex` 仍可执行但生成的文件已过时。
-18. **产物目录规范** — 临时产物统一放入 `docs/tmp/`，智能体正式产出按 Gate 存入 `docs/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`
+18. **产物目录规范（硬约束，禁止旧格式）** — 临时产物统一放入 `docs/tmp/`，智能体正式产出**必须**存入 `docs/YYYY-MM-DD/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`。**禁止**写入 `docs/{subdir}/` 扁平目录或 `docs/{subdir}/YYYY-MM-DD-<topic>.md` 旧格式，引擎已移除所有向后兼容回退逻辑
 19. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
 20. **Web 面板路径解析——dev/main 隔离**：
     - **main 分支发布** → npm 全局包 → `dist/web/index.html` 位于包安装目录。引擎通过 `import.meta.dirname` 推导包目录加载它，不依赖 CWD

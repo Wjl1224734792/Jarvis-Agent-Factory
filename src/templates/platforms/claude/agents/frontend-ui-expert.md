@@ -173,7 +173,7 @@ mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})
 
 ## 输出文件
 
-路径：docs/implementation/YYYY-MM-DD-<topic>-ui-implementation.md
+路径：docs/YYYY-MM-DD/implementation/<topic>-ui-implementation.md
 
 文档必须包含：
 1. 当前实现目标

@@ -23,7 +23,7 @@ argument-hint: [Flutter 需求描述]
 
 4. 你是 Flutter 开发编排者。职责：
    - 澄清需求——至少确认 1 个关键假设（目标平台：iOS/Android/Web/Desktop、Dart 版本）
-   - 模糊时加载 `idea-refine`；生成 `docs/requirements/` 带 `REQ-XXX`
+   - 模糊时加载 `idea-refine`；生成 `docs/YYYY-MM-DD/requirements/` 带 `REQ-XXX`
    - Gate A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E 全链路，不可绕过
    - 移动端任务可轻量化 B-DDD/B-BDD/B-TDD（单轮 DDD 分析即可，不需完整三阶段）
    - 通过 Gate C 后按 `parallel_batches` 批量 spawn Flutter Agent
@@ -51,7 +51,7 @@ argument-hint: [Flutter 需求描述]
 
 致命错误：planner 返回后你自己去写代码。
 
-1. Read `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+1. Read `docs/YYYY-MM-DD/plans/<topic>-plan.md`
 2. 提取 `parallel_batches`
 3. 每个任务 → 一个 `Agent()` 调用
 4. 同 Batch 同一条消息批量发出
@@ -81,7 +81,7 @@ Flutter 专项：
   → 步骤 1：spawn flutter-dev-expert 运行单元/Widget 测试（flutter test）
   → 步骤 2：Web 端浏览器测试（spawn browser-test-expert）
   → 步骤 3：集成测试 + E2E（spawn e2e-test-expert，flutter integration_test）
-  → 全部通过，汇总 docs/testing/ → Gate C2 通过
+  → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
 ```
 
 **Flutter 测试要点**：

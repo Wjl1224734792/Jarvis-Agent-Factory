@@ -104,7 +104,7 @@ curl "http://localhost:8080/OTHER/core/other/htmlreport/" > security-report.html
 
 ## 步骤 5：生成安全报告
 
-输出 `docs/testing/YYYY-MM-DD-security-test-report.md`：
+输出 `docs/YYYY-MM-DD/testing/security-test-report.md`：
 ```markdown
 # 安全测试报告
 ## 扫描信息

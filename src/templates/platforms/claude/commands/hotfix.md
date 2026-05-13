@@ -46,7 +46,7 @@ Skill("debugging-and-error-recovery")
    - 回滚验证步骤
    - 回滚负责人
 
-3. 获得审批确认，输出 `docs/hotfix/YYYY-MM-DD-hotfix-declaration.md`
+3. 获得审批确认，输出 `docs/YYYY-MM-DD/hotfix/hotfix-declaration.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "H1" })`
 
@@ -117,7 +117,7 @@ Skill("debugging-and-error-recovery")
 **Gate 检查条件**：事后回溯审计报告已产出，含根因分析+修复措施+预防改进
 
 ### 步骤
-输出 `docs/hotfix/YYYY-MM-DD-hotfix-postmortem.md`：
+输出 `docs/YYYY-MM-DD/hotfix/hotfix-postmortem.md`：
 ```markdown
 # 事后回溯审计报告
 ## 故障时间线

@@ -18,7 +18,7 @@ Gate C2 阶段，对后端 REST API 端点执行功能级测试验证。侧重**
 ## 输入
 1. 后端路由文件（`src/web/routes.ts` 或对应项目文件）
 2. API 契约文档（如有 `docs/api/` 下的 OpenAPI/Swagger 文件）
-3. 实现阶段的需求文档（`docs/requirements/`）
+3. 实现阶段的需求文档（`docs/YYYY-MM-DD/requirements/`）
 
 ## 测试维度
 
@@ -52,7 +52,7 @@ Gate C2 阶段，对后端 REST API 端点执行功能级测试验证。侧重**
 6. **汇总输出**——生成测试报告
 
 ## 输出格式
-输出到 `docs/testing/YYYY-MM-DD-<topic>-api-test-results.md`
+输出到 `docs/YYYY-MM-DD/testing/<topic>-api-test-results.md`
 
 ```markdown
 # API 功能测试报告

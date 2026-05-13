@@ -89,7 +89,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-路径：`docs/implementation/YYYY-MM-DD-<topic>-taro-implementation.md`
+路径：`docs/YYYY-MM-DD/implementation/<topic>-taro-implementation.md`
 
 文档必须包含：
 1. 实现目标

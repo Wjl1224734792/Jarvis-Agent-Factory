@@ -333,14 +333,6 @@ export function setupApiRoutes(app, db, root) {
               }
             }
           }
-          // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
-          const flatDir = join(getDocsDir(root), gateSubdir);
-          if (existsSync(flatDir)) {
-            const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
-            for (const f of mdFiles) {
-              insertArtifact(db, run.id, currentGate, `${gateSubdir}/${f}`);
-            }
-          }
         }
       } catch (e) {
         console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, e.message);

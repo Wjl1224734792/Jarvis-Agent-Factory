@@ -49,7 +49,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-`docs/implementation/YYYY-MM-DD-<topic>-expo-implementation.md`
+`docs/YYYY-MM-DD/implementation/<topic>-expo-implementation.md`
 
 
 ## 红线

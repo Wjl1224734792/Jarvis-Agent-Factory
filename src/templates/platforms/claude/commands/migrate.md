@@ -46,7 +46,7 @@ Skill("source-driven-development")
    - 确保每个匹配位置都有对应迁移规则
    - 补充遗漏的规则
 
-3. 输出 `docs/migration/YYYY-MM-DD-migration-rules.md`
+3. 输出 `docs/YYYY-MM-DD/migration/migration-rules.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "M2" })`
 

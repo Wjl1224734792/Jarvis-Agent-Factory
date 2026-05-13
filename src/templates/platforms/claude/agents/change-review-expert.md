@@ -53,7 +53,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 输出文件
 
-如被要求落盘，写到：docs/review/YYYY-MM-DD-<topic>-post-change-review.md
+如被要求落盘，写到：docs/YYYY-MM-DD/review/<topic>-post-change-review.md
 
 ## 输出必须包含
 

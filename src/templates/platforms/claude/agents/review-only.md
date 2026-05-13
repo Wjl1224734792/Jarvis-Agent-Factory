@@ -39,7 +39,7 @@ model: deepseek-v4-pro
 
 ## 输出文件
 
-路径：docs/review/YYYY-MM-DD-<topic>-full-review.md
+路径：docs/YYYY-MM-DD/review/<topic>-full-review.md
 
 文档必须包含：
 1. 审查对象与范围

@@ -111,7 +111,7 @@ k6 run --out json=baseline.json load-test.js
 artillery run --output baseline.json load-test.yml
 ```
 
-保存基线数据到 `docs/testing/perf-baseline-YYYY-MM-DD.json`。
+保存基线数据到 `docs/YYYY-MM-DD/testing/perf-baseline-YYYY-MM-DD.json`。
 
 ## 步骤 5：执行性能测试
 

@@ -33,7 +33,7 @@ Skill(skill="code-standards")
 | 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 输出
-`docs/implementation/YYYY-MM-DD-<topic>-expo-ui.md`
+`docs/YYYY-MM-DD/implementation/<topic>-expo-ui.md`
 
 
 ## 红线

@@ -6,10 +6,10 @@ import {
 import {
   CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
   ThunderboltOutlined, QuestionCircleOutlined,
-  HistoryOutlined, LoadingOutlined, FileSearchOutlined,
+  LoadingOutlined, FileSearchOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import type { PipelineSession, PipelineRun } from '../api';
+import type { PipelineSession } from '../api';
 import { api } from '../api';
 import { useSessionId, usePipelineData } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -68,13 +68,6 @@ const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate E2': '指标数据已收集', 'Gate E3': '评估报告已产出',
   'Gate D0': '异常信息已收集', 'Gate D1': '最小复现用例已生成',
   'Gate D2': '调试会话已启动', 'Gate D3': '根因已定位', 'Gate D4': '诊断报告已产出',
-};
-
-const RUN_STATUS: Record<string, { label: string; color: string; bgColor: string }> = {
-  active: { label: '进行中', color: 'var(--ant-color-primary)', bgColor: 'var(--ant-color-primary-bg)' },
-  completed: { label: '已完成', color: 'var(--ant-color-success)', bgColor: 'var(--ant-color-success-bg)' },
-  failed: { label: '失败', color: 'var(--ant-color-error)', bgColor: 'var(--ant-color-error-bg)' },
-  archived: { label: '已归档', color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' },
 };
 
 const MARKDOWN_CSS = `
@@ -169,9 +162,8 @@ function formatDurationDisplay(seconds: number): string {
 export default function Dashboard() {
   const sessionId = useSessionId();
   // TASK-006: 消费 SSE 推送的流水线数据，替代轮询
-  const { pipeline: ssePipeline, runs: sseRuns } = usePipelineData();
+  const { pipeline: ssePipeline } = usePipelineData();
   const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
-  const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [mdPreview, setMdPreview] = useState<{ open: boolean; content: string; title: string }>({
@@ -191,12 +183,8 @@ export default function Dashboard() {
     if (!sessionId) return;
     setLoading(true);
     try {
-      const [sessions, pipelineRuns] = await Promise.all([
-        api.pipeline(),
-        api.pipelineRuns(sessionId),
-      ]);
+      const sessions = await api.pipeline();
       setPipeline(sessions.find(s => s.session_id === sessionId) || null);
-      setRuns(pipelineRuns);
     } catch { /* ignore */ } finally { setLoading(false); }
   }, [sessionId]);
 
@@ -215,12 +203,8 @@ export default function Dashboard() {
         if (JSON.stringify(prev) === JSON.stringify(ssePipeline)) return prev;
         return ssePipeline;
       });
-      setRuns(prev => {
-        if (JSON.stringify(prev) === JSON.stringify(sseRuns)) return prev;
-        return sseRuns;
-      });
     }
-  }, [ssePipeline, sseRuns, sessionId]);
+  }, [ssePipeline, sessionId]);
 
   useEffect(() => {
     const id = 'markdown-custom-style';
@@ -455,7 +439,7 @@ export default function Dashboard() {
           onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
         />
 
-        {/* ============ 右侧栏：Gate 步骤 + 历史 Runs ============ */}
+        {/* ============ 右侧栏：Gate 步骤 ============ */}
         <div ref={rightPanelRef} style={{
           width: rightPanelWidth, flexShrink: 0, overflow: 'auto',
           paddingLeft: 8,
@@ -531,39 +515,6 @@ export default function Dashboard() {
             />
           </Card>
 
-          {/* 历史 Runs */}
-          <Card
-            title={<span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
-              <HistoryOutlined style={{ marginRight: 4 }} />历史 Runs · {runs.length}
-            </span>}
-            size="small"
-            style={{ borderRadius: 14 }}
-          >
-            {runs.length === 0 ? (
-              <Empty description="暂无" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            ) : (
-              <div style={{ maxHeight: 300, overflow: 'auto' }}>
-                {runs.map(r => {
-                  const st = RUN_STATUS[r.status] || { label: r.status, color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' };
-                  return (
-                    <div key={r.id} style={{
-                      padding: '6px 10px', borderRadius: 10, marginBottom: 4,
-                      border: '1px solid var(--ant-color-border)', fontSize: 11,
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>{r.task_name || '未命名'}</span>
-                        <Tag style={{ borderRadius: 6, fontSize: 10, margin: 0, backgroundColor: st.bgColor, color: st.color, border: 'none' }}>{st.label}</Tag>
-                      </div>
-                      <div style={{ color: 'var(--ant-color-text)', opacity: 0.45, fontSize: 10, marginTop: 2 }}>
-                        {r.pipeline_type} · {r.current_gate} · {formatTime(r.started_at)}
-                        {r.total_duration_display ? ` · ${r.total_duration_display}` : ''}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
         </div>
       </div>
 
@@ -582,8 +533,6 @@ export default function Dashboard() {
           { color: 'var(--ant-color-primary)', content: '右侧栏 Gate Timeline 展示各 Gate 状态与耗时，点击可预览对应文档产物' },
           { color: 'var(--ant-color-primary)', content: <strong>调整右侧栏宽度</strong> },
           { color: 'var(--ant-color-primary)', content: '拖拽中间与右侧栏之间的分割线可调整右侧栏宽度，适配不同屏幕' },
-          { color: 'var(--ant-color-primary)', content: <strong>查看历史记录</strong> },
-          { color: 'var(--ant-color-primary)', content: '右侧栏底部显示当前会话的历史运行记录，快速回溯过往' },
           { color: 'var(--ant-color-primary)', content: <strong>实时状态推送（SSE）</strong> },
           { color: 'var(--ant-color-primary)', content: '页面通过 SSE 接收后端实时推送：MCP 状态变更、Gate 状态更新、流水线进度变化均即时刷新，无需手动操作' },
         ]} />

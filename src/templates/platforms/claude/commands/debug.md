@@ -65,7 +65,7 @@ Skill("debugging-and-error-recovery")
    | 数据库版本 | `psql --version` |
    | 最近部署 | `git log --oneline -5` |
 
-5. 输出 `docs/debug/YYYY-MM-DD-error-collection.md`
+5. 输出 `docs/YYYY-MM-DD/debug/error-collection.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "D1" })`
 
@@ -207,7 +207,7 @@ Skill("debugging-and-error-recovery")
 **Gate 检查条件**：诊断报告已产出，含根因分析+修复方案+预防建议
 
 ### 步骤
-输出 `docs/debug/YYYY-MM-DD-debug-report.md`：
+输出 `docs/YYYY-MM-DD/debug/debug-report.md`：
 ```markdown
 # 调试诊断报告
 ## 异常概述

@@ -139,7 +139,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 输出文件
 
-路径：docs/tasks/YYYY-MM-DD-<topic>-tasks.md
+路径：docs/YYYY-MM-DD/tasks/<topic>-tasks.md
 
 文档必须包含：
 1. 需求文档路径

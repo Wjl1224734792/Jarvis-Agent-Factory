@@ -161,7 +161,7 @@ scenarios:
 k6 run --out json=baseline.json script.js
 
 # 基线数据保存位置
-# docs/testing/perf-baselines/<YYYY-MM-DD>-<场景名>-baseline.json
+# docs/YYYY-MM-DD/testing/perf-baselines/<场景名>-baseline.json
 ```
 
 基线数据应包含：

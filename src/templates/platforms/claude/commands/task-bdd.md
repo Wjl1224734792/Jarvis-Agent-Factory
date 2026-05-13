@@ -46,4 +46,4 @@ effort: max
 - 遵守 behavioral-guidelines
 - 每个聚合行为至少 1 个 Happy Path + 1 个异常场景
 - 优先覆盖高业务价值的聚合行为
-- 文档保存到 `docs/tasks/` 目录
+- 文档保存到 `docs/YYYY-MM-DD/tasks/` 目录

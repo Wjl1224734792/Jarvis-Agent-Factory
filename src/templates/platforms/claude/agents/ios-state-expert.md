@@ -34,7 +34,7 @@ Skill(skill="code-standards")
 | 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 输出
-`docs/implementation/YYYY-MM-DD-<topic>-ios-state.md`
+`docs/YYYY-MM-DD/implementation/<topic>-ios-state.md`
 
 
 ## 红线

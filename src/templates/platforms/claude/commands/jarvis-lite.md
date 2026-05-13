@@ -7,14 +7,16 @@ argument-hint: [任务描述]
 
 立即执行以下初始化步骤：
 
-1. 加载基座技能：
+1. 🔴 **创建任务会话（必须第一步执行，不可跳过）**：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+   - **不传 task_name**——此时需求未明确，会话默认显示"未命名"
+   - 此调用会创建独立会话+新 run，自动生成 `docs/<YYYY>-<MM>-<DD>/` 日期产物目录
+   - 加入后根据任务类型调用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>", task_name: "<任务摘要>" })` 跳转时可设置标题
+   - 跳过的 Gate 自动标记为通过，引擎从入口 Gate 开始执行剩余流程
+
+2. 加载基座技能（并行）：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
-
-2. 注册引擎会话（lite 模式——支持 Gate 入口跳转）：
-   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
-   - 加入后根据任务类型调用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>" })` 跳过无关闸门
-   - 跳过的 Gate 自动标记为通过，引擎从入口 Gate 开始执行剩余流程
 
 3. **任务分类**——根据用户输入判断任务类型，映射到对应 Gate 入口：
 
