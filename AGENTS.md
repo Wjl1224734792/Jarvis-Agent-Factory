@@ -23,10 +23,24 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 ## 生命周期流水线
 
+### 标准流水线
+
 ```
 想法细化 → 需求澄清 → 任务分解 → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 发布
   Gate 0     Gate A     Gate B     Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
 ```
+
+### 专业流水线（v3.45.0）
+
+新指令各自有独立的 Gate 序列，绕过标准流水线直接进入专业流程：
+
+| 流水线类型 | 指令 | Gate 序列 | 门数 | 适用场景 |
+|-----------|------|----------|:----:|---------|
+| **重构** | `/refactor` | R1(边界定义) → R2(基线测试) → R3(执行重构) → R4(行为漂移检测) → R5(报告) | 5 | 代码重构、性能优化、可维护性提升 |
+| **热修复** | `/hotfix` | H0(紧急声明) → H1(最小化修复) → H2(快速验证) → H3(事后审计) | 4 | 紧急故障恢复、P0/P1 事故 |
+| **迁移** | `/migrate` | M1(迁移规则) → M2(应用迁移) → M3(编译验证) → M4(Lint 修复) | 4 | 框架升级、依赖替换、跨平台迁移 |
+| **评估** | `/evaluate` | E0(评估标准) → E1(快速原型) → E2(指标收集) → E3(评估报告) | 4 | 技术选型、方案对比、可行性研究 |
+| **调试** | `/debug` | D0(信息收集) → D1(复现用例) → D2(调试会话) → D3(交互诊断) → D4(报告) | 5 | 异常排查、根因定位、疑难 Bug |
 
 ## 工作模式
 
@@ -45,6 +59,18 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 审查修复闭环 | `/review-fix` | 切换到 `review-fix-optimize` agent | 加载 `review-fix-optimize` skill |
 | 算法专家 | `/algorithm-expert` | 切换到 `algorithm-expert` agent | 加载 `algorithm-expert` skill |
 | 架构对话 | `/frontend-architect` `/backend-architect` | 切换到对应 agent | 加载对应 skill |
+| **测试** | | |
+| 单元测试 | `/test-unit` | — | — |
+| 集成测试 | `/test-integration` | — | — |
+| 端到端测试 | `/test-e2e` | — | — |
+| 性能测试 | `/test-perf` | — | — |
+| 安全测试 | `/test-security` | — | — |
+| **工程** | | |
+| 重构安全网 | `/refactor` | — | — |
+| 紧急热修复 | `/hotfix` | — | — |
+| 框架迁移 | `/migrate` | — | — |
+| 技术评估 | `/evaluate` | — | — |
+| 调试诊断 | `/debug` | — | — |
 
 ### Gate 说明
 
@@ -94,7 +120,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 2. **修改技能前先读 writing-skills** — 技能文件需遵循 TDD 规范
 3. **技能修改仅限 Claude Code** — `.claude/skills/` 为主力维护，`.codex/skills/` 和 `.opencode/skills/` 已冻结不更新
 4. **子智能体不可递归** — 子智能体不得再 spawn 其他子智能体
-5. **闸门不可绕过** — Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃
+5. **闸门不可绕过** — 标准流水线 Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃。专业流水线同理不可绕过：重构 R1→R2→R3→R4→R5、热修复 H0→H1→H2→H3、迁移 M1→M2→M3→M4、评估 E0→E1→E2→E3、调试 D0→D1→D2→D3→D4。
     - Gate B1（架构评审）为条件性 Gate：涉及前端/后端/数据库/算法变更时强制执行
     - Gate C1.5（视觉验证）为条件性 Gate：纯后端/逻辑/算法任务可跳过
 6. **同 Batch 并行** — 无依赖任务必须在同一消息中批量发起
@@ -237,5 +263,5 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ### 探索/支撑（6）
 `code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert`
 
-### Claude Code 命令入口（20）
-`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore`
+### Claude Code 命令入口（30）
+`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
