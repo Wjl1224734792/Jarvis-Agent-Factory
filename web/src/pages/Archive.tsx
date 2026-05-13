@@ -15,6 +15,11 @@ const CMD_LABELS: Record<string, { label: string; color: string }> = {
   frontend: { label: 'frontend', color: 'var(--ant-color-error)' },
   backend: { label: 'backend', color: 'var(--ant-color-success)' },
   lite: { label: 'jarvis-lite', color: 'var(--ant-color-text)' },
+  refactor: { label: 'refactor', color: '#722ed1' },
+  hotfix: { label: 'hotfix', color: '#cf1322' },
+  migrate: { label: 'migrate', color: '#531dab' },
+  evaluate: { label: 'evaluate', color: '#006d75' },
+  debug: { label: 'debug', color: '#d46b08' },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {

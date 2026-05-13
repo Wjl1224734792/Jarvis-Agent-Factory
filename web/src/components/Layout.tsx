@@ -74,6 +74,11 @@ const PIPELINE_NAMES: Record<string, string> = {
   frontend: '前端',
   backend: '后端',
   lite: '轻量',
+  refactor: '重构',
+  hotfix: '紧急热修复',
+  migrate: '框架迁移',
+  evaluate: '技术评估',
+  debug: '调试诊断',
 };
 
 const CMD_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -81,6 +86,11 @@ const CMD_LABELS: Record<string, { label: string; color: string; bg: string }> =
   frontend: { label: 'frontend', color: 'var(--ant-color-error)', bg: 'var(--ant-color-error-bg)' },
   backend: { label: 'backend', color: 'var(--ant-color-info)', bg: 'var(--ant-color-info-bg)' },
   lite: { label: 'jarvis-lite', color: 'var(--ant-color-warning)', bg: 'var(--ant-color-warning-bg)' },
+  refactor: { label: 'refactor', color: '#722ed1', bg: '#f9f0ff' },
+  hotfix: { label: 'hotfix', color: '#cf1322', bg: '#fff2f0' },
+  migrate: { label: 'migrate', color: '#531dab', bg: '#f9f0ff' },
+  evaluate: { label: 'evaluate', color: '#006d75', bg: '#e6fffb' },
+  debug: { label: 'debug', color: '#d46b08', bg: '#fff7e6' },
 };
 
 const NAV_ITEMS = [
