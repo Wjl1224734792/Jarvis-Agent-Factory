@@ -513,82 +513,68 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  // --- Green 阶段：findSessionGateArtifacts 测试，全部通过 ---
+  // --- Green 阶段：findSessionGateArtifacts 测试（已移除 checkpoint 回退 + 扁平回退） ---
 
-  it('1. 日期目录扫描返回 dateDir/subdir/filename.md 格式（含 subdir 前缀）', () => {
-    // Gate A → subdir = 'requirements'，checkpoint 日期 2026-05-10
+  it('1. 无 runId 时使用当日日期目录扫描（dateDir/subdir/filename.md）', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-10T12:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-10', isDir: true }]);
     mockFs.setExists(join(DOCS, '2026-05-10', 'requirements'), true);
     mockFs.setEntries(join(DOCS, '2026-05-10', 'requirements'), ['REQ-001.md', 'REQ-002.md']);
 
-    const db = mockDb([{ passed_at: '2026-05-10T12:00:00Z' }]);
-    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
 
     expect(result).toEqual([
       '2026-05-10/requirements/REQ-001.md',
       '2026-05-10/requirements/REQ-002.md',
     ]);
+    vi.useRealTimers();
   });
 
-  it('2. 扁平目录回退返回 subdir/filename.md 格式（非裸 filename）', () => {
-    // checkpoint 日期 2026-05-10，但 dateDirs 中无匹配 → 回退到扁平目录
-    // BUG 验证：当前实现返回裸 filename，修复后应返回 subdir/filename.md
-    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配
-    mockFs.setExists(join(DOCS, 'requirements'), true);
-    mockFs.setEntries(join(DOCS, 'requirements'), [
-      '2026-05-10-REQ-003.md',
-      '2026-05-10-REQ-004.md',
-    ]);
+  it('2. 当日日期目录不存在时返回空数组', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-13T10:00:00Z'));
+    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配今天
 
-    const db = mockDb([{ passed_at: '2026-05-10T12:00:00Z' }]);
-    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
 
-    // 期望：subdir/filename.md（与 findGateArtifacts 扁平回退一致）
-    expect(result).toEqual([
-      'requirements/2026-05-10-REQ-003.md',
-      'requirements/2026-05-10-REQ-004.md',
-    ]);
+    expect(result).toEqual([]);
+    vi.useRealTimers();
   });
 
-  it('3. 有 checkpoint 的 Gate 通过日期匹配扫描', () => {
-    // Gate C → subdir = 'plans'，checkpoint 日期 2026-05-11
-    mockFs.setEntries(DOCS, [
-      { name: '2026-05-09', isDir: true },
-      { name: '2026-05-11', isDir: true },
-    ]);
-    mockFs.setExists(join(DOCS, '2026-05-11', 'plans'), true);
-    mockFs.setEntries(join(DOCS, '2026-05-11', 'plans'), ['plan-001.md']);
+  it('3. 日期目录存在但 subdir 不存在时返回空数组', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-11T08:00:00Z'));
+    mockFs.setEntries(DOCS, [{ name: '2026-05-11', isDir: true }]);
+    // plans 子目录不存在
 
-    const db = mockDb([{ passed_at: '2026-05-11T08:00:00Z' }]);
-    const result = findSessionGateArtifacts(DOCS, 'Gate C', SID, db);
+    const result = findSessionGateArtifacts(DOCS, 'Gate C', SID, mockDb([]));
 
-    expect(result).toEqual(['2026-05-11/plans/plan-001.md']);
+    expect(result).toEqual([]);
+    vi.useRealTimers();
   });
 
-  it('4. 无 checkpoint 的 Gate 使用当前日期扫描', () => {
-    // 当前 Gate 尚未通过，无 checkpoint → 使用今天日期扫描
+  it('4. 无 runId 时使用模拟的当前日期扫描', () => {
     mockFs.setEntries(DOCS, [{ name: '2026-05-12', isDir: true }]);
     mockFs.setExists(join(DOCS, '2026-05-12', 'requirements'), true);
     mockFs.setEntries(join(DOCS, '2026-05-12', 'requirements'), ['REQ-005.md']);
 
-    const db = mockDb([]); // 无 checkpoints
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-12T10:00:00Z'));
 
-    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
-    // 当前实现：checkpoints 为空 → 返回 []（BUG）
-    // 修复后：使用当前日期扫描 → 返回今天日期的文件
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
     expect(result).toEqual(['2026-05-12/requirements/REQ-005.md']);
+    vi.useRealTimers();
   });
 
-  it('5. 日期目录和扁平目录都不存在时返回空数组', () => {
-    // 有 checkpoint 但无匹配的日期目录，扁平目录也不存在
-    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配 2026-05-13
-    // flatDir 不存在（mock 默认返回 false）
+  it('5. 日期目录和子目录都不存在时返回空数组', () => {
+    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]);
 
-    const db = mockDb([{ passed_at: '2026-05-13T12:00:00Z' }]);
-    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-13T12:00:00Z'));
 
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
     expect(result).toEqual([]);
+    vi.useRealTimers();
   });
 });
