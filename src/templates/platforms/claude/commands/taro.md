@@ -83,6 +83,8 @@ Gate C-impl:
 
 ## Gate E 发布
 
+🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
+
 - 加载 `shipping-and-launch` 执行上线检查清单
 - 小程序：微信审核规范检查、体验版验证、提交审核
 - H5：静态资源 CDN 部署、缓存策略

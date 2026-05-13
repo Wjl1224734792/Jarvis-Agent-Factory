@@ -88,12 +88,17 @@ Skill("debugging-and-error-recovery")
 **Gate 检查条件**：快速验证通过，修复后功能正常，回滚预案可执行
 
 ### 步骤
-1. 功能验证：
+1. 🔴 **质量重检（不可跳过）**：
+   - Lint + Type-check + Build：修复后代码质量通过
+   - Test：运行现有测试套件，确保无回归
+   - 失败 → 修复后重跑，最多 2 轮
+
+2. 功能验证：
    - 确认故障现象消失
    - 抽查受影响功能的正常路径
    - 检查修复是否引入新错误
 
-2. 回滚预演：
+3. 回滚预演：
    ```bash
    # 记录当前 HEAD
    git rev-parse HEAD  # 保存到 hotfix 文档
@@ -103,7 +108,7 @@ Skill("debugging-and-error-recovery")
    git revert --abort           # 取消试运行
    ```
 
-3. 快速部署：
+4. 快速部署：
    - 合并到 main 分支
    - 触发部署流水线
    - 监控部署后指标（错误率、延迟）

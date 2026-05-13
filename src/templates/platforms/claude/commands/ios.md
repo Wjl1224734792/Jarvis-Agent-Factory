@@ -89,6 +89,8 @@ iOS 专项：
 
 ## Gate E 发布
 
+🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
+
 - 加载 `shipping-and-launch` 执行上线检查清单
 - App Store：证书管理、Archive→Validate→Submit、TestFlight 分发
 - HIG（Human Interface Guidelines）合规检查

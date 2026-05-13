@@ -107,7 +107,7 @@ export const GATE_CHECKS = {
   'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
   'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},
   'Gate C2':{check:'quality-gates.yml门禁判定通过：单元测试覆盖率/通过率≥阈值、集成/E2E测试通过率≥阈值、Lint/类型错误≤阈值；测试文档用例覆盖完整，API契约验证通过'},
-  'Gate D':{check:'领域审查+安全审计+性能审计通过；quality-gates.yml门禁判定通过：安全严重漏洞=0、高危漏洞≤阈值、性能回归≤阈值；REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
+  'Gate D':{check:'领域审查+安全审计+性能审计通过；quality-gates.yml门禁判定通过：安全严重漏洞=0、高危漏洞≤阈值、性能回归≤阈值；REQ追踪矩阵完整'},'Gate E':{check:'质量门重检通过（Lint+Type-check+Build+Deps Audit）+测试套件重跑通过+安全审计+上线检查清单+回滚预案就绪'},
   // TASK-001: 重构流水线检查条件
   'R1':{check:'重构边界与目标文档已产出，含重构范围+不变行为清单+成功标准'},
   'R2':{check:'现有测试套件全部通过，基线覆盖率报告已产出'},
@@ -117,7 +117,7 @@ export const GATE_CHECKS = {
   // TASK-001: 热修复流水线检查条件
   'H0':{check:'紧急声明已提交，审批人已确认，回滚预案已就绪'},
   'H1':{check:'最小化修复代码已提交，修复范围严格限定在故障根因，未夹带无关改动'},
-  'H2':{check:'快速验证通过，修复后功能正常，回滚预案可执行'},
+  'H2':{check:'快速验证通过（Lint+Type-check+Build+Test重检），修复后功能正常，回滚预案可执行'},
   'H3':{check:'事后回溯审计报告已产出，含根因分析+修复措施+预防改进'},
   // TASK-001: 迁移流水线检查条件
   'M1':{check:'迁移规则文档已产出，规则覆盖率验证通过'},

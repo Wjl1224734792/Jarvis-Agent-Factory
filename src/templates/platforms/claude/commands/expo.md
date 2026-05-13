@@ -91,6 +91,8 @@ Expo 专项：
 
 ## Gate E 发布
 
+🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
+
 - 加载 `shipping-and-launch` 执行上线检查清单
 - EAS Build：`eas build --platform all` 构建 iOS + Android
 - EAS Submit：`eas submit --platform ios` / `eas submit --platform android`

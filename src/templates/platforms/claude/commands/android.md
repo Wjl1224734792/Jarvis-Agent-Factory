@@ -89,6 +89,8 @@ Android 专项：
 
 ## Gate E 发布
 
+🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
+
 - 加载 `shipping-and-launch` 执行上线检查清单
 - Google Play：签名验证、AAB 构建、Play Console 提交
 - 国内渠道：应用宝/华为/小米/OPPO/VIVO 加固与分发

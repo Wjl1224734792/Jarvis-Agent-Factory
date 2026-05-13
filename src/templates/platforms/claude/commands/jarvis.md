@@ -340,7 +340,25 @@ qa-review-expert 综合报告后，按严重度处理：
 
 ## Gate E：发布上线
 
-**条件**：
+**🔴 前置条件（质量重检——Gate D 修复后必须重新验证，不可跳过）**：
+
+Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新执行质量门和测试：
+
+1. **质量门重检**：加载 `Skill("code-quality-gate")`，重新执行四项检查：
+   ``` [可并行]
+   ├── Lint（npm run lint）
+   ├── Type-check（tsc --noEmit）
+   ├── Build（npm run build）
+   └── Deps Audit（npm audit）
+   ```
+   全部通过后方可继续。任意项失败 → 修复后重跑全部四项，最多 2 轮。
+
+2. **测试重跑**：重新运行测试套件（`npm test`），确保 Gate D 修复未引入回归。
+   测试失败 → 定位根因修复后重跑，最多 2 轮。
+
+3. 以上两项全部通过后，继续发布流程。
+
+**发布条件**：
 - 所有 REQ 实现已通过 Gate D 评审
 - 安全审计无 Critical/High 或已有书面豁免
 - 上线检查清单已执行（`Skill("shipping-and-launch")`）

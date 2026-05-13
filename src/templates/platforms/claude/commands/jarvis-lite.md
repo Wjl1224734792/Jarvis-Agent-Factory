@@ -83,12 +83,17 @@ Gate D（spawn 对应审查 Agent）
 
 ```
 Gate E:
-  1. 确认版本号已递增
-  2. 确保 main 分支已合并
-  3. 推送 gitee + github
-  4. npm publish（如有）
-  5. 创建 release（gitee + github）
-  6. 加载 Skill("git-workflow-and-versioning")
+  🔴 前置——质量重检（不可跳过）：
+  1. Lint + Type-check + Build + Deps Audit 全部通过
+  2. 测试套件重跑通过（npm test）
+  3. 以上两项失败 → 修复后重跑，最多 2 轮
+  ─────────────────────
+  4. 确认版本号已递增
+  5. 确保 main 分支已合并
+  6. 推送 github
+  7. npm publish（如有）
+  8. 创建 release
+  9. 加载 Skill("git-workflow-and-versioning")
 ```
 
 ---

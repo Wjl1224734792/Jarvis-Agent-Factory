@@ -99,10 +99,14 @@ Skill("test-driven-development")
 
 ## R4：行为漂移检测
 
-**Gate 检查条件**：测试套件再次全部通过，覆盖率对比无下降，行为漂移检测通过
+**Gate 检查条件**：Lint + Type-check + Build 重检通过，测试套件再次全部通过，覆盖率对比无下降，行为漂移检测通过
 
 ### 步骤
-1. 重新运行测试套件：
+1. 🔴 **质量重检**（重构修改后必须重新验证）：
+   - Lint + Type-check + Build 全部通过
+   - 失败 → 修复后重跑，最多 2 轮
+
+2. 重新运行测试套件：
    ```bash
    npm test -- --coverage
    ```

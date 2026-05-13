@@ -152,6 +152,11 @@ Gate C-impl:
 
 ### Gate E：发布
 
+🔴 **前置——质量重检（不可跳过，Gate D 修复后必须重新验证）**：
+1. 加载 `Skill("code-quality-gate")`，重跑 Lint + Type-check + Build + Deps Audit
+2. 重跑测试套件（`npm test`），确保无回归
+3. 两项全部通过后方可继续；失败 → 修复后重跑，最多 2 轮
+
 - spawn `security-review-expert`（如 Gate D 未执行）
 - spawn `perf-review-expert`（如 Gate D 未执行）
 - 加载 `shipping-and-launch` 执行上线检查清单
