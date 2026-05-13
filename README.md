@@ -64,27 +64,28 @@ jarvis web                       # 启动 Web 面板（按需）
 ```
 docs/
 ├── tmp/                    # 临时产物（截图、快照、导出的验证数据等，已 .gitignore 排除）
-├── requirements/           # Gate A — 需求文档
-├── tasks/                  # Gate B — 任务分解文档
-├── architecture/           # Gate B1 — 架构评审产出
-├── plans/                  # Gate C — 执行计划文档
-├── implementation/         # Gate C-impl — 实现文档
-├── testing/                # Gate C2 — 测试文档与报告
-├── review/                 # Gate D — 评审报告
-└── shipping/               # Gate E — 发布记录
+├── YYYY-MM-DD/             # ★ 日期分类目录（唯一合法格式）
+│   ├── requirements/       # Gate A — 需求文档
+│   ├── tasks/              # Gate B — 任务分解文档
+│   ├── architecture/       # Gate B1 — 架构评审产出
+│   ├── plans/              # Gate C — 执行计划文档
+│   ├── implementation/     # Gate C-impl — 实现文档
+│   ├── testing/            # Gate C2 — 测试文档与报告
+│   ├── review/             # Gate D — 评审报告
+│   └── shipping/           # Gate E — 发布记录
 ```
 
 | 目录 | 对应 Gate | 说明 |
 |------|----------|------|
 | `docs/tmp/` | 全部 | 过程临时产物，不入版本库 |
-| `docs/requirements/` | Gate A | 需求澄清文档 |
-| `docs/tasks/` | Gate B | 任务分解文档 |
-| `docs/architecture/` | Gate B1 | 架构评审报告 |
-| `docs/plans/` | Gate C | 执行计划 |
-| `docs/implementation/` | Gate C-impl | 实现说明文档 |
-| `docs/testing/` | Gate C2 | 测试用例与报告 |
-| `docs/review/` | Gate D | 代码评审报告 |
-| `docs/shipping/` | Gate E | 发布记录与版本日志 |
+| `docs/YYYY-MM-DD/requirements/` | Gate A | 需求澄清文档 |
+| `docs/YYYY-MM-DD/tasks/` | Gate B | 任务分解文档 |
+| `docs/YYYY-MM-DD/architecture/` | Gate B1 | 架构评审报告 |
+| `docs/YYYY-MM-DD/plans/` | Gate C | 执行计划 |
+| `docs/YYYY-MM-DD/implementation/` | Gate C-impl | 实现说明文档 |
+| `docs/YYYY-MM-DD/testing/` | Gate C2 | 测试用例与报告 |
+| `docs/YYYY-MM-DD/review/` | Gate D | 代码评审报告 |
+| `docs/YYYY-MM-DD/shipping/` | Gate E | 发布记录与版本日志 |
 
 ## 架构
 
@@ -255,8 +256,8 @@ test-doc-writer → test-executor → fix-retest
 ## 生命周期流水线
 
 ```
-想法细化 → 需求澄清 → 任务分解 → 执行规划 → 并行实现 → 质量门 → 视觉验证 → 测试 → 评审 → 发布
-  Gate 0     Gate A     Gate B     Gate C     Gate C     Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
+想法细化 → 需求澄清 → 任务分解 → 执行规划 → 并行实现 → 质量门 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
+  Gate 0     Gate A     Gate B     Gate C     Gate C     Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
 ```
 
 ## 平台入口速查（Claude Code）
@@ -320,9 +321,12 @@ test-doc-writer → test-executor → fix-retest
 
 ## 发布流程
 
-**开发 → 测试 → 推送 main → 打 Tag → GitHub Actions 自动发布**
+**质量重检 → 测试 → 推送 main → 打 Tag → GitHub Actions 自动发布**
 
-1. 本地开发 + 测试通过：`npm run check && npm run build && cd web && npm run build`
+1. 🔴 **最终质量重检**（Gate E 前置条件，不可跳过）：
+   - Lint + Type-check + Build + Deps Audit 全部通过
+   - 测试套件全部通过（`npm test`）
+   - 失败 → 修复 → 重跑全部，最多 2 轮
 2. 更新 `package.json` 版本号（语义化版本）
 3. **同步更新 AGENTS.md / README.md / docs/README.md**
 4. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
@@ -330,7 +334,7 @@ test-doc-writer → test-executor → fix-retest
 6. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release + 单 HTML 面板 → npm publish）
 7. 验证：`npm view jarvis-agent-factory version` 确认版本
 
-> 每次提交前自问：文档是否需要同步更新？
+> 每次提交前自问：文档是否需要同步更新？质量重检是否已通过？
 
 ## 命令流程图
 

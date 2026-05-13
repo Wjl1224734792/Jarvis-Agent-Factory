@@ -26,8 +26,8 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 ### 标准流水线
 
 ```
-想法细化 → 需求澄清 → 任务分解 → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 发布
-  Gate 0     Gate A     Gate B     Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
+想法细化 → 需求澄清 → 任务分解 → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
+  Gate 0     Gate A     Gate B     Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
 ```
 
 ### 专业流水线（v3.45.0）
@@ -130,18 +130,19 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 10. **垂直切片优先** — 任务按端到端功能拆分，非技术层级
 11. **Agent 失败重试** — 超时重试最多 2 次 / 3 次全失败标记 BLOCKED
 12. **修改完必须测试** — 每次代码变更后验证功能正常，引擎启动无误，CLI 命令可用
-13. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 GitHub，GitHub Actions 自动发布 npm
-14. **提交必须同步文档** — 每次提交必须维护 AGENTS.md 与 README.md 保持与项目状态同步，版本号、统计数据、特性列表必须一致
-15. **临时文件统一存放** — 所有流水线过程产物（截图、快照、导出的验证数据等）统一放入 `docs/tmp/` 目录，禁止散落在项目根目录。`docs/tmp/` 已配置 `.gitignore` 排除。
-16. **Command（指令）与 Agent（智能体）边界清晰**：
+13. **评审修复后必须重新质量验证（硬约束）** — Gate D 评审触发的任何代码修复，完成后**必须**重新执行 Lint + Type-check + Build + Deps Audit + 测试套件。修复 → 重跑全部（不可只跑失败项）→ 最多 2 轮 → 仍失败标记 ABORT。全部通过方可进入 Gate E 发布。
+14. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 GitHub，GitHub Actions 自动发布 npm
+15. **提交必须同步文档** — 每次提交必须维护 AGENTS.md 与 README.md 保持与项目状态同步，版本号、统计数据、特性列表必须一致
+16. **临时文件统一存放** — 所有流水线过程产物（截图、快照、导出的验证数据等）统一放入 `docs/tmp/` 目录，禁止散落在项目根目录。`docs/tmp/` 已配置 `.gitignore` 排除。
+17. **Command（指令）与 Agent（智能体）边界清晰**：
     - Command（`/jarvis`, `/frontend`, `/backend-architect` 等）是用户交互入口，用于讨论方案或启动流程
     - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
     - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
     - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
-17. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步，配置文件仅保留作为历史参考。CLI 中 `jarvis add opencode/codex` 仍可执行但生成的文件已过时。
-18. **产物目录规范（硬约束，禁止旧格式）** — 临时产物统一放入 `docs/tmp/`，智能体正式产出**必须**存入 `docs/YYYY-MM-DD/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`。**禁止**写入 `docs/{subdir}/` 扁平目录或 `docs/{subdir}/YYYY-MM-DD-<topic>.md` 旧格式，引擎已移除所有向后兼容回退逻辑
-19. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
-20. **Web 面板路径解析——dev/main 隔离**：
+18. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步，配置文件仅保留作为历史参考。CLI 中 `jarvis add opencode/codex` 仍可执行但生成的文件已过时。
+19. **产物目录规范（硬约束，禁止旧格式）** — 临时产物统一放入 `docs/tmp/`，智能体正式产出**必须**存入 `docs/YYYY-MM-DD/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`。**禁止**写入 `docs/{subdir}/` 扁平目录或 `docs/{subdir}/YYYY-MM-DD-<topic>.md` 旧格式，引擎已移除所有向后兼容回退逻辑
+20. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
+21. **Web 面板路径解析——dev/main 隔离**：
     - **main 分支发布** → npm 全局包 → `dist/web/index.html` 位于包安装目录。引擎通过 `import.meta.dirname` 推导包目录加载它，不依赖 CWD
     - **dev 分支开发** → 本地项目 → `dist/web/index.html` 位于项目根目录。`getWebDistDir()` 在包目录找不到时回退到 `resolve(root, 'dist', 'web')`
     - **禁止**：直接硬编码 `resolve(root, 'dist', 'web')` 或 `path.join(process.cwd(), 'dist/web')`。必须通过 `getWebDistDir()` 处理双场景
