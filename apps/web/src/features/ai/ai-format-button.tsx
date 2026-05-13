@@ -98,6 +98,7 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
       if (result.html) {
         deleteCurrentSelection();
         editor.dangerouslyInsertHtml(result.html);
+        editor.focus();
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '排版失败，请稍后重试';
@@ -132,6 +133,7 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
 
       if (result.html) {
         editor.setHtml(result.html);
+        editor.focus();
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '排版失败，请稍后重试';

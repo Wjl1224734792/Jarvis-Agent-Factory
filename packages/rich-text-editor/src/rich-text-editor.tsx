@@ -102,12 +102,11 @@ export function RichTextEditor(props: RichTextEditorProps) {
 
   const emitEditorChange = useCallback(
     (currentEditor: IDomEditor) => {
-      // 过滤粘贴内容中的 file:/// 本地路径（WPS/Word 粘贴），同时清理空 src 属性
+      // 过滤粘贴内容中的 file:// 本地路径（WPS/Word 粘贴残留），清理空 src 属性
       const html = currentEditor
         .getHtml()
         .replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "")
-        .replace(/\s*src\s*=\s*["']\s*["']\s*/gi, " ")
-        .replace(/\s+/g, " ");
+        .replace(/\s*src\s*=\s*["']\s*["']\s*/gi, "");
       onChange({
         html,
         plainText: extractPlainTextFromHtml(html),
