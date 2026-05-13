@@ -146,8 +146,12 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             RELEASE_TAG=${{ inputs.tag }}
           fi
-          # 单 HTML 文件（vite-plugin-singlefile 内联所有 JS/CSS）
+          # SPA 单文件（vite-plugin-singlefile 内联所有 JS/CSS）
           gh release upload "$RELEASE_TAG" dist/web/index.html --clobber
+          # 独立视图页（pipeline / agents / archive 等）
+          for f in dist/src/web/views/*.html; do
+            [ -f "$f" ] && gh release upload "$RELEASE_TAG" "$f" --clobber
+          done
 
       - name: Publish to npm
         env:

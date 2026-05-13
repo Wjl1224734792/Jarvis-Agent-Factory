@@ -1,6 +1,6 @@
 {
   "name": "jarvis-agent-factory",
-  "version": "3.45.4",
+  "version": "3.45.5",
   "description": "Jarvis Agent Factory CLI — Claude Code 多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code",
   "keywords": [
     "jarvis",
@@ -38,7 +38,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build": "tsc && node -e \"import{cpSync}from'fs';cpSync('package.json','dist/package.json');cpSync('src/templates','dist/src/templates',{recursive:true})\"",
+    "build": "tsc && node scripts/copy-assets.js",
     "build:web": "cd web && npm run build",
     "dev": "tsx src/cli/index.ts",
     "jarvis": "node dist/src/cli/index.js",

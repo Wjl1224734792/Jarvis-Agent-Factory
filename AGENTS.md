@@ -210,11 +210,13 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 | **基础** | `behavioral-guidelines` `context-engineering` `using-agent-skills` |
 | **需求** | `spec-driven-development` `idea-refine` |
 | **规划** | `planning-and-task-breakdown` |
-| **实现** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` `frontend-design` |
+| **实现** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` `frontend-design` `refactoring` |
+| **框架** | `antd` `ant-design` |
 | **质量** | `code-quality-gate` `code-review-and-quality` `verification-before-completion` |
-| **调试** | `debugging-and-error-recovery` |
-| **浏览器** | `agent-browser` `browser-testing` |
-| **安全** | `security-and-hardening` |
+| **测试** | `perf-testing` `test-data-factory` |
+| **调试** | `debugging-and-error-recovery` `debugging-deep` |
+| **浏览器** | `agent-browser` `browser-testing` `browser-use` |
+| **安全** | `security-and-hardening` `security-testing` |
 | **流程** | `shipping-and-launch` `git-workflow-and-versioning` `finishing-a-development-branch` |
 | **文档** | `chinese-documentation` `documentation-and-adrs` `writing-skills` |
 | **探索** | `find-docs` `find-skills` |
@@ -243,16 +245,16 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 - docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
 - browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
 
-## 智能体体系（54 个 Agent，仅 Claude Code 平台）
+## 智能体体系（57 个 Agent，仅 Claude Code 平台）
 
 ### 实现类（22）
 `frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
-### 测试类（9）
-`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor`
+### 测试类（10）
+`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
 
-### 规划/任务（3）
-`task-design` `planner` `skill-assignment-expert`
+### 规划/任务（4）
+`task-design` `planner` `skill-assignment-expert` `remediation-planner`
 
 ### 审查类（10）
 `frontend-review-expert` `backend-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `review-only` `review-fix-optimize`
@@ -260,8 +262,8 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ### 架构/专家（4）
 `algorithm-expert` `frontend-architect` `backend-architect` `database-architect`
 
-### 探索/支撑（6）
-`code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert`
+### 探索/支撑（7）
+`code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `docs-research-expert`
 
 ### Claude Code 命令入口（30）
 `/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
