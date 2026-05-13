@@ -220,10 +220,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     api.health().then(h => setVersion(h.version || '?.?.?')).catch(() => {});
   }, []);
 
+  // SSE 指数退避重连计数器（ref 避免重建 effect）
+  const sseBackoffRef = useRef(1000);
+
   // SSE
   useEffect(() => {
     let evtSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    /** 使用闭包捕获的回退引用，确保 connect 内部读到最新值 */
+    const backoff = () => sseBackoffRef.current;
 
     function connect() {
       if (evtSource) evtSource.close();
@@ -231,24 +236,47 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       evtSource.onmessage = (e) => {
         try {
           const d = JSON.parse(e.data);
+          // sessions 浅比较：数据未变则跳过 setState，避免无谓渲染
           if (d.sessions) {
-            setSessions(d.sessions || []);
+            setSessions(prev => {
+              const next = d.sessions || [];
+              // JSON 序列化比深度比较更稳健且足够快（会话列表通常 < 50 条）
+              if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+              return next;
+            });
             if (!selectedSessionRef.current && d.sessions.length > 0) {
               const active = d.sessions.find((s: Session) => s.status === 'active');
               setSelectedSession((active || d.sessions[0]).id);
             }
           }
           // TASK-006: 从 SSE 获取 MCP 接入状态，替代 api.status 轮询
-          if (d.connected_platforms) setMcpStatus(d.connected_platforms);
+          if (d.connected_platforms) {
+            setMcpStatus(prev => {
+              if (JSON.stringify(prev) === JSON.stringify(d.connected_platforms)) return prev;
+              return d.connected_platforms;
+            });
+          }
           // TASK-006: 从 SSE 获取流水线数据，供 Dashboard 消费
           if (d.pipeline !== undefined) {
-            setPipelineData({ pipeline: d.pipeline, runs: d.pipeline_runs || [] });
+            setPipelineData(prev => {
+              const nextPipe = JSON.stringify(d.pipeline);
+              const prevPipe = JSON.stringify(prev.pipeline);
+              const nextRuns = JSON.stringify(d.pipeline_runs || []);
+              const prevRuns = JSON.stringify(prev.runs);
+              if (nextPipe === prevPipe && nextRuns === prevRuns) return prev;
+              return { pipeline: d.pipeline, runs: d.pipeline_runs || [] };
+            });
           }
+          // 连接成功后重置退避时间
+          sseBackoffRef.current = 1000;
         } catch {}
       };
       evtSource.onerror = () => {
         evtSource?.close();
-        reconnectTimer = setTimeout(connect, 5000);
+        const delay = backoff();
+        reconnectTimer = setTimeout(connect, delay);
+        // 指数退避：1s → 2s → 4s → 8s → … → max 30s
+        sseBackoffRef.current = Math.min(delay * 2, 30000);
       };
     }
     connect();
