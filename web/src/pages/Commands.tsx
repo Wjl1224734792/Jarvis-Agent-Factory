@@ -34,6 +34,16 @@ const FALLBACK_COMMANDS: CommandItem[] = [
   { name: 'task-bdd', description: 'BDD行为驱动——为高业务价值的聚合行为编写Gherkin场景', argumentHint: '', pipelineType: 'full', category: 'task' },
   { name: 'task-ddd', description: 'DDD领域驱动分析——从需求文档中提取聚合根、实体、值对象、领域服务、领域事件', argumentHint: '', pipelineType: 'full', category: 'task' },
   { name: 'task-tdd', description: 'TDD测试驱动任务——为BDD场景或纯技术需求生成测试骨架与任务包', argumentHint: '', pipelineType: 'full', category: 'task' },
+  { name: 'test-unit', description: '单元测试生成与执行——自动检测测试框架，生成覆盖率门禁测试用例', argumentHint: '[测试范围或模块路径]', pipelineType: 'full', category: 'test' },
+  { name: 'test-integration', description: '集成测试/API测试指令——基于OpenAPI契约生成集成测试', argumentHint: '[API端点或服务名称]', pipelineType: 'full', category: 'test' },
+  { name: 'test-e2e', description: '端到端测试指令——基于用户故事生成Playwright/Cypress脚本', argumentHint: '[用户故事或E2E范围]', pipelineType: 'full', category: 'test' },
+  { name: 'test-perf', description: '性能测试指令——k6/Artillery负载测试，对比基线，定位性能瓶颈', argumentHint: '[测试目标端点]', pipelineType: 'full', category: 'test' },
+  { name: 'test-security', description: '安全测试(DAST)指令——OWASP ZAP动态扫描', argumentHint: '[测试目标URL]', pipelineType: 'full', category: 'test' },
+  { name: 'refactor', description: '重构指令——R1→R2→R3→R4→R5，完整5Gate安全网', argumentHint: '[重构目标描述]', pipelineType: 'refactor', category: 'refactor' },
+  { name: 'hotfix', description: '紧急热修复指令——H0→H1→H2→H3，4Gate紧急流程', argumentHint: '[故障描述]', pipelineType: 'hotfix', category: 'hotfix' },
+  { name: 'migrate', description: '框架迁移指令——M1→M2→M3→M4，4Gate迁移流程', argumentHint: '[迁移描述如Express→Fastify]', pipelineType: 'migrate', category: 'migrate' },
+  { name: 'evaluate', description: '技术评估指令——E0→E1→E2→E3，4Gate评估流程', argumentHint: '[评估对象]', pipelineType: 'evaluate', category: 'evaluate' },
+  { name: 'debug', description: '调试诊断指令——D0→D1→D2→D3→D4，5Gate诊断流程', argumentHint: '[异常描述]', pipelineType: 'debug', category: 'debug' },
 ];
 
 // ============================================================
@@ -46,6 +56,11 @@ const PIPELINE_TAGS: Record<string, { label: string; color: string; bg: string }
   frontend: { label: 'frontend', color: 'var(--ant-color-error)', bg: 'var(--ant-color-error-bg)' },
   backend: { label: 'backend', color: 'var(--ant-color-info)', bg: 'var(--ant-color-info-bg)' },
   lite: { label: 'jarvis-lite', color: 'var(--ant-color-warning)', bg: 'var(--ant-color-warning-bg)' },
+  refactor: { label: 'refactor', color: '#722ed1', bg: '#f9f0ff' },
+  hotfix: { label: 'hotfix', color: '#cf1322', bg: '#fff2f0' },
+  migrate: { label: 'migrate', color: '#531dab', bg: '#f9f0ff' },
+  evaluate: { label: 'evaluate', color: '#006d75', bg: '#e6fffb' },
+  debug: { label: 'debug', color: '#d46b08', bg: '#fff7e6' },
 };
 
 /** 分类 Tab 配置 */
@@ -57,6 +72,12 @@ const CATEGORY_TABS = [
   { key: 'architecture', label: '架构' },
   { key: 'task', label: '任务' },
   { key: 'platform', label: '平台' },
+  { key: 'test', label: '测试指令' },
+  { key: 'refactor', label: '重构' },
+  { key: 'hotfix', label: '热修复' },
+  { key: 'migrate', label: '迁移' },
+  { key: 'evaluate', label: '评估' },
+  { key: 'debug', label: '调试' },
 ];
 
 /** 分类中文映射 */
@@ -67,6 +88,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   architecture: '架构',
   task: '任务',
   platform: '平台',
+  test: '测试指令',
+  refactor: '重构',
+  hotfix: '热修复',
+  migrate: '迁移',
+  evaluate: '评估',
+  debug: '调试',
 };
 
 // ============================================================

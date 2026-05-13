@@ -26,6 +26,11 @@ const GATE_COLORS: Record<string, string> = {
   A: 'var(--ant-color-primary)', B: 'var(--ant-color-primary)', C: 'var(--ant-color-primary)',
   C1: 'var(--ant-color-success)', 'C1.5': 'var(--ant-color-text)', C2: 'var(--ant-color-error)',
   D: 'var(--ant-color-primary)', E: 'var(--ant-color-primary)',
+  'R1': '#722ed1', 'R2': '#722ed1', 'R3': '#722ed1', 'R4': '#722ed1', 'R5': '#722ed1',
+  'H0': '#cf1322', 'H1': '#cf1322', 'H2': '#cf1322', 'H3': '#cf1322',
+  'M1': '#531dab', 'M2': '#531dab', 'M3': '#531dab', 'M4': '#531dab',
+  'E0': '#006d75', 'E1': '#006d75', 'E2': '#006d75', 'E3': '#006d75',
+  'D0': '#d46b08', 'D1': '#d46b08', 'D2': '#d46b08', 'D3': '#d46b08', 'D4': '#d46b08',
 };
 
 const GATE_LABELS: Record<string, string> = {
@@ -33,6 +38,11 @@ const GATE_LABELS: Record<string, string> = {
   B1: '架构评审', C: '执行规划',
   'C-impl': '并行实现', C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
   D: '评审', E: '发布上线',
+  'R1': '定义边界', 'R2': '基线测试', 'R3': '执行重构', 'R4': '漂移检测', 'R5': '生成报告',
+  'H0': '紧急声明', 'H1': '最小化修复', 'H2': '快速验证', 'H3': '事后审计',
+  'M1': '规则验证', 'M2': '应用迁移', 'M3': '编译验证', 'M4': '修复Lint',
+  'E0': '定义标准', 'E1': '生成原型', 'E2': '收集指标', 'E3': '生成报告',
+  'D0': '收集信息', 'D1': '复现用例', 'D2': '调试会话', 'D3': '交互诊断', 'D4': '输出报告',
 };
 
 const GATE_DESCRIPTIONS: Record<string, string> = {
@@ -48,6 +58,16 @@ const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate C2': '测试全部通过，API契约验证通过',
   'Gate D': '领域审查+安全审计+性能审计通过',
   'Gate E': '安全审计+上线检查清单+回滚预案就绪',
+  'Gate R1': '重构边界与目标文档已产出', 'Gate R2': '现有测试通过，基线覆盖率已产出',
+  'Gate R3': '重构代码已提交，未涉及边界外文件', 'Gate R4': '测试再次通过，覆盖率无下降',
+  'Gate R5': '重构报告已产出', 'Gate H0': '紧急声明已提交，审批人已确认',
+  'Gate H1': '最小化修复已完成', 'Gate H2': '验证通过，回滚预案可执行',
+  'Gate H3': '事后回溯审计完成', 'Gate M1': '迁移规则文档已产出',
+  'Gate M2': '迁移已执行', 'Gate M3': '编译/构建通过', 'Gate M4': 'Lint零错误',
+  'Gate E0': '评估标准文档已产出', 'Gate E1': '快速原型已生成',
+  'Gate E2': '指标数据已收集', 'Gate E3': '评估报告已产出',
+  'Gate D0': '异常信息已收集', 'Gate D1': '最小复现用例已生成',
+  'Gate D2': '调试会话已启动', 'Gate D3': '根因已定位', 'Gate D4': '诊断报告已产出',
 };
 
 const RUN_STATUS: Record<string, { label: string; color: string; bgColor: string }> = {
