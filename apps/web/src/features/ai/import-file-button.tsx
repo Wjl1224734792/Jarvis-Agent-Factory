@@ -97,6 +97,7 @@ export function ImportFileButton({ editor }: ImportFileButtonProps) {
           } else {
             editor.setHtml(cleanHtml);
           }
+          editor.focus();
         }
       } catch {
         editor?.alert('文件解析失败，请检查文件格式后重试', 'error');
