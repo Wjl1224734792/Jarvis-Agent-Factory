@@ -32,6 +32,34 @@ export const PIPELINE_DEFS = {
     gates: ['Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
     allow_jump: true,
   },
+  /** 重构流程：定义边界→基线测试→执行重构→行为漂移检测→生成报告
+   *  Gate 命名：R1-R5 属于 /refactor 流水线，不与现有 Gate E（发布阶段）混淆 */
+  refactor: {
+    name: '重构',
+    gates: ['R1', 'R2', 'R3', 'R4', 'R5'],
+  },
+  /** 紧急热修复：紧急声明→最小化修复→快速验证+回滚→事后审计
+   *  Gate 命名：H0-H3 属于 /hotfix 流水线 */
+  hotfix: {
+    name: '紧急热修复',
+    gates: ['H0', 'H1', 'H2', 'H3'],
+  },
+  /** 框架迁移：验证规则→应用迁移→编译验证→自动修复Lint */
+  migrate: {
+    name: '框架迁移',
+    gates: ['M1', 'M2', 'M3', 'M4'],
+  },
+  /** 技术评估：定义标准→生成原型→收集指标→生成报告
+   *  注意：E0-E3 属于 /evaluate 流水线，不与现有 Gate E（发布阶段）混淆 */
+  evaluate: {
+    name: '技术评估',
+    gates: ['E0', 'E1', 'E2', 'E3'],
+  },
+  /** 调试诊断：收集信息→复现用例→调试会话→交互诊断→输出报告 */
+  debug: {
+    name: '调试诊断',
+    gates: ['D0', 'D1', 'D2', 'D3', 'D4'],
+  },
 };
 
 export const DEFAULT_PIPELINE = 'full';
@@ -51,7 +79,23 @@ export function getPipelineName(type) {
   return def ? def.name : (type || DEFAULT_PIPELINE);
 }
 
-export const GATE_DIRS = { 'Gate A':'requirements','Gate B-DDD':'tasks','Gate B-BDD':'tasks','Gate B-TDD':'tasks','Gate B1':'architecture','Gate C':'plans','Gate C-impl':'implementation','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
+export const GATE_DIRS = {
+  'Gate A':'requirements','Gate B-DDD':'tasks','Gate B-BDD':'tasks','Gate B-TDD':'tasks',
+  'Gate B1':'architecture','Gate C':'plans','Gate C-impl':'implementation',
+  'Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing',
+  'Gate D':'review','Gate E':'shipping',
+  // TASK-001: 5 条新流水线产物目录映射
+  // /refactor → docs/refactoring/
+  'R1':'refactoring','R2':'refactoring','R3':'refactoring','R4':'refactoring','R5':'refactoring',
+  // /hotfix → docs/hotfix/
+  'H0':'hotfix','H1':'hotfix','H2':'hotfix','H3':'hotfix',
+  // /migrate → docs/migration/
+  'M1':'migration','M2':'migration','M3':'migration','M4':'migration',
+  // /evaluate → docs/evaluation/
+  'E0':'evaluation','E1':'evaluation','E2':'evaluation','E3':'evaluation',
+  // /debug → docs/debug/
+  'D0':'debug','D1':'debug','D2':'debug','D3':'debug','D4':'debug',
+};
 
 export const GATE_CHECKS = {
   'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},
@@ -61,8 +105,36 @@ export const GATE_CHECKS = {
   'Gate B1':{check:'架构评审通过，架构方案文档已产出（涉及前端/后端/数据库/算法的领域均有评审文档）'},
   'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C-impl':{check:'所有Batch实现完成，实现Agent已返回结果'},
   'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
-  'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'测试文档用例覆盖完整，单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},
-  'Gate D':{check:'领域审查+安全审计+性能审计通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
+  'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},
+  'Gate C2':{check:'quality-gates.yml门禁判定通过：单元测试覆盖率/通过率≥阈值、集成/E2E测试通过率≥阈值、Lint/类型错误≤阈值；测试文档用例覆盖完整，API契约验证通过'},
+  'Gate D':{check:'领域审查+安全审计+性能审计通过；quality-gates.yml门禁判定通过：安全严重漏洞=0、高危漏洞≤阈值、性能回归≤阈值；REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
+  // TASK-001: 重构流水线检查条件
+  'R1':{check:'重构边界与目标文档已产出，含重构范围+不变行为清单+成功标准'},
+  'R2':{check:'现有测试套件全部通过，基线覆盖率报告已产出'},
+  'R3':{check:'重构代码已提交，所有修改在重构边界内，未涉及边界外文件'},
+  'R4':{check:'测试套件再次全部通过，覆盖率对比无下降，行为漂移检测通过'},
+  'R5':{check:'重构报告已产出，含变更摘要+覆盖率对比+行为漂移结论'},
+  // TASK-001: 热修复流水线检查条件
+  'H0':{check:'紧急声明已提交，审批人已确认，回滚预案已就绪'},
+  'H1':{check:'最小化修复代码已提交，修复范围严格限定在故障根因，未夹带无关改动'},
+  'H2':{check:'快速验证通过，修复后功能正常，回滚预案可执行'},
+  'H3':{check:'事后回溯审计报告已产出，含根因分析+修复措施+预防改进'},
+  // TASK-001: 迁移流水线检查条件
+  'M1':{check:'迁移规则文档已产出，规则覆盖率验证通过'},
+  'M2':{check:'迁移已执行，代码已按规则表转换完毕'},
+  'M3':{check:'编译/构建通过，Type-check零错误'},
+  'M4':{check:'Lint零错误（自动修复循环最多2轮），构建成功'},
+  // TASK-001: 评估流水线检查条件
+  'E0':{check:'评估标准文档已产出，含评估维度+权重+用例清单'},
+  'E1':{check:'快速原型已生成（沙箱/独立分支），可独立运行'},
+  'E2':{check:'评估用例全部运行完毕，指标数据已收集'},
+  'E3':{check:'评估报告已产出，含各维度评分+综合结论+推荐方案'},
+  // TASK-001: 调试流水线检查条件
+  'D0':{check:'异常描述已记录，日志/堆栈/环境信息已收集'},
+  'D1':{check:'最小复现用例已生成，可稳定复现异常'},
+  'D2':{check:'调试会话已启动，断点/日志已插入关键路径'},
+  'D3':{check:'交互式诊断完成，根因已定位'},
+  'D4':{check:'诊断报告已产出，含根因分析+修复方案+预防建议'},
 };
 
 /**
@@ -97,6 +169,33 @@ export const GATE_OPERATIONS = {
   'Gate C2':   { allow: ['read','spawn_test','fix'],                     deny: ['spawn_impl','deploy','write_code'] },
   'Gate D':    { allow: ['read','review','audit','fix'],                 deny: ['spawn_impl','spawn_test','build','deploy','write_code'] },
   'Gate E':    { allow: ['read','deploy','write_doc'],                   deny: ['write_code','spawn_impl','spawn_test','lint','build'] },
+  // TASK-001: /refactor 流水线 Gate 操作矩阵
+  'R1': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'R2': { allow: ['read','spawn_test'],                            deny: ['write_code','spawn_impl','build','deploy'] },
+  'R3': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'R4': { allow: ['read','spawn_test'],                            deny: ['write_code','spawn_impl','build','deploy'] },
+  'R5': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // TASK-001: /hotfix 流水线 Gate 操作矩阵
+  'H0': { allow: ['read'],                                       deny: ['write_code','write_doc','spawn_impl','spawn_test','build','deploy'] },
+  'H1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'H2': { allow: ['read','spawn_test','fix'],                     deny: ['write_code','spawn_impl','build','deploy'] },
+  'H3': { allow: ['read','review','audit','deploy','write_doc'],  deny: ['write_code','spawn_impl','spawn_test'] },
+  // TASK-001: /migrate 流水线 Gate 操作矩阵
+  'M1': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'M2': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'M3': { allow: ['read','lint','build','fix'],                   deny: ['write_code','spawn_impl','spawn_test','deploy'] },
+  'M4': { allow: ['read','lint','build','fix'],                   deny: ['write_code','spawn_impl','spawn_test','deploy'] },
+  // TASK-001: /evaluate 流水线 Gate 操作矩阵
+  'E0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'E1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'E2': { allow: ['read','spawn_test'],                            deny: ['write_code','spawn_impl','build','deploy'] },
+  'E3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // TASK-001: /debug 流水线 Gate 操作矩阵
+  'D0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'D1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'D2': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'D3': { allow: ['read','write_code','spawn_impl','spawn_test'], deny: ['build','deploy'] },
+  'D4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
 };
 
 /** 获取当前 Gate 允许的操作列表 */
@@ -123,6 +222,33 @@ export const GATE_AGENT_GUIDE = {
   'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——步骤1(并行):spawn test-doc-writer(编写测试用例文档)+frontend-test-expert+backend-test-expert+api-test-expert(API功能测试) → 步骤2:spawn test-executor(按文档执行测试,输出报告) → 步骤3(有失败时):spawn remediation-expert(规划修复→执行修复→重跑,≤2轮) → 步骤4:spawn e2e-test-expert(端到端测试) → 步骤5:汇总测试结果至docs/testing/' },
   'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert'], note: '评审阶段——4个领域审查并行，最后qa-review-expert综合签核' },
   'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert', 'docs-engineer'], note: '发布阶段——安全审计+文档生成+上线检查+版本管理+归档' },
+  // TASK-001: /refactor 流水线 Agent 生成指引
+  'R1': { can_spawn: [], note: '定义重构边界与目标' },
+  'R2': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '运行现有测试套件+基线覆盖率' },
+  'R3': { can_spawn: ['frontend-dev-expert','frontend-ui-expert','frontend-state-expert','backend-dev-expert','backend-api-expert','backend-logic-expert','backend-data-expert','remediation-expert'], note: '执行重构' },
+  'R4': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '再次运行测试+对比覆盖率+行为漂移检测' },
+  'R5': { can_spawn: [], note: '汇总重构报告' },
+  // TASK-001: /hotfix 流水线 Agent 生成指引
+  'H0': { can_spawn: [], note: '紧急声明+审批确认——需人工介入' },
+  'H1': { can_spawn: ['frontend-dev-expert','backend-dev-expert','remediation-expert'], note: '最小化修复' },
+  'H2': { can_spawn: ['frontend-test-expert','backend-test-expert','browser-test-expert'], note: '快速验证+回滚预案' },
+  'H3': { can_spawn: ['security-review-expert','qa-review-expert','docs-engineer'], note: '事后回溯审计' },
+  // TASK-001: /migrate 流水线 Agent 生成指引
+  'M1': { can_spawn: ['code-explore-expert'], note: '验证迁移规则覆盖率' },
+  'M2': { can_spawn: ['frontend-dev-expert','backend-dev-expert','remediation-expert'], note: '应用迁移' },
+  'M3': { can_spawn: [], note: '编译/构建验证——Lint+Type-check+Build' },
+  'M4': { can_spawn: [], note: '自动修复Lint错误——循环修复至全部通过' },
+  // TASK-001: /evaluate 流水线 Agent 生成指引
+  'E0': { can_spawn: ['code-explore-expert','external-resource-expert'], note: '定义评估标准+用例' },
+  'E1': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '生成快速原型（沙箱）' },
+  'E2': { can_spawn: ['frontend-test-expert','backend-test-expert','perf-test-expert'], note: '运行用例+收集指标' },
+  'E3': { can_spawn: [], note: '汇总评估报告到 docs/evaluation/' },
+  // TASK-001: /debug 流水线 Agent 生成指引
+  'D0': { can_spawn: ['code-explore-expert'], note: '异常描述+日志收集' },
+  'D1': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '生成最小复现用例' },
+  'D2': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '启动调试会话' },
+  'D3': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '交互式诊断' },
+  'D4': { can_spawn: [], note: '输出诊断报告到 docs/debug/' },
 };
 
 /** 获取当前 Gate 可生成的 Agent 指引 */
@@ -144,6 +270,21 @@ export const MAX_RETRY = {
   'Gate C2': 2,
   'Gate D': 2,
   'Gate E': 2,
+  // TASK-001: /refactor 流水线重试次数
+  'R1': 2, 'R2': 2, 'R3': 2, 'R4': 2, 'R5': 2,
+  // TASK-001: /hotfix 流水线重试次数
+  'H0': 1, // 审批拒绝不重试
+  'H1': 2, 'H2': 2,
+  'H3': Infinity, // 合规审计不可跳过
+  // TASK-001: /migrate 流水线重试次数
+  'M1': 2, 'M2': 2, 'M3': 2,
+  'M4': 2, // 自动修复Lint错误：循环修复至全部通过
+  // TASK-001: /evaluate 流水线重试次数
+  'E0': 2, 'E1': 2, 'E2': 2, 'E3': 2,
+  // TASK-001: /debug 流水线重试次数
+  'D0': 2, 'D1': 2, 'D2': 2,
+  'D3': Infinity, // 交互式诊断可无限重试
+  'D4': 2,
 };
 
 /** 各个 Gate 的入口条件检查 */
@@ -159,6 +300,28 @@ export const GATE_ENTRY_CONDITIONS = {
   'Gate C2': 'Gate C1+C1.5 通过',
   'Gate D': 'Gate C2 测试通过',
   'Gate E': 'Gate D 审查通过',
+  // TASK-001: /refactor 流水线入口条件
+  'R2': 'Gate R1 重构边界已确认',
+  'R3': 'Gate R2 基线测试通过+覆盖率已记录',
+  'R4': 'Gate R3 重构代码已提交',
+  'R5': 'Gate R4 覆盖率对比+行为漂移检测通过',
+  // TASK-001: /hotfix 流水线入口条件
+  'H1': 'Gate H0 审批人已确认',
+  'H2': 'Gate H1 最小化修复已提交',
+  'H3': 'Gate H2 快速验证通过+回滚预案已就绪',
+  // TASK-001: /migrate 流水线入口条件
+  'M2': 'Gate M1 规则覆盖率验证通过',
+  'M3': 'Gate M2 迁移已执行',
+  'M4': 'Gate M3 编译/构建通过',
+  // TASK-001: /evaluate 流水线入口条件
+  'E1': 'Gate E0 评估标准已定义',
+  'E2': 'Gate E1 原型已生成',
+  'E3': 'Gate E2 用例运行完毕+指标已收集',
+  // TASK-001: /debug 流水线入口条件
+  'D1': 'Gate D0 异常信息已收集',
+  'D2': 'Gate D1 复现用例已生成',
+  'D3': 'Gate D2 调试会话已启动',
+  'D4': 'Gate D3 诊断完成',
 };
 
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */

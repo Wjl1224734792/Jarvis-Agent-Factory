@@ -837,6 +837,11 @@ function inferPipelineType(content: string): string {
   if (lower.includes('frontend')) return 'frontend';
   if (lower.includes('backend')) return 'backend';
   if (lower.includes('jarvis-lite') || lower.includes('lite')) return 'lite';
+  if (lower.includes('refactor')) return 'refactor';
+  if (lower.includes('hotfix')) return 'hotfix';
+  if (lower.includes('migrate')) return 'migrate';
+  if (lower.includes('evaluate')) return 'evaluate';
+  if (lower.includes('debug')) return 'debug';
   return 'full';
 }
 
@@ -846,7 +851,13 @@ function inferPipelineType(content: string): string {
  * @returns 分类标签
  */
 function inferCategory(name: string): string {
-  if (/test|explore|bug/.test(name)) return 'testing';
+  if (/^test-/.test(name)) return 'test';
+  if (/refactor/.test(name)) return 'refactor';
+  if (/hotfix/.test(name)) return 'hotfix';
+  if (/migrate/.test(name)) return 'migrate';
+  if (/evaluate/.test(name)) return 'evaluate';
+  if (/^debug/.test(name) || /bug/.test(name)) return 'debug';
+  if (/explore/.test(name)) return 'testing';
   if (/review/.test(name)) return 'review';
   if (/architect/.test(name)) return 'architecture';
   if (/^task-/.test(name)) return 'task';

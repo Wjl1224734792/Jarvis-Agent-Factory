@@ -189,6 +189,10 @@ function initSchema(db) {
   // ----  TASK-001: Checkpoint 耗时字段 ----
   try { db.exec("ALTER TABLE checkpoints ADD COLUMN duration_seconds INTEGER"); } catch {}
 
+  // ----  TASK-002: Checkpoint 质量门禁违反记录 ----
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN violations TEXT"); } catch {}
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN quality_profile_source TEXT"); } catch {}
+
   // ----  Per-Gate Agent Graph: agent_events 记录当前 Gate ----
   try { db.exec("ALTER TABLE agent_events ADD COLUMN current_gate TEXT"); } catch {}
 
@@ -267,15 +271,19 @@ export function getCheckpoints(db, gate, sessionId) {
   return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId);
 }
 /**
- * 记录 checkpoint，可选传入 Gate 耗时（秒）
+ * 记录 checkpoint，可选传入 Gate 耗时、质量门禁违反记录和配置档案来源。
  * @param {DatabaseSync} db
  * @param {string} gate
  * @param {string} advanceTo
  * @param {string} sessionId
  * @param {number} [durationSeconds] Gate 耗时（秒），不传则为 NULL
+ * @param {string} [violations] 质量门禁违反记录 JSON 字符串（TASK-002）
+ * @param {string} [qualityProfileSource] 质量门禁配置来源（TASK-002）
  */
-export function addCheckpoint(db, gate, advanceTo, sessionId, durationSeconds: number | undefined = undefined) {
-  if (durationSeconds !== undefined) {
+export function addCheckpoint(db, gate, advanceTo, sessionId, durationSeconds: number | undefined = undefined, violations: string | undefined = undefined, qualityProfileSource: string | undefined = undefined) {
+  if (violations !== undefined || qualityProfileSource !== undefined) {
+    db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to, duration_seconds, violations, quality_profile_source) VALUES (?, ?, datetime('now'), ?, ?, ?, ?)`).run(sessionId, gate, advanceTo, durationSeconds ?? null, violations ?? null, qualityProfileSource ?? null);
+  } else if (durationSeconds !== undefined) {
     db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to, duration_seconds) VALUES (?, ?, datetime('now'), ?, ?)`).run(sessionId, gate, advanceTo, durationSeconds);
   } else {
     db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, datetime('now'), ?)`).run(sessionId, gate, advanceTo);
