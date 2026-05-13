@@ -532,7 +532,7 @@ export function setupApiRoutes(app, db, root) {
       available_models: [
         ...new Set([
           ...allAgents.map(a => a.defaultModel).filter(Boolean),
-          ...Object.values(cfg).map(c => c.model).filter(Boolean),
+          ...Object.values(cfg).map((c: any) => c.model).filter(Boolean),
           ...AVAILABLE_MODELS,
         ]),
       ],
