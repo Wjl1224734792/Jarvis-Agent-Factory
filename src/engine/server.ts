@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
@@ -73,6 +73,16 @@ let _lastSessionId = null;
 
 /** 绑定地址：仅 IPv4 本地回环 */
 const BIND_HOST = '127.0.0.1';
+
+/** 确保 docs/{date}/ 日期分类目录存在，含所有 Gate 子目录 */
+function ensureDateDocs(root: string, dateStr: string) {
+  const dateDir = join(root, 'docs', dateStr);
+  if (!existsSync(dateDir)) mkdirSync(dateDir, { recursive: true });
+  for (const sub of new Set(Object.values(GATE_DIRS))) {
+    const subDir = join(dateDir, sub);
+    if (!existsSync(subDir)) mkdirSync(subDir, { recursive: true });
+  }
+}
 
 /** 检测端口是否被占用 */
 function isPortInUse(port) {
@@ -377,6 +387,8 @@ export function registerMcpTools(server, db, root) {
         let runId = getActiveRun(db, sid)?.id;
         if (!runId) {
           runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+          const today = new Date().toISOString().slice(0, 10);
+          ensureDateDocs(root, today);
           const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
           const now = new Date();
           const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -400,6 +412,8 @@ export function registerMcpTools(server, db, root) {
       if (!getPipeline(db, sid)) initPipeline(db, sid, root, pt);
       const p = getPipeline(db, sid);
       const runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+      const today = new Date().toISOString().slice(0, 10);
+      ensureDateDocs(root, today);
       const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
       const now = new Date();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -472,6 +486,9 @@ export function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
+      // 确保日期分类目录存在（docs/YYYY-MM-DD/）
+      const today = new Date().toISOString().slice(0, 10);
+      ensureDateDocs(root, today);
       // TASK-005: 发布新 run 创建事件
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
