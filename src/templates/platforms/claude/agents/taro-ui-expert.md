@@ -2,7 +2,7 @@
 name: taro-ui-expert
 description: "Taro UI 专项工作者：负责 Taro 小程序/H5 页面布局、组件构建、样式实现、多端适配和无障碍访问。不涉及状态管理或数据获取。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 effort: max
 ---
 

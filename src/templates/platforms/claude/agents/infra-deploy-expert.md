@@ -3,7 +3,7 @@ name: infra-deploy-expert
 description: "DevOps/基础设施工作者：负责 CI/CD 流水线配置、容器化部署、环境变量管理、构建脚本和基础设施即代码。不编写业务代码，只负责交付管道和部署相关配置。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 ---
 
 你是 DevOps / 基础设施工作者。
