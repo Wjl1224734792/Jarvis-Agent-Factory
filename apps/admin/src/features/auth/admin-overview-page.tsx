@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ModerationMode } from "@feijia/schemas";
 import {
   BarChartOutlined,
@@ -139,8 +139,9 @@ export function AdminOverviewPage() {
     authError: error
   });
 
+  const queryClient = useQueryClient();
   const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [registrationMode, setRegistrationMode] = useState<ChartMode>("day");
   const [activityMode, setActivityMode] = useState<ChartMode>("day");
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
@@ -382,12 +383,13 @@ export function AdminOverviewPage() {
       return;
     }
 
-    setIsSavingSettings(true);
     setSettingsError(null);
     try {
-      await apiClient.updateSiteSettings(buildSiteSettingsUpdate(siteSettings, partial));
+      const response = await apiClient.updateSiteSettings(buildSiteSettingsUpdate(siteSettings, partial));
+      // 乐观更新 siteSettings 缓存，避免重新请求
+      queryClient.setQueryData(["admin-overview", "site-settings"], response);
+      // 只 refetch 依赖审核模式的其他查询
       await Promise.all([
-        siteSettingsQuery.refetch(),
         analyticsQuery.refetch(),
         recentMessagesQuery.refetch(),
         todosQuery.refetch()
@@ -395,11 +397,12 @@ export function AdminOverviewPage() {
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
     } finally {
-      setIsSavingSettings(false);
+      setSavingKey(null);
     }
   }
 
   function updateModerationMode(key: SiteModerationModeKey, mode: ModerationMode) {
+    setSavingKey(key);
     return updateSiteSettings({
       moderationModes: {
         [key]: mode
@@ -900,7 +903,7 @@ export function AdminOverviewPage() {
                         autoCopy={item.autoCopy}
                         description={item.description}
                         key={item.key}
-                        loading={isSavingSettings}
+                        loading={savingKey === item.key}
                         manualCopy={item.manualCopy}
                         mode={item.mode}
                         onModeChange={(mode) => {
