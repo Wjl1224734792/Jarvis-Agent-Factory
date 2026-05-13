@@ -303,11 +303,11 @@ describe('TASK-001: GATE_OPERATIONS 注册 22 个新 Gate', () => {
     }
   });
 
-  it('11. H0 禁止 write_code / spawn_impl / spawn_test / build / deploy', () => {
+  it('11. H0 禁止 write_code / write_doc / spawn_impl / spawn_test / build / deploy（安全加固：防自审批绕过）', () => {
     const ops = getGateOperations('H0');
     expect(ops.allow).toContain('read');
-    expect(ops.allow).toContain('write_doc');
     expect(ops.deny).toContain('write_code');
+    expect(ops.deny).toContain('write_doc');
     expect(ops.deny).toContain('spawn_impl');
     expect(ops.deny).toContain('spawn_test');
     expect(ops.deny).toContain('build');
