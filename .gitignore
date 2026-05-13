@@ -130,3 +130,5 @@ test-results/
 .mcp.json
 opencode.json
 data/
+
+.jarvis/*
