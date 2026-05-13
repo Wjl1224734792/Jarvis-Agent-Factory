@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.43.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.45.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.43.0** — Dashboard 简化：文档阅读器替代 X6 画布 · Agent 事件去重 · Gate 耗时修复 · 多平台适配初始化
+> **v3.45.1** — 10 个新指令（测试体系化 + 重构安全网 + 热修复 + 迁移 + 评估 + 调试）· 5 条新流水线类型 · 智能 MCP 合并安装
 
 ## 快速开始
 
@@ -38,7 +38,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **MCP 编排引擎** | FSM 硬约束 Gate A→B→C→C1→C1.5→C2→D→E，跳过/回退被拒绝 |
 | **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
-| **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
+| **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
 | **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 产物文档阅读器 · Gate Timeline · Agent 配置页 |
@@ -46,6 +46,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md` 源文件 |
 | **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
+| **智能 MCP 合并** | `jarvis upgrade` / `jarvis init` 增量合并 MCP 配置，不覆盖用户自定义服务 |
 | **Hook/Plugin** | Claude Code hooks + MCP 全覆盖 |
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
 | **零原生依赖** | Node 22.5+ 内置 `node:sqlite`，安装秒级完成 |
@@ -149,6 +150,10 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 文档/配置 | Gate C | README、CI 配置等 |
 | 小功能添加 | Gate A | 从需求澄清开始 |
 | 重构/优化 | Gate C | 代码重构、性能优化 |
+| 热修复 | Gate H0 | 紧急故障恢复 |
+| 框架迁移 | Gate M1 | 框架版本升级、依赖替换 |
+| 技术评估 | Gate E0 | 技术选型、方案对比 |
+| 调试诊断 | Gate D0 | 异常排查、根因定位 |
 
 用法：在 Claude Code 中输入 `/jarvis-lite` 即可启动。
 
@@ -273,13 +278,25 @@ test-doc-writer → test-executor → fix-retest
 | 算法专家 | `/algorithm-expert` |
 | 前端架构 | `/frontend-architect` |
 | 后端架构 | `/backend-architect` |
+| **测试** | |
+| 单元测试 | `/test-unit` |
+| 集成测试 | `/test-integration` |
+| 端到端测试 | `/test-e2e` |
+| 性能测试 | `/test-perf` |
+| 安全测试 | `/test-security` |
+| **工程** | |
+| 重构安全网 | `/refactor` |
+| 紧急热修复 | `/hotfix` |
+| 框架迁移 | `/migrate` |
+| 技术评估 | `/evaluate` |
+| 调试诊断 | `/debug` |
 
 ## 统计
 
 | | Claude Code |
 |---|:--:|
 | Agents | 88 |
-| Commands | 16 |
+| Commands | 26 |
 | Skills | 29 |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
@@ -337,6 +354,16 @@ test-doc-writer → test-executor → fix-retest
 | **架构/专家** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | 问题收集→spawn架构师→呈现输出 |
 | | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | 问题收集→spawn架构师→呈现输出 |
 | | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | 问题收集→spawn算法专家→呈现输出 |
+| **测试体系** | `/test-unit` | [test-unit.md](docs/flows/test-unit.md) | 检测框架→分析代码→生成(Red)→运行(Green)→重构 |
+| | `/test-integration` | [test-integration.md](docs/flows/test-integration.md) | 识别契约→启动环境→生成→运行→清理 |
+| | `/test-e2e` | [test-e2e.md](docs/flows/test-e2e.md) | 用户故事→选工具→编写→运行→报告 |
+| | `/test-perf` | [test-perf.md](docs/flows/test-perf.md) | 定义目标→选择工具→建立基线→负载测试→定位瓶颈 |
+| | `/test-security` | [test-security.md](docs/flows/test-security.md) | 确认授权→爬取→主动扫描→修复→报告 |
+| **工程** | `/refactor` | [refactor.md](docs/flows/refactor.md) | R1边界→R2基线→R3重构→R4漂移检测→R5报告 (5门) |
+| | `/hotfix` | [hotfix.md](docs/flows/hotfix.md) | H0声明→H1修复→H2验证→H3审计 (4门) |
+| | `/migrate` | [migrate.md](docs/flows/migrate.md) | M1规则→M2迁移→M3编译→M4 Lint (4门) |
+| | `/evaluate` | [evaluate.md](docs/flows/evaluate.md) | E0标准→E1原型→E2指标→E3报告 (4门) |
+| | `/debug` | [debug.md](docs/flows/debug.md) | D0收集→D1复现→D2调试→D3诊断→D4报告 (5门) |
 
 > 所有流程图使用 `flowchart TD` 统一风格。读取 `docs/flows/` 目录下的 `.md` 文件可在支持 Mermaid 的 Markdown 渲染器中查看。
 

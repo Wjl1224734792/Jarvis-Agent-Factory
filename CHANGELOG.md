@@ -4,6 +4,42 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.45.1] - 2026-05-13
+
+### Added
+- **Web 静默更新**：面板检测到新版本时静默刷新资源，无需手动重载
+- **CLI 智能合并**：`jarvis upgrade` 增强智能合并，MCP 配置增量合并而非覆盖
+- **模板补齐**：新增 10 个命令模板安装支持（test-* / refactor / hotfix / migrate / evaluate / debug）
+
+### Fixed
+- **归档路径修复**：`archive` 操作路径解析异常修复，归档恢复功能稳定
+- **MCP 安装覆盖**：`jarvis init` 智能合并用户自定义 MCP 配置，不丢失已有服务
+
+### Changed
+- .mcp.json 安装策略从全量覆盖改为智能合并（保留用户自定义 MCP 服务）
+
+## [3.45.0] - 2026-05-13
+
+### Added
+- **10 个新指令**（命令体系从 16 扩充至 26）：
+  - `/test-unit` — 单元测试生成与执行（TDD Red/Green/Refactor + 覆盖率门禁）
+  - `/test-integration` — 集成测试 / API 测试（基于 OpenAPI 契约）
+  - `/test-e2e` — 端到端测试（Playwright/Cypress 用户故事驱动）
+  - `/test-perf` — 性能测试（k6/Artillery 负载测试 + 基线对比）
+  - `/test-security` — 安全测试（OWASP ZAP DAST 扫描）
+  - `/refactor` — 重构安全网（R1→R5 五门架构，行为漂移检测）
+  - `/hotfix` — 紧急热修复（H0→H3 四门紧急流程）
+  - `/migrate` — 框架迁移（M1→M4 四门迁移流程）
+  - `/evaluate` — 技术评估（E0→E3 四门评估流程）
+  - `/debug` — 调试诊断（D0→D4 五门诊断流程）
+- **5 条新流水线类型**：`refactor` / `hotfix` / `migrate` / `evaluate` / `debug`，各有独立 Gate 序列
+- **智能 MCP 合并安装**：`jarvis upgrade` 和 `jarvis init` 自动合并用户现有 MCP 配置，不再全量覆盖
+- **命令流程图**：为 10 个新指令新增 `docs/flows/*.md` 流程图文件
+
+### Changed
+- 命令体系从 16 个扩展至 26 个，覆盖测试、重构、热修复、迁移、评估、调试全生命周期
+- AGENTS.md / README.md / README_EN.md 同步更新至 v3.45.1
+
 ## [3.43.0] - 2026-05-12
 
 ### Removed
