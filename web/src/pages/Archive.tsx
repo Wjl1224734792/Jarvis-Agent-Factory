@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { PipelineRun } from '../api';
 import { api } from '../api';
+import { usePipelineData } from '../components/Layout';
 
 const CMD_LABELS: Record<string, { label: string; color: string }> = {
   full: { label: 'jarvis', color: 'var(--ant-color-success)' },
@@ -38,6 +39,8 @@ export default function Archive() {
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // SSE 推送的流水线数据，用于检测归档/恢复变更后自动刷新列表
+  const { runs: sseRuns } = usePipelineData();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,15 +56,17 @@ export default function Archive() {
 
   useEffect(() => { load(); }, [load]);
 
+  // SSE 推送的 pipeline_runs 变化时自动刷新归档列表
+  // （例如其他页面恢复了归档 run，当前页面及时更新）
+  useEffect(() => { load(); }, [sseRuns, load]);
+
   const handleRestore = async (runId: string) => {
     try {
-      const r = await api.unarchiveRun(runId);
-      if (r.ok) {
-        message.success('已恢复');
-        setRuns(prev => prev.filter(r => r.id !== runId));
-      } else {
-        message.error(r.error || '恢复失败');
-      }
+      // api.fetchJSON 成功时返回 JSON 对象，失败时抛出异常
+      // 因此无需检查 .ok 属性（JSON 对象不存在 .ok）
+      await api.unarchiveRun(runId);
+      message.success('已恢复');
+      setRuns(prev => prev.filter(r => r.id !== runId));
     } catch {
       message.error('恢复失败');
     }
@@ -76,13 +81,11 @@ export default function Archive() {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const r = await api.deleteRun(runId);
-          if (r.ok) {
-            message.success('已删除');
-            setRuns(prev => prev.filter(r => r.id !== runId));
-          } else {
-            message.error(r.error || '删除失败');
-          }
+          // api.fetchJSON 成功时返回 JSON 对象，失败时抛出异常
+          // 因此无需检查 .ok 属性（JSON 对象不存在 .ok）
+          await api.deleteRun(runId);
+          message.success('已删除');
+          setRuns(prev => prev.filter(r => r.id !== runId));
         } catch {
           message.error('删除失败');
         }

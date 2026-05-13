@@ -157,6 +157,9 @@ export default function Dashboard() {
   const [mdPreview, setMdPreview] = useState<{ open: boolean; content: string; title: string }>({
     open: false, content: '', title: '',
   });
+  /** 追踪用户是否正在查看文档，SSE 推送时若文档面板打开则跳过 pipeline 更新 */
+  const isReadingRef = useRef(false);
+  useEffect(() => { isReadingRef.current = mdPreview.open; }, [mdPreview.open]);
 
   // 右侧栏宽度（可拖拽调整）
   const [rightPanelWidth, setRightPanelWidth] = useState(340);
@@ -182,10 +185,20 @@ export default function Dashboard() {
   }, [loadData]);
 
   // TASK-006: SSE 推送数据与当前会话匹配时，直接更新（替代 8s 轮询）
+  // 修复：用户展开文档面板时跳过更新，避免 Markdown 预览被意外关闭
+  // 修复：数据未变时不调用 setState，避免无谓重渲染
   useEffect(() => {
     if (ssePipeline?.session_id === sessionId) {
-      setPipeline(ssePipeline);
-      setRuns(sseRuns);
+      // 用户正在查看文档时跳过更新，保留 mdPreview 状态
+      if (isReadingRef.current) return;
+      setPipeline(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(ssePipeline)) return prev;
+        return ssePipeline;
+      });
+      setRuns(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(sseRuns)) return prev;
+        return sseRuns;
+      });
     }
   }, [ssePipeline, sseRuns, sessionId]);
 

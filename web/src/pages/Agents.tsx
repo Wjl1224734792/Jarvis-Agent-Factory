@@ -129,14 +129,14 @@ export default function Agents() {
     if (!editAgent) return;
     setSaving(true);
     try {
+      // api.fetchJSON 成功时返回 JSON 对象，失败时抛出异常
+      // 因此无需检查 .ok 属性（JSON 对象不存在 .ok）
       const r = await api.saveAgent(editAgent.id, editModel, editEffort);
-      if (r.ok) {
-        message.success(r.file_synced ? '已保存并同步文件' : '已保存');
-        setEditAgent(null);
-        loadAgents({ platform: platform !== 'all' ? platform : undefined } as Record<string, string>);
-      }
+      message.success(r.file_synced ? '已保存并同步文件' : '已保存');
+      setEditAgent(null);
+      loadAgents({ platform: platform !== 'all' ? platform : undefined } as Record<string, string>);
     } catch {
-      message.error('保存失败');
+      message.error('保存失败，请检查引擎是否在线');
     } finally {
       setSaving(false);
     }
@@ -366,6 +366,23 @@ export default function Agents() {
                 </Tag>
               </div>
             </div>
+
+            {/* 文件来源路径 */}
+            {editAgent.fileName && (
+              <div style={{
+                padding: '6px 12px', borderRadius: 8, marginBottom: 12,
+                backgroundColor: 'var(--ant-color-fill-quaternary)', fontSize: 11,
+                color: 'var(--ant-color-text)', opacity: 0.65,
+                fontFamily: 'Consolas, Monaco, monospace',
+                wordBreak: 'break-all',
+              }}>
+                {editAgent.source === 'project'
+                  ? `.claude/agents/${editAgent.fileName}`
+                  : editAgent.source === 'global'
+                    ? `~/.claude/agents/${editAgent.fileName}`
+                    : `src/templates/platforms/${editAgent.platform}/agents/${editAgent.fileName}`}
+              </div>
+            )}
 
             {isTemplate && (
               <div style={{

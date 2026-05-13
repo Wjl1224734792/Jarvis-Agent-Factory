@@ -119,22 +119,48 @@ function installHooks(platform, target, isGlobal) {
     const file = resolve(claudeDir, 'settings.json');
     let existing: Record<string, any> = {};
     if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
+    const snapshot = JSON.stringify(existing); // 变更前快照
+
+    // 合并 permissions.allow —— 从模板读取，与现有列表去重合并（只新增不删除）
+    const tmplSettingsPath = resolve(TEMPLATES_DIR, 'platforms', 'claude', 'settings.json');
+    let permAdded = 0;
+    if (existsSync(tmplSettingsPath)) {
+      try {
+        const tmplSettings = JSON.parse(readFileSync(tmplSettingsPath, 'utf-8'));
+        if (tmplSettings.permissions?.allow && Array.isArray(tmplSettings.permissions.allow)) {
+          if (!existing.permissions) existing.permissions = {};
+          if (!existing.permissions.allow) existing.permissions.allow = [];
+          const existingSet = new Set(existing.permissions.allow);
+          for (const entry of tmplSettings.permissions.allow) {
+            if (!existingSet.has(entry)) {
+              existing.permissions.allow.push(entry);
+              permAdded++;
+            }
+          }
+        }
+      } catch { /* 模板解析失败不影响主流程 */ }
+    }
+
+    // 合并 hooks —— 保留用户自定义，补充系统必需的
+    let hookMerged = 0;
     if (!existing.hooks) {
       existing.hooks = hookJson;
-      writeFileSync(file, JSON.stringify(existing, null, 2));
-      console.log('  🔗 hooks → .claude/settings.json');
+      hookMerged = Object.keys(hookJson).length;
     } else {
-      // 已有 hooks：合并缺失项（保留用户自定义，补充系统必需的）
-      let merged = false;
       for (const [key, val] of Object.entries(hookJson)) {
-        if (!existing.hooks[key]) { existing.hooks[key] = val; merged = true; }
+        if (!existing.hooks[key]) { existing.hooks[key] = val; hookMerged++; }
       }
-      if (merged) {
-        writeFileSync(file, JSON.stringify(existing, null, 2));
-        console.log('  🔗 hooks → .claude/settings.json (merged new keys)');
-      } else {
-        console.log('  ~ hooks already configured');
-      }
+    }
+
+    // 单次写入：只有当实际有变更时才写文件
+    if (JSON.stringify(existing) !== snapshot) {
+      writeFileSync(file, JSON.stringify(existing, null, 2));
+      const parts: string[] = [];
+      if (permAdded > 0) parts.push(`${permAdded} permissions`);
+      if (hookMerged > 0) parts.push(`${hookMerged} hooks keys`);
+      console.log(`  🔗 ${parts.join(' + ')} → .claude/settings.json`);
+    } else {
+      console.log('  ~ hooks & permissions already configured');
     }
   }
 
@@ -208,7 +234,7 @@ function installMcp(platform, target, force) {
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     writeMcpJson(dest, content, force, t.file);
   } else {
-    // Claude JSON: .mcp.json at project root — 使用共享模块
+    // Claude JSON: .mcp.json at project root — 深度合并所有 MCP server
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     const projectRoot = dirname(dest);
     if (!existsSync(projectRoot)) mkdirSync(projectRoot, { recursive: true });
@@ -219,22 +245,24 @@ function installMcp(platform, target, force) {
 
     if (existingConfig && !force) {
       const eKey = existingConfig.mcpServers ? 'mcpServers' : 'mcp';
+      const existingServers: Record<string, any> = (existingConfig as any)[eKey] || {};
 
-      // 检查 jarvis-engine 是否已存在
-      const existingServers = eKey === 'mcpServers'
-        ? existingConfig.mcpServers
-        : (existingConfig as any)[eKey];
-      if (existingServers && existingServers['jarvis-engine']) {
-        console.log(`  ~ ${t.file.padEnd(22)} already configured`);
-        return;
+      // 深度合并：已有 server 保留用户配置，缺失的从模板添加，用户自定义的绝不删除
+      let added = 0;
+      for (const [serverName, serverConfig] of Object.entries(nJson[nKey] || {})) {
+        if (!existingServers[serverName]) {
+          existingServers[serverName] = serverConfig;
+          added++;
+        }
       }
 
-      // 合并：添加 jarvis-engine 到现有配置
-      const merged: Record<string, any> = { ...(existingConfig as any) };
-      if (!merged[eKey]) merged[eKey] = {};
-      merged[eKey]['jarvis-engine'] = nJson[nKey]['jarvis-engine'];
-      writeMcpConfig(projectRoot, merged as any);
-      console.log(`  ~ ${t.file.padEnd(22)} merged jarvis-engine`);
+      if (added > 0) {
+        (existingConfig as any)[eKey] = existingServers;
+        writeMcpConfig(projectRoot, existingConfig);
+        console.log(`  ~ ${t.file.padEnd(22)} merged ${added} new MCP server(s)`);
+      } else {
+        console.log(`  ~ ${t.file.padEnd(22)} already configured`);
+      }
     } else {
       // 新安装、force 覆盖、或原有文件 JSON 无效
       writeMcpConfig(projectRoot, nJson);
@@ -243,13 +271,12 @@ function installMcp(platform, target, force) {
   }
 }
 
-/** Write JSON MCP config; skip if exists and !force */
+/** Write JSON MCP config; deep merge — add missing servers, keep existing user configs */
 function writeMcpJson(dest, content, force, label) {
   const dir = dirname(dest);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   if (existsSync(dest) && !force) {
-    // Check if content is different
     const existing = readFileSync(dest, 'utf-8');
     try {
       const eJson = JSON.parse(existing);
@@ -257,16 +284,23 @@ function writeMcpJson(dest, content, force, label) {
       const eKey = eJson.mcpServers ? 'mcpServers' : 'mcp';
       const nKey = nJson.mcpServers ? 'mcpServers' : 'mcp';
 
-      // Check if jarvis-engine already exists in existing config
-      if (eJson[eKey] && eJson[eKey]['jarvis-engine']) {
-        console.log(`  ~ ${label.padEnd(22)} already configured`);
-        return;
+      // 深度合并：逐个 server 检查，缺失则添加，已有则保留用户配置，用户自定义的绝不删除
+      const existingServers: Record<string, any> = eJson[eKey] || {};
+      let added = 0;
+      for (const [serverName, serverConfig] of Object.entries(nJson[nKey] || {})) {
+        if (!existingServers[serverName]) {
+          existingServers[serverName] = serverConfig;
+          added++;
+        }
       }
-      // Merge: add jarvis-engine to existing
-      if (!eJson[eKey]) eJson[eKey] = {};
-      eJson[eKey]['jarvis-engine'] = nJson[nKey]['jarvis-engine'];
-      writeFileSync(dest, JSON.stringify(eJson, null, 2) + '\n');
-      console.log(`  ~ ${label.padEnd(22)} merged jarvis-engine`);
+
+      if (added > 0) {
+        eJson[eKey] = existingServers;
+        writeFileSync(dest, JSON.stringify(eJson, null, 2) + '\n');
+        console.log(`  ~ ${label.padEnd(22)} merged ${added} new MCP server(s)`);
+      } else {
+        console.log(`  ~ ${label.padEnd(22)} already configured`);
+      }
       return;
     } catch {
       // Invalid JSON — overwrite
