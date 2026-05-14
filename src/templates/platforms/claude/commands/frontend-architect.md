@@ -1,6 +1,8 @@
 ---
 description: 直接对话前端架构师——技术选型、组件架构、状态管理、构建工具链与性能架构方案
 argument-hint: [你的前端架构问题]
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 > ⚡ 此命令仅用于前端架构方案讨论与技术咨询，不参与流水线编排。流水线中架构评审由编排者在 Gate B1 自动 spawn frontend-architect Agent。

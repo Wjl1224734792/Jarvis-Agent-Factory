@@ -1,6 +1,8 @@
 ---
 name: test-data-factory
 description: "测试数据工厂——根据 Schema 生成 Mock 数据，支持脱敏规则、数据关联、批量生成。用于单元测试、集成测试和性能测试的测试数据准备。"
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 测试数据工厂

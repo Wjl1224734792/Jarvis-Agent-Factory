@@ -1,6 +1,6 @@
 {
   "name": "jarvis-agent-factory",
-  "version": "3.45.1",
+  "version": "3.46.1",
   "description": "Jarvis Agent Factory CLI — Claude Code 多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code",
   "keywords": [
     "jarvis",
@@ -64,7 +64,7 @@
     "tsx": "^4.19.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.6"
   },
   "lint-staged": {
     "*.ts": [

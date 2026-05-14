@@ -1,3 +1,7 @@
+---
+version: "3.45.8"
+updated: "2026-05-14"
+---
 # Raw CDP & Python Session Reference
 
 The CLI commands handle most browser interactions. Use `browser-use python` with raw CDP when you need browser-level control the CLI doesn't expose — activating a tab so the user sees it, intercepting network requests, emulating devices, or working with Chrome target IDs directly.

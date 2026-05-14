@@ -1,6 +1,8 @@
 ---
 description: Taro 小程序/H5 开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布
 argument-hint: [Taro 需求描述]
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # Taro 小程序/H5 开发生命周期

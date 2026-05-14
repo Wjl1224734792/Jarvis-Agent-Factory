@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Card, Row, Col, Tag, Input, Button, Modal, Select,
+  Card, Row, Col, Tag, Input, Button, Modal, Select, AutoComplete,
   Spin, Empty, message,
 } from 'antd';
 import {
@@ -143,8 +143,6 @@ export default function Agents() {
   };
 
   const allAgents = data?.agents || [];
-  const isTemplate = editAgent?.source === 'template';
-
   // 客户端三级筛选：平台（服务端）→ 流程分类 → 功能分类
   const filteredByPipeline = useMemo(
     () => pipelineType === 'all'
@@ -348,7 +346,6 @@ export default function Agents() {
         okText="保存"
         cancelText="取消"
         okButtonProps={{
-          disabled: isTemplate,
           style: { borderRadius: 18 },
         }}
         cancelButtonProps={{ style: { borderRadius: 18 } }}
@@ -384,24 +381,17 @@ export default function Agents() {
               </div>
             )}
 
-            {isTemplate && (
-              <div style={{
-                padding: '8px 12px', borderRadius: 12, marginBottom: 12,
-                backgroundColor: 'var(--ant-color-fill)', color: 'var(--ant-color-text)', fontSize: 12,
-                border: '1px solid var(--ant-color-border-secondary)',
-              }}>
-                模板默认智能体不可编辑
-              </div>
-            )}
-
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ant-color-text)', marginBottom: 4 }}>模型</div>
-              <Select
+              <AutoComplete
                 value={editModel}
                 onChange={setEditModel}
-                disabled={isTemplate}
                 style={{ width: '100%', borderRadius: 12 }}
                 options={(data?.available_models || []).map(m => ({ label: m, value: m }))}
+                placeholder="输入模型名称"
+                filterOption={(inputValue, option) =>
+                  (option?.value as string)?.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                }
               />
               {editAgent.defaultModel !== editModel && (
                 <div style={{ fontSize: 10, color: 'var(--ant-color-text)', marginTop: 2 }}>
@@ -415,7 +405,6 @@ export default function Agents() {
               <Select
                 value={editEffort}
                 onChange={setEditEffort}
-                disabled={isTemplate}
                 style={{ width: '100%', borderRadius: 12 }}
                 options={(data?.available_efforts || []).map(e => ({ label: `${EFFORT_LABELS[e] || e} (${e})`, value: e }))}
               />
@@ -426,18 +415,16 @@ export default function Agents() {
               )}
             </div>
 
-            {editAgent.is_custom && (
-              <Button
-                size="small"
-                onClick={() => {
-                  setEditModel(editAgent.defaultModel);
-                  setEditEffort(editAgent.defaultEffort || 'high');
-                }}
-                style={{ borderRadius: 12, color: 'var(--ant-color-error)' }}
-              >
-                恢复默认
-              </Button>
-            )}
+            <Button
+              size="small"
+              onClick={() => {
+                setEditModel(editAgent.defaultModel);
+                setEditEffort(editAgent.defaultEffort || 'high');
+              }}
+              style={{ borderRadius: 12, color: 'var(--ant-color-error)' }}
+            >
+              恢复默认
+            </Button>
           </div>
         )}
       </Modal>

@@ -2,6 +2,8 @@
 description: 浏览器自由探索——browser-use 自主探索 + 自动发现 UI bug + 出具结构化报告
 argument-hint: [URL 或功能描述]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 浏览器自由探索

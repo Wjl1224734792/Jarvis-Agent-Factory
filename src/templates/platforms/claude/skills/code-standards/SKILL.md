@@ -1,6 +1,8 @@
 ---
 name: code-standards
 description: 通用编程规范——注释、嵌套、不可变、模块化、设计原则、DDD、TDD、数据库外键。所有实现类 agent 必须遵守。
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 通用编程规范

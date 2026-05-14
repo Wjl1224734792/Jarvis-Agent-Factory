@@ -2,6 +2,8 @@
 description: 进入只读审查模式——审查代码/项目/风险，不修改任何文件
 argument-hint: [审查对象]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 只读审查模式

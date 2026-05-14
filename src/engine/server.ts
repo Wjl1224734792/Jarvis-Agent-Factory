@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
@@ -90,6 +90,54 @@ function sessionGates(db, sid) {
   return getPipelineGates(p?.pipeline_type || DEFAULT_PIPELINE);
 }
 
+/** 扫描冲突文件：检测 .claude/agents/、commands/、skills/ 下含 <<<<<<< user 标记的 .md 文件 */
+function scanConflictFiles(projectRoot: string): void {
+  const baseDirs = ['.claude/agents', '.claude/commands', '.claude/skills'];
+  let scanned = 0;
+  const MAX = 200;
+  const conflictPaths: string[] = [];
+
+  /** 递归扫描子目录 */
+  const scanDir = (dirPath: string, relPath: string): void => {
+    if (scanned >= MAX) return;
+    if (!existsSync(dirPath)) return;
+
+    let entries: string[];
+    try { entries = readdirSync(dirPath); } catch { return; }
+
+    for (const entry of entries) {
+      if (scanned >= MAX) return;
+      const fullPath = join(dirPath, entry);
+      const relEntry = join(relPath, entry).replace(/\\/g, '/');
+
+      let isDir: boolean;
+      try { isDir = statSync(fullPath).isDirectory(); } catch { continue; }
+
+      if (isDir) {
+        scanDir(fullPath, relEntry);
+      } else if (entry.endsWith('.md') || entry.endsWith('.json')) {
+        scanned++;
+        try {
+          const content = readFileSync(fullPath, 'utf-8');
+          if (content.includes('<<<<<<< user')) {
+            conflictPaths.push(relEntry);
+          }
+        } catch { /* 文件读取失败跳过 */ }
+      }
+    }
+  };
+
+  for (const dir of baseDirs) {
+    if (scanned >= MAX) break;
+    scanDir(resolve(projectRoot, dir), dir);
+  }
+
+  // 批量输出警告
+  for (const f of conflictPaths) {
+    console.warn(`  ⚠ 冲突文件: ${f}`);
+  }
+}
+
 /** 启动 Jarvis 引擎 */
 export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdio = false } = {}) {
   // 非 stdio 模式：端口已被占用 → 复用已有引擎
@@ -132,6 +180,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb();
+
+  // TASK-003: 冲突文件扫描（不阻塞启动）
+  scanConflictFiles(root);
 
   // 过期标记：每 5 分钟检查一次（活动追踪在每次工具调用时自动完成）
   setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 300_000);

@@ -4,6 +4,8 @@ description: "iOS 原生开发工作者：负责 Swift/SwiftUI 页面、组件�
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是 iOS 原生开发工作者。

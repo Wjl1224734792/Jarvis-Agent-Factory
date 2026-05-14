@@ -1,6 +1,8 @@
 ---
 description: 贾维斯轻量编排——智能Gate映射，按任务类型跳过无关闸门
 argument-hint: [任务描述]
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 贾维斯轻量编排

@@ -1,6 +1,8 @@
 ---
 description: 直接对话后端架构师——微服务拆分、数据库架构、分布式可靠性与数据一致性方案
 argument-hint: [你的后端架构问题]
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 > ⚡ 此命令仅用于后端架构方案讨论与技术咨询，不参与流水线编排。流水线中架构评审由编排者在 Gate B1 自动 spawn backend-architect Agent。

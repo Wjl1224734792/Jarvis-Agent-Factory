@@ -186,13 +186,14 @@ const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onRes
             style={{ color: 'var(--ant-color-success)', flexShrink: 0 }}
           />
         )}
-        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-          <Button
-            type="text" size="small"
-            onClick={(e) => e.stopPropagation()}
-            style={{ color: 'var(--ant-color-text)', flexShrink: 0, padding: '0 4px' }}
-          >···</Button>
-        </Dropdown>
+        <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+          <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+            <Button
+              type="text" size="small"
+              style={{ color: 'var(--ant-color-text)', padding: '0 4px' }}
+            >···</Button>
+          </Dropdown>
+        </span>
       </div>
       <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
         <Tag style={{ fontSize: 10, margin: 0, borderRadius: 8, backgroundColor: cmd.bg, color: cmd.color, border: 'none' }}>

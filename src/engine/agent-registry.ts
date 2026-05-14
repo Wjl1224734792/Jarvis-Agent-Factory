@@ -342,6 +342,28 @@ export function getPlatforms() {
   return Object.keys(PLATFORM_CONFIG);
 }
 
+/**
+ * 收集所有模板 agent 文件中 frontmatter 的 model 值（去重）
+ * 用于 /api/agents 的 available_models 动态来源
+ */
+export function getAgentModelValues(): string[] {
+  const templatesDir = resolveTemplatesDir();
+  const models = new Set<string>();
+  for (const [, config] of Object.entries(PLATFORM_CONFIG)) {
+    const agentsDir = join(templatesDir, config.dir, 'agents');
+    if (!existsSync(agentsDir)) continue;
+    for (const entry of readdirSync(agentsDir)) {
+      if (!entry.endsWith(config.ext)) continue;
+      try {
+        const content = readFileSync(join(agentsDir, entry), 'utf-8');
+        const fm = parseMdFrontmatter(content);
+        if (fm.model) models.add(fm.model);
+      } catch { /* 跳过不可读文件 */ }
+    }
+  }
+  return [...models];
+}
+
 /** 按平台分组的可用模型，force 强制重新扫描 */
 export function getPlatformModels(force?: boolean): Record<string, string[]> {
   const agents = getAgentList(force);

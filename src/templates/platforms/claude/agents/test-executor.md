@@ -3,6 +3,8 @@ name: test-executor
 description: "浏览器测试执行者——严格按照已有测试用例文档执行测试，记录通过/失败结果，不自行编写测试用例"
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 测试执行智能体
