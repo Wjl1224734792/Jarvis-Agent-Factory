@@ -760,6 +760,15 @@ const rawApiClient = {
       context,
       title
     });
+  },
+  /**
+   * 查询 AI 功能开关状态
+   * @returns 三个 AI 功能（摘要、排版、聊天）的启用状态
+   */
+  getAiFeatures() {
+    return getJson<{ features: { summary: boolean; format: boolean; chat: boolean } }>(
+      API_ROUTES.ai.features
+    );
   }
 };
 

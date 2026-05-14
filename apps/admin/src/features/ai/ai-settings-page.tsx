@@ -28,7 +28,7 @@ const DEFAULT_VALUES: AiSettings = {
   baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   summaryModel: "qwen-plus",
   formatModel: "qwen-plus",
-  features: { summary: true, format: true }
+  features: { summary: true, format: true, chat: true }
 };
 
 const AI_SETTINGS_QUERY_KEY = ["admin", "ai-settings"] as const;
@@ -194,6 +194,14 @@ export function AiSettingsPage() {
             <Form.Item
               label="排版功能开关"
               name={["features", "format"]}
+              valuePropName="checked"
+            >
+              <Switch checkedChildren="开" unCheckedChildren="关" />
+            </Form.Item>
+
+            <Form.Item
+              label="AI 聊天功能开关"
+              name={["features", "chat"]}
               valuePropName="checked"
             >
               <Switch checkedChildren="开" unCheckedChildren="关" />
