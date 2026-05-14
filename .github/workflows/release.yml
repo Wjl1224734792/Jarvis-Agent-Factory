@@ -146,8 +146,20 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             RELEASE_TAG=${{ inputs.tag }}
           fi
-          # 单 HTML 文件（vite-plugin-singlefile 内联所有 JS/CSS）
-          gh release upload "$RELEASE_TAG" dist/web/index.html --clobber
+          # SPA 单文件（vite-plugin-singlefile 内联所有 JS/CSS）
+          if [ -f dist/web/index.html ]; then
+            gh release upload "$RELEASE_TAG" dist/web/index.html --clobber
+          else
+            echo "⚠ dist/web/index.html not found, skipping SPA upload"
+          fi
+          # 独立视图页（pipeline / agents / archive 等）
+          if [ -d dist/src/web/views ]; then
+            for f in dist/src/web/views/*.html; do
+              [ -f "$f" ] && gh release upload "$RELEASE_TAG" "$f" --clobber
+            done
+          else
+            echo "⚠ dist/src/web/views/ not found, skipping views upload"
+          fi
 
       - name: Publish to npm
         env:
