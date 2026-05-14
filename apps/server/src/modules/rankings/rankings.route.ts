@@ -33,8 +33,8 @@ import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { rankingsService } from "./rankings.service";
@@ -68,7 +68,7 @@ rankingsRoute.get(API_ROUTES.rankings.overview, async (context) => {
   return context.json(rankingsResponseSchema.parse(payload));
 });
 
-rankingsRoute.get(API_ROUTES.rankings.adminList, requireAdmin, async (context) => {
+rankingsRoute.get(API_ROUTES.rankings.adminList, requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = context.get("currentUser");
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
@@ -90,7 +90,7 @@ rankingsRoute.get(API_ROUTES.rankings.adminList, requireAdmin, async (context) =
   return context.json(adminRankingsResponseSchema.parse(result.payload));
 });
 
-rankingsRoute.get(API_ROUTES.rankings.adminItems, requireAdmin, async (context) => {
+rankingsRoute.get(API_ROUTES.rankings.adminItems, requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = context.get("currentUser");
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
@@ -150,7 +150,7 @@ rankingsRoute.put(API_ROUTES.rankings.update(":id"), requireAuth, async (context
   return context.json(rankingResponseSchema.parse(result.payload));
 });
 
-rankingsRoute.put(API_ROUTES.rankings.adminStatus(":id"), requireAdmin, async (context) => {
+rankingsRoute.put(API_ROUTES.rankings.adminStatus(":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const id = context.req.param("id");
   const currentUser = context.get("currentUser");
   if (!id) {
@@ -177,7 +177,7 @@ rankingsRoute.put(API_ROUTES.rankings.adminStatus(":id"), requireAdmin, async (c
   return context.json(rankingResponseSchema.parse(result.payload));
 });
 
-rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireAdmin, async (context) => {
+rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const id = context.req.param("id");
   const currentUser = context.get("currentUser");
   if (!id) {
@@ -204,7 +204,7 @@ rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireAdmin, asyn
   return context.json(ratingTargetDetailResponseSchema.parse(result.payload));
 });
 
-rankingsRoute.get(API_ROUTES.rankings.adminRankingComments, requireAdmin, async (context) => {
+rankingsRoute.get(API_ROUTES.rankings.adminRankingComments, requireRole('super_admin', 'moderator'), async (context) => {
   const status = context.req.query("status");
   const payload = await rankingsService.listAdminRankingComments(
     status === "pending" || status === "visible" || status === "hidden" ? status : undefined
@@ -212,7 +212,7 @@ rankingsRoute.get(API_ROUTES.rankings.adminRankingComments, requireAdmin, async 
   return context.json(adminRankingCommentsResponseSchema.parse(payload));
 });
 
-rankingsRoute.put(API_ROUTES.rankings.adminRankingCommentDetail(":id"), requireAdmin, async (context) => {
+rankingsRoute.put(API_ROUTES.rankings.adminRankingCommentDetail(":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -227,7 +227,7 @@ rankingsRoute.put(API_ROUTES.rankings.adminRankingCommentDetail(":id"), requireA
   return context.json(adminRankingCommentResponseSchema.parse({ item }));
 });
 
-rankingsRoute.get(API_ROUTES.rankings.adminRatingTargetComments, requireAdmin, async (context) => {
+rankingsRoute.get(API_ROUTES.rankings.adminRatingTargetComments, requireRole('super_admin', 'moderator'), async (context) => {
   const status = context.req.query("status");
   const payload = await rankingsService.listAdminRatingTargetComments(
     status === "pending" || status === "visible" || status === "hidden" ? status : undefined
@@ -235,7 +235,7 @@ rankingsRoute.get(API_ROUTES.rankings.adminRatingTargetComments, requireAdmin, a
   return context.json(adminRatingTargetCommentsResponseSchema.parse(payload));
 });
 
-rankingsRoute.put(API_ROUTES.rankings.adminRatingTargetCommentDetail(":id"), requireAdmin, async (context) => {
+rankingsRoute.put(API_ROUTES.rankings.adminRatingTargetCommentDetail(":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);

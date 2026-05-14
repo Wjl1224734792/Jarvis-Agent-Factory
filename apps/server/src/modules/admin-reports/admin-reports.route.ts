@@ -2,7 +2,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import {
@@ -34,12 +34,12 @@ function isReportKind(value: string): value is ReportKind {
 
 adminReportsRoute.use("*", attachCurrentUser);
 
-adminReportsRoute.get(API_ROUTES.admin.reports, requireAdmin, async (context) => {
+adminReportsRoute.get(API_ROUTES.admin.reports, requireRole('super_admin', 'moderator'), async (context) => {
   const payload = await adminReportsService.listReportSummary();
   return context.json(parseAdminReportSummaryResponse(payload));
 });
 
-adminReportsRoute.get(API_ROUTES.admin.reportDetail(":kind", ":id"), requireAdmin, async (context) => {
+adminReportsRoute.get(API_ROUTES.admin.reportDetail(":kind", ":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const kind = context.req.param("kind");
   const id = context.req.param("id");
   if (!kind || !id) {

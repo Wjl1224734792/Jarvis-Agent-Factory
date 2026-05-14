@@ -4,6 +4,50 @@ import { chinaMainlandMobilePhoneSchema } from "./phone";
 
 export const authRoleSchema = z.enum(["user", "admin"]);
 
+/**
+ * 后台管理角色枚举（含兼容别名 admin）。
+ * 用于 requireRole 中间件和权限矩阵，不替换基础 authRoleSchema。
+ */
+export type AdminRole = "admin" | "super_admin" | "editor" | "moderator" | "operator";
+
+/** 管理员类角色列表（含兼容别名 admin） */
+export const ADMIN_ROLES: readonly AdminRole[] = [
+  "admin",
+  "super_admin",
+  "editor",
+  "moderator",
+  "operator"
+];
+
+/**
+ * 各角色对应的权限列表
+ * - "super_admin" 拥有通配符 "*" 表示全部权限
+ * - "admin" 作为兼容别名，权限与 super_admin 相同
+ * - 其他角色按 module:* 格式声明模块级权限
+ */
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
+  super_admin: ["*"],
+  admin: ["*"],
+  editor: [
+    "content:*",
+    "overview:view",
+    "messages:view",
+    "settings:security"
+  ],
+  moderator: [
+    "moderation:*",
+    "overview:view",
+    "messages:view",
+    "settings:security"
+  ],
+  operator: [
+    "operations:*",
+    "overview:view",
+    "messages:view",
+    "settings:security"
+  ]
+};
+
 export const passwordPolicyDescription =
   "Password must be 8-100 characters and include uppercase, lowercase and special characters.";
 
