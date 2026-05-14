@@ -3,7 +3,7 @@ import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentEvents, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
-import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
+import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
 import type { PubSubEventType } from '../engine/pubsub.js';
@@ -333,6 +333,14 @@ export function setupApiRoutes(app, db, root) {
               }
             }
           }
+          // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
+          const flatDir = join(getDocsDir(root), gateSubdir);
+          if (existsSync(flatDir)) {
+            const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
+            for (const f of mdFiles) {
+              insertArtifact(db, run.id, currentGate, `${gateSubdir}/${f}`);
+            }
+          }
         }
       } catch (e) {
         console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, e.message);
@@ -511,7 +519,7 @@ export function setupApiRoutes(app, db, root) {
       return {
         ...a,
         model: ac?.model || a.defaultModel,
-        effort: ac?.effort || a.defaultEffort,
+        effort: ac?.effort || a.defaultEffort || 'high',
         is_custom: !!ac,
       };
     });
@@ -529,13 +537,7 @@ export function setupApiRoutes(app, db, root) {
     const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
     return c.json({
       agents: list,
-      available_models: [
-        ...new Set([
-          ...allAgents.map(a => a.defaultModel).filter(Boolean),
-          ...Object.values(cfg).map((c: any) => c.model).filter(Boolean),
-          ...AVAILABLE_MODELS,
-        ]),
-      ],
+      available_models: [...new Set([...getAgentModelValues(), ...AVAILABLE_MODELS])],
       available_efforts: EFFORTS,
       platforms: [...new Set(allAgents.map(a => a.platform))],
       platform_models: platformModels,
@@ -563,9 +565,9 @@ export function setupApiRoutes(app, db, root) {
       }
     }
 
-    setAgentModel(db, agent_id, model, effort);
-    const fileSynced = syncAgentFile(root, agent_id, model, effort);
-    return c.json({ ok: true, agent_id, model, effort: effort, file_synced: fileSynced });
+    setAgentModel(db, agent_id, model, effort || 'high');
+    const fileSynced = syncAgentFile(root, agent_id, model, effort || 'high');
+    return c.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
   });
 
   // ---- 平台信息 ----

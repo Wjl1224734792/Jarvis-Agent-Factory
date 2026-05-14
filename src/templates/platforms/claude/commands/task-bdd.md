@@ -3,6 +3,8 @@ name: task-bdd
 description: BDD行为驱动——为高业务价值的聚合行为编写Gherkin场景
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # BDD 行为驱动开发

@@ -4,6 +4,8 @@ description: "Taro UI 专项工作者：负责 Taro 小程序/H5 页面布局、
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是 Taro UI 专项工作者。参照 frontend-ui-expert 拆分模式，你只负责 UI 呈现层面。

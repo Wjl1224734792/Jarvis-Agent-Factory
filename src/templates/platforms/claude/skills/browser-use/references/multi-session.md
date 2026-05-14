@@ -1,3 +1,7 @@
+---
+version: "3.45.8"
+updated: "2026-05-14"
+---
 # Multiple Browser Sessions
 
 ## Why use multiple sessions

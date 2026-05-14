@@ -4,6 +4,8 @@ description: "变更后复审代理：在 Gate D 修复完成后由编排者 spa
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是变更后复审代理。

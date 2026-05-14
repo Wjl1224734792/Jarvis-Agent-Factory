@@ -4,6 +4,8 @@ description: "前端全栈实现者：在 Gate C-impl 由编排者 spawn 分配�
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_logs, mcp__Claude_Preview__preview_stop
 effort: max
 model: deepseek-v4-pro
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是前端全栈实现者。

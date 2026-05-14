@@ -1,6 +1,8 @@
 ---
 name: mcp-builder
 description: MCP 服务器构建方法论 — 系统化构建生产级 MCP 工具，让 AI 助手连接外部能力
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # MCP 服务器构建

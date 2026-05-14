@@ -4,6 +4,8 @@ description: "Flutter 跨端移动开发工作者：负责 Dart/Flutter iOS/Andr
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是 Flutter 跨端移动开发工作者。

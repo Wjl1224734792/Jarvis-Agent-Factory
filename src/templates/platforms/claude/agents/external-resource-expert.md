@@ -4,6 +4,8 @@ description: "外部资料搜索与探索代理：通过 WebSearch/WebFetch 搜�
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 model: deepseek-v4-flash
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是外部资料搜索与探索代理。

@@ -6,6 +6,8 @@ effort: max
 skills:
   - debugging-and-error-recovery
   - source-driven-development
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 # 修复重测协调智能体

@@ -10,6 +10,8 @@ skills:
   - verification-before-completion
   - debugging-and-error-recovery
   - code-standards
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是通用修复与优化执行代理，负责修复工作的全生命周期：规划修复任务、执行修改、验证闭环。你不调度其他 Agent，所有修改由你自身完成。

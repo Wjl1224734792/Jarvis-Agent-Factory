@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, existsSync, copyFileSync, readdirSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
@@ -74,16 +74,6 @@ let _lastSessionId = null;
 /** 绑定地址：仅 IPv4 本地回环 */
 const BIND_HOST = '127.0.0.1';
 
-/** 确保 docs/{date}/ 日期分类目录存在，含所有 Gate 子目录 */
-function ensureDateDocs(root: string, dateStr: string) {
-  const dateDir = join(root, 'docs', dateStr);
-  if (!existsSync(dateDir)) mkdirSync(dateDir, { recursive: true });
-  for (const sub of new Set(Object.values(GATE_DIRS))) {
-    const subDir = join(dateDir, sub);
-    if (!existsSync(subDir)) mkdirSync(subDir, { recursive: true });
-  }
-}
-
 /** 检测端口是否被占用 */
 function isPortInUse(port) {
   return new Promise((resolve) => {
@@ -98,6 +88,54 @@ function isPortInUse(port) {
 function sessionGates(db, sid) {
   const p = getPipeline(db, sid);
   return getPipelineGates(p?.pipeline_type || DEFAULT_PIPELINE);
+}
+
+/** 扫描冲突文件：检测 .claude/agents/、commands/、skills/ 下含 <<<<<<< user 标记的 .md 文件 */
+function scanConflictFiles(projectRoot: string): void {
+  const baseDirs = ['.claude/agents', '.claude/commands', '.claude/skills'];
+  let scanned = 0;
+  const MAX = 200;
+  const conflictPaths: string[] = [];
+
+  /** 递归扫描子目录 */
+  const scanDir = (dirPath: string, relPath: string): void => {
+    if (scanned >= MAX) return;
+    if (!existsSync(dirPath)) return;
+
+    let entries: string[];
+    try { entries = readdirSync(dirPath); } catch { return; }
+
+    for (const entry of entries) {
+      if (scanned >= MAX) return;
+      const fullPath = join(dirPath, entry);
+      const relEntry = join(relPath, entry).replace(/\\/g, '/');
+
+      let isDir: boolean;
+      try { isDir = statSync(fullPath).isDirectory(); } catch { continue; }
+
+      if (isDir) {
+        scanDir(fullPath, relEntry);
+      } else if (entry.endsWith('.md') || entry.endsWith('.json')) {
+        scanned++;
+        try {
+          const content = readFileSync(fullPath, 'utf-8');
+          if (content.includes('<<<<<<< user')) {
+            conflictPaths.push(relEntry);
+          }
+        } catch { /* 文件读取失败跳过 */ }
+      }
+    }
+  };
+
+  for (const dir of baseDirs) {
+    if (scanned >= MAX) break;
+    scanDir(resolve(projectRoot, dir), dir);
+  }
+
+  // 批量输出警告
+  for (const f of conflictPaths) {
+    console.warn(`  ⚠ 冲突文件: ${f}`);
+  }
 }
 
 /** 启动 Jarvis 引擎 */
@@ -142,6 +180,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb();
+
+  // TASK-003: 冲突文件扫描（不阻塞启动）
+  scanConflictFiles(root);
 
   // 过期标记：每 5 分钟检查一次（活动追踪在每次工具调用时自动完成）
   setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 300_000);
@@ -387,9 +428,11 @@ export function registerMcpTools(server, db, root) {
         let runId = getActiveRun(db, sid)?.id;
         if (!runId) {
           runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
-          const today = new Date().toISOString().slice(0, 10);
-          ensureDateDocs(root, today);
-          setRunTaskName(db, runId, task_name || '未命名');
+          const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
+          const now = new Date();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
           // TASK-005: 发布恢复会话 + 新 run 事件
           emitEvent('session:changed', { sessionId: sid, action: 'join' });
           emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
@@ -408,9 +451,11 @@ export function registerMcpTools(server, db, root) {
       if (!getPipeline(db, sid)) initPipeline(db, sid, root, pt);
       const p = getPipeline(db, sid);
       const runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
-      const today = new Date().toISOString().slice(0, 10);
-      ensureDateDocs(root, today);
-      setRunTaskName(db, runId, task_name || '未命名');
+      const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
       // TASK-005: 发布新会话 + 新 run 事件
       emitEvent('session:changed', { sessionId: sid, action: 'join' });
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
@@ -478,14 +523,22 @@ export function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
-      // 确保日期分类目录存在（docs/YYYY-MM-DD/）
-      const today = new Date().toISOString().slice(0, 10);
-      ensureDateDocs(root, today);
       // TASK-005: 发布新 run 创建事件
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
       updateRunGateEnteredAt(db, runId, new Date().toISOString());
-      setRunTaskName(db, runId, task_name || '未命名');
+      // 自动设置任务名称（若用户已传入则使用传入值）
+      if (task_name) {
+        setRunTaskName(db, runId, task_name);
+      } else {
+        const effectiveProject = project_name || root;
+        const projectShortName = effectiveProject.split(/[\\/]/).filter(Boolean).pop() || effectiveProject;
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const defaultTaskName = `${projectShortName} 流水线任务 · ${mm}-${dd}`;
+        setRunTaskName(db, runId, defaultTaskName);
+      }
       return resp({
         ok: true, session_id: sid, run_id: runId, pipeline_type: pt,
         message: 'New pipeline run created. Next: Gate A',
@@ -585,6 +638,14 @@ export function registerMcpTools(server, db, root) {
               }
             }
 
+            // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
+            const flatDir = join(root, 'docs', gateSubdir);
+            if (existsSync(flatDir)) {
+              const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
+              for (const f of mdFiles) {
+                insertArtifact(db, runId, cur, `${gateSubdir}/${f}`);
+              }
+            }
           }
         } catch (e) {
           console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, e.message);
@@ -744,8 +805,8 @@ export function registerMcpTools(server, db, root) {
     { agent_id: z.string().optional(), model: z.string().optional(), effort: z.string().optional() },
     async ({ agent_id, model, effort }) => {
       if (agent_id && model) {
-        setAgentModel(db, agent_id, model, effort);
-        return resp({ ok: true, agent_id, model, effort: effort });
+        setAgentModel(db, agent_id, model, effort || 'high');
+        return resp({ ok: true, agent_id, model, effort: effort || 'high' });
       }
       const cfg = getAgentConfig(db);
       const agents = getAgentList(true);
@@ -755,7 +816,7 @@ export function registerMcpTools(server, db, root) {
           return {
             id: a.id, name: a.name, role: a.role, platform: a.platform,
             model: c?.model || a.defaultModel,
-            effort: c?.effort || a.defaultEffort,
+            effort: c?.effort || a.defaultEffort || 'high',
             is_custom: !!c,
           };
         }),

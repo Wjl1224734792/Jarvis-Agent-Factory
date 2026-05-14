@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
+import { homedir } from 'node:os';
 import { execSync } from 'node:child_process';
 import { PKG_NAME } from './constants.js';
 
@@ -7,12 +8,27 @@ import { PKG_NAME } from './constants.js';
  * - 全局模式：始终返回当前工作目录
  * - 项目模式：返回用户指定路径或默认 '.'
  *
+ * 包含路径遍历防护：解析后的路径必须在项目根或用户 home 范围内。
+ *
  * @param path - 用户指定的路径
  * @param isGlobal - 是否为全局安装
  * @returns 解析后的绝对路径
+ * @throws 当路径越界（超出项目根或用户 home 范围）时抛出
  */
 export function resolveTarget(path: string | undefined, isGlobal: boolean): string {
-  return isGlobal ? resolve('.') : resolve(path || '.');
+  const target = isGlobal ? resolve('.') : resolve(path || '.');
+
+  // 边界检查：防止路径遍历越界
+  // 全局模式边界为用户 home 目录，项目模式边界为当前工作目录
+  const boundary = isGlobal ? homedir() : resolve('.');
+  const rel = relative(boundary, target);
+  if (rel.startsWith('..')) {
+    throw new Error(
+      `路径越界: ${target} (超出${isGlobal ? '用户 home' : '项目根'}目录范围)`,
+    );
+  }
+
+  return target;
 }
 
 /**

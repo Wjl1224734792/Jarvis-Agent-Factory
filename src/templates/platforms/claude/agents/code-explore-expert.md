@@ -4,6 +4,8 @@ description: "只读探索代码库，定位前端、后端、共享契约、测
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是代码库探索代理。

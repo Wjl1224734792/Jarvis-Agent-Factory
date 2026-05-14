@@ -17,6 +17,7 @@ const COMMANDS: Record<string, () => Promise<CmdModule>> = {
   diff:    () => import('./commands/diff.js'),
   engine:  () => import('./commands/engine.js'),
   hook:    () => import('./commands/hook.js'),
+  resolve: () => import('./commands/resolve.js'),
   doctor:  () => import('./commands/doctor.js'),
   check:   () => import('./commands/doctor.js'),
 };

@@ -6,12 +6,112 @@ import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { getHashFilePath } from './hash-paths.js';
 import { readMcpConfig, writeMcpConfig } from './shared/mcp-config.js';
+import { FM_SEARCH_LIMIT, readFrontmatter, splitMarkdownSections, computeSectionHashes, isSectionHashRecord } from './shared/markdown-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = resolve(__dirname, 'templates');
 
 const INSTALL_BUCKETS = ['agents', 'commands', 'skills', 'plugins'];
+
+/** MCP server 白名单：永不被删除 */
+const MCP_SERVER_WHITELIST = new Set(['jarvis-engine']);
+
+/** 系统管理的 hook key 记录字段名（存储于 settings.json 顶层） */
+const MANAGED_HOOKS_KEY = '_jarvisManagedHooks';
+
+/**
+ * 检查值是否为纯对象（非数组、非 null）。
+ * @param val 待检查的值
+ * @returns 是纯对象则返回 true
+ */
+function isPlainObject(val: unknown): boolean {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+/**
+ * 深度合并单个字段值：数组去重合并，对象递归合并，标量覆盖。
+ * 模板值为权威源——标量字段以模板为准。
+ *
+ * @param templateVal 模板值（优先级更高）
+ * @param existingVal 目标现有值
+ * @returns 合并后的值
+ */
+function deepMergeValue(templateVal: unknown, existingVal: unknown): unknown {
+  // 双方都是数组 → 合并去重（模板元素在前）
+  if (Array.isArray(templateVal) && Array.isArray(existingVal)) {
+    const merged = [...templateVal];
+    for (const item of existingVal) {
+      if (!merged.includes(item)) {
+        merged.push(item);
+      }
+    }
+    return merged;
+  }
+
+  // 双方都是纯对象 → 递归深度合并
+  if (isPlainObject(templateVal) && isPlainObject(existingVal)) {
+    const result: Record<string, unknown> = { ...(existingVal as Record<string, unknown>) };
+    for (const [key, val] of Object.entries(templateVal as Record<string, unknown>)) {
+      if (key in result) {
+        result[key] = deepMergeValue(val, result[key]);
+      } else {
+        result[key] = val;
+      }
+    }
+    return result;
+  }
+
+  // 其余情况（标量、类型不匹配等）：模板值覆盖
+  return templateVal;
+}
+
+/**
+ * 合并 MCP servers 映射：新增、删除（白名单保护）、深度修改。
+ *
+ * @param templateServers 模板定义的 servers
+ * @param existingServers 目标文件中的 servers
+ * @returns 合并结果及变更统计
+ */
+function mergeMcpServers(
+  templateServers: Record<string, unknown>,
+  existingServers: Record<string, unknown>,
+): { merged: Record<string, unknown>; added: number; removed: number; updated: number } {
+  const result: Record<string, unknown> = {};
+  let added = 0;
+  let updated = 0;
+  let removed = 0;
+
+  // 模板中的 server：新增或深度合并
+  for (const [name, tplConfig] of Object.entries(templateServers)) {
+    if (name in existingServers) {
+      // 同名存在 → 深度合并修改
+      const merged = deepMergeValue(tplConfig, existingServers[name]);
+      if (JSON.stringify(merged) !== JSON.stringify(existingServers[name])) {
+        updated++;
+      }
+      result[name] = merged;
+    } else {
+      // 模板有、目标无 → 新增
+      result[name] = tplConfig;
+      added++;
+    }
+  }
+
+  // 目标独有的 server：不在白名单中则删除
+  for (const [name, config] of Object.entries(existingServers)) {
+    if (!(name in templateServers)) {
+      if (MCP_SERVER_WHITELIST.has(name)) {
+        // 白名单保护：永不删除
+        result[name] = config;
+      } else {
+        removed++;
+      }
+    }
+  }
+
+  return { merged: result, added, removed, updated };
+}
 const SKIP_FILES = new Set(['settings.json', 'settings.local.json', 'node_modules', '.git']);
 
 const MCP_TEMPLATES = {
@@ -72,14 +172,14 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   installMcp(platform, isGlobal ? null : target, force);
 
   // Install hook configs (platform-native hooks drive gate enforcement)
-  installHooks(platform, target, isGlobal);
+  installHooks(platform, target, isGlobal, force);
 
   const status = destExists ? 'updated' : 'installed';
   const label = isGlobal ? `~/${info.dir}` : destRoot;
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
 }
 
-function installHooks(platform, target, isGlobal) {
+function installHooks(platform: string, target: string, isGlobal: boolean, force: boolean) {
   // ============================================================
   // 单一 hooks 配置源：settings.json
   // 不再使用 plugin 系统 —— hooks 覆盖全部需求：
@@ -121,7 +221,7 @@ function installHooks(platform, target, isGlobal) {
     if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
     const snapshot = JSON.stringify(existing); // 变更前快照
 
-    // 合并 permissions.allow —— 从模板读取，与现有列表去重合并（只新增不删除）
+    // 合并 permissions.allow —— 从模板读取，与现有列表去重合并（只新增不删除，白名单保护）
     const tmplSettingsPath = resolve(TEMPLATES_DIR, 'platforms', 'claude', 'settings.json');
     let permAdded = 0;
     if (existsSync(tmplSettingsPath)) {
@@ -141,24 +241,71 @@ function installHooks(platform, target, isGlobal) {
       } catch { /* 模板解析失败不影响主流程 */ }
     }
 
-    // 合并 hooks —— 保留用户自定义，补充系统必需的
-    let hookMerged = 0;
+    // 合并 hooks —— 增删改全支持
+    const systemHookKeys = Object.keys(hookJson);
+    const systemHookKeySet = new Set(systemHookKeys);
+    const previousManagedHooks: string[] = Array.isArray(existing[MANAGED_HOOKS_KEY]) ? existing[MANAGED_HOOKS_KEY] : [];
+    let hooksAdded = 0;
+    let hooksUpdated = 0;
+    let hooksRemoved = 0;
+
+    // 确保 hooks 对象存在
     if (!existing.hooks) {
+      existing.hooks = {};
+    }
+
+    if (force) {
+      // force 模式：完全替换 hooks（但不删除 permissions.allow）
+      const existingHookKeys = Object.keys(existing.hooks);
+      // 计算变更：新增的 hook keys
+      for (const key of systemHookKeys) {
+        if (!(key in existing.hooks)) {
+          hooksAdded++;
+        } else if (JSON.stringify(existing.hooks[key]) !== JSON.stringify(hookJson[key])) {
+          hooksUpdated++;
+        }
+      }
+      // 被删除的 hook keys（用户自定义 + 之前系统管理的）
+      for (const key of existingHookKeys) {
+        if (!systemHookKeySet.has(key)) {
+          hooksRemoved++;
+        }
+      }
       existing.hooks = hookJson;
-      hookMerged = Object.keys(hookJson).length;
     } else {
+      // 正常模式：系统 hook keys 覆盖，用户自定义保留，模板移除的删除
+      // 设置/覆盖系统 hook keys
       for (const [key, val] of Object.entries(hookJson)) {
-        if (!existing.hooks[key]) { existing.hooks[key] = val; hookMerged++; }
+        if (!(key in existing.hooks)) {
+          existing.hooks[key] = val;
+          hooksAdded++;
+        } else if (JSON.stringify(existing.hooks[key]) !== JSON.stringify(val)) {
+          existing.hooks[key] = val;
+          hooksUpdated++;
+        }
+      }
+
+      // 删除之前系统管理但当前模板已移除的 hooks
+      for (const prevKey of previousManagedHooks) {
+        if (!systemHookKeySet.has(prevKey) && prevKey in existing.hooks) {
+          delete existing.hooks[prevKey];
+          hooksRemoved++;
+        }
       }
     }
+
+    // 记录当前系统管理的 hook keys
+    existing[MANAGED_HOOKS_KEY] = systemHookKeys;
 
     // 单次写入：只有当实际有变更时才写文件
     if (JSON.stringify(existing) !== snapshot) {
       writeFileSync(file, JSON.stringify(existing, null, 2));
       const parts: string[] = [];
       if (permAdded > 0) parts.push(`${permAdded} permissions`);
-      if (hookMerged > 0) parts.push(`${hookMerged} hooks keys`);
-      console.log(`  🔗 ${parts.join(' + ')} → .claude/settings.json`);
+      if (hooksAdded > 0) parts.push(`+${hooksAdded} hooks`);
+      if (hooksUpdated > 0) parts.push(`~${hooksUpdated} hooks`);
+      if (hooksRemoved > 0) parts.push(`-${hooksRemoved} hooks`);
+      console.log(`  🔗 ${parts.join(' ')} → .claude/settings.json`);
     } else {
       console.log('  ~ hooks & permissions already configured');
     }
@@ -245,21 +392,22 @@ function installMcp(platform, target, force) {
 
     if (existingConfig && !force) {
       const eKey = existingConfig.mcpServers ? 'mcpServers' : 'mcp';
-      const existingServers: Record<string, any> = (existingConfig as any)[eKey] || {};
+      const existingServers: Record<string, unknown> = (existingConfig as Record<string, unknown>)[eKey] as Record<string, unknown> || {};
 
-      // 深度合并：已有 server 保留用户配置，缺失的从模板添加，用户自定义的绝不删除
-      let added = 0;
-      for (const [serverName, serverConfig] of Object.entries(nJson[nKey] || {})) {
-        if (!existingServers[serverName]) {
-          existingServers[serverName] = serverConfig;
-          added++;
-        }
-      }
+      // 深度合并：新增、删除（白名单保护）、修改（按类型递归合并）
+      const { merged, added, removed, updated } = mergeMcpServers(
+        (nJson[nKey] || {}) as Record<string, unknown>,
+        existingServers,
+      );
 
-      if (added > 0) {
-        (existingConfig as any)[eKey] = existingServers;
+      if (added > 0 || removed > 0 || updated > 0) {
+        (existingConfig as Record<string, unknown>)[eKey] = merged;
         writeMcpConfig(projectRoot, existingConfig);
-        console.log(`  ~ ${t.file.padEnd(22)} merged ${added} new MCP server(s)`);
+        const parts: string[] = [];
+        if (added > 0) parts.push(`+${added}`);
+        if (removed > 0) parts.push(`-${removed}`);
+        if (updated > 0) parts.push(`~${updated}`);
+        console.log(`  ~ ${t.file.padEnd(22)} MCP servers: ${parts.join(' ')}`);
       } else {
         console.log(`  ~ ${t.file.padEnd(22)} already configured`);
       }
@@ -271,8 +419,16 @@ function installMcp(platform, target, force) {
   }
 }
 
-/** Write JSON MCP config; deep merge — add missing servers, keep existing user configs */
-function writeMcpJson(dest, content, force, label) {
+/**
+ * 写入 JSON MCP 配置文件并进行深度合并。
+ * 新增、删除（白名单保护）、修改（按类型递归合并）全支持。
+ *
+ * @param dest 目标文件路径
+ * @param content 模板文件内容（JSON 字符串）
+ * @param force 是否强制覆盖
+ * @param label 日志显示标签
+ */
+function writeMcpJson(dest: string, content: string, force: boolean, label: string): void {
   const dir = dirname(dest);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
@@ -284,20 +440,22 @@ function writeMcpJson(dest, content, force, label) {
       const eKey = eJson.mcpServers ? 'mcpServers' : 'mcp';
       const nKey = nJson.mcpServers ? 'mcpServers' : 'mcp';
 
-      // 深度合并：逐个 server 检查，缺失则添加，已有则保留用户配置，用户自定义的绝不删除
-      const existingServers: Record<string, any> = eJson[eKey] || {};
-      let added = 0;
-      for (const [serverName, serverConfig] of Object.entries(nJson[nKey] || {})) {
-        if (!existingServers[serverName]) {
-          existingServers[serverName] = serverConfig;
-          added++;
-        }
-      }
+      const existingServers: Record<string, unknown> = eJson[eKey] || {};
 
-      if (added > 0) {
-        eJson[eKey] = existingServers;
+      // 深度合并：新增、删除（白名单保护）、修改（按类型递归合并）
+      const { merged, added, removed, updated } = mergeMcpServers(
+        (nJson[nKey] || {}) as Record<string, unknown>,
+        existingServers,
+      );
+
+      if (added > 0 || removed > 0 || updated > 0) {
+        eJson[eKey] = merged;
         writeFileSync(dest, JSON.stringify(eJson, null, 2) + '\n');
-        console.log(`  ~ ${label.padEnd(22)} merged ${added} new MCP server(s)`);
+        const parts: string[] = [];
+        if (added > 0) parts.push(`+${added}`);
+        if (removed > 0) parts.push(`-${removed}`);
+        if (updated > 0) parts.push(`~${updated}`);
+        console.log(`  ~ ${label.padEnd(22)} MCP servers: ${parts.join(' ')}`);
       } else {
         console.log(`  ~ ${label.padEnd(22)} already configured`);
       }
@@ -318,6 +476,46 @@ function fileHash(filePath) {
 }
 
 /**
+ * 更新 Markdown 文件 frontmatter 中的指定字段。
+ * 字段已存在则替换值，不存在则在闭合 --- 前插入。
+ *
+ * @param filePath 文件绝对路径
+ * @param fields 要设置的字段键值对
+ */
+function setFrontmatterFields(filePath: string, fields: Record<string, string>): void {
+  const content = readFileSync(filePath, 'utf-8');
+  let lines = content.split('\n');
+
+  if (lines[0]?.trim() !== '---') return; // 无 frontmatter，不处理
+
+  let closingIdx = -1;
+  for (let i = 1; i < Math.min(lines.length, FM_SEARCH_LIMIT); i++) {
+    if (lines[i].trim() === '---') { closingIdx = i; break; }
+  }
+  if (closingIdx === -1) return;
+
+  // 更新或插入字段
+  for (const [key, value] of Object.entries(fields)) {
+    let found = false;
+    for (let i = 1; i < closingIdx; i++) {
+      const line = lines[i].trim();
+      const colonIdx = line.indexOf(':');
+      if (colonIdx > 0 && line.substring(0, colonIdx).trim() === key) {
+        lines[i] = `${key}: "${value}"`;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      lines = [...lines.slice(0, closingIdx), `${key}: "${value}"`, ...lines.slice(closingIdx)];
+      closingIdx++;
+    }
+  }
+
+  writeFileSync(filePath, lines.join('\n'));
+}
+
+/**
  * 加载文件 hash 记录。
  * @param hashFilePath hash 文件绝对路径（由 getHashFilePath 生成）
  */
@@ -331,10 +529,290 @@ function loadHashes(hashFilePath) {
  * @param hashes 键值对（键为文件绝对路径，值为 SHA256 hash）
  * @param hashFilePath hash 文件绝对路径
  */
-function saveHashes(hashes, hashFilePath) {
+function saveHashes(hashes: Record<string, string>, hashFilePath: string) {
   const dir = dirname(hashFilePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(hashFilePath, JSON.stringify(hashes, null, 2));
+
+  // 对 .md 文件自动转换为 section 级 hash 格式（_v: 2）
+  const converted: Record<string, unknown> = {};
+  for (const [filePath, value] of Object.entries(hashes)) {
+    if (filePath.endsWith('.md') && existsSync(filePath)) {
+      try {
+        const sectionInfo = computeSectionHashes(filePath);
+        converted[filePath] = {
+          _v: 2,
+          preamble: sectionInfo.preamble,
+          sections: sectionInfo.sections,
+        };
+      } catch {
+        // 计算 section hash 失败时回退到原始字符串 hash
+        converted[filePath] = value;
+      }
+    } else {
+      converted[filePath] = value;
+    }
+  }
+
+  writeFileSync(hashFilePath, JSON.stringify(converted, null, 2));
+}
+
+/**
+ * 提取 preamble 主体内容——frontmatter 之后、第一个 ## 标题之前的文本。
+ */
+function extractPreambleBody(content: string, frontmatterLineCount: number): string {
+  const lines = content.split('\n');
+  const bodyLines: string[] = [];
+  for (let i = frontmatterLineCount; i < lines.length; i++) {
+    if (lines[i].startsWith('## ') && lines[i].charAt(3) !== '#') break;
+    bodyLines.push(lines[i]);
+  }
+  return bodyLines.join('\n');
+}
+
+/** 构建 section 冲突标记 */
+function buildSectionConflictMarker(
+  userContent: string,
+  templateContent: string,
+  userDate: string,
+  templateVersion: string,
+): string {
+  return `<<<<<<< user (${userDate})
+${userContent}
+=======
+${templateContent}
+>>>>>>> template v${templateVersion}`;
+}
+
+/** 构建 preamble 冲突标记 */
+function buildPreambleConflictMarker(
+  userPreamble: string,
+  templatePreamble: string,
+  userDate: string,
+  templateVersion: string,
+): string {
+  return `<<<<<<< user (${userDate})
+${userPreamble}
+=======
+${templatePreamble}
+>>>>>>> template v${templateVersion}`;
+}
+
+/**
+ * 重建合并后的文件内容。
+ * @param frontmatter 前端元数据键值对（不含 --- 分隔符）
+ * @param preambleBody preamble 主体文本（已按合并规则选择正确版本）
+ * @param sections section 内容列表（每个元素含 ## 标题行及内容，已含冲突标记）
+ * @param hasFrontmatter 源文件是否有 frontmatter 块
+ */
+function buildMergedFile(
+  frontmatter: Record<string, string>,
+  preambleBody: string,
+  sections: string[],
+  hasFrontmatter: boolean,
+): string {
+  const parts: string[] = [];
+
+  if (hasFrontmatter) {
+    parts.push('---');
+    for (const [key, value] of Object.entries(frontmatter)) {
+      parts.push(`${key}: "${value}"`);
+    }
+    parts.push('---');
+  }
+
+  // preamble 主体可能以空行开头，保持原始格式
+  if (preambleBody) {
+    parts.push(preambleBody);
+  }
+
+  for (const section of sections) {
+    parts.push(section);
+  }
+
+  return parts.join('\n');
+}
+
+/**
+ * Section 级合并 Markdown 文件。
+ * 比较源模板与已安装目标文件，依据旧 hash 记录决定每 section 合并策略。
+ *
+ * 三规则合并（旧记录为 _v: 2 section 格式时）：
+ * 1. 源 section hash == 旧记录 section hash → 保留目标 section（源未变）
+ * 2. 目标 section hash == 旧记录 section hash → 新源覆盖（用户未修改）
+ * 3. 两者都变 → 写入冲突标记，用户内容在前
+ *
+ * 旧记录为字符串格式（旧版整文件 hash）时 fallback：
+ *   - 逐 section 对比：相同保留，不同标冲突
+ *
+ * @param srcPath 新模板文件绝对路径
+ * @param destPath 目标（已安装）文件绝对路径
+ * @param oldHashRecord 旧的 hash 记录（loadHashes 返回值）
+ * @returns 写入状态及冲突 section 标题列表
+ */
+function mergeMarkdownSections(
+  srcPath: string,
+  destPath: string,
+  oldHashRecord: unknown,
+): { written: boolean; conflicts: string[] } {
+  const srcContent = readFileSync(srcPath, 'utf-8');
+  const destContent = readFileSync(destPath, 'utf-8');
+
+  // 若目标文件已含未解决冲突标记，跳过（避免嵌套标记）
+  if (destContent.includes('<<<<<<< user')) {
+    return { written: false, conflicts: [] };
+  }
+
+  const srcSplit = splitMarkdownSections(srcContent);
+  const destSplit = splitMarkdownSections(destContent);
+
+  const srcHashes = computeSectionHashes(srcPath);
+  const destHashes = computeSectionHashes(destPath);
+
+  const isV2 = isSectionHashRecord(oldHashRecord);
+  const oldSectionHashes: Record<string, string> = isV2
+    ? (oldHashRecord as { sections: Record<string, string> }).sections
+    : {};
+
+  const conflicts: string[] = [];
+  let changed = false;
+
+  // 冲突标记元数据
+  const userDate = readFrontmatter(destPath).updated || new Date().toISOString().slice(0, 10);
+  const templateVersion = readFrontmatter(srcPath).version || '0.0.0';
+
+  // 构建目标 section 内容映射（title → content）
+  const destSectionMap = new Map<string, string>();
+  for (const s of destSplit.sections) {
+    destSectionMap.set(s.title, s.content);
+  }
+
+  // ── 处理各 section ──
+  const mergedSectionContents: string[] = [];
+  const processedTitles = new Set<string>();
+
+  for (const srcSection of srcSplit.sections) {
+    const title = srcSection.title;
+    processedTitles.add(title);
+
+    const destSectionContent = destSectionMap.get(title);
+    const destHash = destHashes.sections[title];
+    const srcHash = srcHashes.sections[title];
+
+    if (isV2) {
+      const oldHash = oldSectionHashes[title];
+
+      if (oldHash && srcHash === oldHash) {
+        // 场景一：源 section 未变 → 保留目标 section
+        if (destSectionContent) {
+          mergedSectionContents.push(destSectionContent);
+        } else {
+          // 目标中不存在此 section（被用户删除）→ 用源覆盖
+          mergedSectionContents.push(srcSection.content);
+          changed = true;
+        }
+      } else if (!oldHash || (destSectionContent && destHash === oldHash)) {
+        // 场景二：新 section 或用户未修改 → 用源覆盖
+        mergedSectionContents.push(srcSection.content);
+        changed = true;
+      } else {
+        // 场景三：用户改 + 源也变 → 冲突标记
+        const userContent = destSectionContent || '';
+        mergedSectionContents.push(
+          buildSectionConflictMarker(userContent, srcSection.content, userDate, templateVersion),
+        );
+        conflicts.push(title);
+        changed = true;
+      }
+    } else {
+      // 旧字符串格式 fallback：逐 section 对比
+      if (destSectionContent && destHash === srcHash) {
+        mergedSectionContents.push(destSectionContent);
+      } else if (!destSectionContent) {
+        mergedSectionContents.push(srcSection.content);
+        changed = true;
+      } else {
+        mergedSectionContents.push(
+          buildSectionConflictMarker(destSectionContent, srcSection.content, userDate, templateVersion),
+        );
+        conflicts.push(title);
+        changed = true;
+      }
+    }
+  }
+
+  // 追加 dest-only section（用户自创 section，不在源模板中）
+  for (const destSection of destSplit.sections) {
+    if (!processedTitles.has(destSection.title)) {
+      mergedSectionContents.push(destSection.content);
+    }
+  }
+
+  // ── 处理 preamble（frontmatter 之后、第一个 ## 之前的导言）──
+  const srcPreambleBody = extractPreambleBody(srcContent, srcSplit.frontmatterLineCount);
+  const destPreambleBody = extractPreambleBody(destContent, destSplit.frontmatterLineCount);
+  const srcPreambleHash = srcHashes.preamble;
+  const destPreambleHash = destHashes.preamble;
+
+  let preambleToWrite: string;
+
+  if (isV2) {
+    const oldPreambleHash = (oldHashRecord as { preamble: string }).preamble;
+
+    if (oldPreambleHash && srcPreambleHash === oldPreambleHash) {
+      // 场景一：源 preamble 未变 → 保留目标
+      preambleToWrite = destPreambleBody;
+    } else if (!oldPreambleHash || destPreambleHash === oldPreambleHash) {
+      // 场景二：新安装或目标未变 → 用源覆盖
+      preambleToWrite = srcPreambleBody;
+      if (srcPreambleBody !== destPreambleBody) changed = true;
+    } else {
+      // 场景三：冲突
+      preambleToWrite = buildPreambleConflictMarker(
+        destPreambleBody, srcPreambleBody, userDate, templateVersion,
+      );
+      conflicts.push('(preamble)');
+      changed = true;
+    }
+  } else {
+    // 旧格式：逐字节对比
+    if (srcPreambleBody === destPreambleBody) {
+      preambleToWrite = destPreambleBody;
+    } else {
+      preambleToWrite = buildPreambleConflictMarker(
+        destPreambleBody, srcPreambleBody, userDate, templateVersion,
+      );
+      conflicts.push('(preamble)');
+      changed = true;
+    }
+  }
+
+  // ── 构建 frontmatter ──
+  const srcFm = readFrontmatter(srcPath);
+  const today = new Date().toISOString().slice(0, 10);
+  const hasSrcFrontmatter = srcSplit.frontmatterLineCount > 0;
+
+  // 使用源模板 frontmatter，updated 设为今天
+  const mergedFrontmatter: Record<string, string> = {};
+  for (const [key, value] of Object.entries(srcFm)) {
+    if (value !== undefined) {
+      mergedFrontmatter[key] = value;
+    }
+  }
+  mergedFrontmatter.updated = today;
+
+  // ── 生成最终文件 ──
+  const output = buildMergedFile(
+    mergedFrontmatter,
+    preambleToWrite,
+    mergedSectionContents,
+    hasSrcFrontmatter,
+  );
+
+  if (changed) {
+    writeFileSync(destPath, output);
+  }
+
+  return { written: changed, conflicts };
 }
 
 /**
@@ -379,11 +857,41 @@ function mergeDir(src, dest, hashFilePath) {
         } else if (!oldHash || destHash === oldHash) {
           // 新安装或用户未修改 → 安全覆盖
           copyFileSync(sp, dp);
-          hashes[dp] = newHash;
+          // 更新 frontmatter：version 取源模板值，updated 设为当前日期
+          try {
+            const srcFm = readFrontmatter(sp);
+            const today = new Date().toISOString().slice(0, 10);
+            setFrontmatterFields(dp, { version: srcFm.version ?? '0.0.0', updated: today });
+          } catch { /* 更新 frontmatter 失败不阻塞安装流程 */ }
+          // 以实际写入内容（含 frontmatter 更新）的 hash 为准
+          hashes[dp] = fileHash(dp) || newHash;
           files++;
         } else {
-          // 用户已修改目标文件 → 保留
-          skipped++;
+          // 用户已修改目标文件
+          if (entry.endsWith('.md')) {
+            const result = mergeMarkdownSections(sp, dp, hashes[dp]);
+            if (result.conflicts.length > 0) {
+              console.warn(`  ⚠ ${entry}: ${result.conflicts.length} section conflict(s)，跳过`);
+            } else if (result.written) {
+              // 安全合并：更新 hash 为 section 格式
+              try {
+                const newSectionInfo = computeSectionHashes(dp);
+                hashes[dp] = {
+                  _v: 2,
+                  preamble: newSectionInfo.preamble,
+                  sections: newSectionInfo.sections,
+                };
+              } catch {
+                hashes[dp] = fileHash(dp) || newHash;
+              }
+              files++;
+            } else {
+              skipped++;
+            }
+          } else {
+            // 非 Markdown 文件：保持原有整文件跳过行为
+            skipped++;
+          }
         }
       }
     }

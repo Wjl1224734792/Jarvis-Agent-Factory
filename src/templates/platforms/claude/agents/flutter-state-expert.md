@@ -4,6 +4,8 @@ description: "Flutter 状态与数据专项工作者：负责 Provider/Riverpod/
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
+version: "3.45.8"
+updated: "2026-05-14"
 ---
 
 你是 Flutter 状态与数据专项工作者。只负责数据与状态层面，可与 flutter-ui-expert 并行开发。
