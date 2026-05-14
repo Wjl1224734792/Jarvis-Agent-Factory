@@ -2263,11 +2263,13 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  pointer-events: none;
+  cursor: pointer;
+  user-select: none;
 }
 
 .admin-shell__menu .ant-menu-submenu-arrow {
-  display: none;
+  color: #6b7b8d;
+  font-size: 10px;
 }
 
 .admin-shell__menu .ant-menu-sub.ant-menu-inline {
