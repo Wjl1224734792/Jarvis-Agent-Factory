@@ -70,7 +70,7 @@ const DEFAULT_AI_SETTINGS = {
   baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   summaryModel: 'qwen-plus',
   formatModel: 'qwen-plus',
-  features: { summary: true, format: true },
+  features: { summary: true, format: true, chat: true },
 };
 
 function createQueryClient() {

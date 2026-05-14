@@ -7,6 +7,7 @@ import {
   UserPlusIcon
 } from "lucide-react";
 import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
+import { useAiFeatures } from "../features/ai/use-ai-features";
 import { useAiSummary } from "../features/ai/use-ai-summary";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -96,6 +97,7 @@ export function PostDetailPage() {
   const [isFollowPending, setIsFollowPending] = useState(false);
   const isFollowPendingRef = useRef(false);
   const aiSummary = useAiSummary();
+  const { summary: aiSummaryEnabled } = useAiFeatures();
 
   const postQuery = useQuery({
     queryKey: ["post-detail", id],
@@ -428,7 +430,7 @@ export function PostDetailPage() {
             ) : null}
 
             {/* AI 摘要面板 */}
-            {item.type === "article" && item.status === "published" ? (
+            {aiSummaryEnabled && item.type === "article" && item.status === "published" ? (
               <AiSummaryPanel
                 cached={aiSummary.cached}
                 disabled={aiSummary.isLoading}

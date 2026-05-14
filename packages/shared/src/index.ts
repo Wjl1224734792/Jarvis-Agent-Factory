@@ -281,6 +281,8 @@ export const API_ROUTES = {
   ai: {
     summary: withApiV1Prefix("/ai/summary"),
     format: withApiV1Prefix("/ai/format"),
+    chat: withApiV1Prefix("/ai/chat"),
+    features: withApiV1Prefix("/ai/features"),
     adminSettings: withApiV1Prefix("/admin/ai/settings")
   }
 } as const;

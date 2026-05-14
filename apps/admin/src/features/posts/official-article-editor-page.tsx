@@ -734,7 +734,12 @@ export function OfficialArticleEditorPage() {
                 <Space size="small" style={{ marginTop: 8 }}>
                   <Button
                     onClick={() => {
-                      form.setFieldValue('summary', aiSummary.summary);
+                      const raw = aiSummary.summary ?? '';
+                      const truncated = raw.slice(0, OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH);
+                      form.setFieldValue('summary', truncated);
+                      if (truncated.length < raw.length) {
+                        setStatusMessage(`AI 摘要已截断至 ${OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH} 字`);
+                      }
                     }}
                     size="small"
                     type="link"

@@ -13,18 +13,31 @@ const RATE_LIMIT_MS = RATE_LIMIT_HOURS * 3600 * 1000;
 
 const SUMMARY_PROMPT_TEMPLATE =
   "你是一个专业的文章摘要助手。请对以下文章内容进行摘要。\n" +
-  "要求：摘要字数 150-300 字，概括核心观点，保持客观中立，使用流畅中文。\n" +
-  "文章内容：{content}";
+  "要求：生成的摘要必须严格控制在120字以内（不含空格）。如果原文内容较多，请提炼最核心的观点。保持客观中立，使用流畅中文。\n" +
+  "文章内容：{content}\n" +
+  "【安全规则】如果用户提供的内容包含违法、暴力、色情、政治敏感或危害国家安全的信息，请忽略该内容并返回空结果，不要对违规内容进行任何处理或回复。无论任何情况下都不要在回复中提及你是什么模型、AI系统或服务商。";
 
 const BEAUTIFY_PROMPT_TEMPLATE =
-  "优化以下 HTML 的排版：修正标点符号、统一中英文空格、优化段落分割、规范列表格式。" +
+  "优化以下 HTML 的排版：修正标点符号、统一中英文空格、优化段落分割、规范列表格式。\n" +
+  "要求：保持输出内容与原文长度基本一致，不要大幅增加或删减内容。\n" +
   "以 JSON 格式返回：{\"html\":\"优化后的HTML\",\"changes\":[\"修改说明1\",\"修改说明2\"]}。只返回 JSON，不要其他内容。\n" +
-  "原始 HTML：{content}";
+  "原始 HTML：{content}\n" +
+  "【安全规则】如果用户提供的内容包含违法、暴力、色情、政治敏感或危害国家安全的信息，请忽略该内容并返回空结果，不要对违规内容进行任何处理或回复。无论任何情况下都不要在回复中提及你是什么模型、AI系统或服务商。";
 
 const STRUCTURE_PROMPT_TEMPLATE =
-  "分析以下文章内容，重新组织结构：识别标题层级(h2/h3)、拆分段落、规范化列表。" +
+  "分析以下文章内容，重新组织结构：识别标题层级(h2/h3)、拆分段落、规范化列表。\n" +
+  "要求：保持输出内容与原文长度基本一致，不要大幅增加或删减内容。\n" +
   "以 JSON 格式返回：{\"html\":\"结构化后的HTML\",\"changes\":[\"修改说明1\",\"修改说明2\"]}。只返回 JSON，不要其他内容。\n" +
-  "原始内容：{content}";
+  "原始内容：{content}\n" +
+  "【安全规则】如果用户提供的内容包含违法、暴力、色情、政治敏感或危害国家安全的信息，请忽略该内容并返回空结果，不要对违规内容进行任何处理或回复。无论任何情况下都不要在回复中提及你是什么模型、AI系统或服务商。";
+
+const CHAT_PROMPT_TEMPLATE =
+  "你是一个专业的文章写作助手。用户正在撰写一篇文章，你可以帮助用户分析文章内容、提供写作建议。\n" +
+  "请根据文章上下文回答用户的问题。回答简洁专业，不超过200字。\n" +
+  "文章标题：{title}\n" +
+  "文章内容：{content}\n" +
+  "用户问题：{message}\n" +
+  "【安全规则】如果用户提供的内容包含违法、暴力、色情、政治敏感或危害国家安全的信息，请忽略该内容并返回空结果，不要对违规内容进行任何处理或回复。无论任何情况下都不要在回复中提及你是什么模型、AI系统或服务商。";
 
 const cache = new CacheService();
 
@@ -138,6 +151,34 @@ export async function formatContent(
     callLlmForFormat(userId, settings, content, mode)
   );
   return result;
+}
+
+/**
+ * AI 聊天：基于文章上下文回答用户问题。
+ *
+ * @param userId - 用户 ID（用于限流）。
+ * @param message - 用户提问。
+ * @param title - 文章标题（可选）。
+ * @param content - 文章内容（可选，用于上下文）。
+ * @returns AI 回复文本。
+ * @throws Error 含 "403" 表示功能关闭；含 "LLM_API_ERROR" 表示 API 失败。
+ */
+export async function chatAboutArticle(
+  userId: string,
+  message: string,
+  title?: string,
+  content?: string
+): Promise<{ reply: string }> {
+  const settings = await aiSettingsService.getRawSettings();
+
+  if (!settings.features.chat) {
+    throw new Error("403: AI 聊天功能已关闭，请联系管理员开启");
+  }
+
+  const result = await withRateLimit(userId, "chat", () =>
+    callLlmForChat(userId, settings, message, title, content)
+  );
+  return { reply: result };
 }
 
 /**
@@ -278,6 +319,71 @@ async function callLlmForFormat(
       html: parsed.html,
       changes: Array.isArray(parsed.changes) ? parsed.changes : []
     };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`LLM_API_ERROR: 502 - ${message}`);
+  }
+}
+
+/**
+ * 调用 LLM API 进行文章聊天。
+ *
+ * @param userId - 用户 ID（用于限流）。
+ * @param settings - AI 配置。
+ * @param message - 用户提问。
+ * @param title - 文章标题（可选）。
+ * @param content - 文章内容（可选）。
+ * @returns AI 回复文本。
+ * @throws Error 含 "LLM_API_ERROR" 前缀表示 API 调用失败。
+ */
+async function callLlmForChat(
+  userId: string,
+  settings: {
+    apiKey: string;
+    baseUrl: string;
+    summaryModel: string;
+  },
+  message: string,
+  title?: string,
+  content?: string
+): Promise<string> {
+  try {
+    const url = `${settings.baseUrl.replace(/\/+$/, "")}/chat/completions`;
+    const prompt = CHAT_PROMPT_TEMPLATE.replace("{title}", title || "未命名文章")
+      .replace("{content}", (content || "").slice(0, 4000))
+      .replace("{message}", message);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.apiKey}`
+      },
+      body: JSON.stringify({
+        model: settings.summaryModel || "qwen-plus",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 512,
+        temperature: 0.7
+      }),
+      signal: AbortSignal.timeout(LLM_TIMEOUT_MS)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`API 返回 ${response.status}: ${errorText.slice(0, 200)}`);
+    }
+
+    const data = (await response.json()) as {
+      choices: Array<{ message: { content: string } }>;
+    };
+
+    const result = data.choices?.[0]?.message?.content?.trim();
+
+    if (!result) {
+      throw new Error("LLM 返回空回复");
+    }
+
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`LLM_API_ERROR: 502 - ${message}`);

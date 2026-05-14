@@ -746,6 +746,29 @@ const rawApiClient = {
       content,
       mode
     });
+  },
+  /**
+   * AI 文章聊天
+   * @param message 用户提问
+   * @param context 文章内容（可选，用于上下文）
+   * @param title 文章标题（可选）
+   * @returns AI 回复文本
+   */
+  aiChat(message: string, context?: string, title?: string) {
+    return postJson<{ reply: string }>(API_ROUTES.ai.chat, {
+      message,
+      context,
+      title
+    });
+  },
+  /**
+   * 查询 AI 功能开关状态
+   * @returns 三个 AI 功能（摘要、排版、聊天）的启用状态
+   */
+  getAiFeatures() {
+    return getJson<{ features: { summary: boolean; format: boolean; chat: boolean } }>(
+      API_ROUTES.ai.features
+    );
   }
 };
 
