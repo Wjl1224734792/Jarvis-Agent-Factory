@@ -7,7 +7,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
+  requireRole,
   type AuthVariables,
 } from "../auth/auth.middleware";
 import { powerTypesService } from "./power-types.service";
@@ -34,7 +34,7 @@ powerTypesRoute.get(API_ROUTES.powerTypes.list, async (context) => {
 
 powerTypesRoute.get(
   API_ROUTES.powerTypes.adminList,
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const items = await powerTypesService.listPowerTypes();
     return context.json(
@@ -48,7 +48,7 @@ powerTypesRoute.get(
 
 powerTypesRoute.post(
   API_ROUTES.powerTypes.adminList,
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const input = adminPowerTypeCategoryInputSchema.parse(await context.req.json());
     const item = await powerTypesService.createPowerType(input);
@@ -68,7 +68,7 @@ powerTypesRoute.post(
 
 powerTypesRoute.put(
   API_ROUTES.powerTypes.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const id = getRequiredIdOrBadRequest(context);
     if (id instanceof Response) return id;

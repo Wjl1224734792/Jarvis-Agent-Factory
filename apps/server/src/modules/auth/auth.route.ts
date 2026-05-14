@@ -18,6 +18,7 @@ import {
   deviceUnregisterInputSchema,
   registrationDisplayNameSuggestRequestSchema,
   registrationDisplayNameSuggestResponseSchema,
+  ROLE_PERMISSIONS,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   userPasswordChangeRequestSchema,
@@ -411,6 +412,10 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
+
+authRoute.get("/api/v1/admin/roles", requireAuth, async (context) => {
+  return context.json({ roles: ROLE_PERMISSIONS });
+});
 
 authRoute.post(
   API_ROUTES.auth.webChangePassword,

@@ -17,8 +17,8 @@ import { Hono } from "hono";
 import {
   attachCurrentUser,
   type AuthContext,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { normalizeClientIp } from "../../lib/ip-location";
@@ -130,7 +130,7 @@ socialRoute.post(API_ROUTES.social.notificationRead(":id"), requireAuth, async (
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
-socialRoute.get(API_ROUTES.admin.messages, requireAdmin, async (context) => {
+socialRoute.get(API_ROUTES.admin.messages, requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = getCurrentUserOrUnauthorized(context);
   if (currentUser instanceof Response) {
     return currentUser;
@@ -141,7 +141,7 @@ socialRoute.get(API_ROUTES.admin.messages, requireAdmin, async (context) => {
   return context.json(adminMessageListResponseSchema.parse(payload));
 });
 
-socialRoute.post(API_ROUTES.admin.messagesReadAll, requireAdmin, async (context) => {
+socialRoute.post(API_ROUTES.admin.messagesReadAll, requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = getCurrentUserOrUnauthorized(context);
   if (currentUser instanceof Response) {
     return currentUser;
@@ -152,7 +152,7 @@ socialRoute.post(API_ROUTES.admin.messagesReadAll, requireAdmin, async (context)
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
-socialRoute.post(API_ROUTES.admin.messageRead(":id"), requireAdmin, async (context) => {
+socialRoute.post(API_ROUTES.admin.messageRead(":id"), requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = getCurrentUserOrUnauthorized(context);
   if (currentUser instanceof Response) {
     return currentUser;
@@ -171,7 +171,7 @@ socialRoute.post(API_ROUTES.admin.messageRead(":id"), requireAdmin, async (conte
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
-socialRoute.get(API_ROUTES.admin.messageTodos, requireAdmin, async (context) => {
+socialRoute.get(API_ROUTES.admin.messageTodos, requireRole('super_admin', 'moderator'), async (context) => {
   const currentUser = getCurrentUserOrUnauthorized(context);
   if (currentUser instanceof Response) {
     return currentUser;

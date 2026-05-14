@@ -410,154 +410,83 @@ export function getAdminNavigationState(pathname: string) {
 
 // ---------- antd Menu items 格式（SubMenu 分组） ----------
 
+/** 角色列表类型，与 authRoleSchema 对齐。 */
+export type AdminRole = "super_admin" | "admin" | "editor" | "moderator" | "operator";
+
 /**
  * 后台侧边栏菜单数据，直接兼容 antd Menu 的 items prop。
  * 5 个分组，每组包含 children 子菜单项。
+ * 每个分组和子菜单项均标注 roles 字段，标明哪些角色可见。
  */
 export const ADMIN_MENU_ITEMS: MenuProps["items"] = [
   {
     key: "group:overview",
     label: "数据总览",
     icon: <RadarChartOutlined />,
+    roles: ["super_admin", "admin", "editor", "moderator", "operator"],
     children: [
-      { key: ADMIN_ROUTE_PATHS.overview, icon: <RadarChartOutlined />, label: "总览中心" },
-      { key: ADMIN_ROUTE_PATHS.messages, icon: <MailOutlined />, label: "消息中心" },
-      { key: ADMIN_ROUTE_PATHS.logs, icon: <DatabaseOutlined />, label: "日志监控" }
+      { key: ADMIN_ROUTE_PATHS.overview, icon: <RadarChartOutlined />, label: "总览中心", roles: ["super_admin", "admin", "editor", "moderator", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.messages, icon: <MailOutlined />, label: "消息中心", roles: ["super_admin", "admin", "editor", "moderator", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.logs, icon: <DatabaseOutlined />, label: "日志监控", roles: ["super_admin", "admin"] }
     ]
   },
   {
     key: "group:content",
     label: "内容管理",
     icon: <ReadOutlined />,
+    roles: ["super_admin", "admin", "editor"],
     children: [
-      {
-        key: ADMIN_ROUTE_PATHS.managementOfficialArticles,
-        icon: <ReadOutlined />,
-        label: "官方文章库"
-      },
-      { key: ADMIN_ROUTE_PATHS.managementBrands, icon: <AppstoreOutlined />, label: "品牌库" },
-      { key: ADMIN_ROUTE_PATHS.managementModels, icon: <BuildOutlined />, label: "机型库" },
-      {
-        key: ADMIN_ROUTE_PATHS.managementCategories,
-        icon: <ApartmentOutlined />,
-        label: "机型分类"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.managementPowerTypes,
-        icon: <ApartmentOutlined />,
-        label: "动力分类"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.managementContentCategories,
-        icon: <ClusterOutlined />,
-        label: "内容分类"
-      },
-      { key: APP_ROUTES.adminReviews, icon: <FileSearchOutlined />, label: "评测档案" }
+      { key: ADMIN_ROUTE_PATHS.managementOfficialArticles, icon: <ReadOutlined />, label: "官方文章库", roles: ["super_admin", "admin", "editor"] },
+      { key: ADMIN_ROUTE_PATHS.managementBrands, icon: <AppstoreOutlined />, label: "品牌库", roles: ["super_admin", "admin", "editor"] },
+      { key: ADMIN_ROUTE_PATHS.managementModels, icon: <BuildOutlined />, label: "机型库", roles: ["super_admin", "admin", "editor"] },
+      { key: ADMIN_ROUTE_PATHS.managementCategories, icon: <ApartmentOutlined />, label: "机型分类", roles: ["super_admin", "admin", "editor"] },
+      { key: ADMIN_ROUTE_PATHS.managementPowerTypes, icon: <ApartmentOutlined />, label: "动力分类", roles: ["super_admin", "admin", "editor"] },
+      { key: ADMIN_ROUTE_PATHS.managementContentCategories, icon: <ClusterOutlined />, label: "内容分类", roles: ["super_admin", "admin", "editor"] },
+      { key: APP_ROUTES.adminReviews, icon: <FileSearchOutlined />, label: "评测档案", roles: ["super_admin", "admin", "editor"] }
     ]
   },
   {
     key: "group:moderation",
     label: "审核管理",
     icon: <SafetyOutlined />,
+    roles: ["super_admin", "admin", "moderator"],
     children: [
-      {
-        key: ADMIN_ROUTE_PATHS.messageTodos,
-        icon: <ScheduleOutlined />,
-        label: "审核待办"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationArticles,
-        icon: <FlagOutlined />,
-        label: "文章审核"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationMoments,
-        icon: <NotificationOutlined />,
-        label: "飞友圈动态"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationComments,
-        icon: <CommentOutlined />,
-        label: "评论审核"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationReports,
-        icon: <FileSearchOutlined />,
-        label: "举报内容"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationBrandApplications,
-        icon: <InboxOutlined />,
-        label: "品牌申请"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions,
-        icon: <CloudUploadOutlined />,
-        label: "机型投稿"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationRankings,
-        icon: <OrderedListOutlined />,
-        label: "榜单审核"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationRatingTargets,
-        icon: <OrderedListOutlined />,
-        label: "评分对象审核"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.moderationFiles,
-        icon: <CloudUploadOutlined />,
-        label: "文件审核"
-      }
+      { key: ADMIN_ROUTE_PATHS.messageTodos, icon: <ScheduleOutlined />, label: "审核待办", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationArticles, icon: <FlagOutlined />, label: "文章审核", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationMoments, icon: <NotificationOutlined />, label: "飞友圈动态", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationComments, icon: <CommentOutlined />, label: "评论审核", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationReports, icon: <FileSearchOutlined />, label: "举报内容", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationBrandApplications, icon: <InboxOutlined />, label: "品牌申请", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions, icon: <CloudUploadOutlined />, label: "机型投稿", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationRankings, icon: <OrderedListOutlined />, label: "榜单审核", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationRatingTargets, icon: <OrderedListOutlined />, label: "评分对象审核", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationFiles, icon: <CloudUploadOutlined />, label: "文件审核", roles: ["super_admin", "admin", "moderator"] }
     ]
   },
   {
     key: "group:operations",
     label: "运营工具",
     icon: <ToolOutlined />,
+    roles: ["super_admin", "admin", "operator"],
     children: [
-      {
-        key: ADMIN_ROUTE_PATHS.operationsArticles,
-        icon: <ReadOutlined />,
-        label: "创建文章"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.operationsAircraft,
-        icon: <GatewayOutlined />,
-        label: "创建飞行器"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.operationsBrands,
-        icon: <AppstoreOutlined />,
-        label: "创建品牌"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.operationsRankings,
-        icon: <TrophyOutlined />,
-        label: "创建榜单"
-      }
+      { key: ADMIN_ROUTE_PATHS.operationsArticles, icon: <ReadOutlined />, label: "创建文章", roles: ["super_admin", "admin", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.operationsAircraft, icon: <GatewayOutlined />, label: "创建飞行器", roles: ["super_admin", "admin", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.operationsBrands, icon: <AppstoreOutlined />, label: "创建品牌", roles: ["super_admin", "admin", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.operationsRankings, icon: <TrophyOutlined />, label: "创建榜单", roles: ["super_admin", "admin", "operator"] }
     ]
   },
   {
     key: "group:settings",
     label: "系统设置",
     icon: <SettingOutlined />,
+    roles: ["super_admin", "admin", "editor", "moderator", "operator"],
     children: [
-      {
-        key: ADMIN_ROUTE_PATHS.managementUsers,
-        icon: <UserOutlined />,
-        label: "用户管理"
-      },
-      {
-        key: ADMIN_ROUTE_PATHS.managementSecurity,
-        icon: <SafetyCertificateOutlined />,
-        label: "安全设置"
-      },
-      { key: ADMIN_ROUTE_PATHS.aiSettings, icon: <RobotOutlined />, label: "AI 设置" }
+      { key: ADMIN_ROUTE_PATHS.managementUsers, icon: <UserOutlined />, label: "用户管理", roles: ["super_admin", "admin"] },
+      { key: ADMIN_ROUTE_PATHS.managementSecurity, icon: <SafetyCertificateOutlined />, label: "安全设置", roles: ["super_admin", "admin", "editor", "moderator", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.aiSettings, icon: <RobotOutlined />, label: "AI 设置", roles: ["super_admin", "admin"] }
     ]
   }
-];
+] as unknown as MenuProps["items"];
 
 /**
  * 根据当前路由路径计算 antd Menu 所需的 selectedKey 和 openKeys。

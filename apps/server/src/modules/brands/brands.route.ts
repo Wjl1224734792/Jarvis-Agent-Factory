@@ -6,7 +6,7 @@ import {
 import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { brandsService } from "./brands.service";
@@ -30,13 +30,13 @@ brandsRoute.get("/", async (context) => {
   return context.json(items.map((item) => brandSchema.parse(item)));
 });
 
-brandsRoute.post("/", requireAdmin, async (context) => {
+brandsRoute.post("/", requireRole('super_admin', 'editor'), async (context) => {
   const input = adminBrandInputSchema.parse(await context.req.json());
   const item = await brandsService.createBrand(input);
   return context.json(adminBrandResponseSchema.parse({ item }));
 });
 
-brandsRoute.put("/:id", requireAdmin, async (context) => {
+brandsRoute.put("/:id", requireRole('super_admin', 'editor'), async (context) => {
   const id = getRequiredIdOrBadRequest(context);
   if (id instanceof Response) {
     return id;

@@ -20,8 +20,8 @@ import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { reviewsService } from "./reviews.service";
@@ -88,12 +88,12 @@ reviewsRoute.post(API_ROUTES.models.reviews(":slug"), requireAuth, async (contex
 });
 
 // 后台审核接口放在前半段，前台评论与点赞举报接口放在后半段，便于按职责浏览。
-reviewsRoute.get(API_ROUTES.models.adminReviews, requireAdmin, async (context) => {
+reviewsRoute.get(API_ROUTES.models.adminReviews, requireRole('super_admin', 'editor'), async (context) => {
   const payload = await reviewsService.listAdminReviews();
   return context.json(adminReviewsResponseSchema.parse(payload));
 });
 
-reviewsRoute.put(API_ROUTES.models.adminReviewDetail(":id"), requireAdmin, async (context) => {
+reviewsRoute.put(API_ROUTES.models.adminReviewDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
 
   if (!id) {
@@ -110,7 +110,7 @@ reviewsRoute.put(API_ROUTES.models.adminReviewDetail(":id"), requireAdmin, async
   return context.json(adminReviewResponseSchema.parse({ item }));
 });
 
-reviewsRoute.get(API_ROUTES.models.adminReviewReports(":id"), requireAdmin, async (context) => {
+reviewsRoute.get(API_ROUTES.models.adminReviewReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -120,7 +120,7 @@ reviewsRoute.get(API_ROUTES.models.adminReviewReports(":id"), requireAdmin, asyn
   return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
-reviewsRoute.get(API_ROUTES.models.adminReviewComments, requireAdmin, async (context) => {
+reviewsRoute.get(API_ROUTES.models.adminReviewComments, requireRole('super_admin', 'editor'), async (context) => {
   const status = context.req.query("status");
   const payload = await reviewsService.listAdminReviewComments(
     status === "pending" || status === "visible" || status === "hidden" ? status : undefined
@@ -128,7 +128,7 @@ reviewsRoute.get(API_ROUTES.models.adminReviewComments, requireAdmin, async (con
   return context.json(adminReviewCommentsResponseSchema.parse(payload));
 });
 
-reviewsRoute.put(API_ROUTES.models.adminReviewCommentDetail(":id"), requireAdmin, async (context) => {
+reviewsRoute.put(API_ROUTES.models.adminReviewCommentDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -143,7 +143,7 @@ reviewsRoute.put(API_ROUTES.models.adminReviewCommentDetail(":id"), requireAdmin
   return context.json(adminReviewCommentResponseSchema.parse({ item }));
 });
 
-reviewsRoute.get(API_ROUTES.models.adminReviewCommentReports(":id"), requireAdmin, async (context) => {
+reviewsRoute.get(API_ROUTES.models.adminReviewCommentReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
