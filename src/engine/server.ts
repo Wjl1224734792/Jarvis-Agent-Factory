@@ -230,19 +230,20 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   });
   // SPA catch-all：非 API/非 assets 路径返回 index.html
   const indexPath = resolve(webDistDir, 'index.html');
-  const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf-8') : null;
   app.get('*', (c) => {
     // 静态资源扩展名请求不 fallback 到 index.html，避免 MIME 类型错误
     const staticExts = /\.(js|mjs|ts|tsx|css|scss|json|map|svg|png|jpe?g|ico|woff2?)([?#].*)?$/i;
     if (staticExts.test(c.req.path)) {
       return c.text('Not Found', 404);
     }
-    if (!indexHtml) {
+    // 每次请求从磁盘重新读取，确保 npm update -g 后无需重启引擎
+    if (!existsSync(indexPath)) {
       return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
         <p>请运行 <code>npm run build:web</code> 构建前端产物，或从 GitHub Release 下载预构建包。</p>
       </body></html>`);
     }
+    const indexHtml = readFileSync(indexPath, 'utf-8');
     return c.html(indexHtml, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' });
   });
 
@@ -1053,9 +1054,6 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 
   // SPA catch-all：非 API/非 assets 路径返回 index.html
   const indexPath = resolve(webDistDir, 'index.html');
-  const indexHtml = existsSync(indexPath)
-    ? readFileSync(indexPath, 'utf-8')
-    : null;
 
   app.get('*', (c) => {
     // 静态资源扩展名请求不 fallback 到 index.html，避免 MIME 类型错误
@@ -1063,12 +1061,14 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     if (staticExts.test(c.req.path)) {
       return c.text('Not Found', 404);
     }
-    if (!indexHtml) {
+    // 每次请求从磁盘重新读取，确保 npm update -g 后无需重启引擎
+    if (!existsSync(indexPath)) {
       return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
         <p>请运行 <code>cd web && npm run build</code> 构建前端产物。</p>
       </body></html>`);
     }
+    const indexHtml = readFileSync(indexPath, 'utf-8');
     return c.html(indexHtml, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' });
   });
 
