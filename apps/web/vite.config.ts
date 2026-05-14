@@ -183,7 +183,30 @@ export default defineConfig(({ mode }) => {
     define: {
       "import.meta.env.VITE_WEB_API_BASE_URL": JSON.stringify(webApiBaseUrl)
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      {
+        name: "vite:react-refresh-preamble",
+        apply: "serve",
+        transformIndexHtml: {
+          order: "pre",
+          handler() {
+            return [
+              {
+                tag: "script",
+                attrs: { type: "module" },
+                children: `import RefreshRuntime from "/@react-refresh"
+RefreshRuntime.injectIntoGlobalHook(window)
+window.$RefreshReg$ = () => {}
+window.$RefreshSig$ = () => (type) => type
+window.__vite_plugin_react_preamble_installed__ = true`,
+              },
+            ];
+          },
+        },
+      },
+      tailwindcss(),
+    ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src")

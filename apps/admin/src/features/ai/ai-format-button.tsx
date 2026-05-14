@@ -1,8 +1,8 @@
 import type { IDomEditor } from '@wangeditor/editor';
-import { ChevronDownIcon, Loader2Icon, SparklesIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { DownOutlined, FormatPainterOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Space } from 'antd';
+import type { MenuProps } from 'antd';
+import { useCallback, useState } from 'react';
 import { useAiFormat } from './use-ai-format';
 
 interface AiFormatButtonProps {
@@ -18,8 +18,6 @@ function hasEditorContent(editor: IDomEditor): boolean {
 
 /**
  * 从当前 DOM Selection 中提取选区的 HTML 片段。
- *
- * @returns 选区 HTML；无选区或选区为空时返回 null。
  */
 function getSelectionHtml(): string | null {
   const selection = window.getSelection();
@@ -38,9 +36,7 @@ function getSelectionHtml(): string | null {
   return html || null;
 }
 
-/**
- * 删除当前选区内容（不触发剪贴板）。
- */
+/** 删除当前选区内容（不触发剪贴板）。 */
 function deleteCurrentSelection(): void {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) {
@@ -52,36 +48,14 @@ function deleteCurrentSelection(): void {
 }
 
 /**
- * AI 排版下拉按钮 — 支持 beautify（局部美化）和 structure（全文结构化）两种模式。
- *
- * @param props.editor - wangEditor 编辑器实例。
- * @returns 渲染排版下拉按钮。
+ * AI 排版按钮（admin 端） — 主按钮执行美化，右侧下拉按钮执行全文结构化。
  */
 export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const aiFormat = useAiFormat();
-
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
 
   const handleBeautify = useCallback(async () => {
     if (!editor) return;
-
-    setIsOpen(false);
 
     const selectedHtml = getSelectionHtml();
     if (!selectedHtml) {
@@ -111,8 +85,6 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const handleStructure = useCallback(async () => {
     if (!editor) return;
 
-    setIsOpen(false);
-
     if (!hasEditorContent(editor)) {
       editor.alert('请先输入内容', 'warning');
       return;
@@ -138,49 +110,38 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
     }
   }, [editor, aiFormat]);
 
+  const dropdownItems: MenuProps['items'] = [
+    {
+      key: 'structure',
+      icon: <ThunderboltOutlined />,
+      label: '全文结构化',
+      onClick: () => void handleStructure()
+    }
+  ];
+
+  const disabled = !editor || aiFormat.isLoading;
+
   return (
-    <div className="relative inline-flex" ref={dropdownRef}>
+    <Space.Compact>
       <Button
-        className="rounded-r-none"
-        disabled={!editor || aiFormat.isLoading}
+        disabled={disabled}
+        icon={aiFormat.isLoading ? undefined : <FormatPainterOutlined />}
+        loading={aiFormat.isLoading}
         onClick={() => void handleBeautify()}
-        size="sm"
-        type="button"
-        variant="outline"
       >
-        {aiFormat.isLoading ? (
-          <Loader2Icon className="size-3.5 animate-spin" data-icon="inline-start" />
-        ) : (
-          <SparklesIcon data-icon="inline-start" />
-        )}
         AI 排版
       </Button>
-      <Button
-        className="rounded-l-none border-l-0 px-1.5"
-        disabled={!editor || aiFormat.isLoading}
-        onClick={() => setIsOpen(current => !current)}
-        size="sm"
-        type="button"
-        variant="outline"
+      <Dropdown
+        menu={{ items: dropdownItems }}
+        onOpenChange={setIsOpen}
+        open={isOpen}
+        trigger={['click']}
       >
-        <ChevronDownIcon className="size-3" />
-      </Button>
-
-      {isOpen ? (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-44 overflow-hidden rounded-lg border border-border/70 bg-white py-1 shadow-lg">
-          <button
-            className={cn(
-              'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition',
-              'hover:bg-surface-1 focus:bg-surface-1 focus:outline-none'
-            )}
-            onClick={() => void handleStructure()}
-            type="button"
-          >
-            <SparklesIcon className="size-4 text-muted-foreground" />
-            <span>全文结构化</span>
-          </button>
-        </div>
-      ) : null}
-    </div>
+        <Button
+          disabled={disabled}
+          icon={<DownOutlined />}
+        />
+      </Dropdown>
+    </Space.Compact>
   );
 }

@@ -266,7 +266,9 @@ async function callLlmForFormat(
       throw new Error("LLM 返回空内容");
     }
 
-    const parsed = JSON.parse(raw) as { html: string; changes: string[] };
+    // LLM 可能将 JSON 包裹在 ```json...``` 代码围栏中，先剥离
+    const clean = raw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+    const parsed = JSON.parse(clean) as { html: string; changes: string[] };
 
     if (!parsed.html) {
       throw new Error("LLM 返回格式不正确：缺少 html 字段");
