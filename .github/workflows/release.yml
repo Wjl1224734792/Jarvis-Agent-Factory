@@ -166,7 +166,14 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PUBLISHED=$(npm view jarvis-agent-factory@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$VERSION" ]; then
+            echo "v$VERSION already published on npm, skipping."
+            exit 0
+          fi
+          npm publish
 
       - name: Verify Publish
         run: |
