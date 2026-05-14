@@ -9,8 +9,8 @@ import { Hono } from "hono";
 import {
   attachCurrentUser,
   type AuthContext,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { aircraftSubmissionsService } from "./aircraft-submissions.service";
@@ -122,14 +122,14 @@ aircraftSubmissionsRoute.delete(API_ROUTES.submissions.detail(":id"), requireAut
   return context.json({ success: true });
 });
 
-aircraftSubmissionsRoute.get(API_ROUTES.submissions.adminList, requireAdmin, async (context) => {
+aircraftSubmissionsRoute.get(API_ROUTES.submissions.adminList, requireRole('super_admin', 'moderator'), async (context) => {
   const payload = await aircraftSubmissionsService.listAdminSubmissions();
   return context.json(aircraftSubmissionsResponseSchema.parse(payload));
 });
 
 aircraftSubmissionsRoute.get(
   API_ROUTES.submissions.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'moderator'),
   async (context) => {
     const id = getRequiredIdOrBadRequest(context);
     if (id instanceof Response) {
@@ -152,7 +152,7 @@ aircraftSubmissionsRoute.get(
 
 aircraftSubmissionsRoute.put(
   API_ROUTES.submissions.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'moderator'),
   async (context) => {
     const id = getRequiredIdOrBadRequest(context);
     if (id instanceof Response) {

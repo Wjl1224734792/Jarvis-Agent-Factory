@@ -10,8 +10,8 @@ import { Hono } from "hono";
 import {
   attachCurrentUser,
   type AuthContext,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { brandApplicationsService } from "./brand-applications.service";
@@ -98,14 +98,14 @@ brandApplicationsRoute.put(API_ROUTES.brandApplications.update(":id"), requireAu
   return context.json(brandApplicationResponseSchema.parse(result.payload));
 });
 
-brandApplicationsRoute.get(API_ROUTES.brandApplications.adminList, requireAdmin, async (context) => {
+brandApplicationsRoute.get(API_ROUTES.brandApplications.adminList, requireRole('super_admin', 'moderator'), async (context) => {
   const payload = await brandApplicationsService.listAdminApplications();
   return context.json(brandApplicationsResponseSchema.parse(payload));
 });
 
 brandApplicationsRoute.put(
   API_ROUTES.brandApplications.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'moderator'),
   async (context) => {
     const id = getRequiredIdOrBadRequest(context);
     if (id instanceof Response) {

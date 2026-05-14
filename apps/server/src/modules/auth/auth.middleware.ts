@@ -1,5 +1,6 @@
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
+import type { AdminRole } from "@feijia/schemas";
 import { authService } from "./auth.service";
 import { authRepo, type SessionScope } from "./auth.repo";
 
@@ -133,4 +134,43 @@ export async function requireAdmin(context: AuthContext, next: Next) {
     return forbidden(context);
   }
   await next();
+}
+
+/**
+ * 角色级权限守卫 — 仅允许指定角色访问。
+ * super_admin 和 admin 拥有全部权限，自动放行（向后兼容）。
+ *
+ * @param allowedRoles - 允许访问的角色列表
+ * @returns Hono 中间件
+ * @example requireRole('super_admin', 'editor')
+ */
+export function requireRole(...allowedRoles: AdminRole[]) {
+  const allowed = new Set<AdminRole>(["super_admin", "admin", ...allowedRoles]);
+  return async (context: AuthContext, next: Next) => {
+    const user = context.var.currentUser;
+    if (!user) {
+      const errorCode = context.var.authErrorCode;
+      if (errorCode === "USER_BANNED") {
+        return banned(context);
+      }
+      if (errorCode === "TOKEN_EXPIRED") {
+        return context.json(
+          {
+            code: "TOKEN_EXPIRED",
+            message: "Access token expired."
+          },
+          401
+        );
+      }
+      return unauthorized(context);
+    }
+    // super_admin 和 admin 拥有全部权限（已预置到 allowed 集合中）
+    if (!allowed.has(user.role as AdminRole)) {
+      return context.json(
+        { code: "FORBIDDEN", message: "角色无权限访问此资源" },
+        403
+      );
+    }
+    return next();
+  };
 }

@@ -6,7 +6,7 @@ import {
 import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { categoriesService } from "./categories.service";
@@ -30,13 +30,13 @@ categoriesRoute.get("/", async (context) => {
   return context.json(items.map((item) => aircraftCategorySchema.parse(item)));
 });
 
-categoriesRoute.post("/", requireAdmin, async (context) => {
+categoriesRoute.post("/", requireRole('super_admin', 'editor'), async (context) => {
   const input = adminCategoryInputSchema.parse(await context.req.json());
   const item = await categoriesService.createCategory(input);
   return context.json(adminCategoryResponseSchema.parse({ item }));
 });
 
-categoriesRoute.put("/:id", requireAdmin, async (context) => {
+categoriesRoute.put("/:id", requireRole('super_admin', 'editor'), async (context) => {
   const id = getRequiredIdOrBadRequest(context);
   if (id instanceof Response) {
     return id;

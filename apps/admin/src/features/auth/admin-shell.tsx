@@ -27,6 +27,37 @@ import { useAdminAuthStore } from "./auth-store";
 
 const { Header, Sider, Content } = Layout;
 
+/**
+ * 根据用户角色过滤菜单项。
+ * 有 roles 字段且当前角色不在列表中的项会被隐藏；递归过滤子菜单。
+ * @param items antd Menu items 原始数据。
+ * @param role 当前用户角色。
+ * @returns 过滤后仅保留当前角色可访问的菜单项。
+ */
+function filterMenuByRole(
+  items: typeof ADMIN_MENU_ITEMS,
+  role: string
+): typeof ADMIN_MENU_ITEMS {
+  if (!items) return [];
+  return items
+    .map(item => {
+      if (!item) return null;
+      // 如果有 roles 且当前用户角色不在列表中，隐藏
+      const rolesItem = item as { roles?: string[] };
+      if (Array.isArray(rolesItem.roles) && !rolesItem.roles.includes(role)) {
+        return null;
+      }
+      // 递归过滤子菜单
+      if ("children" in item && Array.isArray(item.children)) {
+        const filtered = filterMenuByRole(item.children, role);
+        if (!filtered || filtered.length === 0) return null;
+        return { ...item, children: filtered };
+      }
+      return item;
+    })
+    .filter(Boolean);
+}
+
 export function AdminShell() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -34,8 +65,15 @@ export function AdminShell() {
   const [collapsed, setCollapsed] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const user = useAdminAuthStore((state) => state.user);
+  const userRole = useAdminAuthStore((state) => state.user?.role ?? "admin");
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
+
+  /** 根据当前用户角色过滤后的菜单数据。 */
+  const filteredMenu = useMemo(
+    () => filterMenuByRole(ADMIN_MENU_ITEMS, userRole),
+    [userRole]
+  );
 
   useEffect(() => {
     function handleAuthInvalid() {
@@ -92,7 +130,7 @@ export function AdminShell() {
 
   /** 根据 selectedKey 查找所属分组标签和菜单项标签（用于 Header 面包屑）。 */
   const { activeGroup, activeLabel } = useMemo(() => {
-    for (const group of ADMIN_MENU_ITEMS ?? []) {
+    for (const group of filteredMenu ?? []) {
       if (!group || !("children" in group) || !("label" in group) || !group.children) continue;
       for (const child of group.children) {
         if (!child || !("key" in child) || !("label" in child)) continue;
@@ -107,7 +145,7 @@ export function AdminShell() {
       }
     }
     return { activeGroup: "", activeLabel: "" };
-  }, [selectedKey]);
+  }, [selectedKey, filteredMenu]);
 
   function submitSearch(value: string) {
     const trimmed = value.trim();
@@ -244,7 +282,7 @@ export function AdminShell() {
             <Menu
               className="admin-shell__menu"
               inlineCollapsed={collapsed}
-              items={ADMIN_MENU_ITEMS}
+              items={filteredMenu}
               mode="inline"
               onClick={({ key }) => {
                 void navigate(String(key));

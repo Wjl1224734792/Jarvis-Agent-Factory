@@ -25,8 +25,8 @@ import { type Context, Hono } from "hono";
 import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { postsService } from "./posts.service";
@@ -360,7 +360,7 @@ postsRoute.post(API_ROUTES.posts.report(":id"), requireAuth, async (context) => 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
-postsRoute.get(API_ROUTES.posts.adminList, requireAdmin, async (context) => {
+postsRoute.get(API_ROUTES.posts.adminList, requireRole('super_admin', 'editor'), async (context) => {
   const statusQuery = context.req.query("status");
   const status =
     statusQuery === "pending" ||
@@ -374,7 +374,7 @@ postsRoute.get(API_ROUTES.posts.adminList, requireAdmin, async (context) => {
   return context.json(adminPostsResponseSchema.parse(payload));
 });
 
-postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context) => {
+postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -393,7 +393,7 @@ postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context
   return context.json(adminPostResponseSchema.parse({ item }));
 });
 
-postsRoute.get(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+postsRoute.get(API_ROUTES.posts.adminOfficialDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -407,7 +407,7 @@ postsRoute.get(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async 
   return context.json(postDetailResponseSchema.parse(payload));
 });
 
-postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -439,7 +439,7 @@ postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async 
   return context.json(postDetailResponseSchema.parse({ item: result.item }));
 });
 
-postsRoute.delete(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+postsRoute.delete(API_ROUTES.posts.adminOfficialDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -522,7 +522,7 @@ postsRoute.post(API_ROUTES.posts.commentReport(":postId", ":commentId"), require
 });
 
 // 后台接口集中在文件后半段，避免与前台发布/互动流程混在一起。
-postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => {
+postsRoute.get(API_ROUTES.posts.adminComments, requireRole('super_admin', 'editor'), async (context) => {
   const statusQuery = context.req.query("status");
   const status =
     statusQuery === "pending" || statusQuery === "visible" || statusQuery === "hidden"
@@ -532,7 +532,7 @@ postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => 
   return context.json(adminPostCommentsResponseSchema.parse(payload));
 });
 
-postsRoute.get(API_ROUTES.posts.adminReports(":id"), requireAdmin, async (context) => {
+postsRoute.get(API_ROUTES.posts.adminReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -542,7 +542,7 @@ postsRoute.get(API_ROUTES.posts.adminReports(":id"), requireAdmin, async (contex
   return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
-postsRoute.get(API_ROUTES.posts.adminCommentReports(":id"), requireAdmin, async (context) => {
+postsRoute.get(API_ROUTES.posts.adminCommentReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -552,7 +552,7 @@ postsRoute.get(API_ROUTES.posts.adminCommentReports(":id"), requireAdmin, async 
   return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
-postsRoute.put(API_ROUTES.posts.adminCommentDetail(":id"), requireAdmin, async (context) => {
+postsRoute.put(API_ROUTES.posts.adminCommentDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);

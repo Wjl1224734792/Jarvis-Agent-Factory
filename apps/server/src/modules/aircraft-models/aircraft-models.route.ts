@@ -22,8 +22,8 @@ import { type Context, Hono } from "hono";
 import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
-  requireAdmin,
   requireAuth,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { aircraftModelsService } from "./aircraft-models.service";
@@ -283,7 +283,7 @@ aircraftModelsRoute.post(
   }
 );
 
-aircraftModelsRoute.post(API_ROUTES.models.adminList, requireAdmin, async (context) => {
+aircraftModelsRoute.post(API_ROUTES.models.adminList, requireRole('super_admin', 'editor'), async (context) => {
   const input = adminModelInputSchema.parse(await context.req.json());
   const item = await aircraftModelsService.createModel(input);
 
@@ -303,7 +303,7 @@ aircraftModelsRoute.post(API_ROUTES.models.adminList, requireAdmin, async (conte
 
 aircraftModelsRoute.get(
   API_ROUTES.models.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const id = context.req.param("id");
     if (!id) {
@@ -322,7 +322,7 @@ aircraftModelsRoute.get(
 
 aircraftModelsRoute.put(
   API_ROUTES.models.adminDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const id = context.req.param("id");
     if (!id) {
@@ -346,7 +346,7 @@ aircraftModelsRoute.put(
   }
 );
 
-aircraftModelsRoute.get(API_ROUTES.models.adminComments, requireAdmin, async (context) => {
+aircraftModelsRoute.get(API_ROUTES.models.adminComments, requireRole('super_admin', 'editor'), async (context) => {
   const status = context.req.query("status");
   const payload = await aircraftModelsService.listAdminModelComments(
     status === "pending" || status === "visible" || status === "hidden" ? status : undefined
@@ -354,7 +354,7 @@ aircraftModelsRoute.get(API_ROUTES.models.adminComments, requireAdmin, async (co
   return context.json(adminModelCommentsResponseSchema.parse(payload));
 });
 
-aircraftModelsRoute.get(API_ROUTES.models.adminReports(":id"), requireAdmin, async (context) => {
+aircraftModelsRoute.get(API_ROUTES.models.adminReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -364,7 +364,7 @@ aircraftModelsRoute.get(API_ROUTES.models.adminReports(":id"), requireAdmin, asy
   return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
-aircraftModelsRoute.put(API_ROUTES.models.adminCommentDetail(":id"), requireAdmin, async (context) => {
+aircraftModelsRoute.put(API_ROUTES.models.adminCommentDetail(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
@@ -379,7 +379,7 @@ aircraftModelsRoute.put(API_ROUTES.models.adminCommentDetail(":id"), requireAdmi
   return context.json(adminModelCommentResponseSchema.parse({ item }));
 });
 
-aircraftModelsRoute.get(API_ROUTES.models.adminCommentReports(":id"), requireAdmin, async (context) => {
+aircraftModelsRoute.get(API_ROUTES.models.adminCommentReports(":id"), requireRole('super_admin', 'editor'), async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);

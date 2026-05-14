@@ -7,7 +7,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
-  requireAdmin,
+  requireRole,
   type AuthVariables
 } from "../auth/auth.middleware";
 import { contentCategoriesService } from "./content-categories.service";
@@ -31,12 +31,12 @@ contentCategoriesRoute.get(API_ROUTES.content.categories, async (context) => {
   return context.json(contentCategoriesResponseSchema.parse({ items }));
 });
 
-contentCategoriesRoute.get(API_ROUTES.content.adminCategories, requireAdmin, async (context) => {
+contentCategoriesRoute.get(API_ROUTES.content.adminCategories, requireRole('super_admin', 'editor'), async (context) => {
   const items = await contentCategoriesService.listAllCategories();
   return context.json(contentCategoriesResponseSchema.parse({ items }));
 });
 
-contentCategoriesRoute.post(API_ROUTES.content.adminCategories, requireAdmin, async (context) => {
+contentCategoriesRoute.post(API_ROUTES.content.adminCategories, requireRole('super_admin', 'editor'), async (context) => {
   const input = adminContentCategoryInputSchema.parse(await context.req.json());
   const item = await contentCategoriesService.createCategory(input);
 
@@ -49,7 +49,7 @@ contentCategoriesRoute.post(API_ROUTES.content.adminCategories, requireAdmin, as
 
 contentCategoriesRoute.put(
   API_ROUTES.content.adminCategoryDetail(":id"),
-  requireAdmin,
+  requireRole('super_admin', 'editor'),
   async (context) => {
     const id = getRequiredIdOrBadRequest(context);
     if (id instanceof Response) {
