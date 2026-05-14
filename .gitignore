@@ -128,3 +128,7 @@ test-results/
 # Claude Code local settings (contains API keys)
 .claude/settings.local.json
 .mcp.json
+opencode.json
+data/
+
+.jarvis/*

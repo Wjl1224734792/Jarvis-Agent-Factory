@@ -48,5 +48,8 @@ export const openApiTags = [
   { name: "admin-analytics", description: "Admin dashboard analytics endpoints" },
   { name: "admin-reports", description: "Admin report detail and evidence endpoints" },
   { name: "reviews", description: "Review comment, interaction and moderation endpoints" },
-  { name: "动力分类", description: "飞行器动力类型分类管理" }
+  { name: "power-types", description: "飞行器动力类型分类管理" },
+  { name: "search", description: "Site-wide and admin search endpoints" },
+  { name: "admin-logs", description: "Admin log file browsing and entry viewing endpoints" },
+  { name: "audits", description: "Admin audit record listing and Qiniu audit callback endpoints" }
 ] as const;

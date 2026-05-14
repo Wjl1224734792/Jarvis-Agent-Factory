@@ -65,7 +65,7 @@ function decodeRecommendedCursor(cursor: string) {
   return payload;
 }
 
-describe.sequential("recommended cursor pagination", () => {
+describe("recommended cursor pagination", () => {
   beforeAll(async () => {
     await runMigrations();
   });

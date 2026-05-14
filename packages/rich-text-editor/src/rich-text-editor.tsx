@@ -54,6 +54,8 @@ export interface RichTextEditorProps {
   disabled?: boolean;
   /** MediaManager 实例，由页面层注入 */
   mediaManager: MediaManager;
+  /** 编辑器创建完成回调，用于外部获取 editor 实例 */
+  onCreated?: (editor: IDomEditor) => void;
 }
 
 type ImageInsertFn = (src: string, alt: string, href: string) => void;
@@ -86,6 +88,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
     minHeight = 420,
     disabled = false,
     mediaManager,
+    onCreated: onCreatedCallback,
   } = props;
 
   const editorRef = useRef<IDomEditor | null>(null);
@@ -99,12 +102,11 @@ export function RichTextEditor(props: RichTextEditorProps) {
 
   const emitEditorChange = useCallback(
     (currentEditor: IDomEditor) => {
-      // 过滤粘贴内容中的 file:/// 本地路径（WPS/Word 粘贴），同时清理空 src 属性
+      // 过滤粘贴内容中的 file:// 本地路径（WPS/Word 粘贴残留），清理空 src 属性
       const html = currentEditor
         .getHtml()
         .replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "")
-        .replace(/\s*src\s*=\s*["']\s*["']\s*/gi, " ")
-        .replace(/\s+/g, " ");
+        .replace(/\s*src\s*=\s*["']\s*["']\s*/gi, "");
       onChange({
         html,
         plainText: extractPlainTextFromHtml(html),
@@ -224,8 +226,9 @@ export function RichTextEditor(props: RichTextEditorProps) {
         currentEditor.disable();
       }
       setEditor(currentEditor);
+      onCreatedCallback?.(currentEditor);
     },
-    [disabled]
+    [disabled, onCreatedCallback]
   );
 
   if (variant === "admin") {

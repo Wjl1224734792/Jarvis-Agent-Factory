@@ -196,6 +196,19 @@ export const modelPaths = {
       }
     },
     [API_ROUTES.models.adminDetail('{id}')]: {
+      get: {
+        tags: ['models'],
+        summary: '管理端查看机型详情',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '机型 ID。')],
+        responses: {
+          '200': jsonResponse('AdminModelResponse', '返回机型管理端详情。'),
+          '400': jsonResponse('ErrorResponse', '缺少机型 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      },
       put: {
         tags: ['models'],
         summary: '管理端更新机型',

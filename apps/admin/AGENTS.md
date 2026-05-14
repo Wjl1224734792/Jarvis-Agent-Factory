@@ -10,6 +10,7 @@
 
 1. 根 L0–L2 + `apps/AGENTS.md`  
 2. 本节
+3. **[`.claude/rules/`](../../.claude/rules/)** — 所有代码必须遵循三份编程规范
 
 ## 入口
 

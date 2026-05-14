@@ -25,6 +25,7 @@ import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
 import { usersRoute } from './modules/users/users.route';
+import { aiRoute } from './modules/ai/ai.route';
 import { buildDefaultCorsOrigins, isAllowedDevCorsOrigin } from './lib/cors-origins';
 import { parseOptionalBooleanEnv } from './lib/env-flags';
 import { ensureServerEnvLoaded } from './lib/load-env';
@@ -232,6 +233,7 @@ app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
 app.route('/', powerTypesRoute);
 app.route('/', contentCategoriesRoute);
+app.route('/', aiRoute);
 
 app.notFound(context =>
   context.json(

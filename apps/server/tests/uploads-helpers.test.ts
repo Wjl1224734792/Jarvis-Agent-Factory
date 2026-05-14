@@ -82,7 +82,7 @@ describe("uploads helpers", () => {
     uploadsRepoMock.listFilesByIds.mockResolvedValue([
       {
         id: "file_minio_uploaded",
-        provider: "minio",
+        provider: (process.env.STORAGE_PROVIDER === "kodo" ? "kodo" : "minio"),
         mediaKind: "image",
         status: "uploaded",
         currentAuditStatus: null,

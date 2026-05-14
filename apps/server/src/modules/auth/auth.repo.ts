@@ -18,12 +18,22 @@ import svgCaptcha from "@zhennann/svg-captcha";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { randomInt } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const svgCaptchaPackageRoot = dirname(
   require.resolve("@zhennann/svg-captcha/package.json")
 );
-svgCaptcha.loadFont(join(svgCaptchaPackageRoot, "fonts", "Comismsh.ttf"));
+const fontPath = join(svgCaptchaPackageRoot, "fonts", "Comismsh.ttf");
+// opentype.loadSync 在 Bun 环境下返回 undefined，改用 parse API 直接设置 options
+const svgCaptchaRequire = createRequire(
+  join(svgCaptchaPackageRoot, "index.js")
+);
+const opentype = svgCaptchaRequire("opentype.js") as typeof import("opentype.js");
+const loadedFont = opentype.parse(readFileSync(fontPath));
+svgCaptcha.options.font = loadedFont;
+svgCaptcha.options.ascender = loadedFont.ascender;
+svgCaptcha.options.descender = loadedFont.descender;
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
 import { ensureRedisConnected, redis } from "./redis-client";

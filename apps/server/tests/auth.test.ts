@@ -29,17 +29,21 @@ function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string
   expect(actual.origin).toBe(expected.origin);
   expect(actual.pathname).toBe(expected.pathname);
 
-  for (const key of [
-    "X-Amz-Algorithm",
-    "X-Amz-Credential",
-    "X-Amz-Date",
-    "X-Amz-Expires",
-    "X-Amz-Signature",
-    "X-Amz-SignedHeaders",
-    "x-amz-checksum-mode",
-    "x-id"
-  ]) {
-    expect(actual.searchParams.get(key)).toBeTruthy();
+  // S3/MinIO presigned URLs 需要特定查询参数；Kodo 使用不同的签名机制
+  const isS3Presigned = actual.searchParams.has("X-Amz-Algorithm");
+  if (isS3Presigned) {
+    for (const key of [
+      "X-Amz-Algorithm",
+      "X-Amz-Credential",
+      "X-Amz-Date",
+      "X-Amz-Expires",
+      "X-Amz-Signature",
+      "X-Amz-SignedHeaders",
+      "x-amz-checksum-mode",
+      "x-id"
+    ]) {
+      expect(actual.searchParams.get(key)).toBeTruthy();
+    }
   }
 }
 
@@ -56,18 +60,20 @@ async function clearSmsRateLimitForPhone(phone: string, clientIp = "unknown") {
   ]);
 }
 
-async function uploadAvatar(cookie: string, name = "avatar.png") {
+async function uploadAsset(
+  cookie: string,
+  bizType: string,
+  name = "asset.png",
+  contentType = "image/png"
+) {
   const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const initResponse = await app.request(API_ROUTES.uploads.init, {
     method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
-    },
+    headers: { cookie, "content-type": "application/json" },
     body: JSON.stringify({
-      bizType: "avatar-image",
+      bizType,
       filename: name,
-      contentType: "image/png",
+      contentType,
       size: bytes.byteLength
     })
   });
@@ -75,35 +81,44 @@ async function uploadAvatar(cookie: string, name = "avatar.png") {
 
   const initPayload = (await initResponse.json()) as {
     fileId: string;
-    upload: {
-      mode: "presigned-put";
-      url: string;
-      headers?: Record<string, string>;
-    };
+    upload:
+      | { mode: "presigned-put"; url: string; headers?: Record<string, string> }
+      | { mode: "qiniu-form"; uploadUrl: string; fileFieldName: string; fields: Record<string, string> };
   };
 
-  const uploadResponse = await fetch(initPayload.upload.url, {
-    method: "PUT",
-    headers: initPayload.upload.headers,
-    body: new File([bytes], name, { type: "image/png" })
-  });
-  expect(uploadResponse.status).toBe(200);
+  const { upload } = initPayload;
+  if (upload.mode === "presigned-put") {
+    const uploadResponse = await fetch(upload.url, {
+      method: "PUT",
+      headers: upload.headers,
+      body: new File([bytes], name, { type: contentType })
+    });
+    expect(uploadResponse.status).toBe(200);
+  } else if (upload.mode === "qiniu-form") {
+    const formData = new FormData();
+    for (const [key, value] of Object.entries(upload.fields)) {
+      formData.append(key, value);
+    }
+    formData.append(upload.fileFieldName, new File([bytes], name, { type: contentType }));
+    const uploadResponse = await fetch(upload.uploadUrl, {
+      method: "POST",
+      body: formData
+    });
+    expect(uploadResponse.status).toBe(200);
+  }
 
   const completeResponse = await app.request(API_ROUTES.uploads.complete, {
     method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      fileId: initPayload.fileId
-    })
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ fileId: initPayload.fileId })
   });
   expect(completeResponse.status).toBe(200);
 
-  return (await completeResponse.json()) as {
-    item: { id: string; url: string };
-  };
+  return (await completeResponse.json()) as { item: { id: string; url: string } };
+}
+
+async function uploadAvatar(cookie: string, name = "avatar.png") {
+  return uploadAsset(cookie, "avatar-image", name, "image/png");
 }
 
 function readCookieValue(cookieHeader: string, name: string) {
@@ -227,7 +242,7 @@ describe("auth flows", () => {
     }
   });
 
-  describe.sequential("auth integration flows", () => {
+  describe("auth integration flows", () => {
     beforeEach(async () => {
       restoreEnvValues({
         UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,

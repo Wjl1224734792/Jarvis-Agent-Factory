@@ -8,6 +8,21 @@ import {
 import { adminSessionSecurity } from '../security';
 
 export const adminReportsPaths = {
+    [API_ROUTES.admin.reports]: {
+      get: {
+        tags: ['admin-reports'],
+        summary: '获取举报摘要列表',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回按类型聚合的举报摘要列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
     [API_ROUTES.admin.reportDetail('{kind}', '{id}')]: {
       get: {
         tags: ['admin-reports'],

@@ -6,6 +6,8 @@ import {
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
+import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
+import { useAiSummary } from "../features/ai/use-ai-summary";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
@@ -93,6 +95,7 @@ export function PostDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFollowPending, setIsFollowPending] = useState(false);
   const isFollowPendingRef = useRef(false);
+  const aiSummary = useAiSummary();
 
   const postQuery = useQuery({
     queryKey: ["post-detail", id],
@@ -422,6 +425,24 @@ export function PostDetailPage() {
                   原文链接
                 </a>
               </div>
+            ) : null}
+
+            {/* AI 摘要面板 */}
+            {item.type === "article" && item.status === "published" ? (
+              <AiSummaryPanel
+                cached={aiSummary.cached}
+                disabled={aiSummary.isLoading}
+                error={aiSummary.error?.message ?? null}
+                isLoading={aiSummary.isLoading}
+                onGenerate={() => {
+                  aiSummary.generate({ postId });
+                }}
+                onRegenerate={() => {
+                  aiSummary.reset();
+                  aiSummary.generate({ postId });
+                }}
+                summary={aiSummary.summary}
+              />
             ) : null}
 
             {/* 移动端固定悬浮互动栏 */}

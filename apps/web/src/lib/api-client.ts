@@ -722,6 +722,30 @@ const rawApiClient = {
     return sharedClient.recordModelView(slug, {
       sessionId: getViewSessionId() ?? undefined
     });
+  },
+  /**
+   * 生成 AI 摘要
+   * @param postId 文章 ID
+   * @param content 文章内容（可选，不传则后端从 DB 取）
+   * @returns 摘要文本和是否缓存命中
+   */
+  generateAiSummary(postId: string, content?: string) {
+    return postJson<{ summary: string; cached: boolean }>(API_ROUTES.ai.summary, {
+      postId,
+      content
+    });
+  },
+  /**
+   * AI 辅助排版
+   * @param content 原始 HTML 内容（最大 8000 字符）
+   * @param mode 排版模式：beautify（局部美化）或 structure（全文结构化）
+   * @returns 格式化后的 HTML 和变更说明数组
+   */
+  formatAiContent(content: string, mode: 'beautify' | 'structure') {
+    return postJson<{ html: string; changes: string[] }>(API_ROUTES.ai.format, {
+      content,
+      mode
+    });
   }
 };
 

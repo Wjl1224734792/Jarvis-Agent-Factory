@@ -56,7 +56,7 @@ afterAll(async () => {
   // breaks later integration files running in the same Vitest process.
 });
 
-describe.sequential("content closure flows", () => {
+describe("content closure flows", () => {
   it("handles brand applications separately from aircraft submission approval flows", async () => {
     const adminCookie = await loginAdmin();
     await updateModerationModes(adminCookie, { brand: "manual", model: "manual" });

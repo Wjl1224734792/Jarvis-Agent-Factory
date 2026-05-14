@@ -1,6 +1,12 @@
 import {
   actionSuccessResponseSchema,
   adminAnalyticsOverviewResponseSchema,
+  adminAuditManualDecisionInputSchema,
+  adminAuditRecordListResponseSchema,
+  adminAuditRecordResponseSchema,
+  adminLogEntriesResponseSchema,
+  adminLogFilesResponseSchema,
+  adminLogsOverviewResponseSchema,
   adminMessageListResponseSchema,
   adminModerationTodosResponseSchema,
   adminModelCommentResponseSchema,
@@ -10,6 +16,9 @@ import {
   adminLoginRequestSchema,
   adminPasswordChangeRequestSchema,
   adminOfficialArticleUpdateInputSchema,
+  adminPowerTypeCategoryInputSchema,
+  adminPowerTypeCategoryResponseSchema,
+  powerTypeCategorySchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
   adminPostCommentStatusUpdateInputSchema,
@@ -34,6 +43,7 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
+  adminSearchResponseSchema,
   adminUserResponseSchema,
   adminUsersResponseSchema,
   appAuthSessionResponseSchema,
@@ -105,6 +115,7 @@ import {
   phoneChangeRequestInputSchema,
   phoneChangeRequestResponseSchema,
   siteSettingsResponseSchema,
+  siteSearchResponseSchema,
   submitRatingTargetRatingInputSchema,
   submitRatingTargetRatingResponseSchema,
   submitRatingTargetReviewInputSchema,
@@ -352,5 +363,24 @@ export const componentSchemas = {
   PaginationMeta: toOpenApiSchema(paginationMetaSchema),
   DeviceRegisterRequest: toOpenApiSchema(deviceRegisterInputSchema),
   DeviceRegisterResponse: toOpenApiSchema(deviceRegisterResponseSchema),
-  DeviceUnregisterRequest: toOpenApiSchema(deviceUnregisterInputSchema)
+  DeviceUnregisterRequest: toOpenApiSchema(deviceUnregisterInputSchema),
+  AdminAuditManualDecisionRequest: toOpenApiSchema(
+    adminAuditManualDecisionInputSchema
+  ),
+  AdminAuditRecordListResponse: toOpenApiSchema(
+    adminAuditRecordListResponseSchema
+  ),
+  AdminAuditRecordResponse: toOpenApiSchema(adminAuditRecordResponseSchema),
+  AdminLogEntriesResponse: toOpenApiSchema(adminLogEntriesResponseSchema),
+  AdminLogFilesResponse: toOpenApiSchema(adminLogFilesResponseSchema),
+  AdminLogsOverviewResponse: toOpenApiSchema(adminLogsOverviewResponseSchema),
+  AdminSearchResponse: toOpenApiSchema(adminSearchResponseSchema),
+  SiteSearchResponse: toOpenApiSchema(siteSearchResponseSchema),
+  AdminPowerTypeCategoryRequest: toOpenApiSchema(
+    adminPowerTypeCategoryInputSchema
+  ),
+  PowerTypeListResponse: toOpenApiSchema(z.array(powerTypeCategorySchema)),
+  AdminPowerTypeCategoryResponse: toOpenApiSchema(
+    adminPowerTypeCategoryResponseSchema
+  )
 } as const;

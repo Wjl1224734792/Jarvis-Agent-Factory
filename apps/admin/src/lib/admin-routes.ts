@@ -30,5 +30,6 @@ export const ADMIN_ROUTE_PATHS = {
   managementUsers: "/admin/management/users",
   managementSecurity: "/admin/management/security",
   officialArticles: "/admin/official-articles",
-  aircraftSubmissions: "/admin/aircraft-submissions"
+  aircraftSubmissions: "/admin/aircraft-submissions",
+  aiSettings: "/admin/settings/ai"
 } as const;

@@ -219,7 +219,7 @@ Stop-Process -Id <PID> -Force
 
 ## 日志与监控
 
-开发默认控制台；生产默认写入 `apps/server/logs/*`（`LOG_DIR` 可覆盖），分 `app` / `request` / `error` / `security`。环境变量：`LOG_MODE`、`LOG_DIR`、`LOG_LEVEL`、`LOG_HTTP_ENABLED`、`API_METRICS_ENABLED`、`LOG_MAX_READ_LINES`。Admin：`/admin/logs`；API：`GET /admin/logs/overview|files|entries`（管理员）。
+开发默认控制台；生产默认写入项目根 `logs/` 目录，分 `app` / `request` / `error` / `security` 四个子目录（`LOG_DIR` 可覆盖）。环境变量：`LOG_MODE`、`LOG_DIR`、`LOG_LEVEL`、`LOG_HTTP_ENABLED`、`API_METRICS_ENABLED`、`LOG_MAX_READ_LINES`。Admin：`/admin/logs`；API：`GET /admin/logs/overview|files|entries`（管理员）。
 
 当 `API_METRICS_ENABLED=true` 时，服务端会额外输出 `api.performance.baseline` 日志（当前覆盖 `GET /home/feed`、`GET /models`、`GET /rankings`），包含 `ms`、`responseBytes`、`fileLookupCount`，用于性能基线采样。
 

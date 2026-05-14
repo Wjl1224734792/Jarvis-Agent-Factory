@@ -10,9 +10,34 @@
       "WebFetch",
       "WebSearch",
       "Skill(*)",
-      "mcp__dashscope__dashscope_image_analyze",
-      "mcp__dashscope__dashscope_ocr",
-      "mcp__dashscope__dashscope_video_analyze"
+      "Bash(bun run *)",
+      "Bash(bun test *)",
+      "Bash(npx tsc *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook status"
+          }
+        ]
+      }
     ]
   }
 }
