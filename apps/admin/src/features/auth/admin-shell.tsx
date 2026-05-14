@@ -8,7 +8,7 @@ import {
   ScheduleOutlined,
   SearchOutlined
 } from "@ant-design/icons";
-import { Badge, Button, Input, Layout, Menu, Space, type MenuProps } from "antd";
+import { Badge, Button, Input, Layout, Menu, Space } from "antd";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -20,9 +20,8 @@ import {
   adminModerationTodosQueryKey
 } from "../messages/admin-message-navigation";
 import {
-  ADMIN_NAV_GROUPS,
-  getAdminNavGroupKey,
-  getAdminNavigationState
+  ADMIN_MENU_ITEMS,
+  getActiveKeys
 } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
@@ -74,41 +73,29 @@ export function AdminShell() {
     queryFn: () => apiClient.listAdminModerationTodos()
   });
 
-  const navigationState = useMemo(
-    () => getAdminNavigationState(location.pathname),
+  const { selectedKey, openKeys } = useMemo(
+    () => getActiveKeys(location.pathname),
     [location.pathname]
   );
-  const activeGroup = navigationState.activeItem.group;
-  const activeLabel = navigationState.activeItem.label;
-  const allGroupKeys = useMemo(
-    () => ADMIN_NAV_GROUPS.map((group) => getAdminNavGroupKey(group.group)),
-    []
-  );
-  const menuItems = useMemo<MenuProps["items"]>(
-    () =>
-      ADMIN_NAV_GROUPS.map((group) => ({
-        key: getAdminNavGroupKey(group.group),
-        label: group.group,
-        children: group.items.map((item) => {
-          const Icon = item.icon;
 
+  /** 根据 selectedKey 查找所属分组标签和菜单项标签（用于 Header 面包屑）。 */
+  const { activeGroup, activeLabel } = useMemo(() => {
+    for (const group of ADMIN_MENU_ITEMS ?? []) {
+      if (!group || !("children" in group) || !("label" in group) || !group.children) continue;
+      for (const child of group.children) {
+        if (!child || !("key" in child) || !("label" in child)) continue;
+        if (child.key === selectedKey) {
+          const groupLabel = typeof group.label === "string" ? group.label : "";
+          const childLabel = typeof child.label === "string" ? child.label : "";
           return {
-            key: item.to,
-            icon: <Icon />,
-            title: item.label,
-            label: (
-              <div className="admin-shell__menu-item-copy">
-                <span className="admin-shell__menu-item-label">{item.label}</span>
-                {!collapsed ? (
-                  <span className="admin-shell__menu-item-hint">{item.hint}</span>
-                ) : null}
-              </div>
-            )
+            activeGroup: groupLabel,
+            activeLabel: childLabel
           };
-        })
-      })),
-    [collapsed]
-  );
+        }
+      }
+    }
+    return { activeGroup: "", activeLabel: "" };
+  }, [selectedKey]);
 
   function submitSearch(value: string) {
     const trimmed = value.trim();
@@ -244,14 +231,14 @@ export function AdminShell() {
             </div>
             <Menu
               className="admin-shell__menu"
+              defaultOpenKeys={openKeys}
               inlineCollapsed={collapsed}
-              items={menuItems}
+              items={ADMIN_MENU_ITEMS}
               mode="inline"
               onClick={({ key }) => {
                 void navigate(String(key));
               }}
-              openKeys={collapsed ? [] : allGroupKeys}
-              selectedKeys={navigationState.selectedKeys}
+              selectedKeys={[selectedKey]}
             />
           </div>
         </Sider>

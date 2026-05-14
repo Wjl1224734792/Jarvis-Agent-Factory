@@ -10,7 +10,19 @@ import {
   SafetyCertificateOutlined,
   TrophyOutlined
 } from "@ant-design/icons";
-import { Badge, Button, Card, Collapse, Empty, Segmented, Space } from "antd";
+import {
+  Badge,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Empty,
+  Row,
+  Segmented,
+  Space,
+  Statistic,
+  Tabs
+} from "antd";
 import {
   Suspense,
   lazy,
@@ -67,7 +79,8 @@ type IdleCapableWindow = Window & {
 
 const loadTrendCharts = () => import("./admin-overview-trend-charts");
 const loadContentCharts = () => import("./admin-overview-content-charts");
-const loadModerationCharts = () => import("./admin-overview-moderation-charts");
+const loadModerationCharts = () =>
+  import("./admin-overview-moderation-charts");
 
 const RegistrationTrendChart = lazy(() =>
   loadTrendCharts().then((module) => ({
@@ -130,6 +143,55 @@ function formatHomeMessageTime(value: string) {
   return new Date(value).toLocaleString("zh-CN", { hour12: false });
 }
 
+/** KPI 卡片区域 — 使用 antd Row + Col 响应式栅格 */
+function KpiRow(props: {
+  todosCount: number;
+  unreadCount: number;
+  monthNew: number;
+  contentTotal: number;
+}) {
+  return (
+    <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <Col lg={6} xs={12}>
+        <Card size="small" variant="outlined">
+          <Statistic
+            prefix={<FileSearchOutlined />}
+            title="审核待办"
+            value={props.todosCount}
+          />
+        </Card>
+      </Col>
+      <Col lg={6} xs={12}>
+        <Card size="small" variant="outlined">
+          <Statistic
+            prefix={<CommentOutlined />}
+            title="未读消息"
+            value={props.unreadCount}
+          />
+        </Card>
+      </Col>
+      <Col lg={6} xs={12}>
+        <Card size="small" variant="outlined">
+          <Statistic
+            prefix={<BarChartOutlined />}
+            title="本月新增注册"
+            value={props.monthNew}
+          />
+        </Card>
+      </Col>
+      <Col lg={6} xs={12}>
+        <Card size="small" variant="outlined">
+          <Statistic
+            prefix={<RocketOutlined />}
+            title="内容总量"
+            value={props.contentTotal}
+          />
+        </Card>
+      </Col>
+    </Row>
+  );
+}
+
 export function AdminOverviewPage() {
   const navigate = useNavigate();
   const user = useAdminAuthStore((state) => state.user);
@@ -145,7 +207,8 @@ export function AdminOverviewPage() {
   const [registrationMode, setRegistrationMode] = useState<ChartMode>("day");
   const [activityMode, setActivityMode] = useState<ChartMode>("day");
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
-  const [shouldLoadRecentSessions, setShouldLoadRecentSessions] = useState(false);
+  const [shouldLoadRecentSessions, setShouldLoadRecentSessions] =
+    useState(false);
   const chartsViewportRef = useRef<HTMLDivElement | null>(null);
 
   const analyticsQuery = useQuery({
@@ -160,7 +223,6 @@ export function AdminOverviewPage() {
 
   const recentSessionsQuery = useQuery({
     queryKey: ["admin-overview", "auth-sessions"],
-    // The panel stays collapsed by default, so defer this heavier request until it is expanded.
     queryFn: () => apiClient.getAdminAuthSessions(),
     enabled: shouldLoadRecentSessions
   });
@@ -178,6 +240,7 @@ export function AdminOverviewPage() {
   const analytics = analyticsQuery.data?.item;
   const siteSettings = siteSettingsQuery.data?.item;
 
+  /** 请求加载图表 — 通过 IntersectionObserver + requestIdleCallback 触发 */
   const requestChartsLoad = useEffectEvent(() => {
     startTransition(() => {
       setShouldLoadCharts(true);
@@ -385,23 +448,28 @@ export function AdminOverviewPage() {
 
     setSettingsError(null);
     try {
-      const response = await apiClient.updateSiteSettings(buildSiteSettingsUpdate(siteSettings, partial));
-      // 乐观更新 siteSettings 缓存，避免重新请求
+      const response = await apiClient.updateSiteSettings(
+        buildSiteSettingsUpdate(siteSettings, partial)
+      );
       queryClient.setQueryData(["admin-overview", "site-settings"], response);
-      // 只 refetch 依赖审核模式的其他查询
       await Promise.all([
         analyticsQuery.refetch(),
         recentMessagesQuery.refetch(),
         todosQuery.refetch()
       ]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
+      setSettingsError(
+        reason instanceof Error ? reason.message : "更新审核开关失败"
+      );
     } finally {
       setSavingKey(null);
     }
   }
 
-  function updateModerationMode(key: SiteModerationModeKey, mode: ModerationMode) {
+  function updateModerationMode(
+    key: SiteModerationModeKey,
+    mode: ModerationMode
+  ) {
     setSavingKey(key);
     return updateSiteSettings({
       moderationModes: {
@@ -421,9 +489,12 @@ export function AdminOverviewPage() {
     {
       key: "article",
       title: "文章审核",
-      description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
-      aiCopy: "新文章会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
-      autoCopy: "新文章会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      description:
+        '总览页当前按"文章/动态"合并统计，精确队列请进入对应审核页。',
+      aiCopy:
+        "新文章会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
+      autoCopy:
+        "新文章会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "article"),
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       queueLabel: "合并待处理",
@@ -436,15 +507,20 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
-      manualCopy: "新文章会直接进入人工审核队列，不再按“自动通过”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("article", mode)
+      manualCopy:
+        '新文章会直接进入人工审核队列，不再按"自动通过"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("article", mode)
     },
     {
       key: "moment",
       title: "飞友圈动态",
-      description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
-      aiCopy: "新动态会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
-      autoCopy: "新动态会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      description:
+        '总览页当前按"文章/动态"合并统计，精确队列请进入对应审核页。',
+      aiCopy:
+        "新动态会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
+      autoCopy:
+        "新动态会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "moment"),
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       queueLabel: "合并待处理",
@@ -457,15 +533,20 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
-      manualCopy: "新动态会直接进入人工审核队列，不再按“自动通过”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("moment", mode)
+      manualCopy:
+        '新动态会直接进入人工审核队列，不再按"自动通过"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("moment", mode)
     },
     {
       key: "comment",
       title: "评论审核",
-      description: "总览页先展示统一评论队列，细分评论域请进入评论审核页。",
-      aiCopy: "新评论会先进入 AI 审核；仍需人工处理的对象继续留在统一审核队列。",
-      autoCopy: "新评论会由系统直接给出最终审核结果：通过则直接显示，不通过则直接拦截，不再进入人工复审。",
+      description:
+        "总览页先展示统一评论队列，细分评论域请进入评论审核页。",
+      aiCopy:
+        "新评论会先进入 AI 审核；仍需人工处理的对象继续留在统一审核队列。",
+      autoCopy:
+        "新评论会由系统直接给出最终审核结果：通过则直接显示，不通过则直接拦截，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "comment"),
       pendingCount: analytics?.moderation.comments.pending ?? 0,
       traceItems: buildModerationTraceItems([
@@ -482,15 +563,19 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
-      manualCopy: "新评论会直接进入人工审核队列，不再按“自动显示”处理。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("comment", mode)
+      manualCopy:
+        '新评论会直接进入人工审核队列，不再按"自动显示"处理。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("comment", mode)
     },
     {
       key: "brand",
       title: "品牌申请",
       description: "这里先展示品牌申请的最终状态和待处理数量。",
-      aiCopy: "新品牌申请会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      autoCopy: "新品牌申请会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
+      aiCopy:
+        "新品牌申请会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
+      autoCopy:
+        "新品牌申请会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "brand"),
       pendingCount: analytics?.moderation.brandApplications.pending ?? 0,
       traceItems: buildModerationTraceItems([
@@ -507,15 +592,19 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
-      manualCopy: "新品牌申请会直接进入人工审核队列，不再按“自动通过”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("brand", mode)
+      manualCopy:
+        '新品牌申请会直接进入人工审核队列，不再按"自动通过"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("brand", mode)
     },
     {
       key: "model",
       title: "机型投稿",
       description: "这里先展示机型投稿的最终状态和待处理数量。",
-      aiCopy: "新投稿会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      autoCopy: "新投稿会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
+      aiCopy:
+        "新投稿会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
+      autoCopy:
+        "新投稿会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "model"),
       pendingCount: analytics?.moderation.submissions.pending ?? 0,
       traceItems: buildModerationTraceItems([
@@ -532,15 +621,19 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
-      manualCopy: "新投稿会直接进入人工审核队列，不再按“自动通过”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("model", mode)
+      manualCopy:
+        '新投稿会直接进入人工审核队列，不再按"自动通过"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("model", mode)
     },
     {
       key: "ranking",
       title: "榜单审核",
       description: "这里先展示榜单本体的最终状态和待处理数量。",
-      aiCopy: "新社区榜单会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      autoCopy: "新社区榜单会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      aiCopy:
+        "新社区榜单会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
+      autoCopy:
+        "新社区榜单会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "ranking"),
       pendingCount: analytics?.moderation.rankings.pending ?? 0,
       traceItems: buildModerationTraceItems([
@@ -557,15 +650,19 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
-      manualCopy: "新社区榜单会直接进入人工审核队列，不再按“自动通过”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("ranking", mode)
+      manualCopy:
+        '新社区榜单会直接进入人工审核队列，不再按"自动通过"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("ranking", mode)
     },
     {
       key: "ratingTarget",
       title: "评分对象",
       description: "这里先展示评分对象的最终状态和待处理数量。",
-      aiCopy: "新评分对象会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      autoCopy: "新评分对象会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      aiCopy:
+        "新评分对象会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
+      autoCopy:
+        "新评分对象会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
       mode: resolveSiteModerationMode(siteSettings, "ratingTarget"),
       pendingCount: analytics?.moderation.ratingTargets.pending ?? 0,
       traceItems: buildModerationTraceItems([
@@ -582,8 +679,10 @@ export function AdminOverviewPage() {
         }
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
-      manualCopy: "新评分对象会直接进入人工审核队列，不再按“自动发布”理解。",
-      onModeChange: async (mode: ModerationMode) => updateModerationMode("ratingTarget", mode)
+      manualCopy:
+        '新评分对象会直接进入人工审核队列，不再按"自动发布"理解。',
+      onModeChange: async (mode: ModerationMode) =>
+        updateModerationMode("ratingTarget", mode)
     }
   ];
 
@@ -603,26 +702,510 @@ export function AdminOverviewPage() {
     (analytics?.totals.aircraft ?? 0) +
     (analytics?.totals.rankings ?? 0);
 
-  const topStats = [
+  const tabItems = [
     {
-      label: "审核待办",
-      value: todosQuery.data?.pendingCount ?? 0,
-      icon: <FileSearchOutlined />
+      key: "overview",
+      label: "总览",
+      children: (
+        <>
+          <div className="admin-overview-home-grid">
+            <Card
+              className="admin-overview-card"
+              extra={
+                <Button
+                  href={ADMIN_ROUTE_PATHS.messageTodos}
+                  type="link"
+                >
+                  进入待办页
+                </Button>
+              }
+              size="small"
+              title="待办总览"
+              variant="outlined"
+            >
+              <div className="admin-overview-link-list">
+                {(todosQuery.data?.items.length ?? 0) > 0 ? (
+                  todosQuery.data?.items.map((item) => {
+                    const destination = resolveAdminMessageDestination(
+                      item.domain,
+                      item.navigation
+                    );
+                    return (
+                      <Button
+                        className="admin-overview-link-item admin-overview-link-item--button"
+                        key={`${item.domain}-${item.title}`}
+                        onClick={() => {
+                          void navigate(destination);
+                        }}
+                        type="text"
+                      >
+                        <span className="admin-overview-link-item__icon">
+                          <FileSearchOutlined />
+                        </span>
+                        <span className="admin-overview-link-item__body">
+                          <span className="admin-overview-link-item__title">
+                            {item.title}
+                          </span>
+                        </span>
+                        <span className="admin-overview-link-item__meta">
+                          {item.pendingCount}
+                        </span>
+                      </Button>
+                    );
+                  })
+                ) : (
+                  <Empty
+                    description="当前没有待处理项"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )}
+              </div>
+            </Card>
+
+            <Card
+              className="admin-overview-card"
+              extra={
+                <Button
+                  href={ADMIN_ROUTE_PATHS.messages}
+                  type="link"
+                >
+                  进入消息中心
+                </Button>
+              }
+              size="small"
+              title="最近通知"
+              variant="outlined"
+            >
+              <div className="admin-overview-placeholder-list">
+                {(recentMessagesQuery.data?.items.length ?? 0) > 0 ? (
+                  recentMessagesQuery.data?.items.map((item) => {
+                    const destination = resolveAdminMessageDestination(
+                      item.domain,
+                      item.navigation
+                    );
+                    return (
+                      <Button
+                        className="admin-overview-message-item"
+                        key={item.id}
+                        onClick={() => {
+                          void navigate(destination);
+                        }}
+                        type="text"
+                      >
+                        <span className="admin-overview-message-item__head">
+                          <span className="admin-overview-message-item__title">
+                            {!item.isRead ? (
+                              <Badge color="#1677ff" />
+                            ) : null}
+                            {item.title}
+                          </span>
+                          <span className="admin-overview-message-item__time">
+                            {formatHomeMessageTime(item.createdAt)}
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })
+                ) : (
+                  <Empty
+                    description="当前没有消息"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <Collapse
+            className="admin-overview-collapse"
+            ghost
+            onChange={handleOverviewCollapseChange}
+            items={[
+              {
+                key: "ops",
+                label: "运营入口",
+                children: (
+                  <Card
+                    className="admin-overview-card"
+                    extra={
+                      <Button
+                        href={ADMIN_ROUTE_PATHS.operations}
+                        type="link"
+                      >
+                        进入运营区
+                      </Button>
+                    }
+                    size="small"
+                    title="快捷入口"
+                    variant="outlined"
+                  >
+                    <div className="admin-overview-quick-grid">
+                      {quickEntries.map((entry) => (
+                        <Link
+                          className="admin-overview-quick-item"
+                          key={entry.to}
+                          to={entry.to}
+                        >
+                          <span className="admin-overview-quick-item__icon">
+                            {entry.icon}
+                          </span>
+                          <span className="admin-overview-quick-item__title">
+                            {entry.title}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </Card>
+                )
+              },
+              {
+                key: "sessions",
+                label: "最近登录设备 / IP",
+                children: (
+                  <Card
+                    className="admin-overview-card"
+                    size="small"
+                    title="最近登录设备 / IP"
+                    variant="outlined"
+                  >
+                    {!shouldLoadRecentSessions ? (
+                      <div className="admin-empty">
+                        展开面板后加载最近登录记录。
+                      </div>
+                    ) : null}
+                    {shouldLoadRecentSessions &&
+                    recentSessionsQuery.isPending ? (
+                      <div className="admin-empty">
+                        正在加载最近登录记录...
+                      </div>
+                    ) : null}
+                    {recentSessionsQuery.isError ? (
+                      <div className="admin-login__error">
+                        {resolveRecentSessionsPanelMessage(
+                          recentSessionsQuery.error
+                        )}
+                      </div>
+                    ) : null}
+                    {shouldLoadRecentSessions &&
+                    !recentSessionsQuery.isPending &&
+                    !recentSessionsQuery.isError &&
+                    (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
+                      <Empty
+                        description="暂无最近登录记录"
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
+                    ) : null}
+                    {shouldLoadRecentSessions &&
+                    (recentSessionsQuery.data?.items.length ?? 0) > 0 ? (
+                      <div className="admin-session-list">
+                        {recentSessionsQuery.data?.items
+                          .slice(0, 8)
+                          .map((item) => (
+                            <div
+                              className="admin-session-card"
+                              key={item.id}
+                            >
+                              <div className="admin-session-card__head">
+                                <div>
+                                  <div className="admin-session-card__title">
+                                    {formatAdminSessionIdentity(item)}
+                                  </div>
+                                  <div className="admin-session-card__meta">
+                                    {formatAdminSessionScope(item.scope)} /{" "}
+                                    {formatAdminSessionStatus(item.status)}
+                                  </div>
+                                </div>
+                                <div className="admin-session-card__status">
+                                  {item.clientIp ?? "未知 IP"}
+                                </div>
+                              </div>
+                              <div className="admin-session-card__detail">
+                                {item.deviceLabel ??
+                                  item.userAgent ??
+                                  "未识别设备"}
+                              </div>
+                              <div className="admin-session-card__meta">
+                                创建于{" "}
+                                {formatAdminSessionTime(item.createdAt)} /
+                                最近活跃{" "}
+                                {formatAdminSessionTime(item.lastSeenAt)}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    ) : null}
+                  </Card>
+                )
+              }
+            ]}
+          />
+        </>
+      )
     },
     {
-      label: "未读消息",
-      value: recentMessagesQuery.data?.unreadCount ?? 0,
-      icon: <CommentOutlined />
+      key: "content",
+      label: "内容统计",
+      children: (
+        <div
+          aria-busy={!shouldLoadCharts}
+          className="admin-overview-chart-grid"
+          ref={chartsViewportRef}
+        >
+          <Card
+            className="admin-overview-card"
+            extra={
+              <Segmented
+                onChange={(value) => {
+                  startTransition(() => {
+                    setRegistrationMode(value as ChartMode);
+                  });
+                }}
+                options={[
+                  { label: "日", value: "day" },
+                  { label: "月", value: "month" },
+                  { label: "年", value: "year" }
+                ]}
+                value={registrationMode}
+              />
+            }
+            size="small"
+            title="注册趋势"
+            variant="outlined"
+          >
+            {registrationSeries.length > 0 ? (
+              shouldLoadCharts ? (
+                <Suspense
+                  fallback={
+                    <ChartLoadingFallback label="正在加载注册图表..." />
+                  }
+                >
+                  <RegistrationTrendChart data={registrationSeries} />
+                </Suspense>
+              ) : (
+                <ChartLoadingFallback label="正在加载注册图表..." />
+              )
+            ) : (
+              <Empty
+                description="暂无注册数据"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )}
+          </Card>
+
+          <Card
+            className="admin-overview-card"
+            size="small"
+            title="内容构成（环图）"
+            variant="outlined"
+          >
+            {contentMixData.length > 0 ? (
+              shouldLoadCharts ? (
+                <Suspense
+                  fallback={
+                    <ChartLoadingFallback label="正在加载内容构成图表..." />
+                  }
+                >
+                  <ContentMixChart data={contentMixData} />
+                </Suspense>
+              ) : (
+                <ChartLoadingFallback label="正在加载内容构成图表..." />
+              )
+            ) : (
+              <Empty
+                description="暂无内容数据"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )}
+          </Card>
+
+          <Card
+            className="admin-overview-card"
+            size="small"
+            title="内容构成（玫瑰图）"
+            variant="outlined"
+          >
+            {contentMixData.length > 0 ? (
+              shouldLoadCharts ? (
+                <Suspense
+                  fallback={
+                    <ChartLoadingFallback label="正在加载玫瑰图..." />
+                  }
+                >
+                  <ContentMixRoseChart data={contentMixData} />
+                </Suspense>
+              ) : (
+                <ChartLoadingFallback label="正在加载玫瑰图..." />
+              )
+            ) : (
+              <Empty
+                description="暂无内容数据"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )}
+          </Card>
+
+          <Card
+            className="admin-overview-card"
+            extra={
+              <Segmented
+                onChange={(value) => {
+                  startTransition(() => {
+                    setActivityMode(value as ChartMode);
+                  });
+                }}
+                options={[
+                  { label: "日", value: "day" },
+                  { label: "月", value: "month" },
+                  { label: "年", value: "year" }
+                ]}
+                value={activityMode}
+              />
+            }
+            size="small"
+            title="活跃趋势"
+            variant="outlined"
+          >
+            {activitySeries.length > 0 ? (
+              shouldLoadCharts ? (
+                <Suspense
+                  fallback={
+                    <ChartLoadingFallback label="正在加载活跃图表..." />
+                  }
+                >
+                  <ActivityTrendChart data={activitySeries} />
+                </Suspense>
+              ) : (
+                <ChartLoadingFallback label="正在加载活跃图表..." />
+              )
+            ) : (
+              <Empty
+                description="暂无活跃数据"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )}
+          </Card>
+        </div>
+      )
     },
     {
-      label: "本月新增注册",
-      value: analytics?.registration.month ?? 0,
-      icon: <BarChartOutlined />
-    },
-    {
-      label: "内容总量",
-      value: contentCountTotal,
-      icon: <RocketOutlined />
+      key: "moderation",
+      label: "审核统计",
+      children: (
+        <>
+          <div
+            aria-busy={!shouldLoadCharts}
+            className="admin-overview-chart-grid"
+          >
+            <Card
+              className="admin-overview-card"
+              size="small"
+              title="审核漏斗"
+              variant="outlined"
+            >
+              {funnelData.length > 0 ? (
+                shouldLoadCharts ? (
+                  <Suspense
+                    fallback={
+                      <ChartLoadingFallback label="正在加载审核漏斗..." />
+                    }
+                  >
+                    <ModerationFunnelChart data={funnelData} />
+                  </Suspense>
+                ) : (
+                  <ChartLoadingFallback label="正在加载审核漏斗..." />
+                )
+              ) : (
+                <Empty
+                  description="暂无审核数据"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )}
+            </Card>
+
+            <Card
+              className="admin-overview-card"
+              size="small"
+              title="审核状态对比"
+              variant="outlined"
+            >
+              {moderationBarData.length > 0 ? (
+                shouldLoadCharts ? (
+                  <Suspense
+                    fallback={
+                      <ChartLoadingFallback label="正在加载审核状态图..." />
+                    }
+                  >
+                    <ModerationStatusChart data={moderationBarData} />
+                  </Suspense>
+                ) : (
+                  <ChartLoadingFallback label="正在加载审核状态图..." />
+                )
+              ) : (
+                <Empty
+                  description="暂无审核数据"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )}
+            </Card>
+
+            <Card
+              className="admin-overview-card"
+              size="small"
+              title="审核域雷达"
+              variant="outlined"
+            >
+              {moderationRadarData.length > 0 ? (
+                shouldLoadCharts ? (
+                  <Suspense
+                    fallback={
+                      <ChartLoadingFallback label="正在加载雷达图..." />
+                    }
+                  >
+                    <ModerationDomainRadarChart data={moderationRadarData} />
+                  </Suspense>
+                ) : (
+                  <ChartLoadingFallback label="正在加载雷达图..." />
+                )
+              ) : (
+                <Empty
+                  description="暂无审核数据"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )}
+            </Card>
+          </div>
+
+          <Card
+            className="admin-overview-card"
+            style={{ marginTop: 16 }}
+            size="small"
+            title="审核开关"
+            variant="outlined"
+          >
+            <div className="admin-moderation-grid admin-moderation-grid--wide">
+              {moderationCards.map((item) => (
+                <AdminModerationCard
+                  aiCopy={item.aiCopy}
+                  autoCopy={item.autoCopy}
+                  description={item.description}
+                  key={item.key}
+                  loading={savingKey === item.key}
+                  manualCopy={item.manualCopy}
+                  mode={item.mode}
+                  onModeChange={(mode) => {
+                    void item.onModeChange(mode);
+                  }}
+                  pendingCount={item.pendingCount}
+                  queueLabel={item.queueLabel}
+                  traceHint={item.traceHint}
+                  traceItems={item.traceItems}
+                  title={item.title}
+                />
+              ))}
+            </div>
+          </Card>
+        </>
+      )
     }
   ];
 
@@ -638,339 +1221,26 @@ export function AdminOverviewPage() {
       }
       title="数据总览"
     >
-      {authError ? <div className="admin-login__error">{authError}</div> : null}
-      {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
-      {analyticsQuery.isError ? <div className="admin-login__error">{analyticsQuery.error.message}</div> : null}
+      {authError ? (
+        <div className="admin-login__error">{authError}</div>
+      ) : null}
+      {settingsError ? (
+        <div className="admin-login__error">{settingsError}</div>
+      ) : null}
+      {analyticsQuery.isError ? (
+        <div className="admin-login__error">
+          {analyticsQuery.error.message}
+        </div>
+      ) : null}
 
-      <div className="admin-overview-kpi-grid">
-        {topStats.map((item) => (
-          <Card className="admin-overview-card admin-overview-card--kpi" key={item.label} size="small" variant="outlined">
-            <div className="admin-overview-card__kpi-icon">{item.icon}</div>
-            <div className="admin-overview-card__kpi-copy">
-              <div className="admin-overview-card__eyebrow">{item.label}</div>
-              <div className="admin-overview-card__value">{item.value}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="admin-overview-home-grid">
-        <Card
-          className="admin-overview-card"
-          extra={<Button href={ADMIN_ROUTE_PATHS.messageTodos} type="link">进入待办页</Button>}
-          size="small"
-          title="待办总览"
-          variant="outlined"
-        >
-          <div className="admin-overview-link-list">
-            {(todosQuery.data?.items.length ?? 0) > 0 ? (
-              todosQuery.data?.items.map((item) => {
-                const destination = resolveAdminMessageDestination(item.domain, item.navigation);
-                return (
-                  <Button
-                    className="admin-overview-link-item admin-overview-link-item--button"
-                    key={`${item.domain}-${item.title}`}
-                    onClick={() => {
-                      void navigate(destination);
-                    }}
-                    type="text"
-                  >
-                    <span className="admin-overview-link-item__icon">
-                      <FileSearchOutlined />
-                    </span>
-                    <span className="admin-overview-link-item__body">
-                      <span className="admin-overview-link-item__title">{item.title}</span>
-                    </span>
-                    <span className="admin-overview-link-item__meta">{item.pendingCount}</span>
-                  </Button>
-                );
-              })
-            ) : (
-              <Empty description="当前没有待处理项" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-          </div>
-        </Card>
-
-        <Card
-          className="admin-overview-card"
-          extra={<Button href={ADMIN_ROUTE_PATHS.messages} type="link">进入消息中心</Button>}
-          size="small"
-          title="最近通知"
-          variant="outlined"
-        >
-          <div className="admin-overview-placeholder-list">
-            {(recentMessagesQuery.data?.items.length ?? 0) > 0 ? (
-              recentMessagesQuery.data?.items.map((item) => {
-                const destination = resolveAdminMessageDestination(item.domain, item.navigation);
-                return (
-                  <Button
-                    className="admin-overview-message-item"
-                    key={item.id}
-                    onClick={() => {
-                      void navigate(destination);
-                    }}
-                    type="text"
-                  >
-                    <span className="admin-overview-message-item__head">
-                      <span className="admin-overview-message-item__title">
-                        {!item.isRead ? <Badge color="#1677ff" /> : null}
-                        {item.title}
-                      </span>
-                      <span className="admin-overview-message-item__time">{formatHomeMessageTime(item.createdAt)}</span>
-                    </span>
-                  </Button>
-                );
-              })
-            ) : (
-              <Empty description="当前没有消息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <div aria-busy={!shouldLoadCharts} className="admin-overview-chart-grid" ref={chartsViewportRef}>
-        <Card
-          className="admin-overview-card"
-          extra={
-            <Segmented
-              onChange={(value) => {
-                startTransition(() => {
-                  setRegistrationMode(value as ChartMode);
-                });
-              }}
-              options={[
-                { label: "日", value: "day" },
-                { label: "月", value: "month" },
-                { label: "年", value: "year" }
-              ]}
-              value={registrationMode}
-            />
-          }
-          size="small"
-          title="注册趋势"
-          variant="outlined"
-        >
-          {registrationSeries.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载注册图表..." />}>
-                <RegistrationTrendChart data={registrationSeries} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载注册图表..." />
-            )
-          ) : (
-            <Empty description="暂无注册数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card className="admin-overview-card" size="small" title="内容构成（环图）" variant="outlined">
-          {contentMixData.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载内容构成图表..." />}>
-                <ContentMixChart data={contentMixData} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载内容构成图表..." />
-            )
-          ) : (
-            <Empty description="暂无内容数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card className="admin-overview-card" size="small" title="内容构成（玫瑰图）" variant="outlined">
-          {contentMixData.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载玫瑰图..." />}>
-                <ContentMixRoseChart data={contentMixData} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载玫瑰图..." />
-            )
-          ) : (
-            <Empty description="暂无内容数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card
-          className="admin-overview-card"
-          extra={
-            <Segmented
-              onChange={(value) => {
-                startTransition(() => {
-                  setActivityMode(value as ChartMode);
-                });
-              }}
-              options={[
-                { label: "日", value: "day" },
-                { label: "月", value: "month" },
-                { label: "年", value: "year" }
-              ]}
-              value={activityMode}
-            />
-          }
-          size="small"
-          title="活跃趋势"
-          variant="outlined"
-        >
-          {activitySeries.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载活跃图表..." />}>
-                <ActivityTrendChart data={activitySeries} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载活跃图表..." />
-            )
-          ) : (
-            <Empty description="暂无活跃数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card className="admin-overview-card" size="small" title="审核漏斗" variant="outlined">
-          {funnelData.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载审核漏斗..." />}>
-                <ModerationFunnelChart data={funnelData} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载审核漏斗..." />
-            )
-          ) : (
-            <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card className="admin-overview-card" size="small" title="审核状态对比" variant="outlined">
-          {moderationBarData.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载审核状态图..." />}>
-                <ModerationStatusChart data={moderationBarData} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载审核状态图..." />
-            )
-          ) : (
-            <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-
-        <Card className="admin-overview-card" size="small" title="审核域雷达" variant="outlined">
-          {moderationRadarData.length > 0 ? (
-            shouldLoadCharts ? (
-              <Suspense fallback={<ChartLoadingFallback label="正在加载雷达图..." />}>
-                <ModerationDomainRadarChart data={moderationRadarData} />
-              </Suspense>
-            ) : (
-              <ChartLoadingFallback label="正在加载雷达图..." />
-            )
-          ) : (
-            <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Card>
-      </div>
-
-      <Collapse
-        className="admin-overview-collapse"
-        ghost
-        onChange={handleOverviewCollapseChange}
-        items={[
-          {
-            key: "ops",
-            label: "运营入口与审核开关",
-            children: (
-              <div className="admin-overview-home-grid">
-                <Card
-                  className="admin-overview-card"
-                  extra={<Button href={ADMIN_ROUTE_PATHS.operations} type="link">进入运营区</Button>}
-                  size="small"
-                  title="快捷入口"
-                  variant="outlined"
-                >
-                  <div className="admin-overview-quick-grid">
-                    {quickEntries.map((entry) => (
-                      <Link className="admin-overview-quick-item" key={entry.to} to={entry.to}>
-                        <span className="admin-overview-quick-item__icon">{entry.icon}</span>
-                        <span className="admin-overview-quick-item__title">{entry.title}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="admin-overview-card" size="small" title="审核开关" variant="outlined">
-                  <div className="admin-moderation-grid admin-moderation-grid--wide">
-                    {moderationCards.map((item) => (
-                      <AdminModerationCard
-                        aiCopy={item.aiCopy}
-                        autoCopy={item.autoCopy}
-                        description={item.description}
-                        key={item.key}
-                        loading={savingKey === item.key}
-                        manualCopy={item.manualCopy}
-                        mode={item.mode}
-                        onModeChange={(mode) => {
-                          void item.onModeChange(mode);
-                        }}
-                        pendingCount={item.pendingCount}
-                        queueLabel={item.queueLabel}
-                        traceHint={item.traceHint}
-                        traceItems={item.traceItems}
-                        title={item.title}
-                      />
-                    ))}
-                  </div>
-                </Card>
-              </div>
-            )
-          },
-          {
-            key: "sessions",
-            label: "最近登录设备 / IP",
-            children: (
-              <Card className="admin-overview-card" size="small" title="最近登录设备 / IP" variant="outlined">
-                {!shouldLoadRecentSessions ? (
-                  <div className="admin-empty">展开面板后加载最近登录记录。</div>
-                ) : null}
-                {shouldLoadRecentSessions && recentSessionsQuery.isPending ? (
-                  <div className="admin-empty">正在加载最近登录记录...</div>
-                ) : null}
-                {recentSessionsQuery.isError ? (
-                  <div className="admin-login__error">
-                    {resolveRecentSessionsPanelMessage(recentSessionsQuery.error)}
-                  </div>
-                ) : null}
-                {shouldLoadRecentSessions &&
-                !recentSessionsQuery.isPending &&
-                !recentSessionsQuery.isError &&
-                (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
-                  <Empty description="暂无最近登录记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                ) : null}
-                {shouldLoadRecentSessions && (recentSessionsQuery.data?.items.length ?? 0) > 0 ? (
-                  <div className="admin-session-list">
-                    {recentSessionsQuery.data?.items.slice(0, 8).map((item) => (
-                      <div className="admin-session-card" key={item.id}>
-                        <div className="admin-session-card__head">
-                          <div>
-                            <div className="admin-session-card__title">{formatAdminSessionIdentity(item)}</div>
-                            <div className="admin-session-card__meta">
-                              {formatAdminSessionScope(item.scope)} / {formatAdminSessionStatus(item.status)}
-                            </div>
-                          </div>
-                          <div className="admin-session-card__status">{item.clientIp ?? "未知 IP"}</div>
-                        </div>
-                        <div className="admin-session-card__detail">
-                          {item.deviceLabel ?? item.userAgent ?? "未识别设备"}
-                        </div>
-                        <div className="admin-session-card__meta">
-                          创建于 {formatAdminSessionTime(item.createdAt)} / 最近活跃 {formatAdminSessionTime(item.lastSeenAt)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </Card>
-            )
-          }
-        ]}
+      <KpiRow
+        contentTotal={contentCountTotal}
+        monthNew={analytics?.registration.month ?? 0}
+        todosCount={todosQuery.data?.pendingCount ?? 0}
+        unreadCount={recentMessagesQuery.data?.unreadCount ?? 0}
       />
+
+      <Tabs defaultActiveKey="overview" items={tabItems} />
     </AdminPage>
   );
 }

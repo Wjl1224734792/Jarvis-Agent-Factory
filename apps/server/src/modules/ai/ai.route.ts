@@ -1,5 +1,6 @@
 import {
   aiChatRequestSchema,
+  aiFeaturesResponseSchema,
   aiFormatRequestSchema,
   aiSettingsSchema,
   aiSummaryRequestSchema
@@ -42,6 +43,16 @@ aiRoute.put(API_ROUTES.ai.adminSettings, requireAdmin, async (context) => {
 aiRoute.post(`${API_ROUTES.ai.adminSettings}/test`, requireAdmin, async (context) => {
   const result = await aiSettingsService.testConnection();
   return context.json(result);
+});
+
+/**
+ * GET /api/v1/ai/features — 查询 AI 功能开关状态。
+ * 返回 summary、format、chat 三个布尔值，不含 apiKey 等敏感字段。需登录。
+ */
+aiRoute.get(API_ROUTES.ai.features, requireAuth, async (context) => {
+  const settings = await aiSettingsService.getRawSettings();
+  const features = aiFeaturesResponseSchema.parse(settings.features);
+  return context.json({ features });
 });
 
 /**

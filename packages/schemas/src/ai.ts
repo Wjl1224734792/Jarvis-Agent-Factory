@@ -36,6 +36,13 @@ export const aiChatResponseSchema = z.object({
   reply: z.string()
 });
 
+/** AI 功能开关公开响应体（供 Web 端查询） */
+export const aiFeaturesResponseSchema = z.object({
+  summary: z.boolean(),
+  format: z.boolean(),
+  chat: z.boolean()
+});
+
 /** AI 功能开关配置 */
 const aiFeaturesSchema = z.object({
   summary: z.boolean(),
@@ -69,5 +76,6 @@ export type AiFormatRequest = z.infer<typeof aiFormatRequestSchema>;
 export type AiFormatResponse = z.infer<typeof aiFormatResponseSchema>;
 export type AiChatRequest = z.infer<typeof aiChatRequestSchema>;
 export type AiChatResponse = z.infer<typeof aiChatResponseSchema>;
+export type AiFeaturesResponse = z.infer<typeof aiFeaturesResponseSchema>;
 export type AiSettings = z.infer<typeof aiSettingsSchema>;
 export type AiSettingsResponse = z.infer<typeof aiSettingsResponseSchema>;

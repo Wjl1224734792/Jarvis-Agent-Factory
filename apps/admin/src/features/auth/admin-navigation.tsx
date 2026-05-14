@@ -18,11 +18,15 @@ import {
   ReadOutlined,
   RobotOutlined,
   SafetyCertificateOutlined,
+  SafetyOutlined,
   ScheduleOutlined,
+  SettingOutlined,
+  ToolOutlined,
   TrophyOutlined,
   UserOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
+import type { MenuProps } from "antd";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 
 export interface AdminNavItem {
@@ -402,4 +406,182 @@ export function getAdminNavigationState(pathname: string) {
     selectedKeys: [activeItem.to],
     openKeys: [getAdminNavGroupKey(activeItem.group)]
   };
+}
+
+// ---------- antd Menu items 格式（SubMenu 分组） ----------
+
+/**
+ * 后台侧边栏菜单数据，直接兼容 antd Menu 的 items prop。
+ * 5 个分组，每组包含 children 子菜单项。
+ */
+export const ADMIN_MENU_ITEMS: MenuProps["items"] = [
+  {
+    key: "group:overview",
+    label: "数据总览",
+    icon: <RadarChartOutlined />,
+    children: [
+      { key: ADMIN_ROUTE_PATHS.overview, icon: <RadarChartOutlined />, label: "总览中心" },
+      { key: ADMIN_ROUTE_PATHS.messages, icon: <MailOutlined />, label: "消息中心" },
+      { key: ADMIN_ROUTE_PATHS.logs, icon: <DatabaseOutlined />, label: "日志监控" }
+    ]
+  },
+  {
+    key: "group:content",
+    label: "内容管理",
+    icon: <ReadOutlined />,
+    children: [
+      {
+        key: ADMIN_ROUTE_PATHS.managementOfficialArticles,
+        icon: <ReadOutlined />,
+        label: "官方文章库"
+      },
+      { key: ADMIN_ROUTE_PATHS.managementBrands, icon: <AppstoreOutlined />, label: "品牌库" },
+      { key: ADMIN_ROUTE_PATHS.managementModels, icon: <BuildOutlined />, label: "机型库" },
+      {
+        key: ADMIN_ROUTE_PATHS.managementCategories,
+        icon: <ApartmentOutlined />,
+        label: "机型分类"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.managementPowerTypes,
+        icon: <ApartmentOutlined />,
+        label: "动力分类"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.managementContentCategories,
+        icon: <ClusterOutlined />,
+        label: "内容分类"
+      },
+      { key: APP_ROUTES.adminReviews, icon: <FileSearchOutlined />, label: "评测档案" }
+    ]
+  },
+  {
+    key: "group:moderation",
+    label: "审核管理",
+    icon: <SafetyOutlined />,
+    children: [
+      {
+        key: ADMIN_ROUTE_PATHS.messageTodos,
+        icon: <ScheduleOutlined />,
+        label: "审核待办"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationArticles,
+        icon: <FlagOutlined />,
+        label: "文章审核"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationMoments,
+        icon: <NotificationOutlined />,
+        label: "飞友圈动态"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationComments,
+        icon: <CommentOutlined />,
+        label: "评论审核"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationReports,
+        icon: <FileSearchOutlined />,
+        label: "举报内容"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationBrandApplications,
+        icon: <InboxOutlined />,
+        label: "品牌申请"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions,
+        icon: <CloudUploadOutlined />,
+        label: "机型投稿"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationRankings,
+        icon: <OrderedListOutlined />,
+        label: "榜单审核"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationRatingTargets,
+        icon: <OrderedListOutlined />,
+        label: "评分对象审核"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.moderationFiles,
+        icon: <CloudUploadOutlined />,
+        label: "文件审核"
+      }
+    ]
+  },
+  {
+    key: "group:operations",
+    label: "运营工具",
+    icon: <ToolOutlined />,
+    children: [
+      {
+        key: ADMIN_ROUTE_PATHS.operationsArticles,
+        icon: <ReadOutlined />,
+        label: "创建文章"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.operationsAircraft,
+        icon: <GatewayOutlined />,
+        label: "创建飞行器"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.operationsBrands,
+        icon: <AppstoreOutlined />,
+        label: "创建品牌"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.operationsRankings,
+        icon: <TrophyOutlined />,
+        label: "创建榜单"
+      }
+    ]
+  },
+  {
+    key: "group:settings",
+    label: "系统设置",
+    icon: <SettingOutlined />,
+    children: [
+      {
+        key: ADMIN_ROUTE_PATHS.managementUsers,
+        icon: <UserOutlined />,
+        label: "用户管理"
+      },
+      {
+        key: ADMIN_ROUTE_PATHS.managementSecurity,
+        icon: <SafetyCertificateOutlined />,
+        label: "安全设置"
+      },
+      { key: ADMIN_ROUTE_PATHS.aiSettings, icon: <RobotOutlined />, label: "AI 设置" }
+    ]
+  }
+];
+
+/**
+ * 根据当前路由路径计算 antd Menu 所需的 selectedKey 和 openKeys。
+ * @param pathname 当前路由路径。
+ * @returns selectedKey（激活菜单项 key）和 openKeys（展开分组 key 列表）。
+ * @throws 本函数不主动抛出异常。
+ */
+export function getActiveKeys(
+  pathname: string
+): { selectedKey: string; openKeys: string[] } {
+  const normalizedPathname = normalizeAdminPath(pathname);
+
+  for (const group of ADMIN_MENU_ITEMS ?? []) {
+    if (!group || !("children" in group) || !group.children) continue;
+    for (const child of group.children) {
+      if (!child || !("key" in child)) continue;
+      if (child.key === normalizedPathname) {
+        return {
+          selectedKey: normalizedPathname,
+          openKeys: [String(group.key)]
+        };
+      }
+    }
+  }
+
+  return { selectedKey: normalizedPathname, openKeys: [] };
 }
