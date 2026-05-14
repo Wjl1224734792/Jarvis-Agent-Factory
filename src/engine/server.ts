@@ -56,8 +56,8 @@ export function createLoggerMiddleware() {
     const duration = Date.now() - start;
     const status = c.res?.status ?? 0;
     const marker = status >= 400 ? ' !!!' : '';
-    console.log(
-      `[${new Date().toISOString()}] [${c.req.method}] ${c.req.path} - ${status} ${duration}ms${marker}`,
+    process.stderr.write(
+      `[${new Date().toISOString()}] [${c.req.method}] ${c.req.path} - ${status} ${duration}ms${marker}\n`,
     );
   };
 }
@@ -164,7 +164,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
       const newAux = newDbPath + suffix;
       if (existsSync(oldAux)) copyFileSync(oldAux, newAux);
     }
-    console.log('  ✓  旧数据库已迁移: ' + oldDbPath + ' → ' + newDbPath);
+    process.stderr.write('  ✓  旧数据库已迁移: ' + oldDbPath + ' → ' + newDbPath + '\n');
   }
 
   const app = new Hono();
@@ -257,9 +257,16 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   process.on('SIGTERM', gracefulShutdown);
 
   // TASK-004: 启动守护进程 — 崩溃自动重启
-  const restartHandler = () => {
-    writePidFile(process.pid);
-  };
+  // stdio 模式：进程崩溃后退出，由 Claude Code 自动重启进程
+  // HTTP 模式：尝试恢复（重新写入 PID 文件）
+  const restartHandler = stdio
+    ? () => {
+        process.stderr.write('[jarvis-engine] stdio mode: exiting after crash, Claude Code will restart.\n');
+        process.exit(1);
+      }
+    : () => {
+        writePidFile(process.pid);
+      };
   startGuardian(port, restartHandler);
 
   if (stdio) {
@@ -279,7 +286,13 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     }
 
     const transport = new StdioServerTransport();
-    await mcpServer.connect(transport);
+    try {
+      await mcpServer.connect(transport);
+    } catch (e) {
+      log(`FATAL: MCP stdio transport failed — ${(e as Error).message}`);
+      log('The engine will now exit. Claude Code will restart it automatically.');
+      process.exit(1);
+    }
   } else {
     // ---- HTTP Transport：MCP 通过 HTTP + SSE（手动启动 jarvis engine start） ----
     const transport = new StreamableHTTPServerTransport({

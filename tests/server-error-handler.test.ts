@@ -126,7 +126,7 @@ describe('TASK-003: 全局错误处理中间件 + 请求日志', () => {
     let consoleSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      consoleSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     });
 
     afterEach(() => {
@@ -142,7 +142,7 @@ describe('TASK-003: 全局错误处理中间件 + 请求日志', () => {
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const logMsg = consoleSpy.mock.calls[0][0] as string;
-      expect(logMsg).toMatch(/^\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/health - 200 \d+ms$/);
+      expect(logMsg.trimEnd()).toMatch(/^\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/health - 200 \d+ms$/);
     });
 
     it('错误请求日志附加 !!! 标记', async () => {
@@ -160,7 +160,7 @@ describe('TASK-003: 全局错误处理中间件 + 请求日志', () => {
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const logMsg = consoleSpy.mock.calls[0][0] as string;
-      expect(logMsg).toMatch(/\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/crash - 500 \d+ms !!!$/);
+      expect(logMsg.trimEnd()).toMatch(/\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/crash - 500 \d+ms !!!$/);
     });
 
     it('404 请求日志也包含 !!! 标记', async () => {
@@ -171,7 +171,7 @@ describe('TASK-003: 全局错误处理中间件 + 请求日志', () => {
 
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       const logMsg = consoleSpy.mock.calls[0][0] as string;
-      expect(logMsg).toMatch(/\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/not-found - 404 \d+ms !!!$/);
+      expect(logMsg.trimEnd()).toMatch(/\[\d{4}-\d{2}-\d{2}T.*\] \[GET\] \/not-found - 404 \d+ms !!!$/);
     });
 
     it('POST 请求日志正确记录方法', async () => {
@@ -194,7 +194,7 @@ describe('TASK-003: 全局错误处理中间件 + 请求日志', () => {
     let consoleSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      consoleSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
       process.env.NODE_ENV = 'development';
     });
 
