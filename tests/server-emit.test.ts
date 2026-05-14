@@ -8,10 +8,8 @@
  *   4. advance_gate → gate:advanced
  *   5. advance_gate (last gate) → gate:advanced + run:changed
  *   6. gate_jump → gate:advanced
- *   7. agent_event (非重复) → agent:event
- *   8. agent_event (重复) → 不 emit
- *   9. pipeline_init → run:changed
- *  10. session_set_name → run:changed
+ *   7. pipeline_init → run:changed
+ *   8. session_set_name → run:changed
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tmpdir } from 'node:os';
@@ -255,82 +253,9 @@ describe('TASK-005: server.ts MCP 写操作 emitEvent', () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 7. agent_event (非重复) → agent:event
+  // 7. pipeline_init → run:changed
   // ──────────────────────────────────────────────────────────
-  it('7 | agent_event 非重复 emit agent:event', async () => {
-    const { server, tools } = createMockMcpServer();
-    registerMcpTools(server, db, '/tmp');
-    const sid = makeSid();
-    addSession(db, sid, 'claude', 'member');
-    const runId = createPipelineRun(db, sid, 'test-project');
-    initPipeline(db, sid, 'test-project');
-
-    const handler = tools['agent_event'];
-    await handler(
-      {
-        event: 'start',
-        agent_id: 'agent-a',
-        run_id: runId,
-        session_id: sid,
-      },
-      { sessionId: sid },
-    );
-
-    expect(emitSpy).toHaveBeenCalledWith('agent:event', {
-      runId,
-      sessionId: sid,
-      agentId: 'agent-a',
-      eventType: 'start',
-    });
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 8. agent_event (重复) → 不 emit
-  // ──────────────────────────────────────────────────────────
-  it('8 | agent_event 重复不 emit', async () => {
-    const { server, tools } = createMockMcpServer();
-    registerMcpTools(server, db, '/tmp');
-    const sid = makeSid();
-    addSession(db, sid, 'claude', 'member');
-    const runId = createPipelineRun(db, sid, 'test-project');
-    initPipeline(db, sid, 'test-project');
-
-    const handler = tools['agent_event'];
-
-    // 第一次发送 start
-    await handler(
-      {
-        event: 'start',
-        agent_id: 'agent-dup',
-        run_id: runId,
-        session_id: sid,
-      },
-      { sessionId: sid },
-    );
-
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-
-    // 第二次发送相同 start（重复）
-    emitSpy.mockClear();
-    const result = await handler(
-      {
-        event: 'start',
-        agent_id: 'agent-dup',
-        run_id: runId,
-        session_id: sid,
-      },
-      { sessionId: sid },
-    );
-
-    const text = JSON.parse(result.content[0].text!);
-    expect(text.duplicate).toBe(true);
-    expect(emitSpy).not.toHaveBeenCalled();
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 9. pipeline_init → run:changed
-  // ──────────────────────────────────────────────────────────
-  it('9 | pipeline_init emit run:changed with action create', async () => {
+  it('7 | pipeline_init emit run:changed with action create', async () => {
     const { server, tools } = createMockMcpServer();
     registerMcpTools(server, db, '/tmp');
     const sid = makeSid();
@@ -350,9 +275,9 @@ describe('TASK-005: server.ts MCP 写操作 emitEvent', () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 10. session_set_name → run:changed
+  // 8. session_set_name → run:changed
   // ──────────────────────────────────────────────────────────
-  it('10 | session_set_name emit run:changed with action rename', async () => {
+  it('8 | session_set_name emit run:changed with action rename', async () => {
     const { server, tools } = createMockMcpServer();
     registerMcpTools(server, db, '/tmp');
     const sid = makeSid();

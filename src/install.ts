@@ -185,7 +185,6 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
   // 不再使用 plugin 系统 —— hooks 覆盖全部需求：
   //   PostToolUse(Agent)        → gate-check
   //   PostToolUse(Write/Edit)   → gate-check --operation write_code
-  //   SubagentStart/Stop        → agent-event 上报
   //   Stop                      → status
   // ============================================================
   const hookJson = {
@@ -194,27 +193,12 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
       { matcher: 'Write', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
       { matcher: 'Edit', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
     ],
-    SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
-    SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
 
   if (platform === 'claude') {
     const claudeDir = isGlobal ? GLOBAL_ROOTS.claude : resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
-
-    // 安装 agent-event 脚本
-    const scriptsDir = resolve(claudeDir, 'hooks', 'scripts');
-    if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
-    for (const script of ['agent-event.sh', 'agent-event.ps1']) {
-      const src = resolve(TEMPLATES_DIR, 'scripts', script);
-      if (existsSync(src)) {
-        const dst = resolve(scriptsDir, script);
-        if (!existsSync(dst) || fileHash(src) !== fileHash(dst)) {
-          copyFileSync(src, dst);
-        }
-      }
-    }
 
     const file = resolve(claudeDir, 'settings.json');
     let existing: Record<string, any> = {};
