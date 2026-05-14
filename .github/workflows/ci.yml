@@ -3,11 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v3.24.0)'
+        required: true
 
 jobs:
+  # ── 质量门：所有触发事件都跑 ──
   check:
     runs-on: ubuntu-latest
     strategy:
@@ -26,3 +33,153 @@ jobs:
       - run: npm run test
       - run: npm run build
       - run: npm run build:web
+
+  # ── 发布：仅 tag push 或 workflow_dispatch 时触发 ──
+  release:
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      # 安全校验：仅 main 分支上的 tag 才允许发布
+      - name: Verify tag is on main branch
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Error: Tag commit is not on main branch. Release aborted."
+            echo "  Tag commit: $GITHUB_SHA"
+            echo "  origin/main: $(git rev-parse origin/main)"
+            exit 1
+          fi
+
+      # 安全校验：workflow_dispatch 输入的 tag 必须符合语义化版本格式
+      - name: Validate tag format
+        if: ${{ inputs.tag != '' }}
+        run: |
+          TAG="${{ inputs.tag }}"
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "Error: Invalid tag format '$TAG'. Must match vX.Y.Z or vX.Y.Z-prerelease."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm ci --prefix web
+      - run: npm run build
+      - run: npm run build:web
+
+      # 统一获取 RELEASE_TAG
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "TAG=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate Changelog
+        run: |
+          RELEASE_TAG="${{ steps.tag.outputs.TAG }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## $RELEASE_TAG" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**发布时间:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 变更记录" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "📦 初始版本发布" >> CHANGELOG.md
+          else
+            echo '```' >> CHANGELOG.md
+            git log --oneline --no-merges "${PREV_TAG}"..HEAD >> CHANGELOG.md
+            echo '```' >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "### 安装" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "npm i -g jarvis-agent-factory@latest" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "Full Changelog: https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/CHANGELOG.md" >> CHANGELOG.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG=${GITHUB_REF_NAME}
+          if [ -n "${{ inputs.tag }}" ]; then
+            RELEASE_TAG=${{ inputs.tag }}
+            git fetch --tags
+          fi
+
+          if gh release view "$RELEASE_TAG" &>/dev/null; then
+            echo "Release exists, updating..."
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file CHANGELOG.md
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --notes-file CHANGELOG.md
+          fi
+
+      - name: Upload Web Panel to Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG=${GITHUB_REF_NAME}
+          if [ -n "${{ inputs.tag }}" ]; then
+            RELEASE_TAG=${{ inputs.tag }}
+          fi
+          if [ -f dist/web/index.html ]; then
+            gh release upload "$RELEASE_TAG" dist/web/index.html --clobber
+          else
+            echo "⚠ dist/web/index.html not found, skipping SPA upload"
+          fi
+          if [ -d dist/src/web/views ]; then
+            for f in dist/src/web/views/*.html; do
+              [ -f "$f" ] && gh release upload "$RELEASE_TAG" "$f" --clobber
+            done
+          else
+            echo "⚠ dist/src/web/views/ not found, skipping views upload"
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PUBLISHED=$(npm view jarvis-agent-factory@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$VERSION" ]; then
+            echo "v$VERSION already published on npm, skipping."
+            exit 0
+          fi
+          npm publish
+
+      - name: Verify Publish
+        run: |
+          echo "Waiting for npm registry to update..."
+          sleep 10
+          PUBLISHED_VERSION=$(npm view jarvis-agent-factory version 2>/dev/null || echo "unknown")
+          echo "npm published version: $PUBLISHED_VERSION"
+          echo "expected tag: ${GITHUB_REF_NAME#v}"
+          if [ "$PUBLISHED_VERSION" = "${GITHUB_REF_NAME#v}" ]; then
+            echo "Version verified!"
+          else
+            echo "Warning: Version mismatch or npm not yet updated"
+          fi

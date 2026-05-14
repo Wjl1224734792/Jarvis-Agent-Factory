@@ -186,14 +186,14 @@ git push origin main && git push origin v<version>
 
 ### 5. GitHub Actions 自动发布
 
-两个工作流分工明确：
+统一工作流，按触发事件分工：
 
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
 | `.github/workflows/ci.yml` | push/PR to main | Lint + Type-check + Test + Build |
-| `.github/workflows/release.yml` | Tag `v*` 推送 | 质量检查 → 生成 Changelog → 创建 GitHub Release → npm publish → 验证版本 |
+| `.github/workflows/ci.yml` | Tag `v*` 推送 | 质量检查 → 生成 Changelog → 创建 GitHub Release → npm publish → 验证版本 |
 
-推送 Tag 到 GitHub 后，Release 工作流自动执行全流程，无需手动 `npm publish`。
+推送 Tag 到 GitHub 后，CI 工作流自动执行发布全流程，无需手动 `npm publish`。
 
 > 若 Release 失败，检查 GitHub Actions 日志。需要 `NPM_TOKEN` secret 配置在仓库 Settings → Secrets 中。
 
