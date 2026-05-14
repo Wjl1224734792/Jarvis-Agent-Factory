@@ -1,4 +1,5 @@
 import {
+  aiChatRequestSchema,
   aiFormatRequestSchema,
   aiSettingsSchema,
   aiSummaryRequestSchema
@@ -12,7 +13,7 @@ import {
   type AuthVariables
 } from "../auth/auth.middleware";
 import { aiSettingsService } from "./ai-settings.service";
-import { formatContent, generateSummary } from "./ai.service";
+import { chatAboutArticle, formatContent, generateSummary } from "./ai.service";
 
 export const aiRoute = new Hono<{ Variables: AuthVariables }>();
 
@@ -90,6 +91,37 @@ aiRoute.post(API_ROUTES.ai.format, requireAuth, async (context) => {
     if (message.includes("400")) {
       return context.json({ code: "INVALID_INPUT", message }, 400);
     }
+
+    if (message.includes("403")) {
+      return context.json({ code: "FEATURE_DISABLED", message }, 403);
+    }
+
+    if (message.includes("LLM_API_ERROR")) {
+      return context.json({ code: "LLM_API_ERROR", message }, 502);
+    }
+
+    throw error;
+  }
+});
+
+/**
+ * POST /api/v1/ai/chat — AI 文章聊天。
+ * 基于文章上下文回答用户问题。需登录。
+ */
+aiRoute.post(API_ROUTES.ai.chat, requireAuth, async (context) => {
+  const body = aiChatRequestSchema.parse(await context.req.json());
+  const userId = context.get("currentUser")?.id ?? "anonymous";
+
+  try {
+    const result = await chatAboutArticle(
+      userId,
+      body.message,
+      body.title,
+      body.context
+    );
+    return context.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
 
     if (message.includes("403")) {
       return context.json({ code: "FEATURE_DISABLED", message }, 403);
