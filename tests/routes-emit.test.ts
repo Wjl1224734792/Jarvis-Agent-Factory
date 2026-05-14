@@ -10,8 +10,7 @@
  *   6. DELETE /api/pipeline-runs/:id → run:changed
  *   7. DELETE /api/sessions/:id → session:changed
  *   8. POST /api/sessions/:id/resume → session:changed
- *   9. POST /api/agent-event → agent:event (仅非重复)
- *  10. PATCH /api/pipeline-runs/:id/name → run:changed
+ *   9. PATCH /api/pipeline-runs/:id/name → run:changed
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tmpdir } from 'node:os';
@@ -206,74 +205,9 @@ describe('TASK-005: routes.ts 写操作 emitEvent', () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // 9. POST /api/agent-event → agent:event (仅非重复)
+  // 9. PATCH /api/pipeline-runs/:id/name → run:changed
   // ──────────────────────────────────────────────────────────
-  it('9 | POST /api/agent-event emit agent:event when non-duplicate', async () => {
-    const sid = makeSid();
-    addSession(db, sid, 'claude', 'member');
-    const runId = createPipelineRun(db, sid, 'test-project');
-
-    const res = await app.request('/api/agent-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'start',
-        agent_id: 'agent-1',
-        run_id: runId,
-        session_id: sid,
-      }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(emitSpy).toHaveBeenCalledWith('agent:event', {
-      runId: runId,
-      sessionId: sid,
-      agentId: 'agent-1',
-      eventType: 'start',
-    });
-  });
-
-  it('9b | POST /api/agent-event 重复时 NOT emit agent:event', async () => {
-    const sid = makeSid();
-    addSession(db, sid, 'claude', 'member');
-    const runId = createPipelineRun(db, sid, 'test-project');
-
-    // 第一次发送 start 事件
-    await app.request('/api/agent-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'start',
-        agent_id: 'agent-dup',
-        run_id: runId,
-        session_id: sid,
-      }),
-    });
-
-    // 清除第一次调用的记录
-    emitSpy.mockClear();
-
-    // 第二次发送相同 start 事件（应被去重）
-    const res2 = await app.request('/api/agent-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'start',
-        agent_id: 'agent-dup',
-        run_id: runId,
-        session_id: sid,
-      }),
-    });
-
-    const body2 = await res2.json();
-    expect(body2.duplicate).toBe(true);
-    expect(emitSpy).not.toHaveBeenCalled();
-  });
-
-  // ──────────────────────────────────────────────────────────
-  // 10. PATCH /api/pipeline-runs/:id/name → run:changed
-  // ──────────────────────────────────────────────────────────
-  it('10 | PATCH /api/pipeline-runs/:id/name emit run:changed', async () => {
+  it('9 | PATCH /api/pipeline-runs/:id/name emit run:changed', async () => {
     const sid = makeSid();
     addSession(db, sid, 'claude', 'member');
     const runId = createPipelineRun(db, sid, 'test-project');

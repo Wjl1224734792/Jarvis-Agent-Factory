@@ -63,26 +63,6 @@ export interface AgentStatusResponse {
   failed: string[];
 }
 
-export interface AgentEvent {
-  id: number;
-  run_id: string;
-  session_id: string;
-  agent_id: string;
-  event_type: 'start' | 'end' | 'error';
-  model: string | null;
-  status: 'success' | 'error' | null;
-  input_tokens: number;
-  output_tokens: number;
-  cache_creation_input_tokens: number;
-  cache_read_input_tokens: number;
-  total_tokens: number;
-  error_message: string | null;
-  started_at: string;
-  ended_at: string | null;
-  duration_ms: number | null;
-  created_at: string;
-}
-
 export interface AgentsData {
   agents: AgentItem[];
   available_models: string[];
@@ -174,9 +154,6 @@ export const api = {
 
   agentStatus: (runId?: string): Promise<AgentStatusResponse> =>
     fetchJSON(`/api/agent-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
-
-  agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
-    fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),
 
   commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
     fetchJSON('/api/commands'),

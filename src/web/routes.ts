@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentEvents, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -680,73 +680,6 @@ export function setupApiRoutes(app, db, root) {
     }
     const status = getAgentGateStatus(db, resolvedRunId);
     return c.json(status);
-  });
-
-  /** 获取 Agent 事件列表 */
-  app.get('/api/agent-events', (c) => {
-    const runId = c.req.query('run_id');
-    if (!runId) return c.json({ error: 'run_id query parameter required' }, 400);
-    const agentId = c.req.query('agent_id');
-    const events = getAgentEvents(db, runId, agentId || undefined);
-    return c.json({ events });
-  });
-
-  /** 写入 Agent 事件 */
-  app.post('/api/agent-event', async (c) => {
-    const body = await c.req.json();
-    const { event, agent_id, run_id, session_id, model,
-      input_tokens, output_tokens, cache_creation_input_tokens,
-      cache_read_input_tokens, status, error_message } = body;
-
-    if (!event || !agent_id) {
-      return c.json({ error: 'event and agent_id required' }, 400);
-    }
-    if (!['start', 'end', 'error'].includes(event)) {
-      return c.json({ error: `Invalid event_type: ${event}. Must be one of: start, end, error` }, 400);
-    }
-    if (!run_id || !session_id) {
-      return c.json({ error: 'run_id and session_id required' }, 400);
-    }
-
-    // 归属验证：确保 run_id 属于当前 session
-    const runCheck = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(run_id);
-    if (!runCheck) {
-      return c.json({ error: `Run not found: ${run_id}` }, 404);
-    }
-    if (runCheck.session_id !== session_id) {
-      return c.json({ error: `Run ${run_id} does not belong to session ${session_id}` }, 403);
-    }
-
-    // 去重检查：同一 (run_id, agent_id) 的重复 start/end/error 事件忽略
-    const dupCheck = checkAgentEventDuplicate(db, run_id, agent_id, event);
-    if (dupCheck.duplicate) {
-      return c.json({
-        ok: true, id: dupCheck.id, total_tokens: dupCheck.total_tokens,
-        duplicate: true,
-        message: event === 'start'
-          ? 'start event already recorded for this agent'
-          : 'end/error event already recorded for this agent',
-      });
-    }
-
-    const result = insertAgentEvent(db, {
-      run_id,
-      session_id,
-      agent_id,
-      event_type: event,
-      model: model || undefined,
-      status: status || undefined,
-      input_tokens: input_tokens || 0,
-      output_tokens: output_tokens || 0,
-      cache_creation_input_tokens: cache_creation_input_tokens || 0,
-      cache_read_input_tokens: cache_read_input_tokens || 0,
-      error_message: error_message || undefined,
-    });
-
-    // TASK-005: 发布 Agent 事件（仅非重复，重复路径已提前 return）
-    emitEvent('agent:event', { runId: run_id, sessionId: session_id, agentId: agent_id, eventType: event });
-
-    return c.json({ ok: true, id: result.id, total_tokens: result.total_tokens });
   });
 
   // ---- SSE 事件流 ----

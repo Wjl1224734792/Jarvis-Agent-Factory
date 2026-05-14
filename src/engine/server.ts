@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -838,80 +838,6 @@ export function registerMcpTools(server, db, root) {
       const result = resolvePlatformInfo(platform);
       return resp(result);
     });
-
-    // ---- TASK-001: Agent 事件追踪 MCP 工具 ----
-
-    server.tool('agent_event',
-      '记录 Agent 执行事件（start/end/error），用于 Token 追踪与成本估算。start 事件标记 Agent 开始执行，end 事件同时写入 token 用量并自动计算 duration_ms，error 事件记录错误信息。',
-      {
-        event: z.enum(['start', 'end', 'error']).describe('事件类型'),
-        agent_id: z.string().min(1).max(128).regex(/^[a-z0-9-]+$/, 'agent_id 必须为小写字母、数字、连字符组成').describe('Agent 唯一标识'),
-        run_id: z.string().optional().describe('流水线 run ID，不传则使用当前活跃 run'),
-        session_id: z.string().optional().describe('会话 ID，不传则使用当前 MCP 会话'),
-        model: z.string().optional().describe('实际使用的模型 ID'),
-        input_tokens: z.number().int().min(0).optional().describe('输入 token 数'),
-        output_tokens: z.number().int().min(0).optional().describe('输出 token 数'),
-        cache_creation_input_tokens: z.number().int().min(0).optional().describe('缓存写入 token 数'),
-        cache_read_input_tokens: z.number().int().min(0).optional().describe('缓存读取 token 数'),
-        status: z.enum(['success', 'error']).optional().describe('执行状态（end 时默认 success，error 时强制 error）'),
-        error_message: z.string().optional().describe('错误信息（event=error 时推荐传入）'),
-      },
-      async ({ event, agent_id, run_id, session_id, model, input_tokens, output_tokens,
-        cache_creation_input_tokens, cache_read_input_tokens, status, error_message }, extra) => {
-        // 解析 session_id：优先参数传入，其次 MCP 会话
-        const finalSid = session_id || extra?.sessionId || _lastSessionId;
-        if (!finalSid) {
-          return resp({ ok: false, error: 'session_id required. Call session_join first.' });
-        }
-
-        // 解析 run_id：优先参数传入，其次当前活跃 run
-        const finalRunId = run_id || getActiveRun(db, finalSid)?.id;
-        if (!finalRunId) {
-          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
-        }
-
-        // 归属验证：若 run_id 属于其他 session，拒绝写入
-        const run = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(finalRunId);
-        if (!run) {
-          return resp({ ok: false, error: `Run not found: ${finalRunId}` });
-        }
-        if (run.session_id !== finalSid) {
-          return resp({ ok: false, error: `Run ${finalRunId} 不属于当前 session ${finalSid}` });
-        }
-
-        const pipeline = getPipeline(db, finalSid);
-
-        // 去重检查：同一 (run_id, agent_id) 的重复 start/end/error 事件忽略
-        const dupCheck = checkAgentEventDuplicate(db, finalRunId, agent_id, event);
-        if (dupCheck.duplicate) {
-          return resp({
-            ok: true, id: dupCheck.id, total_tokens: dupCheck.total_tokens,
-            duplicate: true,
-            message: event === 'start'
-              ? 'start event already recorded for this agent'
-              : 'end/error event already recorded for this agent',
-          });
-        }
-
-        const result = insertAgentEvent(db, {
-          run_id: finalRunId, session_id: finalSid, agent_id,
-          event_type: event, model,
-          input_tokens: input_tokens ?? 0,
-          output_tokens: output_tokens ?? 0,
-          cache_creation_input_tokens: cache_creation_input_tokens ?? 0,
-          cache_read_input_tokens: cache_read_input_tokens ?? 0,
-          status: event === 'error' ? 'error' : (status ?? undefined),
-          error_message,
-          current_gate: pipeline?.current_gate || undefined,
-        });
-
-        // TASK-005: 发布 Agent 事件（仅非重复，重复路径已提前 return）
-        emitEvent('agent:event', { runId: finalRunId, sessionId: finalSid, agentId: agent_id, eventType: event });
-
-        return resp({
-          ok: true, id: result.id, total_tokens: result.total_tokens,
-        });
-      });
 
     server.tool('agent_status',
       '查询指定 run 的 Agent 状态分类（active/completed/failed），快速了解当前各 Agent 执行进度。',

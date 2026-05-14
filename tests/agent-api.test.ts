@@ -3,9 +3,7 @@
  *
  * 测试范围:
  *   1. GET /api/agent-status → 正确分类 active/completed/failed
- *   2. GET /api/agent-events → 返回事件列表，可选 agent_id 过滤
- *   3. POST /api/agent-event → 写入事件，返回 id
- *   4. SSE broadcast 数据包含 agent_status 字段
+ *   2. SSE broadcast 数据包含 agent_status 字段
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'node:os';
@@ -14,7 +12,6 @@ import { Hono } from 'hono';
 import { setupApiRoutes, broadcastSSE, sseClients } from '../src/web/routes.js';
 import {
   openDb, addSession, createPipelineRun, insertAgentEvent,
-  getAgentEvents,
 } from '../src/engine/db.js';
 
 /** 每个测试文件独立数据库 */
@@ -103,74 +100,9 @@ describe('Agent API Endpoints', () => {
   });
 
   // ──────────────────────────────────────────────────────────────
-  // Test 3: GET /api/agent-events
+  // Test 2: SSE agent_status
   // ──────────────────────────────────────────────────────────────
-  it('2 | GET /api/agent-events 返回事件列表，支持 agent_id 过滤', async () => {
-    const res = await app.request(`/api/agent-events?run_id=${runId}&agent_id=agent-a`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-
-    expect(body).toHaveProperty('events');
-    expect(body.events).toHaveLength(2);
-    expect(body.events[0].agent_id).toBe('agent-a');
-    expect(body.events[0].event_type).toBe('start');
-    expect(body.events[1].agent_id).toBe('agent-a');
-    expect(body.events[1].event_type).toBe('end');
-
-    // 不传 agent_id 返回全部事件
-    const res2 = await app.request(`/api/agent-events?run_id=${runId}`);
-    expect(res2.status).toBe(200);
-    const body2 = await res2.json();
-    expect(body2.events).toHaveLength(5); // start+end for agent-a, start for agent-b, start+error for agent-c
-
-    // 不传 run_id 返回 400
-    const res3 = await app.request('/api/agent-events');
-    expect(res3.status).toBe(400);
-    const body3 = await res3.json();
-    expect(body3).toHaveProperty('error');
-  });
-
-  // ──────────────────────────────────────────────────────────────
-  // Test 4: POST /api/agent-event
-  // ──────────────────────────────────────────────────────────────
-  it('3 | POST /api/agent-event 写入事件，返回 id', async () => {
-    const realRunId = createPipelineRun(db, sid, 'test-project');
-    const res = await app.request('/api/agent-event', {
-      method: 'POST',
-      body: JSON.stringify({
-        event: 'start',
-        agent_id: 'test-agent-post',
-        run_id: realRunId,
-        session_id: sid,
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.id).toBeGreaterThan(0);
-    expect(body).toHaveProperty('total_tokens');
-
-    // 验证已写入
-    const events = getAgentEvents(db, realRunId, 'test-agent-post');
-    expect(events).toHaveLength(1);
-    expect(events[0].event_type).toBe('start');
-
-    // 缺少必填字段返回 400
-    const res2 = await app.request('/api/agent-event', {
-      method: 'POST',
-      body: JSON.stringify({}),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    expect(res2.status).toBe(400);
-    const body2 = await res2.json();
-    expect(body2).toHaveProperty('error');
-  });
-
-  // ──────────────────────────────────────────────────────────────
-  // Test 5: SSE agent_status
-  // ──────────────────────────────────────────────────────────────
-  it('4 | SSE 广播数据包含 agent_status 字段', () => {
+  it('2 | SSE 广播数据包含 agent_status 字段', () => {
     // 创建 pipeline_run 让 getActiveRun 能找到
     const testRunId = createPipelineRun(db, sid, 'test-project');
     // 为这个 run 插入事件
