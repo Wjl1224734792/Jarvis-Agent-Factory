@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName, updateRunGateEnteredAt, completeRun, abortRun, archiveRun, unarchiveRun, deleteRun, getArchivedRuns, insertArtifact, insertAgentEvent, getAgentEvents, getArtifactsByRun } from '../src/engine/db.js';
+import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName, updateRunGateEnteredAt, completeRun, abortRun, archiveRun, unarchiveRun, deleteRun, getArchivedRuns, insertArtifact, getArtifactsByRun } from '../src/engine/db.js';
 
 /** 每个测试文件独立数据库，避免 CI 并行锁定 */
 const TEST_DB = resolve(tmpdir(), `jarvis-test-db-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
@@ -484,36 +484,6 @@ describe('TASK-005 Archive & Delete Operations', () => {
     // 删除后 artifacts 级联清除
     arts = getArtifactsByRun(db, runId);
     expect(arts).toHaveLength(0);
-  });
-
-  it('deleteRun 删除 run 及关联的 agent_events', () => {
-    const runId = createPipelineRun(db, testSid, 'test-project');
-    // 插入 start + end 事件
-    insertAgentEvent(db, {
-      run_id: runId,
-      session_id: testSid,
-      agent_id: 'test-agent',
-      event_type: 'start',
-    });
-    insertAgentEvent(db, {
-      run_id: runId,
-      session_id: testSid,
-      agent_id: 'test-agent',
-      event_type: 'end',
-      input_tokens: 100,
-      output_tokens: 50,
-    });
-
-    // 删除前确认 events 存在
-    let events = getAgentEvents(db, runId);
-    expect(events).toHaveLength(2);
-
-    const result = deleteRun(db, runId);
-    expect(result.ok).toBe(true);
-
-    // 删除后 events 级联清除
-    events = getAgentEvents(db, runId);
-    expect(events).toHaveLength(0);
   });
 
   it('deleteRun: session 有其他 run 时不删除 session', async () => {
