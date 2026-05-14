@@ -1,5 +1,7 @@
 import type { IDomEditor } from '@wangeditor/editor';
-import { Button, Dropdown } from 'antd';
+import { DownOutlined, FormatPainterOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Space } from 'antd';
+import type { MenuProps } from 'antd';
 import { useCallback, useState } from 'react';
 import { useAiFormat } from './use-ai-format';
 
@@ -16,8 +18,6 @@ function hasEditorContent(editor: IDomEditor): boolean {
 
 /**
  * 从当前 DOM Selection 中提取选区的 HTML 片段。
- *
- * @returns 选区 HTML；无选区或选区为空时返回 null。
  */
 function getSelectionHtml(): string | null {
   const selection = window.getSelection();
@@ -36,9 +36,7 @@ function getSelectionHtml(): string | null {
   return html || null;
 }
 
-/**
- * 删除当前选区内容（不触发剪贴板）。
- */
+/** 删除当前选区内容（不触发剪贴板）。 */
 function deleteCurrentSelection(): void {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) {
@@ -50,10 +48,7 @@ function deleteCurrentSelection(): void {
 }
 
 /**
- * AI 排版按钮（admin 端） — 支持 beautify（局部美化）和 structure（全文结构化）两种模式。
- *
- * @param props.editor - wangEditor 编辑器实例。
- * @returns 渲染排版下拉按钮。
+ * AI 排版按钮（admin 端） — 主按钮执行美化，右侧下拉按钮执行全文结构化。
  */
 export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,8 +56,6 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
 
   const handleBeautify = useCallback(async () => {
     if (!editor) return;
-
-    setIsOpen(false);
 
     const selectedHtml = getSelectionHtml();
     if (!selectedHtml) {
@@ -92,8 +85,6 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const handleStructure = useCallback(async () => {
     if (!editor) return;
 
-    setIsOpen(false);
-
     if (!hasEditorContent(editor)) {
       editor.alert('请先输入内容', 'warning');
       return;
@@ -119,22 +110,24 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
     }
   }, [editor, aiFormat]);
 
-  const dropdownItems = [
+  const dropdownItems: MenuProps['items'] = [
     {
       key: 'structure',
+      icon: <ThunderboltOutlined />,
       label: '全文结构化',
       onClick: () => void handleStructure()
     }
   ];
 
+  const disabled = !editor || aiFormat.isLoading;
+
   return (
-    <div style={{ display: 'inline-flex' }}>
+    <Space.Compact>
       <Button
-        disabled={!editor || aiFormat.isLoading}
+        disabled={disabled}
+        icon={aiFormat.isLoading ? undefined : <FormatPainterOutlined />}
         loading={aiFormat.isLoading}
         onClick={() => void handleBeautify()}
-        size="small"
-        type="default"
       >
         AI 排版
       </Button>
@@ -145,13 +138,10 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
         trigger={['click']}
       >
         <Button
-          disabled={!editor || aiFormat.isLoading}
-          size="small"
-          type="default"
-        >
-          ▾
-        </Button>
+          disabled={disabled}
+          icon={<DownOutlined />}
+        />
       </Dropdown>
-    </div>
+    </Space.Compact>
   );
 }

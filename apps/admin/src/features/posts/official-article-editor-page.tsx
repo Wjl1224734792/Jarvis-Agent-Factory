@@ -1,5 +1,6 @@
 import type { IDomEditor } from '@wangeditor/editor';
 import { useQuery } from "@tanstack/react-query";
+import { FormatPainterOutlined, RobotOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Select, Space } from "antd";
 import {
   Suspense,
@@ -695,6 +696,7 @@ export function OfficialArticleEditorPage() {
                   <Space size="small">
                     <Button
                       disabled={aiSummary.isLoading || !editorText.trim()}
+                      icon={<RobotOutlined />}
                       loading={aiSummary.isLoading}
                       onClick={() => {
                         aiSummary.generate({
@@ -703,7 +705,6 @@ export function OfficialArticleEditorPage() {
                         });
                       }}
                       size="small"
-                      type="link"
                     >
                       {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
                     </Button>
