@@ -55,6 +55,8 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 移动端开发 | `/taro` `/android` `/ios` `/expo` `/flutter` | 切换到对应 agent | 加载对应 skill |
 | 浏览器测试 | `/browser-test` | 切换到 `browser-test-worker` | 加载 `browser-test` skill |
 | Bug 修复 | `/bug-fix` | 切换到编排者触发 | 加载 `bug-fix` skill |
+| 一键发布 | `/publish` | 质量门→测试→版本→tag→PR→合并→发布 | 引用 `code-quality-gate` `git-workflow-and-versioning` |
+| 项目同步 | `/sync` | 同步指令/技能/文档，清理过时缓存 | 引用 `docs-engineer` |
 | 只读审查 | `/review` | 切换到 `review-only` agent | 加载 `review-only` skill |
 | 审查修复闭环 | `/review-fix` | 切换到 `review-fix-optimize` agent | 加载 `review-fix-optimize` skill |
 | 算法专家 | `/algorithm-expert` | 切换到 `algorithm-expert` agent | 加载 `algorithm-expert` skill |
@@ -267,4 +269,4 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 `code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `docs-research-expert`
 
 ### Claude Code 命令入口（30）
-`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
+`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
