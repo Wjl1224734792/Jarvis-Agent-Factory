@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AiFormatButton } from "../ai/ai-format-button";
+import { ImportFileButton } from "../ai/import-file-button";
 import { useAiSummary } from "../ai/use-ai-summary";
 import {
   buildOfficialArticleDocument,
@@ -756,6 +757,7 @@ export function OfficialArticleEditorPage() {
             <div className="admin-official-article-editor__ai-toolbar" style={{ marginBottom: 8 }}>
               <Space size="small">
                 <AiFormatButton editor={editorInstance} />
+                <ImportFileButton editor={editorInstance} />
               </Space>
             </div>
 
