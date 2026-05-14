@@ -728,6 +728,10 @@ export function PublishArticlePage() {
                       disabled={aiSummary.isLoading}
                       error={aiSummary.error?.message ?? null}
                       isLoading={aiSummary.isLoading}
+                      onAdopt={(raw) => {
+                        const truncated = raw.slice(0, ARTICLE_SUMMARY_MAX_LENGTH);
+                        setSummary(truncated);
+                      }}
                       onRegenerate={() => {
                         aiSummary.reset();
                         aiSummary.generate({

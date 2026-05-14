@@ -16,6 +16,8 @@ interface AiSummaryPanelProps {
   onRegenerate?: () => void;
   /** 生成回调（未生成时显示） */
   onGenerate?: () => void;
+  /** 采用此摘要回调 */
+  onAdopt?: (summary: string) => void;
   /** 是否禁用生成按钮 */
   disabled?: boolean;
   /** 自定义类名 */
@@ -35,6 +37,7 @@ export function AiSummaryPanel({
   cached,
   onRegenerate,
   onGenerate,
+  onAdopt,
   disabled,
   className
 }: AiSummaryPanelProps) {
@@ -127,6 +130,18 @@ export function AiSummaryPanel({
             )}
           </div>
           <div className="flex items-center gap-1">
+            {onAdopt && summary && (
+              <Button
+                disabled={disabled}
+                onClick={() => onAdopt(summary)}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <CheckIcon data-icon="inline-start" />
+                采用此摘要
+              </Button>
+            )}
             <Button
               disabled={disabled}
               onClick={handleCopy}
