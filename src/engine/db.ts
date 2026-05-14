@@ -158,31 +158,6 @@ function initSchema(db) {
   // ---- Run 置顶迁移 ----
   try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch {}
 
-  // ---- TASK-001: Agent 事件追踪表 ----
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS agent_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      run_id TEXT NOT NULL,
-      session_id TEXT NOT NULL,
-      agent_id TEXT NOT NULL,
-      event_type TEXT NOT NULL CHECK(event_type IN ('start', 'end', 'error')),
-      model TEXT,
-      status TEXT CHECK(status IN ('success', 'error') OR status IS NULL),
-      input_tokens INTEGER DEFAULT 0,
-      output_tokens INTEGER DEFAULT 0,
-      cache_creation_input_tokens INTEGER DEFAULT 0,
-      cache_read_input_tokens INTEGER DEFAULT 0,
-      total_tokens INTEGER GENERATED ALWAYS AS (input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens) VIRTUAL,
-      error_message TEXT,
-      started_at TEXT,
-      ended_at TEXT,
-      duration_ms INTEGER,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_agent_events_run ON agent_events(run_id, agent_id, event_type);
-    CREATE INDEX IF NOT EXISTS idx_agent_events_lookup ON agent_events(run_id, agent_id, event_type, started_at);
-  `);
-
   // ----  TASK-001: Gate 进入时间记录 ----
   try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN gate_entered_at TEXT"); } catch {}
 
@@ -193,8 +168,8 @@ function initSchema(db) {
   try { db.exec("ALTER TABLE checkpoints ADD COLUMN violations TEXT"); } catch {}
   try { db.exec("ALTER TABLE checkpoints ADD COLUMN quality_profile_source TEXT"); } catch {}
 
-  // ----  Per-Gate Agent Graph: agent_events 记录当前 Gate ----
-  try { db.exec("ALTER TABLE agent_events ADD COLUMN current_gate TEXT"); } catch {}
+  // ---- 清除遗留的 agent_events 表（v3.47.6+ 已废弃） ----
+  try { db.exec("DROP TABLE IF EXISTS agent_events"); } catch {}
 
   // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
   // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
@@ -523,8 +498,6 @@ export function deleteRun(db, runId) {
     db.exec('BEGIN');
     // 级联删除关联的 artifacts 记录
     db.prepare('DELETE FROM artifacts WHERE run_id=?').run(runId);
-    // 级联删除关联的 agent_events 记录
-    db.prepare('DELETE FROM agent_events WHERE run_id=?').run(runId);
     const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
 
     // 如果这是该 session 的最后一条 run，级联删除 session
@@ -546,7 +519,7 @@ export function deleteRun(db, runId) {
 }
 
 /**
- * 直接删除 session 及其所有关联数据（级联删除 runs、artifacts、agent_events、checkpoints、pipeline）
+ * 直接删除 session 及其所有关联数据（级联删除 runs、artifacts、checkpoints、pipeline）
  * @param {DatabaseSync} db
  * @param {string} sessionId
  * @returns {{ ok: boolean }}
@@ -559,7 +532,6 @@ export function deleteSession(db, sessionId) {
     const runs = db.prepare('SELECT id FROM pipeline_runs WHERE session_id=?').all(sessionId);
     for (const r of runs) {
       db.prepare('DELETE FROM artifacts WHERE run_id=?').run(r.id);
-      db.prepare('DELETE FROM agent_events WHERE run_id=?').run(r.id);
     }
     db.prepare('DELETE FROM pipeline_runs WHERE session_id=?').run(sessionId);
     db.prepare('DELETE FROM checkpoints WHERE session_id=?').run(sessionId);
@@ -633,208 +605,3 @@ export function getArtifactsByRunAndGate(db, runId, gate) {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
 }
 
-// ---- Agent Events（TASK-001：Token 使用追踪）----
-
-/**
- * 写入 Agent 事件记录。
- * start 事件：直接写入，tokens=0。
- * end/error 事件：查找同 agent_id + run_id 最近的 start 事件，计算 duration_ms 并写入。
- *
- * @param {DatabaseSync} db
- * @param {{
- *   run_id: string;
- *   session_id: string;
- *   agent_id: string;
- *   event_type: 'start' | 'end' | 'error';
- *   model?: string;
- *   status?: 'success' | 'error' | null;
- *   input_tokens?: number;
- *   output_tokens?: number;
- *   cache_creation_input_tokens?: number;
- *   cache_read_input_tokens?: number;
- *   error_message?: string;
- * }} params
- * @returns {{ id: number; total_tokens: number }}
- */
-export function insertAgentEvent(db, params) {
-  const {
-    run_id, session_id, agent_id, event_type, model,
-    status: statusParam, input_tokens = 0, output_tokens = 0,
-    cache_creation_input_tokens = 0, cache_read_input_tokens = 0,
-    error_message, current_gate,
-  } = params;
-
-  const now = new Date().toISOString();
-  let started_at = now;
-  let duration_ms: number | null = null;
-
-  // end/error 事件：查找最近的 start 事件计算 duration
-  if (event_type === 'end' || event_type === 'error') {
-    const startRow = db.prepare(`
-      SELECT started_at FROM agent_events
-      WHERE run_id=? AND agent_id=? AND event_type='start'
-      ORDER BY id DESC LIMIT 1
-    `).get(run_id, agent_id);
-
-    if (startRow?.started_at) {
-      started_at = startRow.started_at;
-      const startEpoch = new Date(startRow.started_at).getTime();
-      const endEpoch = new Date(now).getTime();
-      duration_ms = Math.max(0, endEpoch - startEpoch);
-    }
-  }
-
-  const finalStatus = statusParam ?? (
-    event_type === 'end' ? 'success' : event_type === 'error' ? 'error' : null
-  );
-
-  const result = db.prepare(`
-    INSERT INTO agent_events (run_id, session_id, agent_id, event_type, model, status,
-      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
-      error_message, started_at, ended_at, duration_ms, current_gate)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(run_id, session_id, agent_id, event_type, model || null, finalStatus,
-    input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
-    error_message || null, started_at, event_type !== 'start' ? now : null, duration_ms,
-    current_gate || null);
-
-  return { id: Number(result.lastInsertRowid), total_tokens: input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens };
-}
-
-/**
- * 检查 Agent 事件是否重复，用于去重。
- * - start: 若该 (run_id, agent_id) 的最新事件是 start（无对应 end/error），则视为重复
- * - end/error: 若该 (run_id, agent_id) 已有 end 或 error 事件，则视为重复
- * @param {DatabaseSync} db
- * @param {string} runId
- * @param {string} agentId
- * @param {'start'|'end'|'error'} eventType
- * @returns {{ duplicate: boolean; id?: number; total_tokens?: number }}
- */
-export function checkAgentEventDuplicate(db, runId, agentId, eventType) {
-  if (eventType === 'start') {
-    const latest = db.prepare(
-      `SELECT id, event_type FROM agent_events
-       WHERE run_id=? AND agent_id=?
-       ORDER BY id DESC LIMIT 1`
-    ).get(runId, agentId);
-    if (latest && latest.event_type === 'start') {
-      return { duplicate: true, id: latest.id, total_tokens: 0 };
-    }
-    return { duplicate: false };
-  }
-
-  // end 或 error：检查是否已有 end/error 事件
-  const existing = db.prepare(
-    `SELECT id, total_tokens FROM agent_events
-     WHERE run_id=? AND agent_id=? AND event_type IN ('end', 'error')
-     ORDER BY id DESC LIMIT 1`
-  ).get(runId, agentId);
-  if (existing) {
-    return { duplicate: true, id: existing.id, total_tokens: existing.total_tokens };
-  }
-  return { duplicate: false };
-}
-
-/**
- * 查询指定 run 的 Agent 事件列表，可选按 agent_id 过滤。
- * @param {DatabaseSync} db
- * @param {string} runId
- * @param {string} [agentId] 可选过滤
- * @returns {object[]}
- */
-export function getAgentEvents(db, runId, agentId?: string) {
-  if (agentId) {
-    return db.prepare(
-      'SELECT * FROM agent_events WHERE run_id=? AND agent_id=? ORDER BY id'
-    ).all(runId, agentId);
-  }
-  return db.prepare(
-    'SELECT * FROM agent_events WHERE run_id=? ORDER BY id'
-  ).all(runId);
-}
-
-/**
- * 获取指定 run 的 Agent 状态分类（active/completed/failed）。
- * 通过窗口函数按 agent_id 分组，取每个 agent 的最新事件类型判断状态。
- *
- * @param {DatabaseSync} db
- * @param {string} runId
- * @returns {{ run_id: string; active: string[]; completed: string[]; failed: string[] }}
- */
-export function getAgentStatus(db, runId) {
-  // 获取每个 agent 在该 run 中的最新事件类型
-  const rows = db.prepare(`
-    SELECT agent_id, event_type
-    FROM agent_events
-    WHERE run_id=? AND id IN (
-      SELECT MAX(id) FROM agent_events WHERE run_id=? GROUP BY agent_id
-    )
-  `).all(runId, runId);
-
-  const active: string[] = [];
-  const completed: string[] = [];
-  const failed: string[] = [];
-
-  for (const r of rows) {
-    if (r.event_type === 'start') {
-      active.push(r.agent_id);
-    } else if (r.event_type === 'end') {
-      completed.push(r.agent_id);
-    } else if (r.event_type === 'error') {
-      failed.push(r.agent_id);
-    }
-  }
-
-  return { run_id: runId, active, completed, failed };
-}
-
-/**
- * 获取指定 run 的 Agent 状态按 Gate 分组，用于前端 G6 每 Gate 独立图。
- * 每个 agent 取其最新事件所在 Gate 作为归属 Gate。
- *
- * @param {DatabaseSync} db
- * @param {string} runId
- * @returns {{
- *   run_id: string;
- *   current_gate: string;
- *   gates: Record<string, { active: string[]; completed: string[]; failed: string[]; agents: Array<{ agent_id: string; status: string; model?: string }> }>
- * }}
- */
-export function getAgentGateStatus(db, runId) {
-  // 获取每个 agent 的最新事件（含 current_gate）
-  const rows = db.prepare(`
-    SELECT ae.agent_id, ae.event_type, ae.current_gate, ae.model
-    FROM agent_events ae
-    WHERE ae.run_id=? AND ae.id IN (
-      SELECT MAX(id) FROM agent_events WHERE run_id=? GROUP BY agent_id
-    )
-    ORDER BY ae.agent_id
-  `).all(runId, runId);
-
-  const gates: Record<string, { active: string[]; completed: string[]; failed: string[]; agents: Array<{ agent_id: string; status: string; model?: string }> }> = {};
-
-  for (const r of rows) {
-    const gate = r.current_gate || 'Unknown';
-    if (!gates[gate]) {
-      gates[gate] = { active: [], completed: [], failed: [], agents: [] };
-    }
-
-    let status = 'active';
-    if (r.event_type === 'end') status = 'completed';
-    else if (r.event_type === 'error') status = 'failed';
-
-    gates[gate][status].push(r.agent_id);
-    gates[gate].agents.push({
-      agent_id: r.agent_id,
-      status,
-      model: r.model || undefined,
-    });
-  }
-
-  // 获取当前 run 的 current_gate
-  const run = db.prepare('SELECT current_gate FROM pipeline_runs WHERE id=?').get(runId);
-  const currentGate = run?.current_gate || '?';
-
-  return { run_id: runId, current_gate: currentGate, gates };
-}

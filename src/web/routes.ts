@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -128,15 +128,6 @@ export function broadcastSSE() {
     sessions: sessions.map(s => {
       const p = getPipeline(sseDbRef, s.id);
       const run = getActiveRun(sseDbRef, s.id);
-      // 获取 Agent 状态精简数据（仅 active + 最近 5 个 completed/failed）
-      const status = run?.id ? getAgentStatus(sseDbRef, run.id) : null;
-      const agent_status = status ? {
-        active: status.active,
-        recent_completed: [
-          ...status.completed.map(id => ({ agent_id: id, status: 'success' })),
-          ...status.failed.map(id => ({ agent_id: id, status: 'error' })),
-        ].slice(-5),
-      } : null;
       return {
         id: s.id,
         platform: s.platform,
@@ -149,7 +140,6 @@ export function broadcastSSE() {
         pinned: run?.pinned || 0,
         heartbeat: s.last_heartbeat || null,
         latest_run_started_at: s.latest_run_started_at || null,
-        agent_status,
       };
     }),
     count: sessions.length,
@@ -648,38 +638,6 @@ export function setupApiRoutes(app, db, root) {
 
     results.sort((a, b) => a.name.localeCompare(b.name));
     return c.json({ commands: results, total: results.length });
-  });
-
-  // ---- Agent 数据查询 API（TASK-002）----
-
-  /** 获取 Agent 状态分类（active/completed/failed） */
-  app.get('/api/agent-status', (c) => {
-    const runId = c.req.query('run_id');
-    const sessionId = c.req.query('session_id');
-    let resolvedRunId = runId;
-    if (!resolvedRunId) {
-      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
-      const run = getActiveRun(db, sessionId);
-      if (!run) return c.json({ error: 'No active run found for session' }, 404);
-      resolvedRunId = run.id;
-    }
-    const status = getAgentStatus(db, resolvedRunId);
-    return c.json(status);
-  });
-
-  /** 获取 Agent 按 Gate 分组状态（供前端 X6 每 Gate 独立图使用） */
-  app.get('/api/agent-gate-status', (c) => {
-    const runId = c.req.query('run_id');
-    const sessionId = c.req.query('session_id');
-    let resolvedRunId = runId;
-    if (!resolvedRunId) {
-      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
-      const run = getActiveRun(db, sessionId);
-      if (!run) return c.json({ error: 'No active run found for session' }, 404);
-      resolvedRunId = run.id;
-    }
-    const status = getAgentGateStatus(db, resolvedRunId);
-    return c.json(status);
   });
 
   // ---- SSE 事件流 ----

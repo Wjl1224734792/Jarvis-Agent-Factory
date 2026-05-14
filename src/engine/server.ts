@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -839,37 +839,6 @@ export function registerMcpTools(server, db, root) {
       return resp(result);
     });
 
-    server.tool('agent_status',
-      '查询指定 run 的 Agent 状态分类（active/completed/failed），快速了解当前各 Agent 执行进度。',
-      {
-        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
-      },
-      async ({ run_id }, extra) => {
-        const sid = extra?.sessionId || _lastSessionId;
-        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
-        if (!finalRunId) {
-          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
-        }
-
-        const status = getAgentStatus(db, finalRunId);
-        return resp(status);
-      });
-
-    server.tool('agent_gate_status',
-      '查询指定 run 的 Agent 状态按 Gate 分组，用于前端 G6 每 Gate 独立 Agent 交互图。',
-      {
-        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
-      },
-      async ({ run_id }, extra) => {
-        const sid = extra?.sessionId || _lastSessionId;
-        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
-        if (!finalRunId) {
-          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
-        }
-
-        const status = getAgentGateStatus(db, finalRunId);
-        return resp(status);
-      });
 }
 
 /** 启动独立 Web 面板（需先启动引擎） */

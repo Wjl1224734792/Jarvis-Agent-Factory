@@ -56,13 +56,6 @@ export interface CommandItem {
   category: string;
 }
 
-export interface AgentStatusResponse {
-  run_id: string;
-  active: string[];
-  completed: string[];
-  failed: string[];
-}
-
 export interface AgentsData {
   agents: AgentItem[];
   available_models: string[];
@@ -151,9 +144,6 @@ export const api = {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },
-
-  agentStatus: (runId?: string): Promise<AgentStatusResponse> =>
-    fetchJSON(`/api/agent-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
 
   commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
     fetchJSON('/api/commands'),
