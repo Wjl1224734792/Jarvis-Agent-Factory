@@ -27,6 +27,7 @@ const FALLBACK_COMMANDS: CommandItem[] = [
   { name: 'frontend', description: '前端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路', argumentHint: '[前端需求描述]', pipelineType: 'frontend', category: 'development' },
   { name: 'ios', description: 'iOS 原生开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[iOS 需求描述]', pipelineType: 'full', category: 'platform' },
   { name: 'jarvis-lite', description: '贾维斯轻量编排——智能Gate映射，按任务类型跳过无关闸门', argumentHint: '[任务描述]', pipelineType: 'lite', category: 'development' },
+  { name: 'publish', description: '一键发布——质量门检查→测试→版本bump→commit→push→tag→PR→merge→release', argumentHint: '[版本类型：patch|minor|major，默认patch]', pipelineType: 'publish', category: '流程' },
   { name: 'jarvis', description: '启动贾维斯全流程编排——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '', pipelineType: 'full', category: 'development' },
   { name: 'review-fix', description: '进入审查修复优化闭环——初审→规划→执行→验证→复审完整链路', argumentHint: '[审查范围]', pipelineType: 'full', category: 'review' },
   { name: 'review', description: '进入只读审查模式——审查代码/项目/风险，不修改任何文件', argumentHint: '[审查对象]', pipelineType: 'full', category: 'review' },
@@ -43,6 +44,7 @@ const FALLBACK_COMMANDS: CommandItem[] = [
   { name: 'hotfix', description: '紧急热修复指令——H0→H1→H2→H3，4Gate紧急流程', argumentHint: '[故障描述]', pipelineType: 'hotfix', category: 'hotfix' },
   { name: 'migrate', description: '框架迁移指令——M1→M2→M3→M4，4Gate迁移流程', argumentHint: '[迁移描述如Express→Fastify]', pipelineType: 'migrate', category: 'migrate' },
   { name: 'evaluate', description: '技术评估指令——E0→E1→E2→E3，4Gate评估流程', argumentHint: '[评估对象]', pipelineType: 'evaluate', category: 'evaluate' },
+  { name: 'sync', description: '同步项目文档——检查并更新核心文档使其与代码一致，清理过时文件', argumentHint: '[--dry-run 预览模式] [--no-clean 跳过清理]', pipelineType: 'sync', category: '工具' },
   { name: 'debug', description: '调试诊断指令——D0→D1→D2→D3→D4，5Gate诊断流程', argumentHint: '[异常描述]', pipelineType: 'debug', category: 'debug' },
 ];
 
@@ -61,6 +63,8 @@ const PIPELINE_TAGS: Record<string, { label: string; color: string; bg: string }
   migrate: { label: 'migrate', color: '#531dab', bg: '#f9f0ff' },
   evaluate: { label: 'evaluate', color: '#006d75', bg: '#e6fffb' },
   debug: { label: 'debug', color: '#d46b08', bg: '#fff7e6' },
+  publish: { label: 'publish', color: '#13c2c2', bg: '#e6fffb' },
+  sync: { label: 'sync', color: '#2f54eb', bg: '#f0f5ff' },
 };
 
 /** 分类 Tab 配置 */
@@ -78,6 +82,8 @@ const CATEGORY_TABS = [
   { key: 'migrate', label: '迁移' },
   { key: 'evaluate', label: '评估' },
   { key: 'debug', label: '调试' },
+  { key: '流程', label: '流程' },
+  { key: '工具', label: '工具' },
 ];
 
 /** 分类中文映射 */
@@ -94,6 +100,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   migrate: '迁移',
   evaluate: '评估',
   debug: '调试',
+  '流程': '流程',
+  '工具': '工具',
 };
 
 // ============================================================
