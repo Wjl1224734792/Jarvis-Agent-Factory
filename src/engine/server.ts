@@ -232,6 +232,11 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   const indexPath = resolve(webDistDir, 'index.html');
   const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf-8') : null;
   app.get('*', (c) => {
+    // 静态资源扩展名请求不 fallback 到 index.html，避免 MIME 类型错误
+    const staticExts = /\.(js|mjs|ts|tsx|css|scss|json|map|svg|png|jpe?g|ico|woff2?)([?#].*)?$/i;
+    if (staticExts.test(c.req.path)) {
+      return c.text('Not Found', 404);
+    }
     if (!indexHtml) {
       return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
@@ -1053,6 +1058,11 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     : null;
 
   app.get('*', (c) => {
+    // 静态资源扩展名请求不 fallback 到 index.html，避免 MIME 类型错误
+    const staticExts = /\.(js|mjs|ts|tsx|css|scss|json|map|svg|png|jpe?g|ico|woff2?)([?#].*)?$/i;
+    if (staticExts.test(c.req.path)) {
+      return c.text('Not Found', 404);
+    }
     if (!indexHtml) {
       return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
