@@ -727,24 +727,26 @@ export function PublishArticlePage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        disabled={aiSummary.isLoading || !editorPlainText.trim()}
-                        onClick={() => {
-                          aiSummary.generate({
-                            postId: editId || 'draft',
-                            content: editorPlainText.slice(0, 4000)
-                          });
-                        }}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <SparklesIcon data-icon="inline-start" />
-                        {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
-                      </Button>
-                      <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
-                    </div>
+                    {aiSummaryEnabled && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          disabled={aiSummary.isLoading || !editorPlainText.trim()}
+                          onClick={() => {
+                            aiSummary.generate({
+                              postId: editId || 'draft',
+                              content: editorPlainText.slice(0, 4000)
+                            });
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <SparklesIcon data-icon="inline-start" />
+                          {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
+                        </Button>
+                        <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
+                      </div>
+                    )}
                   </div>
                   <Textarea
                     className="min-h-28 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
