@@ -1,7 +1,7 @@
 import type { IDomEditor } from '@wangeditor/editor';
-import { FileUpIcon } from 'lucide-react';
+import { UploadOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import { useCallback, useRef } from 'react';
-import { Button } from '@/components/ui/button';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = '.docx,.md,.txt';
@@ -58,7 +58,7 @@ interface ImportFileButtonProps {
 }
 
 /**
- * 文件导入按钮 — 支持 docx/md/txt 浏览器端解析并注入 wangEditor。
+ * 文件导入按钮（admin 端） — 支持 docx/md/txt 浏览器端解析并注入 wangEditor。
  *
  * @param props.editor - wangEditor 编辑器实例。
  * @returns 渲染导入文件按钮。
@@ -126,19 +126,17 @@ export function ImportFileButton({ editor }: ImportFileButtonProps) {
       <input
         accept={ACCEPTED_EXTENSIONS}
         aria-label="选择要导入的文件"
-        className="hidden"
+        style={{ display: 'none' }}
         onChange={event => void handleFileChange(event)}
         ref={inputRef}
         type="file"
       />
       <Button
         disabled={!editor}
+        icon={<UploadOutlined />}
         onClick={() => inputRef.current?.click()}
-        size="sm"
-        type="button"
-        variant="outline"
+        size="small"
       >
-        <FileUpIcon data-icon="inline-start" />
         导入文件
       </Button>
     </>
