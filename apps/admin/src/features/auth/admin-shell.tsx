@@ -73,10 +73,22 @@ export function AdminShell() {
     queryFn: () => apiClient.listAdminModerationTodos()
   });
 
-  const { selectedKey, openKeys } = useMemo(
+  const { selectedKey, openKeys: activeOpenKeys } = useMemo(
     () => getActiveKeys(location.pathname),
     [location.pathname]
   );
+
+  const [openKeys, setOpenKeys] = useState<string[]>(activeOpenKeys);
+
+  useEffect(() => {
+    setOpenKeys(prev => {
+      const next = [...prev];
+      for (const key of activeOpenKeys) {
+        if (!next.includes(key)) next.push(key);
+      }
+      return next;
+    });
+  }, [activeOpenKeys]);
 
   /** 根据 selectedKey 查找所属分组标签和菜单项标签（用于 Header 面包屑）。 */
   const { activeGroup, activeLabel } = useMemo(() => {
@@ -231,13 +243,14 @@ export function AdminShell() {
             </div>
             <Menu
               className="admin-shell__menu"
-              defaultOpenKeys={openKeys}
               inlineCollapsed={collapsed}
               items={ADMIN_MENU_ITEMS}
               mode="inline"
               onClick={({ key }) => {
                 void navigate(String(key));
               }}
+              onOpenChange={setOpenKeys}
+              openKeys={openKeys}
               selectedKeys={[selectedKey]}
             />
           </div>
