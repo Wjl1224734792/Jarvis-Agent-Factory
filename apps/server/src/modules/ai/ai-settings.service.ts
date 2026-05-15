@@ -9,7 +9,7 @@ const DEFAULT_AI_SETTINGS: AiSettings = {
   baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   summaryModel: "qwen-plus",
   formatModel: "qwen-plus",
-  features: { summary: true, format: true, chat: true }
+  features: { summary: true, format: true }
 };
 
 /**
@@ -36,12 +36,10 @@ function readEnvSettings(): Partial<AiSettings> {
 
   const summaryEnabled = process.env.AI_SUMMARY_ENABLED;
   const formatEnabled = process.env.AI_FORMAT_ENABLED;
-  const chatEnabled = process.env.AI_CHAT_ENABLED;
-  if (summaryEnabled !== undefined || formatEnabled !== undefined || chatEnabled !== undefined) {
+  if (summaryEnabled !== undefined || formatEnabled !== undefined) {
     env.features = {
       summary: summaryEnabled !== "false",
-      format: formatEnabled !== "false",
-      chat: chatEnabled !== "false"
+      format: formatEnabled !== "false"
     };
   }
 
@@ -99,11 +97,7 @@ async function resolveSettings(): Promise<AiSettings> {
       format:
         dbSettings.features?.format ??
         envSettings.features?.format ??
-        DEFAULT_AI_SETTINGS.features.format,
-      chat:
-        dbSettings.features?.chat ??
-        envSettings.features?.chat ??
-        DEFAULT_AI_SETTINGS.features.chat
+        DEFAULT_AI_SETTINGS.features.format
     }
   };
 }

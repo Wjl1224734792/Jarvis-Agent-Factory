@@ -233,6 +233,11 @@ const AiSettingsPage = lazy(() =>
     default: module.AiSettingsPage
   }))
 );
+const AdminRolesPage = lazy(() =>
+  import("./features/roles/admin-roles-page").then((module) => ({
+    default: module.AdminRolesPage
+  }))
+);
 
 const router = createBrowserRouter([
   {
@@ -519,6 +524,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementSecurity),
         element: withAdminRouteFallback(<AdminPasswordPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementRoles),
+        element: withAdminRouteFallback(<AdminRolesPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.aiSettings),

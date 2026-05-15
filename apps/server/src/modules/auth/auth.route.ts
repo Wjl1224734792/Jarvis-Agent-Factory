@@ -18,13 +18,14 @@ import {
   deviceUnregisterInputSchema,
   registrationDisplayNameSuggestRequestSchema,
   registrationDisplayNameSuggestResponseSchema,
-  ROLE_PERMISSIONS,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   userPasswordChangeRequestSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
 } from "@feijia/schemas";
+import { db, rolesTable } from "@feijia/db";
+import { eq } from "drizzle-orm";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -413,8 +414,49 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
 
-authRoute.get("/api/v1/admin/roles", requireAuth, async (context) => {
-  return context.json({ roles: ROLE_PERMISSIONS });
+authRoute.get("/api/v1/admin/roles", requireAdmin, async (context) => {
+  const rows = await db.select().from(rolesTable).orderBy(eq(rolesTable.name, rolesTable.name));
+  return context.json({ roles: rows });
+});
+
+authRoute.put("/api/v1/admin/roles/:name", requireAdmin, async (context) => {
+  const roleName: string = context.req.param("name") ?? "";
+  const body = (await context.req.json()) as { permissions?: string[] };
+
+  if (!body.permissions || !Array.isArray(body.permissions)) {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "FORBIDDEN",
+        message: "permissions 必须为字符串数组"
+      }),
+      400
+    );
+  }
+
+  // 系统内置角色不允许修改权限
+  if (roleName === "super_admin" || roleName === "admin") {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "FORBIDDEN",
+        message: "系统内置角色的权限不可修改"
+      }),
+      403
+    );
+  }
+
+  const existing = await db.select().from(rolesTable).where(eq(rolesTable.name, roleName)).limit(1);
+  if (existing.length === 0) {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "FORBIDDEN",
+        message: `角色 ${roleName} 不存在`
+      }),
+      404
+    );
+  }
+
+  await db.update(rolesTable).set({ permissions: body.permissions }).where(eq(rolesTable.name, roleName));
+  return context.json({ success: true });
 });
 
 authRoute.post(
