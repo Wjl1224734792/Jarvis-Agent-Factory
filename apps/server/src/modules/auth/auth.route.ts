@@ -415,7 +415,7 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
 
-authRoute.get("/api/v1/admin/roles", requireAdmin, async (context) => {
+authRoute.get(API_ROUTES.admin.roles, requireAdmin, async (context) => {
   try {
     const rows = await db.select().from(rolesTable);
     if (rows.length > 0) {
@@ -441,7 +441,7 @@ authRoute.get("/api/v1/admin/roles", requireAdmin, async (context) => {
   return context.json({ roles: fallback });
 });
 
-authRoute.put("/api/v1/admin/roles/:name", requireAdmin, async (context) => {
+authRoute.put(API_ROUTES.admin.roleDetail(":name"), requireAdmin, async (context) => {
   const roleName: string = context.req.param("name") ?? "";
   const body = (await context.req.json()) as { permissions?: string[] };
 

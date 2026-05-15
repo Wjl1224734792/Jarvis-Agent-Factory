@@ -38,7 +38,7 @@ aiRoute.put(API_ROUTES.ai.adminSettings, requireAdmin, async (context) => {
 /**
  * POST /api/v1/admin/ai/settings/test — 测试 LLM API 连接。
  */
-aiRoute.post(`${API_ROUTES.ai.adminSettings}/test`, requireAdmin, async (context) => {
+aiRoute.post(API_ROUTES.ai.adminSettingsTest, requireAdmin, async (context) => {
   const result = await aiSettingsService.testConnection();
   return context.json(result);
 });

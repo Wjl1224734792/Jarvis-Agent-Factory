@@ -3,7 +3,8 @@ import { API_ROUTES } from "@feijia/shared";
 import {
   jsonRequestBody,
   jsonResponse,
-  schemaRef
+  schemaRef,
+  stringPathParameter
 } from "../builders";
 import {
   _sessionCookieSecurity as sessionCookieSecurity,
@@ -319,6 +320,41 @@ export const authPaths = {
       responses: {
         "200": jsonResponse("ActionSuccessResponse", "Device unregistered successfully."),
         "401": jsonResponse("ErrorResponse", "Not authenticated.")
+      }
+    }
+  },
+  [API_ROUTES.admin.roles]: {
+    get: {
+      tags: ["auth"],
+      summary: "获取角色列表及权限",
+      description:
+        "获取系统所有角色及其权限列表。若数据库 roles 表不可用，回退到内置角色常量。",
+      security: adminSessionSecurity,
+      responses: {
+        "200": jsonResponse("AdminRolesResponse", "返回角色列表及权限。"),
+        "401": jsonResponse("ErrorResponse", "未登录。"),
+        "403": jsonResponse("ErrorResponse", "非管理员会话。")
+      }
+    }
+  },
+  [API_ROUTES.admin.roleDetail("{name}")]: {
+    put: {
+      tags: ["auth"],
+      summary: "更新指定角色权限",
+      description:
+        "更新指定角色的权限列表。系统内置角色（super_admin、admin）不允许修改。",
+      security: adminSessionSecurity,
+      parameters: [stringPathParameter("name", "角色名称。")],
+      requestBody: jsonRequestBody(
+        "UpdateRolePermissionsRequest",
+        "提交角色的新权限列表。"
+      ),
+      responses: {
+        "200": jsonResponse("ActionSuccessResponse", "角色权限更新成功。"),
+        "400": jsonResponse("ErrorResponse", "permissions 参数不合法。"),
+        "401": jsonResponse("ErrorResponse", "未登录。"),
+        "403": jsonResponse("ErrorResponse", "非管理员会话或系统内置角色不可修改。"),
+        "404": jsonResponse("ErrorResponse", "角色不存在。")
       }
     }
   }
