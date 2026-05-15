@@ -44,7 +44,10 @@ export function AdminLoginPage() {
         setCaptchaCode("");
       }
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "图形验证码加载失败");
+      const msg = reason instanceof TypeError && reason.message === "Failed to fetch"
+        ? "网络请求失败，请检查网络连接或服务器状态"
+        : reason instanceof Error ? reason.message : "图形验证码加载失败";
+      setError(msg);
     } finally {
       setIsCaptchaLoading(false);
     }
