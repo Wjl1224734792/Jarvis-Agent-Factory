@@ -279,7 +279,6 @@ export const API_ROUTES = {
     adminReviewCommentReports: (id: string) => withApiV1Prefix(`/admin/review-comments/${id}/reports`)
   },
   ai: {
-    summary: withApiV1Prefix("/ai/summary"),
     format: withApiV1Prefix("/ai/format"),
     features: withApiV1Prefix("/ai/features"),
     adminSettings: withApiV1Prefix("/admin/ai/settings")

@@ -13,40 +13,6 @@ const AI_PREFIX = '/api/v1/ai';
 const ADMIN_AI_PREFIX = '/api/v1/admin/ai';
 
 export const aiPaths = {
-    [`${AI_PREFIX}/summary`]: {
-      post: {
-        tags: ['AI'],
-        summary: 'AI 摘要生成',
-        description:
-          '为指定文章生成 150-300 字的中文摘要。支持 Redis 缓存，缓存命中时不重复调用 AI。',
-        security: sessionOrBearerSecurity,
-        requestBody: jsonRequestBody(
-          'AiSummaryRequest',
-          '提交文章 ID 和可选的自定义内容。'
-        ),
-        responses: {
-          '200': jsonResponse(
-            'AiSummaryResponse',
-            '摘要生成成功，返回摘要文本和是否命中缓存。'
-          ),
-          '400': jsonResponse(
-            'ErrorResponse',
-            '文章不存在或当前用户无权限生成摘要。'
-          ),
-          '401': jsonResponse('ErrorResponse', '未登录。'),
-          '403': jsonResponse('ErrorResponse', 'AI 摘要功能已关闭。'),
-          '429': jsonResponse(
-            'ErrorResponse',
-            '请求频率超限，每篇文章每 24 小时仅允许重新生成一次。'
-          ),
-          '500': jsonResponse('ErrorResponse', '服务内部错误。'),
-          '502': jsonResponse(
-            'ErrorResponse',
-            'AI 服务暂时不可用，请稍后重试。'
-          )
-        }
-      }
-    },
     [`${AI_PREFIX}/format`]: {
       post: {
         tags: ['AI'],

@@ -1,6 +1,5 @@
 import type { IDomEditor } from '@wangeditor/editor';
 import { useQuery } from "@tanstack/react-query";
-import { FormatPainterOutlined, RobotOutlined } from '@ant-design/icons';
 import { Button, Form, Input, Select, Space } from "antd";
 import {
   Suspense,
@@ -16,7 +15,6 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { AiFormatButton } from "../ai/ai-format-button";
 import { ImportFileButton } from "../ai/import-file-button";
-import { useAiSummary } from "../ai/use-ai-summary";
 import {
   buildOfficialArticleDocument,
   parseOfficialArticleDocument,
@@ -170,7 +168,6 @@ export function OfficialArticleEditorPage() {
   const [editorHtml, setEditorHtml] = useState("");
   const [editorText, setEditorText] = useState("");
   const [editorInstance, setEditorInstance] = useState<IDomEditor | null>(null);
-  const aiSummary = useAiSummary();
   const watchedTitle = Form.useWatch("title", form) ?? "";
   const watchedSummary = Form.useWatch("summary", form) ?? "";
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
@@ -694,23 +691,7 @@ export function OfficialArticleEditorPage() {
               label={
                 <div className="admin-official-article-editor__field-label">
                   <span>摘要</span>
-                  <Space size="small">
-                    <Button
-                      disabled={aiSummary.isLoading || !editorText.trim()}
-                      icon={<RobotOutlined />}
-                      loading={aiSummary.isLoading}
-                      onClick={() => {
-                        aiSummary.generate({
-                          postId: editId || 'draft',
-                          content: editorText.slice(0, 4000)
-                        });
-                      }}
-                      size="small"
-                    >
-                      {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
-                    </Button>
-                    <span>{summaryLength}/{OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH}</span>
-                  </Space>
+                  <span>{summaryLength}/{OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH}</span>
                 </div>
               }
               name="summary"
@@ -722,42 +703,6 @@ export function OfficialArticleEditorPage() {
                 placeholder="输入导语或内容摘要"
               />
             </Form.Item>
-
-            {aiSummary.summary ? (
-              <div className="admin-official-article-editor__ai-summary" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>
-                  AI 生成的摘要{aiSummary.cached ? '（缓存）' : ''}：
-                </div>
-                <div style={{ background: '#f6f8fa', padding: '8px 12px', borderRadius: 6, fontSize: 14, lineHeight: 1.6 }}>
-                  {aiSummary.summary}
-                </div>
-                <Space size="small" style={{ marginTop: 8 }}>
-                  <Button
-                    onClick={() => {
-                      const raw = aiSummary.summary ?? '';
-                      const truncated = raw.slice(0, OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH);
-                      form.setFieldValue('summary', truncated);
-                      if (truncated.length < raw.length) {
-                        setStatusMessage(`AI 摘要已截断至 ${OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH} 字`);
-                      }
-                    }}
-                    size="small"
-                    type="link"
-                  >
-                    采用此摘要
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      aiSummary.reset();
-                    }}
-                    size="small"
-                    type="link"
-                  >
-                    忽略
-                  </Button>
-                </Space>
-              </div>
-            ) : null}
 
             <div className="admin-official-article-editor__ai-toolbar" style={{ marginBottom: 8 }}>
               <Space size="small">

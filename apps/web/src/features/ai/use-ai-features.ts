@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 
 const DEFAULT_FEATURES = {
-  summary: true,
   format: true,
 };
 
@@ -11,7 +10,7 @@ const DEFAULT_FEATURES = {
  * 调用 GET /api/v1/ai/features 获取 AI 功能开关状态，供 Web 端条件渲染使用。
  * 使用乐观默认值（全部开启），未登录或请求失败时优雅降级。
  *
- * @returns summary / format 开关状态与加载态
+ * @returns format 开关状态与加载态
  */
 export function useAiFeatures() {
   const { data, isLoading } = useQuery({
@@ -27,7 +26,6 @@ export function useAiFeatures() {
   const features = data ?? DEFAULT_FEATURES;
 
   return {
-    summary: features.summary,
     format: features.format,
     isLoading,
   };

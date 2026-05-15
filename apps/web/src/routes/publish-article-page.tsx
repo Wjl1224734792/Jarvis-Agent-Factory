@@ -1,13 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, SparklesIcon, XIcon } from "lucide-react";
+import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IDomEditor } from "@wangeditor/editor";
 import { AiFormatButton } from "../features/ai/ai-format-button";
 import { ImportFileButton } from "../features/ai/import-file-button";
-import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
 import { useAiFeatures } from "../features/ai/use-ai-features";
-import { useAiSummary } from "../features/ai/use-ai-summary";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
@@ -16,7 +14,6 @@ import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { extractPlainTextFromHtml } from "@/components/rich-text-editor-helpers";
 import { createMediaManager, replaceBlobUrls, uploadMediaBatch } from "@feijia/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -36,7 +33,6 @@ import {
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
 const ARTICLE_TITLE_MAX_LENGTH = 64;
-const ARTICLE_SUMMARY_MAX_LENGTH = 120;
 const AUTO_SAVE_DELAY_MS = 500;
 
 /** 生成简易唯一 ID（避免 crypto.randomUUID 兼容性问题） */
@@ -62,7 +58,6 @@ type UploadedVideo = {
 
 type ArticleDraftData = {
   title: string;
-  summary: string;
   editorHtml: string;
   categoryId: string;
   sourceLabel: string;
@@ -83,18 +78,8 @@ const SOURCE_LABEL_OPTIONS = [
   { label: '转载', value: '转载' },
 ] as const;
 
-function escapeHtml(input: string) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function buildArticleHtml(summary: string, editorHtml: string) {
-  const summaryBlock = summary.trim() ? `<p><strong>${escapeHtml(summary.trim())}</strong></p>` : "";
-  return [summaryBlock, editorHtml.trim()].filter(Boolean).join("");
+function buildArticleHtml(editorHtml: string) {
+  return editorHtml.trim();
 }
 
 function removeMediaReferenceFromHtml(html: string, mediaUrl: string) {
@@ -179,7 +164,6 @@ export function PublishArticlePage() {
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const coverImageRef = useRef<UploadedImage | null>(null);
   const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
@@ -201,8 +185,7 @@ export function PublishArticlePage() {
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
   const mediaManager = useMemo(() => createMediaManager(), []);
-  const aiSummary = useAiSummary();
-  const { summary: aiSummaryEnabled, format: aiFormatEnabled } = useAiFeatures();
+  const { format: aiFormatEnabled } = useAiFeatures();
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -254,7 +237,6 @@ export function PublishArticlePage() {
         });
 
         setTitle(parsed.title ?? "");
-        setSummary(parsed.summary ?? "");
         setEditorHtml(
           stripFileUrls(
             replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", blobUrlMapping).html
@@ -292,7 +274,6 @@ export function PublishArticlePage() {
 
     const item = detailQuery.data.item;
     setTitle(item.title);
-    setSummary("");
     setEditorHtml(stripFileUrls(item.contentHtml ?? ""));
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
@@ -329,12 +310,8 @@ export function PublishArticlePage() {
     }
   }, [categoryId, categoriesQuery.data?.items]);
 
-  const articleHtml = useMemo(() => buildArticleHtml(summary, editorHtml), [summary, editorHtml]);
+  const articleHtml = useMemo(() => buildArticleHtml(editorHtml), [editorHtml]);
   const articleText = useMemo(
-    () => [summary.trim(), extractPlainTextFromHtml(editorHtml)].filter(Boolean).join("\n\n"),
-    [summary, editorHtml]
-  );
-  const editorPlainText = useMemo(
     () => extractPlainTextFromHtml(editorHtml),
     [editorHtml]
   );
@@ -405,7 +382,6 @@ export function PublishArticlePage() {
       updatedAt: savedAt,
       data: {
         title,
-        summary,
         editorHtml,
         categoryId,
         sourceLabel,
@@ -427,7 +403,6 @@ export function PublishArticlePage() {
     mediaManager,
     sourceLabel,
     sourceUrl,
-    summary,
     title
   ]);
 
@@ -600,7 +575,7 @@ export function PublishArticlePage() {
       void navigate(buildPublishStatusPath("article", response.item.id), {
         state: {
           title,
-          description: summary,
+          description: "",
           imageUrl: submitCoverImage?.url ?? null
         }
       });
@@ -694,60 +669,6 @@ export function PublishArticlePage() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
-                    {aiSummaryEnabled && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          disabled={aiSummary.isLoading || !editorPlainText.trim()}
-                          onClick={() => {
-                            aiSummary.generate({
-                              postId: editId || 'draft',
-                              content: editorPlainText.slice(0, 4000)
-                            });
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <SparklesIcon data-icon="inline-start" />
-                          {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
-                        </Button>
-                        <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
-                      </div>
-                    )}
-                  </div>
-                  <Textarea
-                    className="min-h-28 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
-                    maxLength={ARTICLE_SUMMARY_MAX_LENGTH}
-                    onChange={(event) => setSummary(event.target.value.slice(0, ARTICLE_SUMMARY_MAX_LENGTH))}
-                    placeholder="摘要（可选）"
-                    value={summary}
-                  />
-                  {aiSummaryEnabled && (aiSummary.summary || aiSummary.isLoading || aiSummary.error) ? (
-                    <AiSummaryPanel
-                      cached={aiSummary.cached}
-                      className="mt-2"
-                      disabled={aiSummary.isLoading}
-                      error={aiSummary.error?.message ?? null}
-                      isLoading={aiSummary.isLoading}
-                      onAdopt={(raw) => {
-                        const truncated = raw.slice(0, ARTICLE_SUMMARY_MAX_LENGTH);
-                        setSummary(truncated);
-                      }}
-                      onRegenerate={() => {
-                        aiSummary.reset();
-                        aiSummary.generate({
-                          postId: editId || 'draft',
-                          content: editorPlainText.slice(0, 4000)
-                        });
-                      }}
-                      summary={aiSummary.summary}
-                    />
-                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -921,7 +842,6 @@ export function PublishArticlePage() {
                   )}
                 </div>
               ) : null}
-              {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>{mediaSummaryText}</span>
                 <span>{articleCharacterCount} 字</span>

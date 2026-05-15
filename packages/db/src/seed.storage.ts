@@ -26,7 +26,7 @@ export type SeedStorageConfig = {
 export type SeedStorageObject = {
   key: string;
   body: Uint8Array;
-  contentType: "image/png" | "video/mp4";
+  contentType: "image/png" | "image/webp" | "image/jpeg" | "video/mp4";
 };
 
 function parseBoolean(input: string | undefined, fallback: boolean) {
