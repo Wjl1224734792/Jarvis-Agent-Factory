@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { homedir } from 'node:os';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
@@ -607,37 +608,66 @@ export function setupApiRoutes(app, db, root) {
     return c.text(content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
   });
 
-  // ---- Commands API（TASK-013）----
+  // ---- Commands API（TASK-CM-001 双源读取 + 内置模板兜底）----
   app.get('/api/commands', (c) => {
-    const commandsDir = resolve(root, '.claude', 'commands');
-    let files;
-    try {
-      files = readdirSync(commandsDir).filter(f => f.endsWith('.md'));
-    } catch (e) {
-      console.warn(`[commands] 读取 ${commandsDir} 失败:`, e.message);
-      return c.json({ commands: [], total: 0 });
-    }
+    const projectDir = resolve(root, '.claude', 'commands');
+    const globalDir = resolve(homedir(), '.claude', 'commands');
 
-    const results: { name: string; description: string; argumentHint: string; pipelineType: string; category: string }[] = [];
-    for (const file of files) {
+    // 从单个目录读取所有 .md 指令文件
+    function readCommandsFromDir(dir: string) {
+      let files: string[];
       try {
-        const content = readFileSync(join(commandsDir, file), 'utf-8');
-        const fm = parseFrontmatter(content);
-        const name = file.slice(0, -3);
-        results.push({
-          name,
-          description: fm.description || '',
-          argumentHint: fm['argument-hint'] || '',
-          pipelineType: inferPipelineType(content),
-          category: inferCategory(name),
-        });
+        files = readdirSync(dir).filter(f => f.endsWith('.md'));
       } catch (e) {
-        console.warn(`[commands] 跳过 ${file}:`, e.message);
+        console.warn(`[commands] 读取 ${dir} 失败:`, (e as Error).message);
+        return [];
       }
+      const results: { name: string; description: string; argumentHint: string; pipelineType: string; category: string }[] = [];
+      for (const file of files) {
+        try {
+          const content = readFileSync(join(dir, file), 'utf-8');
+          const fm = parseFrontmatter(content);
+          const name = file.slice(0, -3);
+          results.push({
+            name,
+            description: fm.description || '',
+            argumentHint: fm['argument-hint'] || '',
+            pipelineType: inferPipelineType(content),
+            category: inferCategory(name),
+          });
+        } catch (e) {
+          console.warn(`[commands] 跳过 ${file}:`, e.message);
+        }
+      }
+      return results;
     }
 
-    results.sort((a, b) => a.name.localeCompare(b.name));
-    return c.json({ commands: results, total: results.length });
+    const projectCommands = readCommandsFromDir(projectDir);
+    let globalCommands = readCommandsFromDir(globalDir);
+
+    // 同名去重：项目优先，全局排除被项目覆盖的指令
+    if (projectCommands.length > 0 && globalCommands.length > 0) {
+      const projectNames = new Set(projectCommands.map(c => c.name));
+      globalCommands = globalCommands.filter(c => !projectNames.has(c.name));
+    }
+
+    // 兜底逻辑：双源均为空时读取内置模板目录
+    if (projectCommands.length === 0 && globalCommands.length === 0) {
+      const builtinDir = resolve(import.meta.dirname, '..', '..', 'src', 'templates', 'platforms', 'claude', 'commands');
+      globalCommands = readCommandsFromDir(builtinDir);
+    }
+
+    // 按 name 字母序排列
+    projectCommands.sort((a, b) => a.name.localeCompare(b.name));
+    globalCommands.sort((a, b) => a.name.localeCompare(b.name));
+
+    // 项目名称取项目根目录名
+    const projectName = root.split(/[\\/]/).filter(Boolean).pop() || 'unknown';
+
+    return c.json({
+      project: { name: projectName, commands: projectCommands },
+      global: { commands: globalCommands },
+    });
   });
 
   // ---- SSE 事件流 ----
