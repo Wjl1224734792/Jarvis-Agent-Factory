@@ -1,7 +1,9 @@
 import {
   boolean,
-  check,  index,
+  check,
+  index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -47,7 +49,7 @@ export const usersTable = pgTable(
     ),
     accountUnique: uniqueIndex("users_account_unique").on(table.account),
     statusIdx: index("users_status_idx").on(table.status),
-    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`),
+    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin', 'super_admin', 'editor', 'moderator', 'operator')`),
     statusCheck: check("users_status_check", sql`${table.status} IN ('active', 'banned')`)
   })
 );
@@ -1130,4 +1132,13 @@ export const aiRateLimitsTable = pgTable("ai_rate_limits", {
   id: text("id").primaryKey(),
   counter: integer("counter").notNull().default(1),
   windowStart: timestamp("window_start", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** RBAC 角色表 */
+export const rolesTable = pgTable("roles", {
+  name: text("name").primaryKey(),
+  label: text("label").notNull(),
+  permissions: jsonb("permissions").notNull().$type<string[]>(),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

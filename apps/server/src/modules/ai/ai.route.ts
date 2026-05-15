@@ -1,5 +1,4 @@
 import {
-  aiChatRequestSchema,
   aiFeaturesResponseSchema,
   aiFormatRequestSchema,
   aiSettingsSchema,
@@ -14,7 +13,7 @@ import {
   type AuthVariables
 } from "../auth/auth.middleware";
 import { aiSettingsService } from "./ai-settings.service";
-import { chatAboutArticle, formatContent, generateSummary } from "./ai.service";
+import { formatContent, generateSummary } from "./ai.service";
 
 export const aiRoute = new Hono<{ Variables: AuthVariables }>();
 
@@ -47,7 +46,7 @@ aiRoute.post(`${API_ROUTES.ai.adminSettings}/test`, requireAdmin, async (context
 
 /**
  * GET /api/v1/ai/features — 查询 AI 功能开关状态。
- * 返回 summary、format、chat 三个布尔值，不含 apiKey 等敏感字段。需登录。
+ * 返回 summary、format 两个布尔值，不含 apiKey 等敏感字段。需登录。
  */
 aiRoute.get(API_ROUTES.ai.features, requireAuth, async (context) => {
   const settings = await aiSettingsService.getRawSettings();
@@ -115,33 +114,3 @@ aiRoute.post(API_ROUTES.ai.format, requireAuth, async (context) => {
   }
 });
 
-/**
- * POST /api/v1/ai/chat — AI 文章聊天。
- * 基于文章上下文回答用户问题。需登录。
- */
-aiRoute.post(API_ROUTES.ai.chat, requireAuth, async (context) => {
-  const body = aiChatRequestSchema.parse(await context.req.json());
-  const userId = context.get("currentUser")?.id ?? "anonymous";
-
-  try {
-    const result = await chatAboutArticle(
-      userId,
-      body.message,
-      body.title,
-      body.context
-    );
-    return context.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    if (message.includes("403")) {
-      return context.json({ code: "FEATURE_DISABLED", message }, 403);
-    }
-
-    if (message.includes("LLM_API_ERROR")) {
-      return context.json({ code: "LLM_API_ERROR", message }, 502);
-    }
-
-    throw error;
-  }
-});

@@ -1,5 +1,5 @@
 import { ApiClientError, createApiClient, parseApiError } from "@feijia/http-client";
-import { API_ROUTES, APP_PORTS } from "@feijia/shared";
+import { API_ROUTES, APP_PORTS, withApiV1Prefix } from "@feijia/shared";
 import type {
   AiSettings,
   AiSettingsResponse,
@@ -631,6 +631,17 @@ const rawApiClient = {
   },
   uploadImage(file: File) {
     return sharedClient.uploadPostImage(file);
+  },
+  getAdminRoles() {
+    return getJson<{
+      roles: Record<string, string[]>;
+    }>(withApiV1Prefix("/admin/roles"));
+  },
+  updateAdminRole(name: string, permissions: string[]) {
+    return putJson<{ success: boolean }>(
+      withApiV1Prefix(`/admin/roles/${encodeURIComponent(name)}`),
+      { permissions }
+    );
   }
 };
 

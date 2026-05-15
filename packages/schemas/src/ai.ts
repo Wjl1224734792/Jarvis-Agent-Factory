@@ -24,30 +24,16 @@ export const aiFormatResponseSchema = z.object({
   changes: z.array(z.string())
 });
 
-/** AI 聊天请求体 */
-export const aiChatRequestSchema = z.object({
-  message: z.string().min(1).max(500),
-  context: z.string().max(8000).optional(),
-  title: z.string().max(64).optional()
-});
-
-/** AI 聊天响应体 */
-export const aiChatResponseSchema = z.object({
-  reply: z.string()
-});
-
 /** AI 功能开关公开响应体（供 Web 端查询） */
 export const aiFeaturesResponseSchema = z.object({
   summary: z.boolean(),
-  format: z.boolean(),
-  chat: z.boolean()
+  format: z.boolean()
 });
 
 /** AI 功能开关配置 */
 const aiFeaturesSchema = z.object({
   summary: z.boolean(),
-  format: z.boolean(),
-  chat: z.boolean()
+  format: z.boolean()
 });
 
 /** AI 设置（写入 / 更新用） */
@@ -74,8 +60,6 @@ export type AiSummaryRequest = z.infer<typeof aiSummaryRequestSchema>;
 export type AiSummaryResponse = z.infer<typeof aiSummaryResponseSchema>;
 export type AiFormatRequest = z.infer<typeof aiFormatRequestSchema>;
 export type AiFormatResponse = z.infer<typeof aiFormatResponseSchema>;
-export type AiChatRequest = z.infer<typeof aiChatRequestSchema>;
-export type AiChatResponse = z.infer<typeof aiChatResponseSchema>;
 export type AiFeaturesResponse = z.infer<typeof aiFeaturesResponseSchema>;
 export type AiSettings = z.infer<typeof aiSettingsSchema>;
 export type AiSettingsResponse = z.infer<typeof aiSettingsResponseSchema>;

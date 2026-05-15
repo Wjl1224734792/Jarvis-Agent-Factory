@@ -41,6 +41,7 @@ export {
   ratingTargetsTable,
   rankingReportsTable,
   rankingsTable,
+  rolesTable,
   sessionsTable,
   siteSettingsTable,
   userSettingsTable,

@@ -6,9 +6,6 @@ import {
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
-import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
-import { useAiFeatures } from "../features/ai/use-ai-features";
-import { useAiSummary } from "../features/ai/use-ai-summary";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
@@ -96,8 +93,6 @@ export function PostDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFollowPending, setIsFollowPending] = useState(false);
   const isFollowPendingRef = useRef(false);
-  const aiSummary = useAiSummary();
-  const { summary: aiSummaryEnabled } = useAiFeatures();
 
   const postQuery = useQuery({
     queryKey: ["post-detail", id],
@@ -429,23 +424,6 @@ export function PostDetailPage() {
               </div>
             ) : null}
 
-            {/* AI 摘要面板 */}
-            {aiSummaryEnabled && item.type === "article" && item.status === "published" ? (
-              <AiSummaryPanel
-                cached={aiSummary.cached}
-                disabled={aiSummary.isLoading}
-                error={aiSummary.error?.message ?? null}
-                isLoading={aiSummary.isLoading}
-                onGenerate={() => {
-                  aiSummary.generate({ postId });
-                }}
-                onRegenerate={() => {
-                  aiSummary.reset();
-                  aiSummary.generate({ postId });
-                }}
-                summary={aiSummary.summary}
-              />
-            ) : null}
 
             {/* 移动端固定悬浮互动栏 */}
             <div className="sticky bottom-0 z-30 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-border/40 bg-background/92 px-4 py-2 backdrop-blur-xl md:hidden">
