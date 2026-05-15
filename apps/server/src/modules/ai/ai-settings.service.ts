@@ -7,9 +7,8 @@ const DEFAULT_AI_SETTINGS: AiSettings = {
   provider: "dashscope",
   apiKey: "",
   baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  summaryModel: "qwen-plus",
   formatModel: "qwen-plus",
-  features: { summary: true, format: true }
+  features: { format: true }
 };
 
 /**
@@ -27,18 +26,13 @@ function readEnvSettings(): Partial<AiSettings> {
   if (process.env.AI_BASE_URL) {
     env.baseUrl = process.env.AI_BASE_URL;
   }
-  if (process.env.AI_SUMMARY_MODEL) {
-    env.summaryModel = process.env.AI_SUMMARY_MODEL;
-  }
   if (process.env.AI_FORMAT_MODEL) {
     env.formatModel = process.env.AI_FORMAT_MODEL;
   }
 
-  const summaryEnabled = process.env.AI_SUMMARY_ENABLED;
   const formatEnabled = process.env.AI_FORMAT_ENABLED;
-  if (summaryEnabled !== undefined || formatEnabled !== undefined) {
+  if (formatEnabled !== undefined) {
     env.features = {
-      summary: summaryEnabled !== "false",
       format: formatEnabled !== "false"
     };
   }
@@ -85,15 +79,9 @@ async function resolveSettings(): Promise<AiSettings> {
     provider: dbSettings.provider ?? envSettings.provider ?? DEFAULT_AI_SETTINGS.provider,
     apiKey: dbSettings.apiKey ?? envSettings.apiKey ?? DEFAULT_AI_SETTINGS.apiKey,
     baseUrl: dbSettings.baseUrl ?? envSettings.baseUrl ?? DEFAULT_AI_SETTINGS.baseUrl,
-    summaryModel:
-      dbSettings.summaryModel ?? envSettings.summaryModel ?? DEFAULT_AI_SETTINGS.summaryModel,
     formatModel:
       dbSettings.formatModel ?? envSettings.formatModel ?? DEFAULT_AI_SETTINGS.formatModel,
     features: {
-      summary:
-        dbSettings.features?.summary ??
-        envSettings.features?.summary ??
-        DEFAULT_AI_SETTINGS.features.summary,
       format:
         dbSettings.features?.format ??
         envSettings.features?.format ??
@@ -110,7 +98,6 @@ function toResponse(settings: AiSettings): AiSettingsResponse {
     provider: settings.provider,
     apiKey: settings.apiKey ? maskApiKey(settings.apiKey) : "",
     baseUrl: settings.baseUrl,
-    summaryModel: settings.summaryModel,
     formatModel: settings.formatModel,
     features: settings.features
   };
@@ -167,7 +154,7 @@ export const aiSettingsService = {
           Authorization: `Bearer ${settings.apiKey}`
         },
         body: JSON.stringify({
-          model: settings.summaryModel,
+          model: settings.formatModel,
           messages: [{ role: "user", content: "ping" }],
           max_tokens: 5
         }),

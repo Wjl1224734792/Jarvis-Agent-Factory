@@ -11,8 +11,6 @@ import { describe, expect, it } from 'vitest';
 import { withApiV1Prefix } from '@feijia/shared';
 import { API_ROUTES, APP_ROUTES } from '@feijia/shared';
 import {
-  aiSummaryRequestSchema,
-  aiSummaryResponseSchema,
   aiFormatRequestSchema,
   aiFormatResponseSchema,
   aiSettingsSchema,
@@ -27,11 +25,6 @@ import { OPENAPI_DOCUMENT_PATH } from '../src/openapi/document';
 // ---------------------------------------------------------------------------
 
 describe('AI 路由常量', () => {
-  it('API_ROUTES.ai.summary 解析为正确的 API v1 路径', () => {
-    expect(API_ROUTES.ai.summary).toBe('/api/v1/ai/summary');
-    expect(API_ROUTES.ai.summary).toBe(withApiV1Prefix('/ai/summary'));
-  });
-
   it('API_ROUTES.ai.format 解析为正确的 API v1 路径', () => {
     expect(API_ROUTES.ai.format).toBe('/api/v1/ai/format');
     expect(API_ROUTES.ai.format).toBe(withApiV1Prefix('/ai/format'));
@@ -86,81 +79,7 @@ describe('postsTable AI 字段定义', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. Zod Schema 验证 — aiSummaryRequestSchema
-// ---------------------------------------------------------------------------
-
-describe('aiSummaryRequestSchema', () => {
-  it('合法输入：仅 postId', () => {
-    const result = aiSummaryRequestSchema.safeParse({ postId: 'post-123' });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.postId).toBe('post-123');
-      expect(result.data.content).toBeUndefined();
-    }
-  });
-
-  it('合法输入：postId + content', () => {
-    const result = aiSummaryRequestSchema.safeParse({
-      postId: 'post-abc',
-      content: '自定义内容',
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.content).toBe('自定义内容');
-    }
-  });
-
-  it('非法输入：缺少 postId', () => {
-    const result = aiSummaryRequestSchema.safeParse({});
-    expect(result.success).toBe(false);
-  });
-
-  it('非法输入：postId 为空字符串', () => {
-    const result = aiSummaryRequestSchema.safeParse({ postId: '' });
-    expect(result.success).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. Zod Schema 验证 — aiSummaryResponseSchema
-// ---------------------------------------------------------------------------
-
-describe('aiSummaryResponseSchema', () => {
-  it('合法响应体', () => {
-    const result = aiSummaryResponseSchema.safeParse({
-      summary: '这是一段 AI 生成的摘要。',
-      cached: false,
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('合法响应体：cached 为 true', () => {
-    const result = aiSummaryResponseSchema.safeParse({
-      summary: '缓存的摘要内容',
-      cached: true,
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.cached).toBe(true);
-    }
-  });
-
-  it('非法输入：缺少 summary', () => {
-    const result = aiSummaryResponseSchema.safeParse({ cached: false });
-    expect(result.success).toBe(false);
-  });
-
-  it('非法输入：cached 不是布尔值', () => {
-    const result = aiSummaryResponseSchema.safeParse({
-      summary: 'test',
-      cached: 'yes',
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 5. Zod Schema 验证 — aiFormatRequestSchema
+// 3. Zod Schema 验证 — aiFormatRequestSchema
 // ---------------------------------------------------------------------------
 
 describe('aiFormatRequestSchema', () => {
@@ -226,7 +145,7 @@ describe('aiFormatRequestSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. Zod Schema 验证 — aiFormatResponseSchema
+// 4. Zod Schema 验证 — aiFormatResponseSchema
 // ---------------------------------------------------------------------------
 
 describe('aiFormatResponseSchema', () => {
@@ -264,7 +183,7 @@ describe('aiFormatResponseSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Zod Schema 验证 — aiSettingsSchema
+// 5. Zod Schema 验证 — aiSettingsSchema
 // ---------------------------------------------------------------------------
 
 describe('aiSettingsSchema', () => {
@@ -272,9 +191,8 @@ describe('aiSettingsSchema', () => {
     provider: 'openai',
     apiKey: 'sk-test-key',
     baseUrl: 'https://api.openai.com/v1',
-    summaryModel: 'gpt-4o-mini',
     formatModel: 'gpt-4o',
-    features: { summary: true, format: false },
+    features: { format: false },
   };
 
   it('合法配置', () => {
@@ -312,17 +230,17 @@ describe('aiSettingsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('非法输入：features.summary 非布尔值', () => {
+  it('非法输入：features.format 非布尔值', () => {
     const result = aiSettingsSchema.safeParse({
       ...validSettings,
-      features: { summary: 'yes', format: true },
+      features: { format: 'yes' },
     });
     expect(result.success).toBe(false);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 8. Zod Schema 验证 — aiSettingsResponseSchema
+// 6. Zod Schema 验证 — aiSettingsResponseSchema
 // ---------------------------------------------------------------------------
 
 describe('aiSettingsResponseSchema', () => {
@@ -331,9 +249,8 @@ describe('aiSettingsResponseSchema', () => {
       provider: 'openai',
       apiKey: 'sk-****',
       baseUrl: 'https://api.openai.com/v1',
-      summaryModel: 'gpt-4o-mini',
       formatModel: 'gpt-4o',
-      features: { summary: true, format: false },
+      features: { format: false },
     });
     expect(result.success).toBe(true);
   });
@@ -343,20 +260,19 @@ describe('aiSettingsResponseSchema', () => {
       provider: 'openai',
       apiKey: 'sk-****',
       baseUrl: 'https://api.openai.com/v1',
-      summaryModel: 'gpt-4o-mini',
       formatModel: 'gpt-4o',
-      features: { summary: true },
+      features: {},
     });
     expect(result.success).toBe(false);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 9. OpenAPI 文档包含 AI 路径
+// 7. OpenAPI 文档包含 AI 路径
 // ---------------------------------------------------------------------------
 
 describe('OpenAPI 文档 AI 路径', () => {
-  it('文档包含 /api/v1/ai/summary、/api/v1/ai/format、/api/v1/admin/ai/settings', async () => {
+  it('文档包含 /api/v1/ai/format 和 /api/v1/admin/ai/settings', async () => {
     const response = await app.request(OPENAPI_DOCUMENT_PATH, {
       method: 'GET',
     });
@@ -367,26 +283,8 @@ describe('OpenAPI 文档 AI 路径', () => {
       paths: Record<string, unknown>;
     };
 
-    expect(payload.paths['/api/v1/ai/summary']).toBeDefined();
     expect(payload.paths['/api/v1/ai/format']).toBeDefined();
     expect(payload.paths['/api/v1/admin/ai/settings']).toBeDefined();
-  });
-
-  it('/api/v1/ai/summary 定义了 POST 方法', async () => {
-    const response = await app.request(OPENAPI_DOCUMENT_PATH, {
-      method: 'GET',
-    });
-    const payload = (await response.json()) as {
-      paths: Record<string, { post?: unknown }>;
-    };
-
-    const summaryPath = payload.paths['/api/v1/ai/summary'] as {
-      post?: { tags?: string[]; summary?: string };
-    };
-
-    expect(summaryPath?.post).toBeDefined();
-    expect(summaryPath?.post?.tags).toContain('AI');
-    expect(summaryPath?.post?.summary).toContain('摘要');
   });
 
   it('/api/v1/ai/format 定义了 POST 方法', async () => {
@@ -426,22 +324,6 @@ describe('OpenAPI 文档 AI 路径', () => {
     expect(settingsPath?.put).toBeDefined();
     expect(settingsPath?.put?.tags).toContain('AI');
     expect(settingsPath?.put?.summary).toContain('更新');
-  });
-
-  it('/api/v1/ai/summary 包含 403 和 502 错误响应', async () => {
-    const response = await app.request(OPENAPI_DOCUMENT_PATH, {
-      method: 'GET',
-    });
-    const payload = (await response.json()) as {
-      paths: Record<string, unknown>;
-    };
-
-    const summaryPath = payload.paths['/api/v1/ai/summary'] as {
-      post?: { responses?: Record<string, unknown> };
-    };
-
-    expect(summaryPath?.post?.responses?.['403']).toBeDefined();
-    expect(summaryPath?.post?.responses?.['502']).toBeDefined();
   });
 
   it('/api/v1/ai/format 包含 403 和 502 错误响应', async () => {

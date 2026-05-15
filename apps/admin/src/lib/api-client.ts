@@ -582,18 +582,6 @@ const rawApiClient = {
       mode
     });
   },
-  /**
-   * 生成 AI 摘要
-   * @param postId 文章 ID
-   * @param content 文章内容（可选，不传则后端从 DB 取）
-   * @returns 摘要文本和是否缓存命中
-   */
-  generateAiSummary(postId: string, content?: string) {
-    return postJson<{ summary: string; cached: boolean }>(API_ROUTES.ai.summary, {
-      postId,
-      content
-    });
-  },
   listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
     return sharedClient.listAdminRatingTargets(status);
   },

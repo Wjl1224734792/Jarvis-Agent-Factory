@@ -724,18 +724,6 @@ const rawApiClient = {
     });
   },
   /**
-   * 生成 AI 摘要
-   * @param postId 文章 ID
-   * @param content 文章内容（可选，不传则后端从 DB 取）
-   * @returns 摘要文本和是否缓存命中
-   */
-  generateAiSummary(postId: string, content?: string) {
-    return postJson<{ summary: string; cached: boolean }>(API_ROUTES.ai.summary, {
-      postId,
-      content
-    });
-  },
-  /**
    * AI 辅助排版
    * @param content 原始 HTML 内容（最大 8000 字符）
    * @param mode 排版模式：beautify（局部美化）或 structure（全文结构化）
@@ -749,10 +737,10 @@ const rawApiClient = {
   },
   /**
    * 查询 AI 功能开关状态
-   * @returns AI 功能（摘要、排版）的启用状态
+   * @returns AI 功能（排版）的启用状态
    */
   getAiFeatures() {
-    return getJson<{ features: { summary: boolean; format: boolean } }>(
+    return getJson<{ features: { format: boolean } }>(
       API_ROUTES.ai.features
     );
   }
