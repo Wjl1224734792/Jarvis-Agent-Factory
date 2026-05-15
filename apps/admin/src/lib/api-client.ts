@@ -47,7 +47,8 @@ function resolveAdminApiBaseUrl() {
 
     // 通过局域网 IP 打开 admin 时，把默认 localhost API 自动切到同主机，
     // 避免跨站 Cookie 在 SameSite=Lax 下不携带，导致反复 401。
-    if (!pageIsLoopback && apiIsLoopback) {
+    // 同样处理环回地址不一致的情况（如页面 127.0.0.1 但 API 用 localhost）。
+    if ((!pageIsLoopback && apiIsLoopback) || (pageIsLoopback && apiIsLoopback && pageHost !== apiHost)) {
       const protocol = window.location.protocol === "https:" ? "https:" : "http:";
       url.protocol = protocol;
       url.hostname = pageHost;
