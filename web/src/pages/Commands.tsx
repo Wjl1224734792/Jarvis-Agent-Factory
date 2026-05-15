@@ -1,52 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Card, Tag, Typography, Tabs, Alert, Skeleton, Empty,
+  Card, Tag, Typography, Tabs, Skeleton, Empty, Result, Button,
 } from 'antd';
-import { CodeOutlined } from '@ant-design/icons';
+import { CodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { theme } from 'antd';
-import type { CommandItem } from '../api';
+import type { CommandItem, CommandsData } from '../api';
 import { api } from '../api';
+import { filterCommands, onSourceTabChange } from '../utils/commands-filter';
 
 const { Text, Paragraph } = Typography;
-
-// ============================================================
-// 静态 Fallback 数据 — API 不可用时的后备指令列表
-// ============================================================
-
-const FALLBACK_COMMANDS: CommandItem[] = [
-  { name: 'algorithm-expert', description: '直接对话算法专家——算法选型、复杂度分析、数据结构设计与性能优化方案', argumentHint: '[你的算法问题]', pipelineType: 'full', category: 'architecture' },
-  { name: 'android', description: 'Android 原生开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[Android 需求描述]', pipelineType: 'full', category: 'platform' },
-  { name: 'backend-architect', description: '直接对话后端架构师——微服务拆分、数据库架构、分布式可靠性与数据一致性方案', argumentHint: '[你的后端架构问题]', pipelineType: 'full', category: 'architecture' },
-  { name: 'backend', description: '后端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路', argumentHint: '[后端需求描述]', pipelineType: 'backend', category: 'development' },
-  { name: 'browser-test', description: '浏览器探索测试——browser-use 自主探索 + 自动发现 UI bug + 出报告', argumentHint: '[测试目标—URL 或功能描述]', pipelineType: 'full', category: 'testing' },
-  { name: 'bug-fix', description: 'Bug 修复闭环——浏览器复现→定位根因→修复→浏览器验证', argumentHint: '[Bug 描述、URL 或复现步骤]', pipelineType: 'full', category: 'testing' },
-  { name: 'explore', description: '浏览器自由探索——browser-use 自主探索 + 自动发现 UI bug + 出具结构化报告', argumentHint: '[URL 或功能描述]', pipelineType: 'full', category: 'testing' },
-  { name: 'expo', description: 'Expo 跨端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[Expo 需求描述]', pipelineType: 'full', category: 'platform' },
-  { name: 'flutter', description: 'Flutter 跨端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[Flutter 需求描述]', pipelineType: 'full', category: 'platform' },
-  { name: 'frontend-architect', description: '直接对话前端架构师——技术选型、组件架构、状态管理、构建工具链与性能架构方案', argumentHint: '[你的前端架构问题]', pipelineType: 'full', category: 'architecture' },
-  { name: 'frontend', description: '前端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路', argumentHint: '[前端需求描述]', pipelineType: 'frontend', category: 'development' },
-  { name: 'ios', description: 'iOS 原生开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[iOS 需求描述]', pipelineType: 'full', category: 'platform' },
-  { name: 'jarvis-lite', description: '贾维斯轻量编排——智能Gate映射，按任务类型跳过无关闸门', argumentHint: '[任务描述]', pipelineType: 'lite', category: 'development' },
-  { name: 'publish', description: '一键发布——质量门检查→测试→版本bump→commit→push→tag→PR→merge→release', argumentHint: '[版本类型：patch|minor|major，默认patch]', pipelineType: 'publish', category: '流程' },
-  { name: 'jarvis', description: '启动贾维斯全流程编排——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '', pipelineType: 'full', category: 'development' },
-  { name: 'review-fix', description: '进入审查修复优化闭环——初审→规划→执行→验证→复审完整链路', argumentHint: '[审查范围]', pipelineType: 'full', category: 'review' },
-  { name: 'review', description: '进入只读审查模式——审查代码/项目/风险，不修改任何文件', argumentHint: '[审查对象]', pipelineType: 'full', category: 'review' },
-  { name: 'taro', description: 'Taro 小程序/H5 开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布', argumentHint: '[Taro 需求描述]', pipelineType: 'full', category: 'platform' },
-  { name: 'task-bdd', description: 'BDD行为驱动——为高业务价值的聚合行为编写Gherkin场景', argumentHint: '', pipelineType: 'full', category: 'task' },
-  { name: 'task-ddd', description: 'DDD领域驱动分析——从需求文档中提取聚合根、实体、值对象、领域服务、领域事件', argumentHint: '', pipelineType: 'full', category: 'task' },
-  { name: 'task-tdd', description: 'TDD测试驱动任务——为BDD场景或纯技术需求生成测试骨架与任务包', argumentHint: '', pipelineType: 'full', category: 'task' },
-  { name: 'test-unit', description: '单元测试生成与执行——自动检测测试框架，生成覆盖率门禁测试用例', argumentHint: '[测试范围或模块路径]', pipelineType: 'full', category: 'test' },
-  { name: 'test-integration', description: '集成测试/API测试指令——基于OpenAPI契约生成集成测试', argumentHint: '[API端点或服务名称]', pipelineType: 'full', category: 'test' },
-  { name: 'test-e2e', description: '端到端测试指令——基于用户故事生成Playwright/Cypress脚本', argumentHint: '[用户故事或E2E范围]', pipelineType: 'full', category: 'test' },
-  { name: 'test-perf', description: '性能测试指令——k6/Artillery负载测试，对比基线，定位性能瓶颈', argumentHint: '[测试目标端点]', pipelineType: 'full', category: 'test' },
-  { name: 'test-security', description: '安全测试(DAST)指令——OWASP ZAP动态扫描', argumentHint: '[测试目标URL]', pipelineType: 'full', category: 'test' },
-  { name: 'refactor', description: '重构指令——R1→R2→R3→R4→R5，完整5Gate安全网', argumentHint: '[重构目标描述]', pipelineType: 'refactor', category: 'refactor' },
-  { name: 'hotfix', description: '紧急热修复指令——H0→H1→H2→H3，4Gate紧急流程', argumentHint: '[故障描述]', pipelineType: 'hotfix', category: 'hotfix' },
-  { name: 'migrate', description: '框架迁移指令——M1→M2→M3→M4，4Gate迁移流程', argumentHint: '[迁移描述如Express→Fastify]', pipelineType: 'migrate', category: 'migrate' },
-  { name: 'evaluate', description: '技术评估指令——E0→E1→E2→E3，4Gate评估流程', argumentHint: '[评估对象]', pipelineType: 'evaluate', category: 'evaluate' },
-  { name: 'sync', description: '同步项目文档——检查并更新核心文档使其与代码一致，清理过时文件', argumentHint: '[--dry-run 预览模式] [--no-clean 跳过清理]', pipelineType: 'sync', category: '工具' },
-  { name: 'debug', description: '调试诊断指令——D0→D1→D2→D3→D4，5Gate诊断流程', argumentHint: '[异常描述]', pipelineType: 'debug', category: 'debug' },
-];
 
 // ============================================================
 // 常量
@@ -201,35 +163,27 @@ const CommandCard = React.memo(function CommandCard({ cmd }: CommandCardProps) {
 
 export default function Commands() {
   const { token } = theme.useToken();
-  const [commands, setCommands] = useState<CommandItem[]>([]);
+  const [data, setData] = useState<CommandsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [sourceTab, setSourceTab] = useState<'project' | 'global'>('project');
+  const [categoryTab, setCategoryTab] = useState('all');
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     let cancelled = false;
     setLoading(true);
+    setData(null);
     setError(null);
 
     api.commands()
-      .then(data => {
+      .then(d => {
         if (cancelled) return;
-        if (data.commands && data.commands.length > 0) {
-          setCommands(data.commands);
-        } else {
-          // 空响应也使用 fallback
-          setCommands(FALLBACK_COMMANDS);
-          setUsingFallback(true);
-        }
+        setData(d);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        // API 不可用时使用静态 fallback
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
-        setCommands(FALLBACK_COMMANDS);
-        setUsingFallback(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -238,12 +192,26 @@ export default function Commands() {
     return () => { cancelled = true; };
   }, []);
 
-  /** 按当前 Tab 筛选指令 */
-  const filteredCommands = useMemo(
-    () => activeTab === 'all'
-      ? commands
-      : commands.filter(c => c.category === activeTab),
-    [commands, activeTab],
+  useEffect(() => {
+    const cancel = fetchData();
+    return () => { cancel(); };
+  }, [fetchData]);
+
+  /** 来源 Tab 切换：重置分类筛选 */
+  const handleSourceTabChange = useCallback((key: string) => {
+    const next = onSourceTabChange(key as 'project' | 'global');
+    setSourceTab(next.sourceTab);
+    setCategoryTab(next.categoryTab);
+  }, []);
+
+  /** 各来源 Tab 的过滤后指令（hooks 必须在所有 early return 之前） */
+  const projectFiltered = useMemo(
+    () => filterCommands(data?.project?.commands ?? [], data?.global?.commands ?? [], 'project', categoryTab),
+    [data, categoryTab],
+  );
+  const globalFiltered = useMemo(
+    () => filterCommands(data?.project?.commands ?? [], data?.global?.commands ?? [], 'global', categoryTab),
+    [data, categoryTab],
   );
 
   // ============================================================
@@ -275,8 +243,79 @@ export default function Commands() {
   }
 
   // ============================================================
+  // 错误状态
+  // ============================================================
+
+  if (error && !data) {
+    return (
+      <div style={{ padding: '0 4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12, flexShrink: 0 }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ant-color-text)' }}>
+            <CodeOutlined style={{ marginRight: 6 }} />指令列表
+          </span>
+        </div>
+        <Result
+          status="error"
+          title="加载失败"
+          subTitle={error}
+          extra={
+            <Button type="primary" icon={<ReloadOutlined />} onClick={fetchData}>
+              重试
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  // ============================================================
   // 渲染
   // ============================================================
+
+  const projectName = data?.project.name ?? '项目';
+  const projectCount = data?.project.commands.length ?? 0;
+  const globalCount = data?.global.commands.length ?? 0;
+
+  /**
+   * 构建来源 Tab 内的内容：分类 Tabs + 指令卡片网格
+   * @param src - 来源类型
+   * @param cmds - 该来源下的指令列表
+   * @param emptyHint - 空状态提示文本
+   */
+  const buildSourceContent = (cmds: CommandItem[], emptyHint: string) => (
+    <>
+      <Tabs
+        activeKey={categoryTab}
+        onChange={setCategoryTab}
+        size="small"
+        style={{ flexShrink: 0, marginBottom: 0 }}
+        tabBarStyle={{ marginBottom: 0 }}
+        items={CATEGORY_TABS.map(tab => ({
+          key: tab.key,
+          label: (
+            <span style={{ fontSize: 13, fontWeight: categoryTab === tab.key ? 600 : 400 }}>
+              {tab.label}
+            </span>
+          ),
+        }))}
+      />
+      <div style={{ flex: 1, overflow: 'auto', paddingTop: 8 }}>
+        {cmds.length === 0 ? (
+          <Empty description={emptyHint} style={{ marginTop: 40 }} />
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: 10,
+          }}>
+            {cmds.map(cmd => (
+              <CommandCard key={cmd.name} cmd={cmd} />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -293,66 +332,69 @@ export default function Commands() {
             color: token.colorPrimary,
             border: 'none',
           }}>
-            {filteredCommands.length} / {commands.length}
+            {sourceTab === 'project' ? projectFiltered.length : globalFiltered.length} / {sourceTab === 'project' ? projectCount : globalCount}
           </Tag>
-          {usingFallback && (
-            <Tag style={{
-              marginLeft: 4,
-              borderRadius: 12,
-              backgroundColor: 'var(--ant-color-warning-bg)',
-              color: 'var(--ant-color-warning)',
-              border: 'none',
-              fontSize: 11,
-            }}>
-              离线数据
-            </Tag>
-          )}
         </div>
       </div>
 
-      {/* Fallback 提示 */}
-      {usingFallback && (
-        <Alert
-          type="warning"
-          message={error ? `API 错误: ${error}` : 'API 服务暂不可用，当前展示内置指令数据'}
-          banner
-          style={{ borderRadius: token.borderRadiusLG, marginBottom: 12, flexShrink: 0 }}
-        />
-      )}
-
-      {/* 分类 Tabs */}
+      {/* 第一层：来源 Tab */}
       <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
+        activeKey={sourceTab}
+        onChange={handleSourceTabChange}
         size="small"
         style={{ flexShrink: 0, marginBottom: 0 }}
         tabBarStyle={{ marginBottom: 0 }}
-        items={CATEGORY_TABS.map(tab => ({
-          key: tab.key,
-          label: (
-            <span style={{ fontSize: 13, fontWeight: activeTab === tab.key ? 600 : 400 }}>
-              {tab.label}
-            </span>
-          ),
-        }))}
+        items={[
+          {
+            key: 'project',
+            label: (
+              <span style={{ fontSize: 13, fontWeight: sourceTab === 'project' ? 600 : 400 }}>
+                {projectName}
+                {projectCount > 0 && (
+                  <Tag style={{
+                    marginLeft: 4,
+                    fontSize: 10,
+                    borderRadius: 8,
+                    backgroundColor: token.colorPrimaryBg,
+                    color: token.colorPrimary,
+                    border: 'none',
+                  }}>
+                    {projectCount}
+                  </Tag>
+                )}
+              </span>
+            ),
+            children: buildSourceContent(
+              projectFiltered,
+              '当前项目无自定义指令，运行 `jarvis add claude` 安装',
+            ),
+          },
+          {
+            key: 'global',
+            label: (
+              <span style={{ fontSize: 13, fontWeight: sourceTab === 'global' ? 600 : 400 }}>
+                全局
+                {globalCount > 0 && (
+                  <Tag style={{
+                    marginLeft: 4,
+                    fontSize: 10,
+                    borderRadius: 8,
+                    backgroundColor: token.colorPrimaryBg,
+                    color: token.colorPrimary,
+                    border: 'none',
+                  }}>
+                    {globalCount}
+                  </Tag>
+                )}
+              </span>
+            ),
+            children: buildSourceContent(
+              globalFiltered,
+              '暂无全局指令',
+            ),
+          },
+        ]}
       />
-
-      {/* 指令卡片网格 */}
-      <div style={{ flex: 1, overflow: 'auto', paddingTop: 8 }}>
-        {filteredCommands.length === 0 ? (
-          <Empty description="没有匹配的指令" style={{ marginTop: 40 }} />
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: 10,
-          }}>
-            {filteredCommands.map(cmd => (
-              <CommandCard key={cmd.name} cmd={cmd} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

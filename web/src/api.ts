@@ -56,6 +56,12 @@ export interface CommandItem {
   category: string;
 }
 
+/** 指令页面双源数据结构 */
+export interface CommandsData {
+  project: { name: string; commands: CommandItem[] };
+  global: { commands: CommandItem[] };
+}
+
 export interface AgentsData {
   agents: AgentItem[];
   available_models: string[];
@@ -145,7 +151,7 @@ export const api = {
     return r.text();
   },
 
-  commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
+  commands: (): Promise<CommandsData> =>
     fetchJSON('/api/commands'),
 
 };
