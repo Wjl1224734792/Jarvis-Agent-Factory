@@ -29,6 +29,10 @@ function isLoopbackHost(hostname: string): boolean {
 }
 
 function resolveAdminApiBaseUrl() {
+  // 显式设为空字符串时使用同源请求（经 Vite proxy 转发）
+  if (typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length === 0) {
+    return "";
+  }
   const rawConfigured =
     typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
       ? configuredBaseUrl.trim()
