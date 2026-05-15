@@ -4,12 +4,10 @@ import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, SparklesIcon, 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IDomEditor } from "@wangeditor/editor";
 import { AiFormatButton } from "../features/ai/ai-format-button";
-import { AiChatPanel } from "../features/ai/ai-chat-panel";
 import { ImportFileButton } from "../features/ai/import-file-button";
 import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
 import { useAiFeatures } from "../features/ai/use-ai-features";
 import { useAiSummary } from "../features/ai/use-ai-summary";
-import { useAuthStore } from "../features/auth/auth-store";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
@@ -194,43 +192,17 @@ export function PublishArticlePage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const editorRef = useRef<IDomEditor | null>(null);
   const [editorReady, setEditorReady] = useState(false);
-  const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [aiChatWidth, setAiChatWidth] = useState(320);
-  const authStatus = useAuthStore((state) => state.status);
-  const isAuthenticated = authStatus === "authenticated";
 
   const handleEditorCreated = useCallback((editor: IDomEditor) => {
     editorRef.current = editor;
     setEditorReady(true);
   }, []);
 
-  /** AI 聊天面板拖拽调整宽度 */
-  const handleAiChatResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const startX = e.clientX;
-      const startWidth = aiChatWidth;
-
-      const onMove = (ev: MouseEvent) => {
-        const newWidth = Math.max(280, Math.min(480, startWidth + (startX - ev.clientX)));
-        setAiChatWidth(newWidth);
-      };
-
-      const onUp = () => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-      };
-
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    },
-    [aiChatWidth]
-  );
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
   const mediaManager = useMemo(() => createMediaManager(), []);
   const aiSummary = useAiSummary();
-  const { summary: aiSummaryEnabled, format: aiFormatEnabled, chat: aiChatEnabled } = useAiFeatures();
+  const { summary: aiSummaryEnabled, format: aiFormatEnabled } = useAiFeatures();
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -972,16 +944,6 @@ export function PublishArticlePage() {
             ) : null}
 
             <div className="space-y-2 border-t border-border/60 pt-4">
-              {isAuthenticated && aiChatEnabled ? (
-                <Button
-                  className="w-full"
-                  onClick={() => setAiChatOpen(true)}
-                  type="button"
-                  variant="outline"
-                >
-                  AI 助手
-                </Button>
-              ) : null}
               <Button
                 className="w-full"
                 onClick={() => {
@@ -1008,16 +970,6 @@ export function PublishArticlePage() {
       }
       title={editId ? "编辑文章" : "发布文章"}
     />
-    {aiChatEnabled ? (
-      <AiChatPanel
-        articleContent={articleText}
-        articleTitle={title}
-        isOpen={aiChatOpen}
-        onClose={() => setAiChatOpen(false)}
-        width={aiChatWidth}
-        onResizeStart={handleAiChatResizeStart}
-      />
-    ) : null}
   </>
   );
 }

@@ -23,7 +23,8 @@ import {
   SettingOutlined,
   ToolOutlined,
   TrophyOutlined,
-  UserOutlined
+  UserOutlined,
+  TeamOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
 import type { MenuProps } from "antd";
@@ -250,6 +251,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementRoles,
+    label: "角色管理",
+    hint: "查看和编辑系统角色权限配置",
+    icon: TeamOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: ADMIN_ROUTE_PATHS.aiSettings,
     label: "AI 设置",
     hint: "AI 服务商配置、模型选择和功能开关",
@@ -355,6 +364,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === ADMIN_ROUTE_PATHS.managementUsers) {
     return ADMIN_ROUTE_PATHS.managementUsers;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.managementRoles) {
+    return ADMIN_ROUTE_PATHS.managementRoles;
   }
   if (pathname === ADMIN_ROUTE_PATHS.officialArticles) {
     return ADMIN_ROUTE_PATHS.managementOfficialArticles;
@@ -482,6 +494,7 @@ export const ADMIN_MENU_ITEMS: MenuProps["items"] = [
     roles: ["super_admin", "admin", "editor", "moderator", "operator"],
     children: [
       { key: ADMIN_ROUTE_PATHS.managementUsers, icon: <UserOutlined />, label: "用户管理", roles: ["super_admin", "admin"] },
+      { key: ADMIN_ROUTE_PATHS.managementRoles, icon: <TeamOutlined />, label: "角色管理", roles: ["super_admin", "admin"] },
       { key: ADMIN_ROUTE_PATHS.managementSecurity, icon: <SafetyCertificateOutlined />, label: "安全设置", roles: ["super_admin", "admin", "editor", "moderator", "operator"] },
       { key: ADMIN_ROUTE_PATHS.aiSettings, icon: <RobotOutlined />, label: "AI 设置", roles: ["super_admin", "admin"] }
     ]
