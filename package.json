@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun run dev:server & bun run dev:web & bun run dev:admin & wait",
     "dev:server": "bun run --cwd apps/server dev",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:admin": "bun run --cwd apps/admin dev",
