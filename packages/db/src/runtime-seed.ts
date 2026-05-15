@@ -11,7 +11,7 @@ import { createClient } from "redis";
 import { SEED_PIXEL } from "./seed-image.js";
 
 /** 测试媒体文件目录（相对于 monorepo 根目录） */
-const TEST_MEDIA_DIR = resolve(process.cwd(), "../docs/tests_img-video");
+const TEST_MEDIA_DIR = resolve(process.cwd(), "../../docs/tests_img-video");
 
 type SeedMediaFileInfo = {
   filename: string;
