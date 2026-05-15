@@ -1,6 +1,6 @@
 import type { IDomEditor } from '@wangeditor/editor';
 import { FormatPainterOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
+import { App, Button } from 'antd';
 import { useCallback } from 'react';
 import { useAiFormat } from './use-ai-format';
 
@@ -45,13 +45,14 @@ function deleteCurrentSelection(): void {
  */
 export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const aiFormat = useAiFormat();
+  const { message } = App.useApp();
 
   const handleFormat = useCallback(async () => {
     if (!editor) return;
 
     const selectedHtml = getSelectionHtml();
     if (!selectedHtml) {
-      editor.alert('请先选中需要排版的内容', 'warning');
+      message.warning('请先选中需要排版的内容');
       return;
     }
 
@@ -67,8 +68,8 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
         editor.focus();
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '排版失败，请稍后重试';
-      editor.alert(message, 'error');
+      const msg = error instanceof Error ? error.message : '排版失败，请稍后重试';
+      message.error(msg);
     } finally {
       aiFormat.reset();
     }

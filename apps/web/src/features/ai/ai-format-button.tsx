@@ -1,6 +1,6 @@
 import type { IDomEditor } from '@wangeditor/editor';
 import { Loader2Icon, SparklesIcon } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAiFormat } from './use-ai-format';
 
@@ -47,15 +47,19 @@ function deleteCurrentSelection(): void {
  */
 export function AiFormatButton({ editor }: AiFormatButtonProps) {
   const aiFormat = useAiFormat();
+  const [warnMsg, setWarnMsg] = useState<string | null>(null);
 
   const handleFormat = useCallback(async () => {
     if (!editor) return;
 
     const selectedHtml = getSelectionHtml();
     if (!selectedHtml) {
-      editor.alert('请先选中需要排版的内容', 'warning');
+      setWarnMsg('请先选中需要排版的内容');
+      editor.focus();
+      setTimeout(() => setWarnMsg(null), 2500);
       return;
     }
+    setWarnMsg(null);
 
     try {
       const result = await aiFormat.formatAsync({
@@ -70,26 +74,32 @@ export function AiFormatButton({ editor }: AiFormatButtonProps) {
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '排版失败，请稍后重试';
-      editor.alert(message, 'error');
+      setWarnMsg(message);
+      setTimeout(() => setWarnMsg(null), 3000);
     } finally {
       aiFormat.reset();
     }
   }, [editor, aiFormat]);
 
   return (
-    <Button
-      disabled={!editor || aiFormat.isLoading}
-      onClick={() => void handleFormat()}
-      size="sm"
-      type="button"
-      variant="outline"
-    >
-      {aiFormat.isLoading ? (
-        <Loader2Icon className="size-3.5 animate-spin" data-icon="inline-start" />
-      ) : (
-        <SparklesIcon data-icon="inline-start" />
-      )}
-      AI 排版
-    </Button>
+    <div className="relative inline-flex items-center gap-2">
+      <Button
+        disabled={!editor || aiFormat.isLoading}
+        onClick={() => void handleFormat()}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {aiFormat.isLoading ? (
+          <Loader2Icon className="size-3.5 animate-spin" data-icon="inline-start" />
+        ) : (
+          <SparklesIcon data-icon="inline-start" />
+        )}
+        AI 排版
+      </Button>
+      {warnMsg ? (
+        <span className="text-xs text-amber-600 whitespace-nowrap animate-in fade-in">{warnMsg}</span>
+      ) : null}
+    </div>
   );
 }
