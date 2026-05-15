@@ -106,7 +106,9 @@ export const API_ROUTES = {
     users: withApiV1Prefix("/admin/users"),
     userDetail: (id: string) => withApiV1Prefix(`/admin/users/${id}`),
     userBan: (id: string) => withApiV1Prefix(`/admin/users/${id}/ban`),
-    userUnban: (id: string) => withApiV1Prefix(`/admin/users/${id}/unban`)
+    userUnban: (id: string) => withApiV1Prefix(`/admin/users/${id}/unban`),
+    roles: withApiV1Prefix("/admin/roles"),
+    roleDetail: (name: string) => withApiV1Prefix(`/admin/roles/${name}`)
   },
   auth: {
     captchaChallenge: withApiV1Prefix("/auth/captcha/challenge"),
@@ -281,7 +283,8 @@ export const API_ROUTES = {
   ai: {
     format: withApiV1Prefix("/ai/format"),
     features: withApiV1Prefix("/ai/features"),
-    adminSettings: withApiV1Prefix("/admin/ai/settings")
+    adminSettings: withApiV1Prefix("/admin/ai/settings"),
+    adminSettingsTest: withApiV1Prefix("/admin/ai/settings/test")
   }
 } as const;
 

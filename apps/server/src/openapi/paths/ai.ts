@@ -1,3 +1,5 @@
+import { API_ROUTES } from '@feijia/shared';
+
 import {
   jsonRequestBody,
   jsonResponse
@@ -8,12 +10,8 @@ import {
   adminSessionSecurity
 } from '../security';
 
-/** AI 模块 API 路径前缀，与 API_ROUTES.ai 对齐 */
-const AI_PREFIX = '/api/v1/ai';
-const ADMIN_AI_PREFIX = '/api/v1/admin/ai';
-
 export const aiPaths = {
-    [`${AI_PREFIX}/format`]: {
+    [API_ROUTES.ai.format]: {
       post: {
         tags: ['AI'],
         summary: 'AI 辅助排版',
@@ -43,7 +41,23 @@ export const aiPaths = {
         }
       }
     },
-    [`${ADMIN_AI_PREFIX}/settings`]: {
+    [API_ROUTES.ai.features]: {
+      get: {
+        tags: ['AI'],
+        summary: '查询 AI 排版功能开关状态',
+        description:
+          '返回 AI 排版功能的启用状态（format 布尔值），不含 apiKey 等敏感字段。需登录。',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AiFeaturesResponse',
+            '返回 AI 功能开关状态。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.ai.adminSettings]: {
       get: {
         tags: ['AI'],
         summary: '获取 AI 配置',
@@ -78,6 +92,24 @@ export const aiPaths = {
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '非管理员会话。'),
           '500': jsonResponse('ErrorResponse', 'AI 配置更新失败。')
+        }
+      }
+    },
+    [API_ROUTES.ai.adminSettingsTest]: {
+      post: {
+        tags: ['AI'],
+        summary: '测试 LLM API 连接',
+        description:
+          '使用当前配置的 LLM API Key 和端点发起一次轻量级请求，验证连接是否可用。',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AiTestConnectionResponse',
+            '连接测试成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '500': jsonResponse('ErrorResponse', '连接测试失败。')
         }
       }
     }
