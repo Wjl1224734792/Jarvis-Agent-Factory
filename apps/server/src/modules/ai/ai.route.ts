@@ -1,8 +1,7 @@
 import {
   aiFeaturesResponseSchema,
   aiFormatRequestSchema,
-  aiSettingsSchema,
-  aiSummaryRequestSchema
+  aiSettingsSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -13,7 +12,7 @@ import {
   type AuthVariables
 } from "../auth/auth.middleware";
 import { aiSettingsService } from "./ai-settings.service";
-import { formatContent, generateSummary } from "./ai.service";
+import { formatContent } from "./ai.service";
 
 export const aiRoute = new Hono<{ Variables: AuthVariables }>();
 
@@ -46,42 +45,12 @@ aiRoute.post(`${API_ROUTES.ai.adminSettings}/test`, requireAdmin, async (context
 
 /**
  * GET /api/v1/ai/features — 查询 AI 功能开关状态。
- * 返回 summary、format 两个布尔值，不含 apiKey 等敏感字段。需登录。
+ * 返回 format 布尔值，不含 apiKey 等敏感字段。需登录。
  */
 aiRoute.get(API_ROUTES.ai.features, requireAuth, async (context) => {
   const settings = await aiSettingsService.getRawSettings();
   const features = aiFeaturesResponseSchema.parse(settings.features);
   return context.json({ features });
-});
-
-/**
- * POST /api/v1/ai/summary — 生成文章 AI 摘要。
- * 三层缓存：Redis -> DB -> LLM API。需登录。
- */
-aiRoute.post(API_ROUTES.ai.summary, requireAuth, async (context) => {
-  const body = aiSummaryRequestSchema.parse(await context.req.json());
-  const userId = context.get("currentUser")?.id ?? "anonymous";
-
-  try {
-    const result = await generateSummary(userId, body.postId, body.content);
-    return context.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    if (message.includes("403")) {
-      return context.json({ code: "FEATURE_DISABLED", message }, 403);
-    }
-
-    if (message.includes("429")) {
-      return context.json({ code: "RATE_LIMITED", message }, 429);
-    }
-
-    if (message.includes("LLM_API_ERROR")) {
-      return context.json({ code: "LLM_API_ERROR", message }, 502);
-    }
-
-    throw error;
-  }
 });
 
 /**

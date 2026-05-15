@@ -26,9 +26,8 @@ const DEFAULT_VALUES: AiSettings = {
   provider: "dashscope",
   apiKey: "",
   baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  summaryModel: "qwen-plus",
   formatModel: "qwen-plus",
-  features: { summary: true, format: true }
+  features: { format: true }
 };
 
 const AI_SETTINGS_QUERY_KEY = ["admin", "ai-settings"] as const;
@@ -84,7 +83,6 @@ export function AiSettingsPage() {
       provider: item.provider,
       apiKey: "", // 不回填真实 key，用户输入新 key 才覆盖
       baseUrl: item.baseUrl,
-      summaryModel: item.summaryModel,
       formatModel: item.formatModel,
       features: item.features
     });
@@ -168,27 +166,11 @@ export function AiSettingsPage() {
             </Form.Item>
 
             <Form.Item
-              label="摘要模型"
-              name="summaryModel"
-              rules={[{ required: true, message: "请输入摘要模型名称" }]}
-            >
-              <Input placeholder="qwen-plus" />
-            </Form.Item>
-
-            <Form.Item
               label="排版模型"
               name="formatModel"
               rules={[{ required: true, message: "请输入排版模型名称" }]}
             >
               <Input placeholder="qwen-plus" />
-            </Form.Item>
-
-            <Form.Item
-              label="摘要功能开关"
-              name={["features", "summary"]}
-              valuePropName="checked"
-            >
-              <Switch checkedChildren="开" unCheckedChildren="关" />
             </Form.Item>
 
             <Form.Item

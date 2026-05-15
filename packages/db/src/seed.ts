@@ -45,7 +45,7 @@ import {
   usersTable
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
-import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl } from "./runtime-seed.js";
+import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl, resolveSeedAssetByteSize } from "./runtime-seed.js";
 
 const resetTableNames = Object.values(schema)
   .filter(isTable)
@@ -411,7 +411,7 @@ function buildSeedFile(input: {
   mediaKind: "image" | "video";
   objectKey: string;
   fileName: string;
-  mimeType: "image/png" | "video/mp4";
+  mimeType: "image/png" | "image/webp" | "image/jpeg" | "video/mp4";
   byteSize: number;
   createdAt: Date;
 }) {
@@ -615,15 +615,23 @@ async function seedPosts(adminUserId: string) {
 }
 
 async function seedPostMedia(adminUserId: string) {
+  const officialLaunchKey = RUNTIME_SEED_ASSETS.images.officialLaunch.key;
+  const officialGuideKey = RUNTIME_SEED_ASSETS.images.officialGuide.key;
+  const cityRouteKey = RUNTIME_SEED_ASSETS.images.cityRoute.key;
+  const droneChecklistKey = RUNTIME_SEED_ASSETS.images.droneChecklist.key;
+  const coastPatrolKey = RUNTIME_SEED_ASSETS.images.coastPatrol.key;
+  const valleyFlightKey = RUNTIME_SEED_ASSETS.images.valleyFlight.key;
+  const officialBriefingKey = RUNTIME_SEED_ASSETS.videos.officialBriefing.key;
+
   await db
     .insert(filesTable)
     .values([
-      buildSeedFile({ id: POST_IMAGE_IDS.officialLaunch, ownerId: adminUserId, postId: POST_IDS.officialLaunch, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.officialLaunch.key, fileName: "official-launch.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8, 1) }),
-      buildSeedFile({ id: POST_IMAGE_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.officialGuide.key, fileName: "official-guide.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 12, 1) }),
-      buildSeedFile({ id: POST_IMAGE_IDS.skylineArticle, ownerId: USER_IDS.skyline, postId: POST_IDS.skylineArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.cityRoute.key, fileName: "city-route.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 10, 1) }),
-      buildSeedFile({ id: POST_IMAGE_IDS.reviewArticle, ownerId: USER_IDS.review, postId: POST_IDS.reviewArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.droneChecklist.key, fileName: "drone-checklist.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(22, 9, 1) }),
-      buildSeedFile({ id: POST_IMAGE_IDS.coastMoment, ownerId: USER_IDS.canyon, postId: POST_IDS.coastMoment, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.coastPatrol.key, fileName: "coast-patrol.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(25, 6, 1) }),
-      buildSeedFile({ id: POST_IMAGE_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.valleyFlight.key, fileName: "valley-flight.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 14, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.officialLaunch, ownerId: adminUserId, postId: POST_IDS.officialLaunch, bizType: "post-image", mediaKind: "image", objectKey: officialLaunchKey, fileName: "封面图1.webp", mimeType: "image/webp", byteSize: resolveSeedAssetByteSize(officialLaunchKey), createdAt: seededDate(24, 8, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-image", mediaKind: "image", objectKey: officialGuideKey, fileName: "封面图2.webp", mimeType: "image/webp", byteSize: resolveSeedAssetByteSize(officialGuideKey), createdAt: seededDate(24, 12, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.skylineArticle, ownerId: USER_IDS.skyline, postId: POST_IDS.skylineArticle, bizType: "post-image", mediaKind: "image", objectKey: cityRouteKey, fileName: "封面图3.webp", mimeType: "image/webp", byteSize: resolveSeedAssetByteSize(cityRouteKey), createdAt: seededDate(23, 10, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.reviewArticle, ownerId: USER_IDS.review, postId: POST_IDS.reviewArticle, bizType: "post-image", mediaKind: "image", objectKey: droneChecklistKey, fileName: "封面图4.webp", mimeType: "image/webp", byteSize: resolveSeedAssetByteSize(droneChecklistKey), createdAt: seededDate(22, 9, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.coastMoment, ownerId: USER_IDS.canyon, postId: POST_IDS.coastMoment, bizType: "post-image", mediaKind: "image", objectKey: coastPatrolKey, fileName: "文章测试图.jpg", mimeType: "image/jpeg", byteSize: resolveSeedAssetByteSize(coastPatrolKey), createdAt: seededDate(25, 6, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, bizType: "post-image", mediaKind: "image", objectKey: valleyFlightKey, fileName: "文章测试图.jpg", mimeType: "image/jpeg", byteSize: resolveSeedAssetByteSize(valleyFlightKey), createdAt: seededDate(24, 14, 1) }),
       buildSeedFile({ id: POST_IMAGE_IDS.pendingArticle, ownerId: USER_IDS.canyon, postId: POST_IDS.pendingArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.hotCircleEvtol.key, fileName: "pending-canyon.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(25, 8, 1) }),
       buildSeedFile({ id: FILE_IDS.rankingCommunityCover, ownerId: USER_IDS.ranking, bizType: "ranking-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingCommunity.key, fileName: "community-ranking-cover.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 8) }),
       buildSeedFile({ id: FILE_IDS.rankingOfficialCover, ownerId: adminUserId, bizType: "ranking-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingOfficial.key, fileName: "official-ranking-cover.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8) }),
@@ -641,7 +649,7 @@ async function seedPostMedia(adminUserId: string) {
   await db
     .insert(filesTable)
     .values([
-      buildSeedFile({ id: VIDEO_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-video", mediaKind: "video", objectKey: RUNTIME_SEED_ASSETS.videos.officialBriefing.key, fileName: "official-briefing.mp4", mimeType: "video/mp4", byteSize: 12, createdAt: seededDate(24, 12, 2) }),
+      buildSeedFile({ id: VIDEO_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-video", mediaKind: "video", objectKey: officialBriefingKey, fileName: "测试视频.mp4", mimeType: "video/mp4", byteSize: resolveSeedAssetByteSize(officialBriefingKey), createdAt: seededDate(24, 12, 2) }),
       buildSeedFile({ id: VIDEO_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, bizType: "post-video", mediaKind: "video", objectKey: RUNTIME_SEED_ASSETS.videos.hangarWalkthrough.key, fileName: "hangar-walkthrough.mp4", mimeType: "video/mp4", byteSize: 12, createdAt: seededDate(24, 14, 2) })
     ])
     .onConflictDoNothing();

@@ -5,8 +5,78 @@ import {
   PutObjectCommand,
   S3Client
 } from "@aws-sdk/client-s3";
+import { readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 import { createClient } from "redis";
 import { SEED_PIXEL } from "./seed-image.js";
+
+/** 测试媒体文件目录（相对于 monorepo 根目录） */
+const TEST_MEDIA_DIR = resolve(process.cwd(), "../docs/tests_img-video");
+
+type SeedMediaFileInfo = {
+  filename: string;
+  contentType: "image/webp" | "image/jpeg" | "image/png" | "video/mp4";
+  byteSize: number;
+};
+
+/**
+ * 真实测试媒体文件映射。
+ * 将 RUNTIME_SEED_ASSETS 中的 key 映射到 docs/tests_img-video/ 下的实际文件。
+ * 未列入映射的 asset 仍使用程序生成的像素 PNG。
+ */
+const SEED_MEDIA_FILES: Record<string, SeedMediaFileInfo> = (() => {
+  const files: Array<{ keys: string[]; filename: string; contentType: SeedMediaFileInfo["contentType"] }> = [
+    { keys: ["seed/articles/official-launch.png"], filename: "封面图1.webp", contentType: "image/webp" },
+    { keys: ["seed/articles/official-guide.png"], filename: "封面图2.webp", contentType: "image/webp" },
+    { keys: ["seed/articles/city-route.png"], filename: "封面图3.webp", contentType: "image/webp" },
+    { keys: ["seed/articles/drone-checklist.png"], filename: "封面图4.webp", contentType: "image/webp" },
+    { keys: ["seed/moments/valley-flight.png", "seed/moments/coast-patrol.png"], filename: "文章测试图.jpg", contentType: "image/jpeg" },
+    { keys: ["seed/videos/official-briefing.mp4"], filename: "测试视频.mp4", contentType: "video/mp4" }
+  ];
+
+  const map: Record<string, SeedMediaFileInfo> = {};
+  for (const entry of files) {
+    const filePath = resolve(TEST_MEDIA_DIR, entry.filename);
+    const { size } = statSync(filePath);
+    for (const key of entry.keys) {
+      map[key] = { filename: entry.filename, contentType: entry.contentType, byteSize: size };
+    }
+  }
+  return map;
+})();
+
+/**
+ * 读取种子媒体文件内容。
+ * 若 key 对应真实文件则读取文件，否则返回 null（调用方使用生成的像素）。
+ *
+ * @param key - RUNTIME_SEED_ASSETS 中的 objectKey
+ * @returns 文件 Buffer 或 null
+ */
+function readSeedMediaBody(key: string): Buffer | null {
+  const info = SEED_MEDIA_FILES[key];
+  if (!info) {
+    return null;
+  }
+  return readFileSync(resolve(TEST_MEDIA_DIR, info.filename));
+}
+
+/**
+ * 获取种子资源的真实 contentType。
+ * 若 key 对应真实文件则返回文件的 MIME 类型，否则返回 asset 定义的类型。
+ */
+function resolveSeedAssetContentType(asset: RuntimeSeedAsset): string {
+  const info = SEED_MEDIA_FILES[asset.key];
+  return info?.contentType ?? asset.contentType;
+}
+
+/**
+ * 获取种子资源的字节大小。
+ * 若 key 对应真实文件则返回文件实际大小，否则返回默认像素大小。
+ */
+export function resolveSeedAssetByteSize(key: string): number {
+  const info = SEED_MEDIA_FILES[key];
+  return info?.byteSize ?? 68;
+}
 
 type RuntimeSeedSummary = {
   storage: { provider: string; bucket: string; objectCount: number } | { skipped: string };
@@ -228,6 +298,7 @@ async function seedStorageArtifacts(): Promise<RuntimeSeedSummary["storage"]> {
 
   for (const asset of listRuntimeSeedAssets()) {
     const key = resolveRuntimeSeedObjectKey(asset.key);
+    const realBody = readSeedMediaBody(asset.key);
     const pngBody = asset.key.includes("ranking")
       ? SEED_ITEM_PNG
       : asset.key.includes("moments") || asset.key.includes("submissions")
@@ -237,8 +308,8 @@ async function seedStorageArtifacts(): Promise<RuntimeSeedSummary["storage"]> {
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: asset.contentType === "image/png" ? pngBody : TINY_MP4,
-        ContentType: asset.contentType,
+        Body: realBody ?? (asset.contentType === "image/png" ? pngBody : TINY_MP4),
+        ContentType: resolveSeedAssetContentType(asset),
         CacheControl: "public, max-age=86400",
         Metadata: {
           seed: "true"
