@@ -1,0 +1,21 @@
+/* 来源Tab：让 Ant Design 内部结构成为完整 flex 列 */
+.commands-source-tabs.ant-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+.commands-source-tabs > .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.commands-source-tabs > .ant-tabs-content-holder > .ant-tabs-content {
+  height: 100%;
+}
+
+.commands-source-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Card, Tag, Typography, Tabs, Skeleton, Empty, Result, Button,
 } from 'antd';
+import './Commands.css';
 import { CodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { theme } from 'antd';
 import type { CommandItem, CommandsData } from '../api';
@@ -283,7 +284,7 @@ export default function Commands() {
    * @param emptyHint - 空状态提示文本
    */
   const buildSourceContent = (cmds: CommandItem[], emptyHint: string) => (
-    <>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Tabs
         activeKey={categoryTab}
         onChange={setCategoryTab}
@@ -314,7 +315,7 @@ export default function Commands() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -342,7 +343,8 @@ export default function Commands() {
         activeKey={sourceTab}
         onChange={handleSourceTabChange}
         size="small"
-        style={{ flexShrink: 0, marginBottom: 0 }}
+        className="commands-source-tabs"
+        style={{ flex: 1, minHeight: 0, overflow: 'hidden', marginBottom: 0 }}
         tabBarStyle={{ marginBottom: 0 }}
         items={[
           {
