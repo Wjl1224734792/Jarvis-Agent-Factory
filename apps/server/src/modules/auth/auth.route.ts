@@ -424,9 +424,16 @@ authRoute.get("/api/v1/admin/roles", requireAdmin, async (context) => {
   } catch {
     // roles 表不存在时回退到常量
   }
+  const ROLE_LABELS: Record<string, string> = {
+    super_admin: "超级管理员",
+    admin: "管理员",
+    editor: "内容编辑",
+    moderator: "审核员",
+    operator: "运营专员",
+  };
   const fallback = Object.entries(ROLE_PERMISSIONS).map(([name, permissions]) => ({
     name,
-    label: name,
+    label: ROLE_LABELS[name] ?? name,
     permissions,
     description: null,
     createdAt: null,
