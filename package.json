@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run dev:server & bun run dev:web & bun run dev:admin & wait",
+    "dev": "concurrently -n server,web,admin -c blue,green,yellow \"bun run dev:server\" \"bun run dev:web\" \"bun run dev:admin\"",
     "dev:server": "bun run --cwd apps/server dev",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:admin": "bun run --cwd apps/admin dev",
@@ -62,6 +62,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "9",
     "eslint-config-prettier": "10",
