@@ -214,7 +214,13 @@ window.__vite_plugin_react_preamble_installed__ = true`,
     },
     server: {
       port: devPort,
-      host: devHost
+      host: devHost,
+      proxy: {
+        "/api": {
+          target: "http://localhost:17382",
+          changeOrigin: true
+        }
+      }
     },
     build: {
       rollupOptions: {
