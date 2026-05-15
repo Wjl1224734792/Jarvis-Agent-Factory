@@ -42,7 +42,8 @@ import {
   siteSettingsTable,
   userSettingsTable,
   userFollowsTable,
-  usersTable
+  usersTable,
+  rolesTable
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
 import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl, resolveSeedAssetByteSize } from "./runtime-seed.js";
@@ -575,6 +576,31 @@ async function seedUsers() {
     .onConflictDoNothing();
 }
 
+async function seedRoles() {
+  await db
+    .insert(rolesTable)
+    .values([
+      { name: "super_admin", label: "超级管理员", permissions: ["*"], description: "拥有系统全部权限" },
+      { name: "editor", label: "内容编辑", permissions: ["content:*", "overview:view", "messages:view", "settings:security"], description: "负责内容创建与编辑" },
+      { name: "moderator", label: "审核员", permissions: ["moderation:*", "overview:view", "messages:view", "settings:security"], description: "负责内容审核与社区管理" },
+      { name: "operator", label: "运营专员", permissions: ["operations:*", "overview:view", "messages:view", "settings:security"], description: "负责运营活动与数据管理" },
+    ])
+    .onConflictDoNothing();
+}
+
+async function seedRoleUsers() {
+  const { hashPassword } = await import("./helpers.js");
+  const testPwd = await hashPassword("Test#123");
+  await db
+    .insert(usersTable)
+    .values([
+      { id: createId("user"), role: "editor", displayName: "内容编辑测试", phone: "13900139001", account: "editor", passwordHash: testPwd },
+      { id: createId("user"), role: "moderator", displayName: "审核员测试", phone: "13900139002", account: "moderator", passwordHash: testPwd },
+      { id: createId("user"), role: "operator", displayName: "运营专员测试", phone: "13900139003", account: "operator", passwordHash: testPwd },
+    ])
+    .onConflictDoNothing();
+}
+
 async function seedReviewsAndModelFavorites() {
   await db
     .insert(aircraftReviewsTable)
@@ -1069,6 +1095,8 @@ export async function resetDatabaseState(options?: {
 
 export async function seedAuthDatabase() {
   await ensureAdminUser();
+  await seedRoles();
+  await seedRoleUsers();
 }
 
 export async function seedBaseDatabase(options?: { reset?: boolean }) {
@@ -1089,6 +1117,8 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedBaseDatabase(options);
   await seedBaseInfrastructure();
   const adminUserId = await ensureAdminUser();
+  await seedRoles();
+  await seedRoleUsers();
   await seedDemoAircraftCatalog();
   await seedUsers();
   await seedReviewsAndModelFavorites();
@@ -1106,6 +1136,8 @@ export async function seedRankingsDatabase(options?: { reset?: boolean }) {
   await seedBaseDatabase(options);
   await seedBaseInfrastructure();
   const adminUserId = await ensureAdminUser();
+  await seedRoles();
+  await seedRoleUsers();
   await seedDemoAircraftCatalog();
   await seedUsers();
   await seedRankingMedia(adminUserId);

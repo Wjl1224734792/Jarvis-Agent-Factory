@@ -18,6 +18,7 @@ import {
   deviceUnregisterInputSchema,
   registrationDisplayNameSuggestRequestSchema,
   registrationDisplayNameSuggestResponseSchema,
+  ROLE_PERMISSIONS,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   userPasswordChangeRequestSchema,
@@ -415,8 +416,22 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 authRoute.use("*", attachCurrentUser);
 
 authRoute.get("/api/v1/admin/roles", requireAdmin, async (context) => {
-  const rows = await db.select().from(rolesTable).orderBy(eq(rolesTable.name, rolesTable.name));
-  return context.json({ roles: rows });
+  try {
+    const rows = await db.select().from(rolesTable);
+    if (rows.length > 0) {
+      return context.json({ roles: rows });
+    }
+  } catch {
+    // roles 表不存在时回退到常量
+  }
+  const fallback = Object.entries(ROLE_PERMISSIONS).map(([name, permissions]) => ({
+    name,
+    label: name,
+    permissions,
+    description: null,
+    createdAt: null,
+  }));
+  return context.json({ roles: fallback });
 });
 
 authRoute.put("/api/v1/admin/roles/:name", requireAdmin, async (context) => {
