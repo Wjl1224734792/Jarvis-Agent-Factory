@@ -16,7 +16,7 @@
 
 ## 成员
 
-`web` · `admin` · `server` — **禁止** 恢复 `apps/mobiles`。
+`web` · `admin` · `server`。Flutter App 不在本仓库维护。
 
 ## 边界
 

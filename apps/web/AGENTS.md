@@ -33,3 +33,4 @@
 - **禁止** 在页面散落请求细节、鉴权、响应适配。
 - 用户头像：空 `avatarUrl` 仅做 trim / 空值归一，交给 `UserAvatar` fallback icon；不得为真实用户补 seed / 随机头像图。
 - `web` 与 `admin` 重复逻辑 → `packages/*`，**禁止** 双份复制。
+- AI 功能：仅保留**排版优化**（`AiFormatButton` + `POST /api/v1/ai/format`），通过 `useAiFeatures()` 查询开关控制显示。AI 聊天与摘要已移除。

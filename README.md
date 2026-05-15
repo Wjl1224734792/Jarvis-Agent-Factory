@@ -1,6 +1,6 @@
 # 飞加
 
-面向本地与团队协作的 Bun Monorepo：包含用户端 Web、管理后台、API 服务、共享包，以及用 Docker 起的开发用数据库与对象存储。日常从下面 **快速开始** 就能把环境跑起来；小程序和原生 App **不在**本仓库维护（`apps/mobiles` 已移除）。
+面向本地与团队协作的 Bun Monorepo：包含用户端 Web、管理后台、API 服务、共享包，以及用 Docker 起的开发用数据库与对象存储。日常从下面 **快速开始** 就能把环境跑起来；Flutter App 另库开发（API 文档见 `/docs`，设计系统见 `docs/web-design-system.md`，功能 PRD 见 `docs/web-frontend-features-prd.md`）。
 
 ---
 
@@ -38,7 +38,8 @@ feijia/
 │  ├─ shared/
 │  ├─ schemas/
 │  ├─ http-client/
-│  └─ db/
+│  ├─ db/
+│  └─ rich-text-editor/
 ├─ docker/            ← 说明见 docker/README.md
 ├─ docs/
 ├─ AGENTS.md          ← 代理指令（L0–L5）
@@ -279,6 +280,15 @@ mock 数据导入后可使用：
 短信验证码：888888
 ```
 
+### RBAC 多角色测试账号（demo/mock 数据）
+
+| 角色 | 账号 | 密码 | 权限范围 |
+|------|------|------|----------|
+| `super_admin` | admin | Admin#123 | 全部（*） |
+| `editor` | editor | Test#123 | 内容管理 + 数据概览 + 消息 + 安全设置 |
+| `moderator` | moderator | Test#123 | 审核管理 + 数据概览 + 消息 + 安全设置 |
+| `operator` | operator | Test#123 | 运营管理 + 数据概览 + 消息 + 安全设置 |
+
 更多 mock 数据说明见 [docs/test-data-usage.md](./docs/test-data-usage.md)。
 
 ---
@@ -292,6 +302,8 @@ mock 数据导入后可使用：
 - [docker/README.md](./docker/README.md)：Compose、连接串、排障
 - [docs/test-data-usage.md](./docs/test-data-usage.md)：mock 数据说明
 - [docs/openapi-frontend-integration-guide.md](./docs/openapi-frontend-integration-guide.md)：前后端 OpenAPI 对接
+- [docs/web-frontend-features-prd.md](./docs/web-frontend-features-prd.md)：Web 端功能 PRD（Flutter App 开发参考）
+- [docs/web-design-system.md](./docs/web-design-system.md)：Web 端设计系统规范（Flutter App 视觉一致参考）
 
 ### 代理与审查（工具执行）
 

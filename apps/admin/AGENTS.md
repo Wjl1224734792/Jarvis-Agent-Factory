@@ -30,3 +30,6 @@
 - HTTP：`@feijia/http-client`；类型：`@feijia/schemas`。
 - **禁止** 在页面散落请求、鉴权、接口适配。
 - 与 `web` 可共享部分 → `packages/*`。
+- UI：**antd 6.x**（Menu、Table、Modal、message 等），配合 Tailwind CSS 4（禁止 `@apply`）。
+- 鉴权：所有页面通过 `requireRole(...roles)` 守卫；侧边栏菜单通过 `filterMenuByRole(items, role)` 按角色过滤。
+- AI 功能：仅排版优化（`POST /api/v1/ai/format`），通过后台 AI 设置开关控制。

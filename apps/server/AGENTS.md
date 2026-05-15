@@ -24,8 +24,10 @@
 ## 修改要求
 
 - 路由常量：`@feijia/shared.API_ROUTES`；请求/响应：`@feijia/schemas`；数据：`@feijia/db` + 现有 repo。
+- **禁止** 在路由文件中硬编码路径字符串，必须使用 `API_ROUTES` 常量。
 - 改认证、上传、会话、缓存、短信、CORS、OpenAPI → 核对 `.env.example`、根 `README.md`。
 - CORS 显式配置以 `CORS_ORIGIN` 为主；代码兼容读取 `CORS_ORIGINS`，文档同步时两者须一起检查。
+- RBAC：Admin 路由使用 `requireRole(...roles)` 中间件保护；角色权限定义在 `packages/schemas` 的 `ROLE_PERMISSIONS`。
 
 ## OpenAPI 实现位置
 

@@ -15,7 +15,7 @@
 
 ## 成员
 
-`config` · `shared` · `schemas` · `http-client` · `db`
+`config` · `shared` · `schemas` · `http-client` · `db` · `rich-text-editor`
 
 ## 目录边界
 

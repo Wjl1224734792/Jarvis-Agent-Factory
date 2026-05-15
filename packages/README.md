@@ -9,15 +9,16 @@
 | 目录 | 大致职责 |
 |------|----------|
 | [`config/`](./config/) | 构建、工具链等共享配置 |
-| [`shared/`](./shared/) | 路由常量、全站共享常量等 |
-| [`schemas/`](./schemas/) | 请求/响应形状、共享枚举等（Zod / TS） |
-| [`http-client/`](./http-client/) | 基于上述 schema 的 API 调用封装 |
-| [`db/`](./db/) | Drizzle、迁移、`seed`、与数据库相关的脚本入口 |
+| [`shared/`](./shared/) | 路由常量 `API_ROUTES`、全站共享常量等 |
+| [`schemas/`](./schemas/) | 请求/响应形状、共享枚举、Zod schema（`z.infer` 自动生成类型） |
+| [`http-client/`](./http-client/) | 基于 schemas 的 API 调用封装，统一错误处理与 Token 刷新 |
+| [`db/`](./db/) | Drizzle ORM schema、迁移脚本、seed 数据、运行时 seed 工具 |
+| [`rich-text-editor/`](./rich-text-editor/) | 基于 wangEditor 的富文本编辑器封装、媒体管理器、上传器 |
 
 脚本口径：
 
-- 根 `typecheck` 会覆盖 `packages/db`。
-- 根 `build` 当前只构建 `shared`、`schemas`、`http-client` 与各 `apps`；`packages/db` 不产出独立构建物。
+- 根 `typecheck` 会覆盖 `packages/rich-text-editor`、`packages/shared`、`packages/schemas`、`packages/http-client`、`packages/db` 与各 `apps`。
+- 根 `build` 当前只构建 `shared`、`schemas`、`http-client`、`rich-text-editor` 与各 `apps`；`packages/db` 不产出独立构建物。
 - `packages/config` 主要承载共享配置，避免把业务逻辑放入其中。
 
 如果你在给 **AI 助手** 派活（例如「只改 schema，别动页面」），请让它遵守 [`AGENTS.md`](./AGENTS.md) 里的边界；那是给代理看的指令，和本 README 分工不同。
