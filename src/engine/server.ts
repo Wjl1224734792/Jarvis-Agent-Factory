@@ -823,6 +823,7 @@ export function registerMcpTools(server, db, root) {
         agent_spawn: agentGuide || { can_spawn: [], note: '未知Gate' },
         team_strategy: getGateTeamStrategy(cur),
         agent_mode: getGateTeamStrategy(cur) === 'prefer_team' ? '推荐使用 Agent Team(TeamCreate) 并行调度,轻量任务用 Agent 工具(spawn agent)' : '使用 Agent 工具(spawn subagent)',
+        team_rules: agentGuide?.team_rules || '团队成员按模块/区域独立,禁止共享文件或模块',
         gate_requirement: GATE_CHECKS[cur]?.check || '',
         next_gate: gateList[ci + 1] || 'Complete',
         previous_gate: ci > 0 ? gateList[ci - 1] : null,

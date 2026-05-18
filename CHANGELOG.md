@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.50.0] - 2026-05-19
+
+### Added
+- **数据看板首页**：`#/` 路由新增 Dashboard 数据统计页（会话数/运行记录/流水线分布/Gate 分布/Agent 配置统计）
+- **Team 模块隔离规则**：Agent Team 模式下每个成员独占模块/文件区域，禁止共享（前端按组件、后端按服务拆分）
+- **`pipeline_guide` 增强**：返回 `team_rules` 字段，按 Gate 提供团队隔离指引
+- **`/api/dashboard-stats`**：REST API 端点返回聚合统计数据
+
+### Changed
+- Web 面板首页从流水线看板改为数据看板（原看板移至 `#/dashboard`）
+- AGENTS.md 新增第 23 条约束（Agent Team 模块隔离硬约束）
+
 ## [3.49.1] - 2026-05-19
 
 ### Changed

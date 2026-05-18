@@ -4,6 +4,7 @@ import { ConfigProvider, App as AntApp } from 'antd';
 import defaultTheme from './theme';
 import AppLayout from './components/Layout';
 
+const DashboardHome = lazy(() => import('./pages/DashboardHome'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Agents = lazy(() => import('./pages/Agents'));
 const Commands = lazy(() => import('./pages/Commands'));
@@ -24,7 +25,7 @@ export default function App() {
         <AppLayout>
           <Suspense fallback={<Loading />}>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<DashboardHome />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/commands" element={<Commands />} />

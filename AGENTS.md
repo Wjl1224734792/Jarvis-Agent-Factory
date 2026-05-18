@@ -156,7 +156,12 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - **用户配置** `~/.claude/`：用户级 agents/、commands/、skills/（跨项目共享模板）
     - **Docs 产物** `<project>/docs/YYYY-MM-DD/`：日期隔离的流水线产物
     - **设计原则**：项目级 = 单项目多会话共享，不跨项目；用户级 = 跨项目一致的个人偏好（模型选择等）
-23. **Agent Team + SubAgent 混合编排** — 根据 Gate 阶段选择最优调度策略：
+23. **Agent Team 模块隔离（硬约束）** — Team 模式下每个成员独占模块/文件区域，禁止共享：
+    - **前端拆分**：按组件/页面拆分，每个 Team 成员独占一组组件文件
+    - **后端拆分**：按服务/路由模块拆分，每个 Team 成员独占一个服务模块
+    - **共享区域**：公共工具、类型定义、配置文件由唯一责任人处理，其他成员只读
+    - **冲突预防**：同一文件同一时间只有一个修改者，发现冲突立即标记 BLOCKED
+24. **Agent Team + SubAgent 混合编排** — 根据 Gate 阶段选择最优调度策略：
     - **Team 模式（prefer_team）**：Gate C-impl(并行实现)、Gate C2(并行测试)、Gate D(并行审查) — 使用 `TeamCreate` + `Agent(team_name)` 并行调度多个 Agent
     - **SubAgent 模式（subagent_only）**：Gate A(探索)、Gate B1(架构评审)、Gate C(规划) — 使用 `Agent` 工具直接 spawn 子 Agent
     - **混合模式**：复杂 Gate 可先用 Team 并行执行主要任务，再用 SubAgent 处理辅助任务

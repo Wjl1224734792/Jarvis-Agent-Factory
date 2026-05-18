@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.49.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.50.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.49.0** — 细粒度 remove 命令 · 项目级存储隔离 · Agent Team 混合编排 · 33 条指令完整 frontmatter
+> **v3.50.0** — 数据看板首页 · Team 模块隔离 · 细粒度 remove · 项目级存储隔离 · Agent Team 混合编排
 
 ## 快速开始
 
@@ -42,7 +42,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
 | **项目级存储隔离** | `<project>/.jarvis/` 独立数据库 + PID，每个项目跨会话记忆不跨项目共享 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
-| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 产物文档阅读器 · Gate Timeline · Agent 配置页 |
+| **Web 面板** | 数据看板首页（#/）· 流水线看板（#/dashboard）· 归档（#/archive）· Agent 配置（#/agents）· SSE 实时推送 |
 | **远程面板** | 单 HTML 文件下载即可打开，无需本地 web 构建 |
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md` 源文件 |
 | **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
@@ -166,7 +166,8 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 | 页面 | Hash 路由 | 功能 |
 |------|----------|------|
-| 流水线看板 | `#/dashboard` | 会话列表（任务名/指令标签/Gate状态）· MCP 平台接入状态 · 置顶/归档/删除 · 3-dot 操作菜单 |
+| 数据看板 | `#/` | 总会话/运行记录/流水线分布/Gate 分布/Agent 配置统计 · SSE 实时更新 |
+| 流水线看板 | `#/dashboard` | 会话列表（任务名/指令标签/Gate状态）· MCP 平台接入状态 · 置顶/归档/删除 |
 | 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
 | 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
 
