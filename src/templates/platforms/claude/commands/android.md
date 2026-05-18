@@ -43,7 +43,11 @@ updated: "2026-05-14"
 | UI/Compose/Material3 | `android-ui-expert` |
 | 状态/ViewModel/Room | `android-state-expert` |
 | 任务分解（复杂需求） | `task-design` |
+| Android 测试 | `android-test-expert` |
+| Android 审查 | `android-review-expert` |
 | E2E 测试 | `e2e-test-expert` |
+| 质量签核 | `qa-review-expert` |
+| 性能审计 | `perf-review-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
 | 只读探索（辅助） | `code-explore-expert`、`external-resource-expert` |
@@ -74,11 +78,28 @@ Android 专项：
 - Build：`./gradlew assembleDebug`
 - Deps Audit：`./gradlew dependencyUpdates` + OWASP dependency-check
 
+## Gate C1.5 视觉验证
+
+**移动端任务必须过此门。** 条件：
+- 模拟器/真机已启动
+- 修改前/后对比截图已附
+- 多屏幕尺寸截图已附（small/medium/large）
+- 暗色模式截图（如支持）
+- 无可见布局问题或 UI 异常（溢出/错位/重组异常）
+
+**通过**：进入 Gate C2
+
+**不通过**：
+1. **证据缺失** → 退回实现 Agent 补充截图证据
+2. **UI 问题**（溢出/错位/渲染异常）→ 诊断根因，修复源文件，重新截图验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`
+
 ## Gate C2 测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn android-dev-expert 运行单元测试（./gradlew test）
+  → Gate C1.5 视觉验证通过
+  → 步骤 1：spawn android-test-expert（单元测试：JUnit5 + MockK）
   → 步骤 2：spawn e2e-test-expert（Instrumentation 测试 + Compose UI 测试）
      需模拟器/真机；使用 Espresso + Compose Test Rule
   → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
@@ -89,10 +110,37 @@ Android 专项：
 - UI 测试：Compose Test Rule + Espresso
 - 端到端：模拟器 + UIAutomator
 
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原 Android 实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环；仍不通过 → 标记 `BLOCKED`
+
+## Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
+├── spawn android-review-expert（Android 代码审查：Compose架构/UI/状态/数据层/性能）
+├── spawn security-review-expert（安全审计：OWASP Mobile Top 10/CVE/密钥检测）
+└── spawn perf-review-expert（性能审计：启动时间/内存/重组次数/包体积）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. Android 审查不通过 → spawn 原 Android 实现 Agent（android-dev-expert / android-ui-expert / android-state-expert）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`
+
+通过后：`advance_gate({ gate: "Gate E" })`
+
 ## Gate E 发布
 
 🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
 
+- spawn `security-review-expert`（如 Gate D 未执行）
+- spawn `perf-review-expert`（如 Gate D 未执行）
 - 加载 `shipping-and-launch` 执行上线检查清单
 - Google Play：签名验证、AAB 构建、Play Console 提交
 - 国内渠道：应用宝/华为/小米/OPPO/VIVO 加固与分发

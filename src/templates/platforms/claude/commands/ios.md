@@ -43,7 +43,11 @@ updated: "2026-05-14"
 | UI/SwiftUI/HIG | `ios-ui-expert` |
 | 状态/ObservableObject/SwiftData | `ios-state-expert` |
 | 任务分解（复杂需求） | `task-design` |
+| iOS 测试 | `ios-test-expert` |
+| iOS 审查 | `ios-review-expert` |
 | E2E 测试 | `e2e-test-expert` |
+| 质量签核 | `qa-review-expert` |
+| 性能审计 | `perf-review-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
 | 只读探索（辅助） | `code-explore-expert`、`external-resource-expert` |
@@ -74,11 +78,29 @@ iOS 专项：
 - Build：Xcode Archive（Simulator）
 - Deps Audit：SPM/CocoaPods 漏洞扫描
 
+## Gate C1.5 视觉验证
+
+**移动端任务必须过此门。** 条件：
+- 模拟器/真机已启动
+- 修改前/后对比截图已附
+- 多屏幕尺寸截图已附（iPhone SE / iPhone Pro / iPhone Pro Max / iPad）
+- 暗色模式截图（如支持）
+- Dynamic Type 大字体适配截图
+- 无可见布局问题或 UI 异常（溢出/错位/Safe Area 冲突）
+
+**通过**：进入 Gate C2
+
+**不通过**：
+1. **证据缺失** → 退回实现 Agent 补充截图证据
+2. **UI 问题**（溢出/错位/渲染异常）→ 诊断根因，修复源文件，重新截图验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`
+
 ## Gate C2 测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn ios-dev-expert 运行单元测试（XCTest）
+  → Gate C1.5 视觉验证通过
+  → 步骤 1：spawn ios-test-expert（单元测试：XCTest）
   → 步骤 2：spawn e2e-test-expert（XCUITest）
      需模拟器；使用 XCUIApplication + XCUIElementQuery
   → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
@@ -89,10 +111,37 @@ iOS 专项：
 - UI 测试：XCUITest + SwiftUI Testing（ViewInspector）
 - 快照测试：SnapshotTesting（可选）
 
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原 iOS 实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环；仍不通过 → 标记 `BLOCKED`
+
+## Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
+├── spawn ios-review-expert（iOS 代码审查：SwiftUI架构/UI/状态/数据层/性能）
+├── spawn security-review-expert（安全审计：OWASP Mobile Top 10/CVE/密钥检测）
+└── spawn perf-review-expert（性能审计：启动时间/内存/主线程/能耗/包体积）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. iOS 审查不通过 → spawn 原 iOS 实现 Agent（ios-dev-expert / ios-ui-expert / ios-state-expert）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`
+
+通过后：`advance_gate({ gate: "Gate E" })`
+
 ## Gate E 发布
 
 🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
 
+- spawn `security-review-expert`（如 Gate D 未执行）
+- spawn `perf-review-expert`（如 Gate D 未执行）
 - 加载 `shipping-and-launch` 执行上线检查清单
 - App Store：证书管理、Archive→Validate→Submit、TestFlight 分发
 - HIG（Human Interface Guidelines）合规检查

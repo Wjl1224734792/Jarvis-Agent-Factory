@@ -43,8 +43,12 @@ updated: "2026-05-14"
 | UI/Widget/主题 | `flutter-ui-expert` |
 | 状态/数据/路由 | `flutter-state-expert` |
 | 任务分解（复杂需求） | `task-design` |
+| Flutter 测试 | `flutter-test-expert` |
+| Flutter 审查 | `flutter-review-expert` |
 | 浏览器测试（Web） | `browser-test-expert` |
 | E2E 测试 | `e2e-test-expert` |
+| 质量签核 | `qa-review-expert` |
+| 性能审计 | `perf-review-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
 | 只读探索（辅助） | `code-explore-expert`、`external-resource-expert` |
@@ -76,12 +80,29 @@ Flutter 专项：
 - Build：`flutter build apk --debug`（Android）+ `flutter build ios --no-codesign`（iOS）
 - Deps Audit：`dart pub outdated` + OWASP dependency-check
 
+## Gate C1.5 视觉验证
+
+**移动端任务必须过此门。** 条件：
+- 模拟器/真机已启动（Android Emulator + iOS Simulator）
+- 修改前/后对比截图已附
+- 多平台截图已附（Android/iOS/Web，如涉及）
+- 暗色模式截图（如支持）
+- 无可见布局问题或 UI 异常（RenderFlex overflow/截断/错位）
+
+**通过**：进入 Gate C2
+
+**不通过**：
+1. **证据缺失** → 退回实现 Agent 补充截图证据
+2. **UI 问题**（溢出/错位/渲染异常）→ 诊断根因，修复源文件，重新截图验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`
+
 ## Gate C2 测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn flutter-dev-expert 运行单元/Widget 测试（flutter test）
-  → 步骤 2：Web 端浏览器测试（spawn browser-test-expert）
+  → Gate C1.5 视觉验证通过
+  → 步骤 1：spawn flutter-test-expert（单元/Widget 测试：flutter test）
+  → 步骤 2：Web 端浏览器测试（spawn browser-test-expert，如有 Web 变更）
   → 步骤 3：集成测试 + E2E（spawn e2e-test-expert，flutter integration_test）
   → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
 ```
@@ -93,10 +114,37 @@ Flutter 专项：
 - Web 端：agent-browser 浏览器自动化
 - Golden 测试：`matchesGoldenFile`（视觉回归）
 
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原 Flutter 实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环；仍不通过 → 标记 `BLOCKED`
+
+## Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
+├── spawn flutter-review-expert（Flutter 代码审查：Widget架构/UI/状态管理/性能/跨端适配）
+├── spawn security-review-expert（安全审计：OWASP Mobile Top 10/CVE/密钥检测）
+└── spawn perf-review-expert（性能审计：启动时间/内存/jank/包体积）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. Flutter 审查不通过 → spawn 原 Flutter 实现 Agent（flutter-dev-expert / flutter-ui-expert / flutter-state-expert）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`
+
+通过后：`advance_gate({ gate: "Gate E" })`
+
 ## Gate E 发布
 
 🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
 
+- spawn `security-review-expert`（如 Gate D 未执行）
+- spawn `perf-review-expert`（如 Gate D 未执行）
 - 加载 `shipping-and-launch` 执行上线检查清单
 - Android：`flutter build appbundle` + Google Play 提交
 - iOS：`flutter build ipa` + TestFlight + App Store 提交

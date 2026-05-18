@@ -183,13 +183,13 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
   // ============================================================
   // 单一 hooks 配置源：settings.json
   // 不再使用 plugin 系统 —— hooks 覆盖全部需求：
-  //   PostToolUse(Agent)        → gate-check
+  //   PostToolUse(Agent)        → gate-check --operation spawn_impl
   //   PostToolUse(Write/Edit)   → gate-check --operation write_code
   //   Stop                      → status
   // ============================================================
   const hookJson = {
     PostToolUse: [
-      { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] },
+      { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation spawn_impl' }] },
       { matcher: 'Write', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
       { matcher: 'Edit', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
     ],

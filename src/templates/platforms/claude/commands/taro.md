@@ -43,8 +43,12 @@ updated: "2026-05-14"
 | UI/布局/多端样式 | `taro-ui-expert` |
 | 状态/数据/路由 | `taro-state-expert` |
 | 任务分解（复杂需求） | `task-design` |
+| Taro 测试 | `taro-test-expert` |
+| Taro 审查 | `taro-review-expert` |
 | 浏览器测试（H5） | `browser-test-expert` |
 | E2E 测试 | `e2e-test-expert` |
+| 质量签核 | `qa-review-expert` |
+| 性能审计 | `perf-review-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
 | 只读探索（辅助） | `code-explore-expert`、`external-resource-expert` |
@@ -68,11 +72,37 @@ Gate C-impl:
   Batch 4: [e2e-test-expert]                     ← 真机/模拟器 E2E
 ```
 
+## Gate C1 代码质量
+
+Taro 专项：
+- Lint：`npx eslint . --ext .ts,.tsx`（零 error）
+- Type-check：`npx tsc --noEmit`
+- Build：`npx taro build --type weapp`（微信小程序）+ `npx taro build --type h5`（H5）
+- Deps Audit：`npm audit` / `yarn audit`
+
+## Gate C1.5 视觉验证
+
+**小程序/H5 任务必须过此门。** 条件：
+- 微信开发者工具已启动（小程序）+ 浏览器已启动（H5）
+- 修改前/后对比截图已附
+- 多端截图已附（H5 + 微信小程序，至少两端）
+- 多屏幕尺寸截图已附（H5：mobile/tablet/desktop）
+- 暗色模式截图（如支持）
+- 无可见布局问题或 UI 异常
+
+**通过**：进入 Gate C2
+
+**不通过**：
+1. **证据缺失** → 退回实现 Agent 补充截图证据
+2. **UI 问题**（溢出/错位/端差异）→ 诊断根因，修复源文件，重新截图验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`
+
 ## Gate C2 测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn taro-dev-expert 运行单元/组件测试
+  → Gate C1.5 视觉验证通过
+  → 步骤 1：spawn taro-test-expert（单元/组件测试：Jest）
   → 步骤 2：H5 端浏览器测试（spawn browser-test-expert，加载 agent-browser）
   → 步骤 3：小程序端 E2E（spawn e2e-test-expert，微信开发者工具 CLI）
   → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
@@ -83,10 +113,37 @@ Gate C-impl:
 - H5 端：agent-browser 浏览器自动化
 - 多端适配验证：至少覆盖微信 + H5 两端
 
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原 Taro 实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环；仍不通过 → 标记 `BLOCKED`
+
+## Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
+├── spawn taro-review-expert（Taro 代码审查：组件架构/多端适配/UI样式/状态管理/性能）
+├── spawn security-review-expert（安全审计：小程序安全/CVE/敏感数据处理）
+└── spawn perf-review-expert（性能审计：小程序包体积/H5首屏/各端渲染性能）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. Taro 审查不通过 → spawn 原 Taro 实现 Agent（taro-dev-expert / taro-ui-expert / taro-state-expert）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`
+
+通过后：`advance_gate({ gate: "Gate E" })`
+
 ## Gate E 发布
 
 🔴 **前置——质量重检（不可跳过）**：Lint + Type-check + Build + Test 全部重跑通过（Gate D 修复后必须重新验证，失败最多 2 轮修复）
 
+- spawn `security-review-expert`（如 Gate D 未执行）
+- spawn `perf-review-expert`（如 Gate D 未执行）
 - 加载 `shipping-and-launch` 执行上线检查清单
 - 小程序：微信审核规范检查、体验版验证、提交审核
 - H5：静态资源 CDN 部署、缓存策略

@@ -61,10 +61,17 @@ export async function hookCommand(args) {
         process.exit(1);
       }
 
-      // 默认：检查 Gate 条件
-      const g = await api(`/api/gate/${encodeURIComponent(current)}/enforce?session_id=${session.session_id}`);
-      if (g.allowed) { console.log(`✅ ${current} — OK (${session.pipeline_name})`); process.exit(0); }
-      else { console.log(`🚫 ${current} BLOCKED — ${g.artifacts?.length ? 'missing artifacts' : 'checkpoint required'} (${session.pipeline_name})`); process.exit(1); }
+      // 默认：无 --operation（如 Agent hook）→ 检查 spawn_impl 作为 Agent 操作基线
+      const ops = GATE_OPERATIONS[current] || { allow: [], deny: [] };
+      if (ops.allow.includes('spawn_impl')) {
+        const g = await api(`/api/gate/${encodeURIComponent(current)}/enforce?session_id=${session.session_id}`);
+        if (g.allowed) { console.log(`✅ ${current} — OK (${session.pipeline_name})`); process.exit(0); }
+        else { console.log(`🚫 ${current} BLOCKED — ${g.artifacts?.length ? 'missing artifacts' : 'checkpoint required'} (${session.pipeline_name})`); process.exit(1); }
+      } else {
+        console.log(`🚫 ${current}: Agent 操作被禁止 (${session.pipeline_name})`);
+        console.log(`  允许的操作: ${ops.allow.join(', ')}`);
+        process.exit(1);
+      }
     } catch {
       console.error(`\n⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.`);
       console.error(`   Start it: jarvis engine start\n`);

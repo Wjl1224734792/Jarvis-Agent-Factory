@@ -282,6 +282,24 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
     expect(PIPELINE_DEFS.lite.allow_jump).toBe(true);
   });
 
+  it('7a. frontend 流水线包含 Gate C1.5 且位置在 C1 和 C2 之间', () => {
+    const gates = getPipelineGates('frontend');
+    const c1Idx = gates.indexOf('Gate C1');
+    const c15Idx = gates.indexOf('Gate C1.5');
+    const c2Idx = gates.indexOf('Gate C2');
+    expect(c15Idx).toBeGreaterThan(c1Idx);
+    expect(c2Idx).toBeGreaterThan(c15Idx);
+  });
+
+  it('7b. Gate C1.5 的 GATE_OPERATIONS 允许 preview、fix 禁止 write_code', () => {
+    const ops = getGateOperations('Gate C1.5');
+    expect(ops.allow).toContain('preview');
+    expect(ops.allow).toContain('fix');
+    expect(ops.deny).toContain('write_code');
+    expect(ops.deny).toContain('spawn_impl');
+    expect(ops.deny).toContain('deploy');
+  });
+
   it('8. getPipelineName 返回新流水线中文名称', () => {
     expect(getPipelineName('refactor')).toBe('重构');
     expect(getPipelineName('hotfix')).toBe('紧急热修复');
