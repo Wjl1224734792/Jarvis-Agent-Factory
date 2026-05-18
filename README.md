@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.47.13-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.48.2-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.47.13** — Agent hook 操作权限检查 · 12 个移动端审查/测试 Agent · `/react-native` 指令 · 6 条移动端指令 Gate D 评审完善 · 前端指令页面空 Tab 自动切换
+> **v3.48.2** — 项目级存储隔离 · Agent Team 混合编排 · 33 条指令完整 frontmatter · 9 条流水线工程级规范
 
 ## 快速开始
 
@@ -37,9 +37,10 @@ jarvis web                       # 启动 Web 面板（按需）
 |------|------|
 | **MCP 编排引擎** | FSM 硬约束 Gate A→B→C→C1→C1.5→C2→D→E，跳过/回退被拒绝 |
 | **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
+| **Agent Team 支持** | `jarvis init` 自动启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，Team + SubAgent 混合编排 |
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
-| **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
+| **项目级存储隔离** | `<project>/.jarvis/` 独立数据库 + PID，每个项目跨会话记忆不跨项目共享 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
 | **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 产物文档阅读器 · Gate Timeline · Agent 配置页 |
 | **远程面板** | 单 HTML 文件下载即可打开，无需本地 web 构建 |
@@ -47,6 +48,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
 | **智能 MCP 合并** | `jarvis upgrade` / `jarvis init` 增量合并 MCP 配置，不覆盖用户自定义服务 |
+| **智能 env 合并** | `jarvis init` 增量合并 settings.json env，保护用户自定义环境变量 |
 | **Hook/Plugin** | Claude Code hooks + MCP 全覆盖 |
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
 | **零原生依赖** | Node 22.5+ 内置 `node:sqlite`，安装秒级完成 |
@@ -298,8 +300,9 @@ test-doc-writer → test-executor → fix-retest
 | | Claude Code |
 |---|:--:|
 | Agents | 69 |
-| Commands | 31 |
+| Commands | 33 |
 | Skills | 34 |
+| Pipeline | 9 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug） |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
 
@@ -313,12 +316,13 @@ test-doc-writer → test-executor → fix-retest
 | 轻量入口跳转 | `gate_jump` MCP 工具（lite 模式） | 👆 编排者手动 |
 | 跳过/回退 Gate 拒绝 | FSM 硬约束 | 🔄 自动 |
 | 操作前 Gate 检查 | `gate_check` MCP 工具 | 🔄 自动 |
+| Team/SubAgent 策略 | `pipeline_guide` → `team_strategy` + `agent_mode` | 👆 按需 |
 | 流程指引 | `pipeline_guide` MCP 工具 | 👆 按需 |
 | 平台信息 | `platform_info` MCP 工具 | 👆 按需 |
 | 会话命名 | `session_set_name` MCP 工具 | 👆 按需 |
 | 流水线状态 | Dashboard + SSE 实时推送 | 👆 按需 |
-| 会话隔离 | 每 session_id 独立 pipeline | 🔄 自动 |
-| 文件同步 | Web 配置 → `.md`/`.toml` | 👆 保存时触发 |
+| 项目级会话隔离 | `<project>/.jarvis/engine.db` 独立数据库 | 🔄 自动 |
+| Agent 配置 | Web 面板配置 → `.md`/`.toml` 文件同步 | 👆 保存时触发 |
 
 ## 发布流程
 

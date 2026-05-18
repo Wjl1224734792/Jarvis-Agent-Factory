@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.48.3] - 2026-05-19
+
+### Changed
+- **README.md 更新**：版本 v3.48.2、核心特性表新增 Agent Team/项目级存储隔离/智能 env 合并、统计表更新（33 条指令）、引擎能力矩阵新增 Team/SubAgent 策略
+- **README_EN.md 同步**：版本号更新至 v3.48.2，指令数更新至 33
+
 ## [3.48.2] - 2026-05-19
 
 ### Fixed
