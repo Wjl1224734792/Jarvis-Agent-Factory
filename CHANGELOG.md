@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.49.1] - 2026-05-19
+
+### Changed
+- **文档同步**：README_EN.md 版本 badge v3.48.2→v3.49.0，README/AGENTS 统计数据核对一致
+- 移除 remove.ts 未使用的 `dirname` 导入（lint 警告清零）
+
 ## [3.49.0] - 2026-05-19
 
 ### Added
