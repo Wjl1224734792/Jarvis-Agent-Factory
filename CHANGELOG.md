@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.52.2] - 2026-05-19
+
+### Changed
+- **npm 包瘦身**：`.npmignore` 排除 `dist/tests/`（601KB）、`*.js.map`（~500文件）、`web/` 源码、根目录截图，包体积显著减小
+- Web 构建配置优化：esbuild minify + 清理冗余配置
+
 ## [3.52.1] - 2026-05-19
 
 ### Fixed

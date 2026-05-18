@@ -79,6 +79,15 @@ docs/
 scripts/
 skills-lock.json
 _runner.py
+web/
+commands-desktop.png
+commands-fixed.png
+commands-mobile.png
+commands-page-*.png
+commands-prod-*.png
+commands-tablet.png
+commands-with-data.png
+web-panel-*.png
 
 # ============================================================
 # 临时与日志
@@ -103,6 +112,9 @@ tests/
 __tests__/
 *.test.js
 *.spec.js
+dist/tests/
+*.js.map
+*.d.ts.map
 coverage/
 .nyc_output/
 

@@ -12,8 +12,13 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, '..', 'dist', 'web'),
     emptyOutDir: true,
-    // 单文件模式下关闭 CSS 代码分割，全部内联到 JS
     cssCodeSplit: false,
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   server: {
     port: 5173,
