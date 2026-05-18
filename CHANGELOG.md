@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.52.0] - 2026-05-19
+
+### Added
+- **会话自动归档**：`session_join` 检测到活跃 run 时自动归档旧任务，为新任务创建全新 run
+- **历史详情页**：`#/archive/:runId` 展示任务的 Gate 时间线 + 产物文档列表 + 事件日志
+- **Run 详情 API**：`GET /api/pipeline-runs/:id/detail` 返回完整 run 信息
+- **可点击归档列表**：归档页面每条记录可点击进入详情页
+
+### Changed
+- session_join: 旧活跃 run 自动设置 archived=1 + status=completed
+- 归档条目悬停效果 + 面包屑导航
+
 ## [3.51.2] - 2026-05-19
 
 ### Fixed

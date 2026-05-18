@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun, getArtifactsByRun, getArtifactsByRunAndGate } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -497,6 +497,51 @@ export function setupApiRoutes(app, db, root) {
     // TASK-005: 发布 run 变更事件
     emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'unpin' });
     return c.json({ ok: true });
+  });
+
+  /** 获取 run 详情（含 gates + 文档列表） */
+  app.get('/api/pipeline-runs/:id/detail', (c) => {
+    const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
+    if (!run) return c.json({ error: 'Run not found' }, 404);
+
+    const pt = run.pipeline_type || DEFAULT_PIPELINE;
+    const gateList = getPipelineGates(pt);
+    const gates = gateList.map(g => {
+      const cpList = getCheckpoints(db, g, run.session_id);
+      const cp = cpList.length > 0 ? cpList[0] : null;
+      const arts = getArtifactsByRunAndGate(db, runId, g);
+      return {
+        gate: g,
+        passed: cp !== null,
+        passed_at: cp?.passed_at || null,
+        duration_seconds: cp?.duration_seconds ?? null,
+        duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
+        artifacts: arts.map(a => ({
+          filepath: a.filepath,
+          created_at: a.created_at,
+        })),
+      };
+    });
+
+    const allDocs = getArtifactsByRun(db, runId);
+    const events = db.prepare ? db.prepare('SELECT * FROM session_events WHERE run_id=? ORDER BY created_at DESC LIMIT 20').all(runId) : [];
+
+    return c.json({
+      run: {
+        ...run,
+        total_duration_display: run.total_duration_seconds != null ? formatDuration(run.total_duration_seconds) : null,
+      },
+      gates,
+      documents: allDocs.map(a => ({
+        filepath: a.filepath,
+        gate: a.gate,
+        created_at: a.created_at,
+      })),
+      events: events || [],
+      pipeline_name: getPipelineName(pt),
+      pipeline_type: pt,
+    });
   });
 
   /** 获取所有已归档 run */

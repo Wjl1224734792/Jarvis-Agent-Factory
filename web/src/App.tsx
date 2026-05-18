@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Agents = lazy(() => import('./pages/Agents'));
 const Commands = lazy(() => import('./pages/Commands'));
 const Archive = lazy(() => import('./pages/Archive'));
+const RunDetail = lazy(() => import('./pages/RunDetail'));
 
 function Loading() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/agents" element={<Agents />} />
               <Route path="/commands" element={<Commands />} />
               <Route path="/archive" element={<Archive />} />
+              <Route path="/archive/:runId" element={<RunDetail />} />
             </Routes>
           </Suspense>
         </AppLayout>

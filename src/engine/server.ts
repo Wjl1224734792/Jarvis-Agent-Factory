@@ -453,23 +453,24 @@ export function registerMcpTools(server, db, root) {
       if (existing) {
         touchSession(db, sid);
         const p = getPipeline(db, sid);
-        // Session Model B: 无活跃 run 时自动创建并设置默认任务名
-        let runId = getActiveRun(db, sid)?.id;
-        if (!runId) {
-          runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
-          const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
-          const now = new Date();
-          const mm = String(now.getMonth() + 1).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
-          // TASK-005: 发布恢复会话 + 新 run 事件
-          emitEvent('session:changed', { sessionId: sid, action: 'join' });
-          emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
-          logSessionEvent(db, sid, 'session_join', { runId, detail: 'resumed session' });
-        } else if (task_name) {
-          // 已有活跃 run，但传入 task_name 则更新
-          setRunTaskName(db, runId!, task_name);
+        // 自动归档旧活跃 run（同一会话新任务 → 旧任务进历史）
+        const activeRun = getActiveRun(db, sid);
+        if (activeRun) {
+          db.prepare("UPDATE pipeline_runs SET archived=1, status='completed', completed_at=datetime('now') WHERE id=?")
+            .run(activeRun.id);
+          logSessionEvent(db, sid, 'run_archived', { runId: activeRun.id, detail: 'auto-archived on new task' });
+          emitEvent('run:changed', { runId: activeRun.id, sessionId: sid, action: 'archive' });
         }
+        // 创建新 run
+        const runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+        const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+        emitEvent('session:changed', { sessionId: sid, action: 'join' });
+        emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
+        logSessionEvent(db, sid, 'session_join', { runId, detail: activeRun ? 'new task (old archived)' : 'new session' });
         return resp({
           session_id: sid, platform: existing.platform,
           gate: p?.current_gate || 'Gate A',

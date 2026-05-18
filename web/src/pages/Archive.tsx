@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card, Input, Button, Tag, Empty, Spin, message, Modal,
 } from 'antd';
@@ -41,6 +42,7 @@ function shortId(id: string): string {
 }
 
 export default function Archive() {
+  const navigate = useNavigate();
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -161,9 +163,10 @@ export default function Archive() {
               return (
                 <div
                   key={r.id}
+                  onClick={() => navigate(`/archive/${r.id}`)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 12px', borderRadius: 12, marginBottom: 4,
+                    padding: '8px 12px', borderRadius: 12, marginBottom: 4, cursor: 'pointer',
                     border: '1px solid var(--ant-color-border-secondary)', fontSize: 12,
                   }}
                 >
