@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent, saveResumeData } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
