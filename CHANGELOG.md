@@ -4,6 +4,11 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.52.1] - 2026-05-19
+
+### Fixed
+- **产物文档隔离**：`findSessionGateArtifacts` 有 runId 时仅查 artifacts 表，移除日期目录回退（杜绝跨 run 文档污染）
+
 ## [3.52.0] - 2026-05-19
 
 ### Added

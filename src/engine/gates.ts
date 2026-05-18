@@ -389,12 +389,10 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   // 按 run_id + gate 精确查询 artifacts 表
   if (runId && db) {
     const rows = getArtifactsByRunAndGate(db, runId, gate);
-    if (rows.length > 0) {
-      return rows.map(r => r.filepath).slice(0, 5);
-    }
+    return rows.map(r => r.filepath).slice(0, 5);
   }
 
-  // 无 artifacts 记录时使用当日日期目录扫描（当前 Gate 实时可见）
+  // 无 runId 时使用当日日期目录扫描（兼容旧调用）
   const today = new Date().toISOString().slice(0, 10);
   const todayDir = join(docsDir, today, subdir);
   if (existsSync(todayDir)) {
