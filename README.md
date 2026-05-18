@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.45.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.47.13-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.45.1** — 10 个新指令（测试体系化 + 重构安全网 + 热修复 + 迁移 + 评估 + 调试）· 5 条新流水线类型 · 智能 MCP 合并安装
+> **v3.47.13** — Agent hook 操作权限检查 · 12 个移动端审查/测试 Agent · `/react-native` 指令 · 6 条移动端指令 Gate D 评审完善 · 前端指令页面空 Tab 自动切换
 
 ## 快速开始
 
@@ -256,8 +256,8 @@ test-doc-writer → test-executor → fix-retest
 ## 生命周期流水线
 
 ```
-想法细化 → 需求澄清 → 任务分解 → 执行规划 → 并行实现 → 质量门 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
-  Gate 0     Gate A     Gate B     Gate C     Gate C     Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
+想法细化 → 需求澄清 → 任务分解(DDD→BDD→TDD) → 架构评审 → 执行规划 → 并行实现 → 质量门 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
+  Gate 0     Gate A     Gate B              Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
 ```
 
 ## 平台入口速查（Claude Code）
@@ -272,6 +272,7 @@ test-doc-writer → test-executor → fix-retest
 | Flutter | `/flutter` |
 | Expo | `/expo` |
 | Taro | `/taro` |
+| React Native | `/react-native` |
 | 审查 | `/review` |
 | 修复闭环 | `/review-fix` |
 | 浏览器测试 | `/browser-test` |
@@ -296,9 +297,9 @@ test-doc-writer → test-executor → fix-retest
 
 | | Claude Code |
 |---|:--:|
-| Agents | 88 |
-| Commands | 26 |
-| Skills | 29 |
+| Agents | 69 |
+| Commands | 31 |
+| Skills | 34 |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
 
@@ -346,11 +347,12 @@ test-doc-writer → test-executor → fix-retest
 | | `/jarvis-lite` | [jarvis-lite.md](docs/flows/jarvis-lite.md) | 按任务类型智能映射入口 |
 | **前端** | `/frontend` | [frontend.md](docs/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
 | **后端** | `/backend` | [backend.md](docs/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (跳过C1.5) |
-| **移动端** | `/android` | [android.md](docs/flows/android.md) | A→B→C→C1→C2→D→E (7门) |
-| | `/ios` | [ios.md](docs/flows/ios.md) | A→B→C→C1→C2→D→E (7门) |
-| **跨端** | `/flutter` | [flutter.md](docs/flows/flutter.md) | A→B→C→C1→C2→D→E (7门) |
-| | `/expo` | [expo.md](docs/flows/expo.md) | A→B→C→C1→C2→D→E (7门) |
-| | `/taro` | [taro.md](docs/flows/taro.md) | A→B→C→C1→C2→D→E (7门) |
+| **移动端** | `/android` | [android.md](docs/flows/android.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/ios` | [ios.md](docs/flows/ios.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| **跨端** | `/flutter` | [flutter.md](docs/flows/flutter.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/expo` | [expo.md](docs/flows/expo.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/taro` | [taro.md](docs/flows/taro.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/react-native` | [react-native.md](docs/flows/react-native.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
 | **测试/修复** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | 用例编写→执行→修复重测闭环 |
 | | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 复现→根因→修复→验证 7步闭环 |
 | **审查** | `/review` | [review.md](docs/flows/review.md) | 只读审查，不修改文件 |

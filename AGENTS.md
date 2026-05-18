@@ -26,8 +26,8 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 ### 标准流水线
 
 ```
-想法细化 → 需求澄清 → 任务分解 → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
-  Gate 0     Gate A     Gate B     Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
+想法细化 → 需求澄清 → 任务分解(DDD→BDD→TDD) → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 质量重检 → 发布
+  Gate 0     Gate A     Gate B              Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E(前置) Gate E
 ```
 
 ### 专业流水线（v3.45.0）
@@ -52,7 +52,7 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 轻量编排 | `/jarvis-lite` | 切换到 `jarvis-lite` agent | 加载 `jarvis-lite` skill |
 | 前端生命周期 | `/frontend` | 切换到 `frontend` agent | 加载 `frontend` skill |
 | 后端生命周期 | `/backend` | 切换到 `backend` agent | 加载 `backend` skill |
-| 移动端开发 | `/taro` `/android` `/ios` `/expo` `/flutter` | 切换到对应 agent | 加载对应 skill |
+| 移动端开发 | `/taro` `/android` `/ios` `/expo` `/flutter` `/react-native` | 切换到对应 agent | 加载对应 skill |
 | 浏览器测试 | `/browser-test` | 切换到 `browser-test-worker` | 加载 `browser-test` skill |
 | Bug 修复 | `/bug-fix` | 切换到编排者触发 | 加载 `bug-fix` skill |
 | 一键发布 | `/publish` | 质量门→测试→版本→tag→PR→合并→发布 | 引用 `code-quality-gate` `git-workflow-and-versioning` |
@@ -248,19 +248,19 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 - docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
 - browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
 
-## 智能体体系（57 个 Agent，仅 Claude Code 平台）
+## 智能体体系（69 个 Agent，仅 Claude Code 平台）
 
 ### 实现类（22）
 `frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
-### 测试类（10）
-`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
+### 测试类（16）
+`frontend-test-expert` `backend-test-expert` `android-test-expert` `ios-test-expert` `flutter-test-expert` `taro-test-expert` `expo-test-expert` `react-native-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
 
 ### 规划/任务（4）
 `task-design` `planner` `skill-assignment-expert` `remediation-planner`
 
-### 审查类（10）
-`frontend-review-expert` `backend-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `review-only` `review-fix-optimize`
+### 审查类（16）
+`frontend-review-expert` `backend-review-expert` `android-review-expert` `ios-review-expert` `flutter-review-expert` `taro-review-expert` `expo-review-expert` `react-native-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `review-only` `review-fix-optimize`
 
 ### 架构/专家（4）
 `algorithm-expert` `frontend-architect` `backend-architect` `database-architect`
@@ -268,5 +268,5 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ### 探索/支撑（7）
 `code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `docs-research-expert`
 
-### Claude Code 命令入口（30）
-`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
+### Claude Code 命令入口（31）
+`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
