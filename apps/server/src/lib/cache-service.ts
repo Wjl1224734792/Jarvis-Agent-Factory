@@ -11,7 +11,21 @@ export class CacheService {
 
   constructor() {
     this.redis = createClient({
-      url: process.env.REDIS_URL || "redis://localhost:6379/0"
+      url: process.env.REDIS_URL || "redis://localhost:6379/0",
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 20) {
+            return new Error("Redis 重试次数耗尽");
+          }
+          return Math.min(retries * 100, 3000);
+        },
+      },
+    });
+
+    this.redis.on("error", (err) => {
+      logger.warn("Redis 连接错误", {
+        error: err.message,
+      });
     });
   }
 

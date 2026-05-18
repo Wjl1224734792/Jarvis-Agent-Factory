@@ -62,8 +62,9 @@ function isAllowedDevPort(port: string): boolean {
 }
 
 /**
- * 开发态用于放行局域网访问：仅允许 localhost / 127.0.0.1 / 私网 IPv4，
- * 且端口必须是 web/admin 开发端口。
+ * 开发态用于放行局域网访问：
+ * - localhost / 127.0.0.1 / ::1：允许任意端口（覆盖 Flutter Web 等非标准端口）
+ * - 私网 IPv4：端口必须是 web/admin 开发端口
  */
 export function isAllowedDevCorsOrigin(origin: string): boolean {
   try {
@@ -73,11 +74,15 @@ export function isAllowedDevCorsOrigin(origin: string): boolean {
     }
 
     const hostname = parsed.hostname.toLowerCase();
-    if (!(isLoopbackHost(hostname) || isPrivateIpv4(hostname))) {
-      return false;
+    if (isLoopbackHost(hostname)) {
+      return true;
     }
 
-    return isAllowedDevPort(parsed.port);
+    if (isPrivateIpv4(hostname)) {
+      return isAllowedDevPort(parsed.port);
+    }
+
+    return false;
   } catch {
     return false;
   }

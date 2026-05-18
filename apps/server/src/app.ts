@@ -63,16 +63,16 @@ function parseConfiguredCorsOrigins(raw: string | undefined) {
  * 解析服务端实际使用的 CORS 来源配置。
  *
  * @returns 显式白名单数组，或用于动态放行开发来源的回调函数。
- * @throws {Error} 当生产环境显式配置 `CORS_ORIGIN=all` 时抛出异常。
+ * @throws {Error} 当生产环境显式配置 `CORS_ORIGIN=*` 时抛出异常。
  */
 export function resolveCorsOrigin():
   | string[]
   | ((origin: string) => string | undefined | null) {
   const raw = process.env.CORS_ORIGIN?.trim() ?? process.env.CORS_ORIGINS?.trim();
-  if (raw === '*' || raw?.toLowerCase() === 'all') {
+  if (raw === '*') {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(
-        'CORS_ORIGIN=all is forbidden in production when credentials are enabled.'
+        'CORS_ORIGIN=* is forbidden in production when credentials are enabled.'
       );
     }
 

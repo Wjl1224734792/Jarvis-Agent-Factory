@@ -228,11 +228,11 @@ describe("auth flows", () => {
     const previousCorsOrigins = process.env.CORS_ORIGINS;
 
     process.env.NODE_ENV = "production";
-    process.env.CORS_ORIGIN = "all";
+    process.env.CORS_ORIGIN = "*";
     delete process.env.CORS_ORIGINS;
 
     try {
-      expect(() => resolveCorsOrigin()).toThrow(/CORS_ORIGIN=all/i);
+      expect(() => resolveCorsOrigin()).toThrow(/CORS_ORIGIN=\*/i);
     } finally {
       restoreEnvValues({
         NODE_ENV: previousNodeEnv,

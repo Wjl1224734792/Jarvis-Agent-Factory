@@ -21,7 +21,21 @@ if (!redisUrl && process.env.NODE_ENV !== "test") {
   );
 }
 
-export const redis: RedisClientType = createClient({ url: redisUrl || "redis://localhost:6379/0" });
+export const redis: RedisClientType = createClient({
+  url: redisUrl || "redis://localhost:6379/0",
+  socket: {
+    reconnectStrategy: (retries) => {
+      if (retries > 20) {
+        return new Error("Redis 重试次数耗尽");
+      }
+      return Math.min(retries * 100, 3000);
+    },
+  },
+});
+
+redis.on("error", (err) => {
+  console.error("[Redis] 连接错误:", err.message);
+});
 
 /**
  * 连接状态标志。
