@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent, saveResumeData } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -465,6 +465,7 @@ export function registerMcpTools(server, db, root) {
           // TASK-005: 发布恢复会话 + 新 run 事件
           emitEvent('session:changed', { sessionId: sid, action: 'join' });
           emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
+          logSessionEvent(db, sid, 'session_join', { runId, detail: 'resumed session' });
         } else if (task_name) {
           // 已有活跃 run，但传入 task_name 则更新
           setRunTaskName(db, runId!, task_name);
@@ -488,6 +489,7 @@ export function registerMcpTools(server, db, root) {
       // TASK-005: 发布新会话 + 新 run 事件
       emitEvent('session:changed', { sessionId: sid, action: 'join' });
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
+      logSessionEvent(db, sid, 'session_join', { runId, detail: 'new session' });
       return resp({
         session_id: sid, platform: platform || 'unknown',
         gate: p?.current_gate || 'Gate A',
@@ -524,6 +526,7 @@ export function registerMcpTools(server, db, root) {
       removeSession(db, sid);
       // TASK-005: 发布 session 离开事件
       emitEvent('session:changed', { sessionId: sid, action: 'leave' });
+      logSessionEvent(db, sid, 'session_leave', { detail: 'session left' });
       return resp({ ok: true, message: 'Session removed.' });
     });
 
@@ -706,6 +709,7 @@ export function registerMcpTools(server, db, root) {
       }
       // TASK-005: 发布 Gate 推进事件
       emitEvent('gate:advanced', { sessionId: sid, runId, gate, previousGate: cur });
+      logSessionEvent(db, sid, 'gate_advance', { runId, gate, detail: cur + ' -> ' + gate });
       if (isLastGate && runId) {
         emitEvent('run:changed', { runId, sessionId: sid, action: 'complete' });
       }

@@ -174,9 +174,37 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   // Install hook configs (platform-native hooks drive gate enforcement)
   installHooks(platform, target, isGlobal, force);
 
+  // Initialize project memory system (.jarvis/memory/)
+  if (platform === 'claude' && !isGlobal) {
+    installMemory(target);
+  }
+
   const status = destExists ? 'updated' : 'installed';
   const label = isGlobal ? `~/${info.dir}` : destRoot;
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
+}
+
+/**
+ * 初始化项目记忆系统：将模板文件部署到 <project>/.jarvis/memory/
+ * 仅在项目级安装时执行（全局安装不创建记忆目录）
+ */
+function installMemory(target: string): void {
+  const memorySrc = resolve(TEMPLATES_DIR, 'memory');
+  const memoryDest = resolve(target, '.jarvis', 'memory');
+  if (!existsSync(memorySrc)) return;
+
+  if (!existsSync(memoryDest)) mkdirSync(memoryDest, { recursive: true });
+  try {
+    for (const entry of readdirSync(memorySrc)) {
+      if (!entry.endsWith('.md')) continue;
+      const destFile = join(memoryDest, entry);
+      // 仅创建不存在的文件（保护用户已编辑的内容）
+      if (!existsSync(destFile)) {
+        copyFileSync(join(memorySrc, entry), destFile);
+      }
+    }
+    console.log('  📝 memory → .jarvis/memory/ (项目级跨会话记忆)');
+  } catch { /* memory init 失败不阻塞主流程 */ }
 }
 
 function installHooks(platform: string, target: string, isGlobal: boolean, force: boolean) {

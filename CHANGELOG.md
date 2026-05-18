@@ -4,6 +4,17 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.51.0] - 2026-05-19
+
+### Added
+- **项目记忆系统**：`jarvis init` 自动创建 `.jarvis/memory/`（notes.md/decisions.md/context.md），跨会话持久化
+- **会话事件日志**：`session_events` 表记录 session_join/leave/gate_advance 等生命周期事件
+- **会话恢复数据**：`pipeline_runs.resume_data` 列 + `sessions.metadata` 列，OMC 风格状态持久化
+
+### Changed
+- OMC 架构精华集成：状态管理、事件日志、跨会话记忆、项目级存储分层
+- install.ts 新增 `installMemory()` 函数
+
 ## [3.50.0] - 2026-05-19
 
 ### Added

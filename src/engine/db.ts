@@ -177,6 +177,26 @@ function initSchema(db) {
   // ---- 清除遗留的 agent_events 表（v3.47.6+ 已废弃） ----
   try { db.exec("DROP TABLE IF EXISTS agent_events"); } catch {}
 
+  // ----  OMC-inspired: 会话事件日志表（跨会话可观测性） ----
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS session_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      run_id TEXT,
+      event_type TEXT NOT NULL,
+      gate TEXT,
+      detail TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_session_events_session ON session_events(session_id, created_at DESC);
+  `);
+
+  // ----  OMC-inspired: pipeline_runs 恢复数据列 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN resume_data TEXT"); } catch {}
+
+  // ----  OMC-inspired: sessions 元数据列 ----
+  try { db.exec("ALTER TABLE sessions ADD COLUMN metadata TEXT"); } catch {}
+
   // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
   // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
   const backfillResult = db.prepare(`
@@ -609,5 +629,54 @@ export function getArtifactsByRun(db, runId) {
  */
 export function getArtifactsByRunAndGate(db, runId, gate) {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
+}
+
+// ---- Session Events（OMC-inspired 跨会话事件日志） ----
+
+/**
+ * 记录会话事件
+ */
+export function logSessionEvent(db, sessionId: string, eventType: string, opts?: { runId?: string; gate?: string; detail?: string }) {
+  db.prepare('INSERT INTO session_events (session_id, run_id, event_type, gate, detail) VALUES (?, ?, ?, ?, ?)')
+    .run(sessionId, opts?.runId || null, eventType, opts?.gate || null, opts?.detail || null);
+}
+
+/**
+ * 获取会话事件日志
+ */
+export function getSessionEvents(db, sessionId: string, limit = 50) {
+  return db.prepare('SELECT * FROM session_events WHERE session_id=? ORDER BY created_at DESC LIMIT ?').all(sessionId, limit);
+}
+
+/**
+ * 获取 run 的事件日志
+ */
+export function getRunEvents(db, runId: string) {
+  return db.prepare('SELECT * FROM session_events WHERE run_id=? ORDER BY created_at DESC').all(runId);
+}
+
+// ---- Resume State（OMC-inspired 会话恢复） ----
+
+/**
+ * 保存 run 的恢复数据
+ */
+export function saveResumeData(db, runId: string, data: Record<string, unknown>) {
+  db.prepare('UPDATE pipeline_runs SET resume_data=? WHERE id=?').run(JSON.stringify(data), runId);
+}
+
+/**
+ * 获取 run 的恢复数据
+ */
+export function getResumeData(db, runId: string): Record<string, unknown> | null {
+  const row = db.prepare('SELECT resume_data FROM pipeline_runs WHERE id=?').get(runId);
+  if (!row?.resume_data) return null;
+  try { return JSON.parse(row.resume_data); } catch { return null; }
+}
+
+/**
+ * 更新 session metadata
+ */
+export function updateSessionMetadata(db, sessionId: string, metadata: Record<string, unknown>) {
+  db.prepare('UPDATE sessions SET metadata=? WHERE id=?').run(JSON.stringify(metadata), sessionId);
 }
 

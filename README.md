@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.50.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.51.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.50.0** — 数据看板首页 · Team 模块隔离 · 细粒度 remove · 项目级存储隔离 · Agent Team 混合编排
+> **v3.51.0** — 项目记忆系统 · 会话事件日志 · 数据看板 · Team 模块隔离 · OMC 架构精华集成
 
 ## 快速开始
 
@@ -40,6 +40,8 @@ jarvis web                       # 启动 Web 面板（按需）
 | **Agent Team 支持** | `jarvis init` 自动启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，Team + SubAgent 混合编排 |
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
+| **项目记忆系统** | `.jarvis/memory/` 跨会话笔记/决策记录/项目上下文，OMC 风格持久化 |
+| **会话事件日志** | `session_events` 表记录生命周期事件，跨会话可观测性 |
 | **项目级存储隔离** | `<project>/.jarvis/` 独立数据库 + PID，每个项目跨会话记忆不跨项目共享 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
 | **Web 面板** | 数据看板首页（#/）· 流水线看板（#/dashboard）· 归档（#/archive）· Agent 配置（#/agents）· SSE 实时推送 |
