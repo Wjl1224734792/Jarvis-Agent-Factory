@@ -173,39 +173,22 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb(root);
 
-  // 迁移：从全局 ~/.jarvis/ 迁移数据到项目级数据库（一次性的升级路径）
+  // 迁移：从全局 ~/.jarvis/ 仅迁移用户级 agent 模型偏好到项目级数据库
+  // sessions 和 pipeline_runs 是项目级数据，不跨项目复制——每个项目拥有独立的会话记忆
   if (needsMigration) {
     try {
       const globalDb = new DatabaseSync(globalDbPath);
-      // 迁移 agent 模型偏好（用户级配置）
       const models = globalDb.prepare('SELECT agent_id, model, effort FROM agent_models').all();
       if (models.length > 0) {
         for (const m of models) {
           db.prepare('INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, ?)')
             .run(m.agent_id, m.model, m.effort, new Date().toISOString());
         }
+        process.stderr.write(`  ✓  已从全局迁移 ${models.length} 条 agent 模型偏好到项目级数据库\n`);
       }
-      // 迁移 sessions 表（保留历史会话记录）
-      const sessions = globalDb.prepare('SELECT * FROM sessions').all();
-      for (const s of sessions) {
-        db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, status, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(s.id, s.platform, s.role || 'member', s.status || 'inactive', s.created_at || Date.now(), s.last_heartbeat || Date.now());
-      }
-      // 迁移 pipeline_runs（保留历史运行记录，project 字段更新为当前项目）
-      const runs = globalDb.prepare('SELECT * FROM pipeline_runs').all();
-      for (const r of runs) {
-        db.prepare(`INSERT OR REPLACE INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, completed_at, task_name, archived, pinned, gate_entered_at, total_duration_seconds)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(r.id, r.session_id, root, r.pipeline_type || 'full', r.current_gate || 'Gate A', r.status || 'completed',
-            r.started_at || new Date().toISOString(), r.completed_at || null, r.task_name || null,
-            r.archived || 0, r.pinned || 0, r.gate_entered_at, r.total_duration_seconds || null);
-      }
-      process.stderr.write(`  ✓  已从全局迁移 ${models.length} 条 agent 配置 + ${sessions.length} 个会话 + ${runs.length} 条运行记录到项目级数据库\n`);
-      process.stderr.write(`  ℹ  原全局数据库保留在 ${globalDbPath}，可手动删除\n`);
       globalDb.close();
     } catch (e) {
-      process.stderr.write(`  ⚠  全局数据迁移失败: ${(e as Error).message}\n`);
-      process.stderr.write(`  ℹ  项目将以全新数据库启动，旧数据保留在 ${globalDbPath}\n`);
+      process.stderr.write(`  ⚠  agent 配置迁移失败: ${(e as Error).message}\n`);
     }
   }
 

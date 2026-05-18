@@ -149,13 +149,13 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - **dev 分支开发** → 本地项目 → `dist/web/index.html` 位于项目根目录。`getWebDistDir()` 在包目录找不到时回退到 `resolve(root, 'dist', 'web')`
     - **禁止**：直接硬编码 `resolve(root, 'dist', 'web')` 或 `path.join(process.cwd(), 'dist/web')`。必须通过 `getWebDistDir()` 处理双场景
     - **验证方式**：全局安装后，在任意目录运行 `jarvis engine start` 访问 `localhost:3456` 应显示面板；dev 环境 `node bin/jarvis.js engine start` 同样可用
-22. **项目级存储隔离（硬约束）** — 引擎数据按项目隔离，每个项目拥有独立的数据库和运行时状态：
-    - **项目级** `<project>/.jarvis/`：引擎数据库 `engine.db`、PID 文件 `engine.pid`、文件哈希 `file-hashes.json`、质量门禁配置 `quality-gates.yml`、文档同步报告 `docs-sync-report.md`
-    - **全局级** `~/.jarvis/`：仅作为项目级缺失时的回退（迁移数据、全局安装的哈希文件）
-    - **项目配置** `<project>/.claude/`：settings.json（含 env/hooks/permissions）、agents/、commands/、skills/
-    - **全局配置** `~/.claude/`：用户级 agents/、commands/、skills/（跨项目共享）
-    - **Docs 产物** `<project>/docs/YYYY-MM-DD/`：按日期隔离的流水线产物（requirements/、tasks/、plans/、implementation/、testing/、review/、shipping/）
-    - **禁止**：在 `~/.jarvis/` 写入项目级运行时数据。所有引擎 DB/PID 文件必须写入 `<project>/.jarvis/`
+22. **存储分层架构（硬约束）** — 严格区分项目级跨会话记忆和用户级跨项目配置：
+    - **项目级记忆** `<project>/.jarvis/`：该项目的**跨会话记忆**——engine.db（sessions/pipeline_runs/checkpoints/artifacts 仅含本项目数据）、engine.pid、file-hashes.json、quality-gates.yml、docs-sync-report.md
+    - **用户级偏好** `~/.jarvis/`：仅存 agent 模型偏好（agent_models），首次启动自动迁移到项目 DB。**禁止**在此存 sessions/pipeline_runs 跨项目数据
+    - **项目配置** `<project>/.claude/`：settings.json（env/hooks/permissions）、项目专属 agents/、commands/、skills/
+    - **用户配置** `~/.claude/`：用户级 agents/、commands/、skills/（跨项目共享模板）
+    - **Docs 产物** `<project>/docs/YYYY-MM-DD/`：日期隔离的流水线产物
+    - **设计原则**：项目级 = 单项目多会话共享，不跨项目；用户级 = 跨项目一致的个人偏好（模型选择等）
 23. **Agent Team + SubAgent 混合编排** — 根据 Gate 阶段选择最优调度策略：
     - **Team 模式（prefer_team）**：Gate C-impl(并行实现)、Gate C2(并行测试)、Gate D(并行审查) — 使用 `TeamCreate` + `Agent(team_name)` 并行调度多个 Agent
     - **SubAgent 模式（subagent_only）**：Gate A(探索)、Gate B1(架构评审)、Gate C(规划) — 使用 `Agent` 工具直接 spawn 子 Agent

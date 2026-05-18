@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.48.1] - 2026-05-19
+
+### Fixed
+- **存储分层修正**：全局迁���不再复制 sessions/pipeline_runs 到项目 DB。项目级数据 = 单项目跨会话记忆，不跨项目共享。仅迁移 agent 模型偏好（用户级配置）
+- **AGENTS.md**：更新存储架构文档，明确项目级记忆 vs 用户级偏好的设计边界
+
 ## [3.48.0] - 2026-05-19
 
 ### Added
