@@ -139,3 +139,6 @@ data/
 docs/*
 
 .playwright-mcp/*
+
+# OMC session state
+.omc/

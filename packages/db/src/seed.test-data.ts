@@ -79,7 +79,22 @@ import {
   type SeedStorageObject
 } from "./seed.storage.js";
 import { hashVerificationCode } from "./helpers.js";
-import { SEED_PIXEL } from "./seed-image.js";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+function resolveRepoRoot(): string {
+  return resolve(import.meta.dirname, "..", "..", "..");
+}
+
+function loadSeedAsset(filename: string): Buffer {
+  const filePath = resolve(repoRoot, "docs", "tests_img-video", filename);
+  if (!existsSync(filePath)) {
+    throw new Error(`Seed asset not found: ${filePath}`);
+  }
+  return readFileSync(filePath);
+}
+
+const repoRoot = resolveRepoRoot();
 
 // ==================== 工具函数 ====================
 
@@ -549,28 +564,43 @@ async function seedObjectStorage() {
 
   const config = resolveSeedStorageConfig();
   FILE_KEYS.length = 0;
-  // 用彩色像素 PNG 替代原来看不见的 1px 透明 PNG
-  const TINY_MP4 = Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 
-  const categories = [
-    { prefix: "avatars", count: 50, type: "image/png" as const, data: SEED_PIXEL.purple },
-    { prefix: "posts/articles", count: 30, type: "image/png" as const, data: SEED_PIXEL.blue },
-    { prefix: "posts/moments", count: 30, type: "image/png" as const, data: SEED_PIXEL.teal },
-    { prefix: "posts/videos", count: 10, type: "video/mp4" as const, data: TINY_MP4 },
-    { prefix: "rankings/covers", count: 10, type: "image/png" as const, data: SEED_PIXEL.orange },
-    { prefix: "rankings/items", count: 50, type: "image/png" as const, data: SEED_PIXEL.amber },
-    { prefix: "models/covers", count: 30, type: "image/png" as const, data: SEED_PIXEL.green },
-    { prefix: "submissions/covers", count: 15, type: "image/png" as const, data: SEED_PIXEL.slate },
-    { prefix: "reports/evidence", count: 10, type: "image/png" as const, data: SEED_PIXEL.slate },
+  const assets = {
+    avatar1: loadSeedAsset("测试头像1.jpg"),
+    avatar2: loadSeedAsset("测试头像2.jpg"),
+    cover1: loadSeedAsset("封面图1.webp"),
+    cover2: loadSeedAsset("封面图2.webp"),
+    cover3: loadSeedAsset("封面图3.webp"),
+    cover4: loadSeedAsset("封面图4.webp"),
+    articleImg: loadSeedAsset("文章测试图.jpg"),
+    video: loadSeedAsset("测试视频.mp4"),
+  };
+
+  const categories: Array<{
+    prefix: string;
+    count: number;
+    type: "image/jpeg" | "image/webp" | "video/mp4";
+    ext: string;
+    dataList: Buffer[];
+  }> = [
+    { prefix: "avatars", count: 50, type: "image/jpeg", ext: "jpg", dataList: [assets.avatar1, assets.avatar2] },
+    { prefix: "posts/articles", count: 30, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
+    { prefix: "posts/moments", count: 30, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
+    { prefix: "posts/videos", count: 10, type: "video/mp4", ext: "mp4", dataList: [assets.video] },
+    { prefix: "rankings/covers", count: 10, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
+    { prefix: "rankings/items", count: 50, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
+    { prefix: "models/covers", count: 30, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
+    { prefix: "submissions/covers", count: 15, type: "image/jpeg", ext: "jpg", dataList: [assets.avatar1] },
+    { prefix: "reports/evidence", count: 10, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
   ];
 
   const objects: SeedStorageObject[] = [];
   for (const cat of categories) {
     for (let i = 0; i < cat.count; i++) {
-      const key = `test/${cat.prefix}/${cat.prefix.split("/").pop()}-${String(i + 1).padStart(3, "0")}.${cat.type === "video/mp4" ? "mp4" : "png"}`;
+      const key = `test/${cat.prefix}/${cat.prefix.split("/").pop()}-${String(i + 1).padStart(3, "0")}.${cat.ext}`;
       objects.push({
         key,
-        body: cat.data,
+        body: cat.dataList[i % cat.dataList.length],
         contentType: cat.type
       });
       FILE_KEYS.push(key);
@@ -826,7 +856,7 @@ async function seedPostgreSQL() {
       mediaKind: isVideo ? "video" : "image",
       ...buildSeedStorageRecord(storage, key),
       filename: key.split("/").pop() || "file",
-      contentType: isVideo ? "video/mp4" : "image/png",
+      contentType: isVideo ? "video/mp4" : key.endsWith(".webp") ? "image/webp" : "image/jpeg",
       size: isVideo ? randInt(1000000, 50000000) : randInt(50000, 5000000),
       status: "uploaded",
       currentAuditStatus: "passed",
