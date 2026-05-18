@@ -1,4 +1,4 @@
-import { resolve, join, dirname } from 'node:path';
+import { resolve, join } from 'node:path';
 import { existsSync, rmSync, readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolveScope } from '../utils/scope.js';
 import { resolveTarget } from '../utils/resolve.js';
