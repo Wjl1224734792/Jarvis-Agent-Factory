@@ -198,6 +198,13 @@ export default function Commands() {
     return () => { cancel(); };
   }, [fetchData]);
 
+  // 数据加载完成后：若项目无指令但全局有指令，自动切换到全局 Tab
+  useEffect(() => {
+    if (data && data.project.commands.length === 0 && data.global.commands.length > 0) {
+      setSourceTab('global');
+    }
+  }, [data]);
+
   /** 来源 Tab 切换：重置分类筛选 */
   const handleSourceTabChange = useCallback((key: string) => {
     const next = onSourceTabChange(key as 'project' | 'global');
