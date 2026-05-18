@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.51.2] - 2026-05-19
+
+### Fixed
+- **Hook 僵尸会话防护**：`pickSession` 增加心跳过期检测（10分钟），僵尸 session 不再触发 gate 执行
+- 无显式 `--session` 且无最近活跃会话 → hook 静默退出，不阻断工具调用
+- 向后兼容：旧版引擎/测试 Mock 缺失 `heartbeat` 字段时回退到旧行为
+
 ## [3.51.1] - 2026-05-19
 
 ### Changed

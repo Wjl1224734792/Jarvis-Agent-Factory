@@ -20,6 +20,9 @@ async function api(path) {
   return r.json();
 }
 
+/** 最近心跳阈值（毫秒）：超过此时间无心跳的 session 视为僵尸，不计入 gate 执行 */
+const RECENT_HEARTBEAT_MS = 600_000; // 10分钟
+
 /** 从 pipeline 响应中解析出最相关的 session */
 function pickSession(pipeline, explicitSid) {
   const sessions = pipeline.sessions || [];
@@ -27,9 +30,18 @@ function pickSession(pipeline, explicitSid) {
   if (explicitSid) {
     return sessions.find(s => s.session_id === explicitSid) || null;
   }
-  // 优先返回 active session，其次返回第一个
+  // 优先返回最近有活动的 active session
   const active = sessions.filter(s => s.status === 'active');
-  return active[0] || sessions[0];
+  if (active.length === 0) return null;
+  // 有心跳数据的 session：过滤超过 10 分钟无心跳的僵尸 session
+  const now = Date.now();
+  const withHeartbeat = active.filter(s => s.heartbeat != null);
+  if (withHeartbeat.length > 0) {
+    const alive = withHeartbeat.filter(s => (now - s.heartbeat) < RECENT_HEARTBEAT_MS);
+    return alive.length > 0 ? alive[0] : null;
+  }
+  // 无心跳数据（旧版引擎或测试 Mock）：回退到旧行为
+  return active[0];
 }
 
 export async function hookCommand(args) {
