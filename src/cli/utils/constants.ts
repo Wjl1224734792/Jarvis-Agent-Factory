@@ -60,7 +60,7 @@ Usage:
   jarvis [path]                  ≡ jarvis init [path]
   jarvis init [path]             Bootstrap project with all platforms + MCP
   jarvis add <p...> [path]       Add platform(s) to project
-  jarvis remove <p...> [path]    Remove platform(s) from project
+  jarvis remove [p...] [path]   Fine-grained remove (hash-aware, only jarvis-installed)
   jarvis upgrade [path]          Upgrade to latest config version
   jarvis diff [path]             Show what files would change on upgrade
   jarvis engine start [--port=N] Start MCP orchestration engine
@@ -85,6 +85,9 @@ Examples:
   jarvis init my-app              Bootstrap new project
   jarvis add claude               Add Claude Code to current directory
   jarvis add claude -g            Add Claude Code globally
+  jarvis remove claude            Fine-grained remove (only jarvis-installed files)
+  jarvis remove --dry-run         Preview what would be removed
+  jarvis remove --list            List jarvis-tracked files
   jarvis engine start             Start MCP orchestration engine
   jarvis web                      Start web dashboard (≡ engine start)
   jarvis upgrade                  Upgrade all configs

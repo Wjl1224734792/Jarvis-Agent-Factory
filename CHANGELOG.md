@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.49.0] - 2026-05-19
+
+### Added
+- **细粒度 remove 命令**：`jarvis remove` 仅删除 jarvis 安装的文件（基于 hash 记录），保护用户自定义 agents/skills/commands
+- **Dry-run 模式**：`jarvis remove --dry-run` 预览将要删除的内容
+- **Tracked files 列表**：`jarvis remove --list` 列出 jarvis 跟踪的所有文件
+- **细粒度移除项**：settings.json hooks（仅 `_jarvisManagedHooks`）、env（仅 jarvis 添加的 key）、MCP servers（仅 jarvis-engine + playwright）
+
+### Changed
+- `jarvis remove` 从粗粒度全目录删除重构为 hash 感知的细粒度移除
+- 帮助文本更新：新增 remove 相关示例
+
 ## [3.48.3] - 2026-05-19
 
 ### Changed
