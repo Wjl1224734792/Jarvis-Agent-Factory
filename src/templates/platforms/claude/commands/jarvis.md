@@ -1,5 +1,6 @@
 ---
 description: 启动贾维斯全流程编排——需求→任务→计划→实现→质量→测试→评审→发布
+argument-hint: "[任务描述]"
 model: deepseek-v4-pro
 effort: high
 version: "3.45.8"

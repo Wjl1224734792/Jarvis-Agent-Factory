@@ -1,6 +1,7 @@
 ---
 name: task-tdd
 description: TDD测试驱动任务——为BDD场景或纯技术需求生成测试骨架与任务包
+argument-hint: "[需求或场景描述]"
 model: deepseek-v4-pro
 effort: max
 version: "3.45.8"

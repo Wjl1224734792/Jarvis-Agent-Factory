@@ -1,6 +1,7 @@
 ---
 name: task-ddd
 description: DDD领域驱动分析——从需求文档中提取聚合根、实体、值对象、领域服务、领域事件
+argument-hint: "[需求文档路径或领域描述]"
 model: deepseek-v4-pro
 effort: max
 version: "3.45.8"
