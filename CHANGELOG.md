@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.51.1] - 2026-05-19
+
+### Changed
+- **Agent Team 策略扩展**：R3（重构执行）和 R4（重构测试对比）升级为 `prefer_team`，5 个 Gate 覆盖 Team 并行模式
+- Team 模式覆盖：C-impl(实现) · C2(测试) · D(审查) · R3(重构执行) · R4(重构验证)
+
 ## [3.51.0] - 2026-05-19
 
 ### Added

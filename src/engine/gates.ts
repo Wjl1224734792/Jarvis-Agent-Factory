@@ -224,9 +224,9 @@ export const GATE_AGENT_GUIDE = {
   'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert', 'docs-engineer'], note: '发布阶段——安全审计+文档生成+上线检查+版本管理+归档' },
   // TASK-001: /refactor 流水线 Agent 生成指引
   'R1': { can_spawn: [], note: '定义重构边界与目标' },
-  'R2': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '运行现有测试套件+基线覆盖率' },
-  'R3': { can_spawn: ['frontend-dev-expert','frontend-ui-expert','frontend-state-expert','backend-dev-expert','backend-api-expert','backend-logic-expert','backend-data-expert','remediation-expert'], note: '执行重构' },
-  'R4': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '再次运行测试+对比覆盖率+行为漂移检测' },
+  'R2': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '运行现有测试套件+基线覆盖率', team_strategy: 'subagent_only' },
+  'R3': { can_spawn: ['frontend-dev-expert','frontend-ui-expert','frontend-state-expert','backend-dev-expert','backend-api-expert','backend-logic-expert','backend-data-expert','remediation-expert'], note: '执行重构——推荐 Agent Team 并行执行,各成员独占模块', team_strategy: 'prefer_team', team_rules: '重构按模块拆分,每个Team成员独占一个模块,共享区域由唯一责任人处理' },
+  'R4': { can_spawn: ['frontend-test-expert','backend-test-expert'], note: '再次运行测试+对比覆盖率+行为漂移检测, 可并行执行前后端测试', team_strategy: 'prefer_team', team_rules: '前端测试和后端测试各自独占,互不干扰,结果汇总对比' },
   'R5': { can_spawn: [], note: '汇总重构报告' },
   // TASK-001: /hotfix 流水线 Agent 生成指引
   'H0': { can_spawn: [], note: '紧急声明+审批确认——需人工介入' },
