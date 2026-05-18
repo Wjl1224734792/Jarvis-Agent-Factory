@@ -208,6 +208,7 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
     // 合并 permissions.allow —— 从模板读取，与现有列表去重合并（只新增不删除，白名单保护）
     const tmplSettingsPath = resolve(TEMPLATES_DIR, 'platforms', 'claude', 'settings.json');
     let permAdded = 0;
+    let envAdded = 0;
     if (existsSync(tmplSettingsPath)) {
       try {
         const tmplSettings = JSON.parse(readFileSync(tmplSettingsPath, 'utf-8'));
@@ -219,6 +220,16 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
             if (!existingSet.has(entry)) {
               existing.permissions.allow.push(entry);
               permAdded++;
+            }
+          }
+        }
+        // 合并 env —— 模板新增 key（不覆盖同名 key），如 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
+        if (tmplSettings.env && typeof tmplSettings.env === 'object') {
+          if (!existing.env) existing.env = {};
+          for (const [key, value] of Object.entries(tmplSettings.env)) {
+            if (!(key in existing.env)) {
+              existing.env[key] = value;
+              envAdded++;
             }
           }
         }
@@ -286,6 +297,7 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
       writeFileSync(file, JSON.stringify(existing, null, 2));
       const parts: string[] = [];
       if (permAdded > 0) parts.push(`${permAdded} permissions`);
+      if (envAdded > 0) parts.push(`+${envAdded} env`);
       if (hooksAdded > 0) parts.push(`+${hooksAdded} hooks`);
       if (hooksUpdated > 0) parts.push(`~${hooksUpdated} hooks`);
       if (hooksRemoved > 0) parts.push(`-${hooksRemoved} hooks`);

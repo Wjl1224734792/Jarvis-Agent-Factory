@@ -4,6 +4,24 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.48.0] - 2026-05-19
+
+### Added
+- **Agent Team 支持**：CLI `jarvis init` 自动配置 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`，启用 Claude Code 原生 Team 功能
+- **Team + SubAgent 混合编排**：Gate 阶段智能选择调度策略。Gate C-impl/C2/D 推荐 Team 并行，Gate A/B1/C 使用 SubAgent
+- **`pipeline_guide` 增强**：返回 `team_strategy`（prefer_team / subagent_only）和 `agent_mode` 建议，编排者按 Gate 自动选择最优调度
+
+### Changed
+- **项目级存储隔离**：引擎数据库从 `~/.jarvis/engine.db` 迁移至 `<project>/.jarvis/engine.db`，每个项目拥有独立数据库
+- **PID 文件项目级隔离**：`engine.pid` 从全局 `~/.jarvis/` 迁移至 `<project>/.jarvis/`
+- **首次启动迁移**：从全局 DB 自动迁移 agent 配置 + sessions + pipeline_runs 到项目 DB，旧数据保留不删除
+- **`jarvis doctor`**：PID 检查改为项目级路径，不再检查全局 `~/.jarvis/`
+- **模板更新**：`settings.json` 模板新增 `env` 配置块，安装时智能合并（保护用户自定义值）
+
+### Fixed
+- `jarvis web` 命令修复：支持指定项目目录参数，不再硬编码 `projectRoot: '.'`
+- `guardian.ts` DRY 违规：`writePidFile` 改为调用 `getPidFile()` 统一路径解析
+
 ## [3.45.1] - 2026-05-13
 
 ### Added

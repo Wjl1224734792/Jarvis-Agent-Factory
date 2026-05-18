@@ -210,17 +210,17 @@ export function getGateOperations(gate) {
  * 操作类型说明见 GATE_OPERATIONS，此处聚焦 Agent 级的可生成范围。
  */
 export const GATE_AGENT_GUIDE = {
-  'Gate A':    { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '需求澄清阶段，只探索和写文档' },
+  'Gate A':    { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '需求澄清——用subagent(Agent工具)spawn code-explore-expert+external-resource-expert探索+文档', team_strategy: 'subagent_only' },
   'Gate B-DDD': { can_spawn: ['task-design'], note: '领域驱动分析——spawn task-design (DDD模式) 产出聚合/实体/值对象/领域服务列表及路由建议' },
   'Gate B-BDD': { can_spawn: ['task-design'], note: '行为驱动——spawn task-design (BDD模式) 为高业务价值聚合行为编写Gherkin场景；纯技术逻辑时编排者可跳过此Gate' },
   'Gate B-TDD': { can_spawn: ['task-design'], note: '测试驱动任务——spawn task-design (TDD模式) 产出TDD任务包，每个TASK映射REQ+场景' },
-  'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert'], note: '架构评审——按变更范围选择对应架构师，产出架构方案文档' },
-  'Gate C':    { can_spawn: ['planner', 'skill-assignment-expert'], note: '执行规划——spawn planner 产出 parallel_batches 和执行计划；spawn skill-assignment-expert 为子 Agent 分配技能清单' },
-  'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert', 'remediation-expert'], note: '批量实现——按parallel_batches并行spawn实现Agent；修复回退时spawn remediation-expert' },
+  'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert'], note: '架构评审——用subagent(Agent工具)spawn对应架构师(依变更范围选择前端/后端/数据库/算法架构师)', team_strategy: 'subagent_only' },
+  'Gate C':    { can_spawn: ['planner', 'skill-assignment-expert'], note: '执行规划——用subagent(Agent工具)spawn planner+skill-assignment-expert产出parallel_batches和执行计划', team_strategy: 'subagent_only' },
+  'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert', 'remediation-expert'], note: '批量实现——推荐使用 Agent Team(TeamCreate) 并行调度实现Agent(Team模式),轻量任务用subagent(Agent工具)；修复回退时spawn remediation-expert', team_strategy: 'prefer_team' },
   'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
   'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
-  'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——步骤1(并行):spawn test-doc-writer(编写测试用例文档)+frontend-test-expert+backend-test-expert+api-test-expert(API功能测试) → 步骤2:spawn test-executor(按文档执行测试,输出报告) → 步骤3(有失败时):spawn remediation-expert(规划修复→执行修复→重跑,≤2轮) → 步骤4:spawn e2e-test-expert(端到端测试) → 步骤5:汇总测试结果至docs/testing/' },
-  'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert'], note: '评审阶段——4个领域审查并行，最后qa-review-expert综合签核' },
+  'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——推荐 Agent Team 并行跑测试(TeamCreate→各tester并行执行),轻量检查用subagent。步骤1(Team并行):spawn test-doc-writer+frontend-test-expert+backend-test-expert+api-test-expert → 步骤2:spawn test-executor → 步骤3(失败时):spawn remediation-expert(≤2轮) → 步骤4:spawn e2e-test-expert → 步骤5:汇总至docs/testing/', team_strategy: 'prefer_team' },
+  'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert'], note: '评审阶段——推荐 Agent Team 并行审查(TeamCreate→各reviewer并行),qa-review-expert用subagent综合签核', team_strategy: 'prefer_team' },
   'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert', 'docs-engineer'], note: '发布阶段——安全审计+文档生成+上线检查+版本管理+归档' },
   // TASK-001: /refactor 流水线 Agent 生成指引
   'R1': { can_spawn: [], note: '定义重构边界与目标' },
@@ -254,6 +254,12 @@ export const GATE_AGENT_GUIDE = {
 /** 获取当前 Gate 可生成的 Agent 指引 */
 export function getGateAgentGuide(gate) {
   return GATE_AGENT_GUIDE[gate] || { can_spawn: [], note: '未知Gate' };
+}
+
+/** 获取当前 Gate 的团队策略指引（team/spawn 混合模式选择） */
+export function getGateTeamStrategy(gate) {
+  const guide = GATE_AGENT_GUIDE[gate];
+  return guide?.team_strategy || 'subagent_only';
 }
 
 /** 每个 Gate 的最大重试循环次数 */

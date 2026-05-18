@@ -5,12 +5,18 @@ import { homedir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 
 /**
- * 打开引擎数据库，固定存储在 ~/.jarvis/engine.db
- * @param {string} [dbPath] 可选自定义路径（测试用）
+ * 打开引擎数据库，存储在项目级 <projectRoot>/.jarvis/engine.db
+ * 每个项目拥有独立数据库，实现项目级数据隔离。
+ * @param {string} [projectRoot] 项目根目录；若以 .db 结尾则视为显式数据库路径（测试用）
+ * @param {string} [dbPath] 可选自定义路径（测试用，优先级最高）
  * @returns {DatabaseSync}
  */
-export function openDb(dbPath?: string) {
-  const targetPath = dbPath || resolve(homedir(), '.jarvis', 'engine.db');
+export function openDb(projectRoot?: string, dbPath?: string) {
+  // 单参数且以 .db 结尾 → 视为显式数据库路径（测试兼容）
+  // 项目目录名不会以 .db 结尾，此启发式仅用于区分测试调用 openDb('/tmp/test.db')
+  const effectiveDbPath = dbPath || (projectRoot && projectRoot.endsWith('.db') ? projectRoot : undefined);
+  const effectiveRoot = (effectiveDbPath === projectRoot) ? undefined : projectRoot;
+  const targetPath = effectiveDbPath || resolve(effectiveRoot || homedir(), '.jarvis', 'engine.db');
   const dir = resolve(targetPath, '..');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(targetPath);

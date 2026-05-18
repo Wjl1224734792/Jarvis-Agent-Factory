@@ -1,7 +1,9 @@
 /**
  * 引擎守护进程 — PID JSON 文件管理 + 崩溃自动重启
  *
- * PID 文件路径：~/.jarvis/engine.pid
+ * PID 文件路径：<projectRoot>/.jarvis/engine.pid（项目级隔离）
+ * 未提供 projectRoot 时回退到 ~/.jarvis/engine.pid
+ *
  * JSON 格式：{"pid": 1234, "startedAt": 1715500000000, "restartCount": 0}
  *
  * 重启策略：
@@ -14,11 +16,11 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from '
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
-/** PID 文件存放目录 */
-const PID_DIR = resolve(homedir(), '.jarvis');
-
-/** PID 文件完整路径 */
-const PID_FILE = resolve(PID_DIR, 'engine.pid');
+/** 获取 PID 文件完整路径（项目级隔离，未提供 projectRoot 时回退全局目录） */
+function getPidFile(projectRoot?: string): string {
+  const dir = projectRoot ? resolve(projectRoot, '.jarvis') : resolve(homedir(), '.jarvis');
+  return resolve(dir, 'engine.pid');
+}
 
 /** 最大重启次数 */
 const MAX_RESTART = 3;
@@ -47,6 +49,9 @@ export interface PidData {
 /** 守护进程是否激活 */
 let _guardianActive = false;
 
+/** 当前项目根目录（用于 PID 文件定位） */
+let _projectRoot: string | undefined;
+
 /** 上次崩溃时间戳（毫秒），用于冷却窗口判定 */
 let _lastCrashTime = 0;
 
@@ -66,13 +71,13 @@ let _crashHandlers: Array<{ event: string; handler: (..._args: any[]) => void }>
  *
  * @returns PidData 对象，若文件不存在、格式错误或缺少必要字段则返回 null
  */
-export function readPidFile(): PidData | null {
+export function readPidFile(projectRoot?: string): PidData | null {
   try {
-    if (!existsSync(PID_FILE)) return null;
-    const raw = readFileSync(PID_FILE, 'utf-8').trim();
+    const pidFile = getPidFile(projectRoot);
+    if (!existsSync(pidFile)) return null;
+    const raw = readFileSync(pidFile, 'utf-8').trim();
     if (!raw) return null;
     const data = JSON.parse(raw);
-    // 验证必要字段
     if (typeof data.pid !== 'number' || typeof data.startedAt !== 'number') {
       return null;
     }
@@ -88,30 +93,33 @@ export function readPidFile(): PidData | null {
 
 /**
  * 写入 PID JSON 文件。
- * 自动创建 ~/.jarvis 目录（若不存在）。
+ * 自动创建 <projectRoot>/.jarvis 目录（若不存在）。
  *
  * @param pid - 当前进程 ID
  */
-export function writePidFile(pid: number): void {
-  if (!existsSync(PID_DIR)) {
-    mkdirSync(PID_DIR, { recursive: true });
+export function writePidFile(pid: number, projectRoot?: string): void {
+  const pidFile = getPidFile(projectRoot);
+  const pidDir = resolve(pidFile, '..');
+  if (!existsSync(pidDir)) {
+    mkdirSync(pidDir, { recursive: true });
   }
   const data: PidData = {
     pid,
     startedAt: Date.now(),
     restartCount: _currentRestartCount,
   };
-  writeFileSync(PID_FILE, JSON.stringify(data) + '\n');
+  writeFileSync(pidFile, JSON.stringify(data) + '\n');
 }
 
 /**
  * 删除 PID 文件（正常退出时调用）。
  * 删除失败不抛异常。
  */
-export function removePidFile(): void {
+export function removePidFile(projectRoot?: string): void {
   try {
-    if (existsSync(PID_FILE)) {
-      unlinkSync(PID_FILE);
+    const pidFile = getPidFile(projectRoot);
+    if (existsSync(pidFile)) {
+      unlinkSync(pidFile);
     }
   } catch {
     // 忽略清理错误（如并发删除、权限问题）
@@ -127,16 +135,15 @@ export function removePidFile(): void {
  *
  * @returns 引擎正在运行则返回 true
  */
-export function isEngineRunning(): boolean {
-  const data = readPidFile();
+export function isEngineRunning(projectRoot?: string): boolean {
+  const data = readPidFile(projectRoot);
   if (!data) return false;
   try {
-    // kill(pid, 0) 不发送信号，仅检查进程是否存在（POSIX）或进程句柄有效性（Windows）
+    // kill(pid, 0) 不发送信号，仅检查进程是否存在
     process.kill(data.pid, 0);
     return true;
   } catch {
-    // PID 不存在 → 清理过期文件
-    removePidFile();
+    removePidFile(projectRoot);
     return false;
   }
 }
@@ -152,10 +159,9 @@ function resetSuccessTimer(): void {
   _successTimer = setTimeout(() => {
     _currentRestartCount = 0;
     _lastCrashTime = 0;
-    // 同步更新 PID 文件中的 restartCount
-    const data = readPidFile();
+    const data = readPidFile(_projectRoot);
     if (data) {
-      writePidFile(data.pid);
+      writePidFile(data.pid, _projectRoot);
     }
   }, SUCCESS_WINDOW_MS);
 }
@@ -218,9 +224,10 @@ function handleCrash(err: Error, origin: string, onRestart: () => void): void {
  * @param port - 引擎端口号（预留，供未来扩展使用）
  * @param onRestart - 重启回调，由调用方实现引擎重新初始化逻辑
  */
-export function startGuardian(port: number, onRestart: () => void): void {
+export function startGuardian(port: number, onRestart: () => void, projectRoot?: string): void {
   if (_guardianActive) return;
   _guardianActive = true;
+  _projectRoot = projectRoot;
 
   const uncaughtHandler = (err: Error) => handleCrash(err, 'uncaughtException', onRestart);
   const unhandledHandler = (reason: unknown) => {
@@ -247,6 +254,7 @@ export function startGuardian(port: number, onRestart: () => void): void {
  */
 export function stopGuardian(): void {
   _guardianActive = false;
+  _projectRoot = undefined;
 
   if (_successTimer) {
     clearTimeout(_successTimer);
@@ -267,4 +275,5 @@ export function resetGuardian(): void {
   stopGuardian();
   _currentRestartCount = 0;
   _lastCrashTime = 0;
+  _projectRoot = undefined;
 }

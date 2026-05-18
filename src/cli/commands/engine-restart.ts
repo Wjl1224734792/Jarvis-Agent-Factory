@@ -31,7 +31,7 @@ export async function executeRestart(opts: CliOpts, positional: string[]): Promi
   ) || '.';
 
   // 1. 停止当前引擎
-  stopEngine();
+  stopEngine(projectRoot);
 
   // 2. 等待端口释放（500ms 缓冲）
   await new Promise(resolve => setTimeout(resolve, 500));

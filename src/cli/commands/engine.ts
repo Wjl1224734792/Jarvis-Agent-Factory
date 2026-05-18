@@ -10,6 +10,17 @@ import type { CliOpts } from '../utils/args.js';
 export async function execute(opts: CliOpts, positional: string[]): Promise<void> {
   const sub = positional[1];
 
+  // 提取项目根目录（所有子命令共用）
+  const projectRoot =
+    positional.find(
+      a =>
+        !a.startsWith('-') &&
+        a !== 'start' &&
+        a !== 'engine' &&
+        a !== '--stdio' &&
+        a !== sub,
+    ) || '.';
+
   if (sub === 'start') {
     const port = parseInt(
       positional.find(a => a.startsWith('--port='))?.split('=')[1] ||
@@ -17,24 +28,13 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
         '3456',
     );
     const stdio = positional.includes('--stdio');
-    await startEngine({
-      port,
-      stdio,
-      projectRoot:
-        positional.find(
-          a =>
-            !a.startsWith('-') &&
-            a !== 'start' &&
-            a !== 'engine' &&
-            a !== '--stdio',
-        ) || '.',
-    });
+    await startEngine({ port, stdio, projectRoot });
   } else if (sub === 'stop') {
-    stopEngine();
+    stopEngine(projectRoot);
   } else if (sub === 'restart') {
     await executeRestart(opts, positional);
   } else if (sub === 'status') {
-    executeStatus(opts, positional);
+    executeStatus(opts, positional, projectRoot);
   } else {
     console.log('\nUsage: jarvis engine <start|stop|restart|status> [--port=<N>]\n');
   }
@@ -50,5 +50,9 @@ export async function executeWeb(opts: CliOpts, positional: string[]): Promise<v
       process.env.WEB_PORT ||
       '3456',
   );
-  await startEngine({ port, projectRoot: '.' });
+  const projectRoot =
+    positional.find(
+      a => !a.startsWith('-') && a !== 'web',
+    ) || '.';
+  await startEngine({ port, projectRoot });
 }

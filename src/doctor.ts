@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { homedir } from 'node:os';
+import { isEngineRunning } from './engine/guardian.js';
 
 /**
  * Check the health of installed Jarvis configurations.
@@ -63,12 +63,8 @@ export function doctor({ target, platforms, pkgRoot, ..._rest }: {
     console.log('     - 若为 Restricted，npm 全局 bin 目录中的 .cmd 包装器仍然可用\n');
   }
 
-  // Check engine status (sync — check PID file)
-  const pidFile = resolve(homedir(), '.jarvis', 'engine.pid');
-  let engineRunning = false;
-  if (existsSync(pidFile)) {
-    try { const pid = Number(readFileSync(pidFile, 'utf-8').trim()); process.kill(pid, 0); engineRunning = true; } catch {}
-  }
+  // Check engine status via guardian API（项目级 PID 隔离）
+  const engineRunning = isEngineRunning(target);
   if (!engineRunning) {
     console.log('\n  ⚠️  Engine not running. Gate enforcement is INACTIVE.');
     console.log('  Start it: jarvis engine start [--dashboard]\n');

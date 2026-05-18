@@ -4,13 +4,14 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, existsSync, copyFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
+import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun } from './db.js';
-import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
+import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
 import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
@@ -140,32 +141,23 @@ function scanConflictFiles(projectRoot: string): void {
 
 /** 启动 Jarvis 引擎 */
 export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdio = false } = {}) {
+  const root = resolve(projectRoot);
+
   // 非 stdio 模式：端口已被占用 → 复用已有引擎
   if (!stdio && await isPortInUse(port)) {
     console.log(`Jarvis Engine already running on port ${port} — reusing existing instance.`);
-    // TASK-004: 使用 JSON 格式 PID 文件，PID 变更时更新
-    if (!isEngineRunning() || (readPidFile()?.pid !== process.pid)) {
-      writePidFile(process.pid);
+    if (!isEngineRunning(root) || (readPidFile(root)?.pid !== process.pid)) {
+      writePidFile(process.pid, root);
     }
     return true;
   }
 
-  const root = resolve(projectRoot);
-  // TASK-004: 使用 JSON 格式 PID 文件
-  writePidFile(process.pid);
+  writePidFile(process.pid, root);
 
-  // 旧数据库迁移：从 <projectRoot>/.jarvis/ 移动到 ~/.jarvis/
-  const oldDbPath = resolve(root, '.jarvis', 'engine.db');
-  const newDbPath = resolve(homedir(), '.jarvis', 'engine.db');
-  if (existsSync(oldDbPath) && !existsSync(newDbPath)) {
-    copyFileSync(oldDbPath, newDbPath);
-    for (const suffix of ['-wal', '-shm']) {
-      const oldAux = oldDbPath + suffix;
-      const newAux = newDbPath + suffix;
-      if (existsSync(oldAux)) copyFileSync(oldAux, newAux);
-    }
-    process.stderr.write('  ✓  旧数据库已迁移: ' + oldDbPath + ' → ' + newDbPath + '\n');
-  }
+  // 检测是否需要从全局 DB 迁移 agent 配置（DB 尚未创建则需迁移）
+  const globalDbPath = resolve(homedir(), '.jarvis', 'engine.db');
+  const projectDbPath = resolve(root, '.jarvis', 'engine.db');
+  const needsMigration = existsSync(globalDbPath) && !existsSync(projectDbPath);
 
   const app = new Hono();
 
@@ -179,7 +171,43 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   });
 
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
-  const db = openDb();
+  const db = openDb(root);
+
+  // 迁移：从全局 ~/.jarvis/ 迁移数据到项目级数据库（一次性的升级路径）
+  if (needsMigration) {
+    try {
+      const globalDb = new DatabaseSync(globalDbPath);
+      // 迁移 agent 模型偏好（用户级配置）
+      const models = globalDb.prepare('SELECT agent_id, model, effort FROM agent_models').all();
+      if (models.length > 0) {
+        for (const m of models) {
+          db.prepare('INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, ?)')
+            .run(m.agent_id, m.model, m.effort, new Date().toISOString());
+        }
+      }
+      // 迁移 sessions 表（保留历史会话记录）
+      const sessions = globalDb.prepare('SELECT * FROM sessions').all();
+      for (const s of sessions) {
+        db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, status, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(s.id, s.platform, s.role || 'member', s.status || 'inactive', s.created_at || Date.now(), s.last_heartbeat || Date.now());
+      }
+      // 迁移 pipeline_runs（保留历史运行记录，project 字段更新为当前项目）
+      const runs = globalDb.prepare('SELECT * FROM pipeline_runs').all();
+      for (const r of runs) {
+        db.prepare(`INSERT OR REPLACE INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, completed_at, task_name, archived, pinned, gate_entered_at, total_duration_seconds)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(r.id, r.session_id, root, r.pipeline_type || 'full', r.current_gate || 'Gate A', r.status || 'completed',
+            r.started_at || new Date().toISOString(), r.completed_at || null, r.task_name || null,
+            r.archived || 0, r.pinned || 0, r.gate_entered_at, r.total_duration_seconds || null);
+      }
+      process.stderr.write(`  ✓  已从全局迁移 ${models.length} 条 agent 配置 + ${sessions.length} 个会话 + ${runs.length} 条运行记录到项目级数据库\n`);
+      process.stderr.write(`  ℹ  原全局数据库保留在 ${globalDbPath}，可手动删除\n`);
+      globalDb.close();
+    } catch (e) {
+      process.stderr.write(`  ⚠  全局数据迁移失败: ${(e as Error).message}\n`);
+      process.stderr.write(`  ℹ  项目将以全新数据库启动，旧数据保留在 ${globalDbPath}\n`);
+    }
+  }
 
   // TASK-003: 冲突文件扫描（不阻塞启动）
   scanConflictFiles(root);
@@ -198,8 +226,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // TASK-004: 优雅退出端点（Windows PID kill 可能不支持，用 HTTP shutdown 兜底）
   app.post('/api/shutdown', async (c) => {
     stopGuardian();
-    removePidFile();
-    // 延迟退出，确保响应已发送
+    removePidFile(root);
     setTimeout(() => process.exit(0), 100);
     return c.json({ ok: true, message: 'Shutting down...' });
   });
@@ -250,7 +277,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // TASK-004: 优雅退出信号处理（SIGINT/SIGTERM）
   const gracefulShutdown = () => {
     stopGuardian();
-    removePidFile();
+    removePidFile(root);
     process.exit(0);
   };
   process.on('SIGINT', gracefulShutdown);
@@ -265,9 +292,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
         process.exit(1);
       }
     : () => {
-        writePidFile(process.pid);
+        writePidFile(process.pid, root);
       };
-  startGuardian(port, restartHandler);
+  startGuardian(port, restartHandler, root);
 
   if (stdio) {
     // ---- Stdio Transport：MCP 通过 stdin/stdout，Claude Code 自动拉起 ----
@@ -811,6 +838,8 @@ export function registerMcpTools(server, db, root) {
         run_id: runId,
         allowed_operations: ops.allow, forbidden_operations: ops.deny,
         agent_spawn: agentGuide || { can_spawn: [], note: '未知Gate' },
+        team_strategy: getGateTeamStrategy(cur),
+        agent_mode: getGateTeamStrategy(cur) === 'prefer_team' ? '推荐使用 Agent Team(TeamCreate) 并行调度,轻量任务用 Agent 工具(spawn agent)' : '使用 Agent 工具(spawn subagent)',
         gate_requirement: GATE_CHECKS[cur]?.check || '',
         next_gate: gateList[ci + 1] || 'Complete',
         previous_gate: ci > 0 ? gateList[ci - 1] : null,
@@ -989,24 +1018,24 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 }
 
 /** 停止引擎 */
-export function stopEngine() {
-  const data = readPidFile();
+export function stopEngine(projectRoot?: string) {
+  const data = readPidFile(projectRoot);
   if (!data) { console.log('No running engine found.'); return; }
   try {
     process.kill(data.pid, 'SIGTERM');
-    removePidFile();
+    removePidFile(projectRoot);
     console.log(`Engine stopped (PID ${data.pid}).`);
   } catch {
     console.log(`Engine not running (stale PID ${data.pid}).`);
-    removePidFile();
+    removePidFile(projectRoot);
   }
 }
 
 /** 查询引擎状态 */
-export function engineStatus() {
-  const data = readPidFile();
+export function engineStatus(projectRoot?: string) {
+  const data = readPidFile(projectRoot);
   if (!data) { console.log('Engine: not running'); return false; }
-  if (isEngineRunning()) {
+  if (isEngineRunning(projectRoot)) {
     const uptime = Math.floor((Date.now() - data.startedAt) / 1000);
     const h = Math.floor(uptime / 3600);
     const m = Math.floor((uptime % 3600) / 60);

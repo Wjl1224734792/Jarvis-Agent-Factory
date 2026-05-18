@@ -29,15 +29,15 @@ function formatUptime(seconds: number): string {
  * @param opts - CLI 选项（未使用，保留接口一致性）
  * @param positional - 位置参数数组（未使用）
  */
-export function executeStatus(_opts: CliOpts, _positional: string[]): void {
-  const data = readPidFile();
+export function executeStatus(_opts: CliOpts, _positional: string[], projectRoot?: string): void {
+  const data = readPidFile(projectRoot);
 
   if (!data) {
     console.log('Engine: not running');
     return;
   }
 
-  if (isEngineRunning()) {
+  if (isEngineRunning(projectRoot)) {
     const uptime = Math.floor((Date.now() - data.startedAt) / 1000);
 
     console.log('Engine Status:');
