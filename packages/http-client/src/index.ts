@@ -872,6 +872,18 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, homeFeedResponseSchema);
     },
+    async listCircles(input?: { keyword?: string; sort?: "hot" | "latest" }) {
+      const params = new URLSearchParams();
+      if (input?.keyword) params.set("keyword", input.keyword);
+      if (input?.sort) params.set("sort", input.sort);
+      const qs = params.toString();
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.list}${qs ? `?${qs}` : ""}`, {
+        method: "GET",
+        credentials: "include"
+      });
+      if (!response.ok) throw new Error(`Failed to list circles: ${response.status}`);
+      return response.json() as Promise<{ items: unknown[] }>;
+    },
     async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
       const search = new URLSearchParams({ tab: parsedTab });

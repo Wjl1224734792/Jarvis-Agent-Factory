@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
+import { Link } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
@@ -75,6 +76,12 @@ export function CirclePage() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+  const circlesQuery = useQuery({
+    queryKey: ["circles-list"],
+    queryFn: () => apiClient.listCircles({ sort: "hot" }),
+  });
+  const circles = (circlesQuery.data?.items ?? []) as Array<{ id: string; slug: string; name: string; description?: string | null; memberCount: number; postCount: number }>;
+
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", activeTab],
     initialPageParam: undefined as string | undefined,
@@ -222,6 +229,29 @@ export function CirclePage() {
 
   return (
     <SitePage className="gap-4">
+      {circles.length > 0 ? (
+        <div className="overflow-x-auto">
+          <div className="flex gap-3 pb-2">
+            {circles.map((circle) => (
+              <Link
+                className="shrink-0 w-36 rounded-xl border border-border/60 p-3 transition hover:border-primary/40 hover:bg-sky-50/30"
+                key={circle.id}
+                to={`/circles/${circle.slug}`}
+              >
+                <div className="text-sm font-semibold text-foreground line-clamp-1">{circle.name}</div>
+                <div className="mt-1 text-[0.68rem] text-muted-foreground line-clamp-2">
+                  {circle.description ?? ""}
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-[0.65rem] text-muted-foreground">
+                  <span>{circle.memberCount} 成员</span>
+                  <span>{circle.postCount} 帖子</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <CirclePageFeed
         activeTab={activeTab}
         onChangeTab={(tab) => setActiveTab(tab)}
