@@ -3,6 +3,7 @@ import type { ModelDetail } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   ArrowLeftIcon,
+  ArrowLeftRightIcon,
   BookmarkIcon,
   HeartIcon,
   MessageCircleIcon,
@@ -205,12 +206,19 @@ export function ModelDetailPage() {
   const isModelOwner = Boolean(item.viewer.canEdit || (currentUserId && item.ownerId === currentUserId));
   const sourceSubmissionId = item.sourceSubmissionId ?? null;
   const canManageModel = isModelOwner && Boolean(sourceSubmissionId);
+  const p = item.parameters;
   const metrics = [
-    formatMetric("续航", item.parameters.maxFlightTimeMinutes, (value) => `${value} 分钟`),
-    formatMetric("极速", item.parameters.maxSpeedKph, (value) => `${value} km/h`),
-    formatMetric("起飞重量", item.parameters.takeoffWeightGrams, (value) => `${(value / 1000).toFixed(1)} kg`),
-    formatMetric("航程", item.parameters.maxRangeKilometers, (value) => `${value} km`)
+    formatMetric("续航", p.maxFlightTimeMinutes, (v) => `${v} 分钟`),
+    formatMetric("极速", p.maxSpeedKph, (v) => `${v} km/h`),
+    formatMetric("起飞重量", p.takeoffWeightGrams, (v) => `${(v / 1000).toFixed(1)} kg`),
+    formatMetric("航程", p.maxRangeKilometers, (v) => `${v} km`),
   ];
+
+  function paramRow(label: string, value: unknown, format?: string) {
+    if (value === null || value === undefined) return null;
+    const display = format ? `${value} ${format}` : String(value);
+    return [label, display] as [string, string];
+  }
 
   const specSections = [
     {
@@ -220,18 +228,76 @@ export function ModelDetailPage() {
         ["分类", item.category.name],
         ["动力", powerTypeLabels[item.powerType]],
         ["价格", priceLabel ?? "未公开"],
-        ["状态", lifecycleStatusLabels[item.lifecycleStatus]]
-      ]
+        ["状态", lifecycleStatusLabels[item.lifecycleStatus]],
+      ].filter(Boolean),
     },
     {
-      title: "参数表现",
+      title: "基础规格",
       rows: [
-        ["最大飞行时长", item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "未公开"],
-        ["最大速度", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "未公开"],
-        ["最大航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "未公开"],
-        ["起飞重量", item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "未公开"]
-      ]
-    }
+        paramRow("翼展", p.wingspanMm, "mm"),
+        paramRow("长度", p.lengthMm, "mm"),
+        paramRow("高度", p.heightMm, "mm"),
+        paramRow("起飞重量", p.takeoffWeightGrams, "g"),
+        paramRow("机身材料", p.materialType),
+      ].filter(Boolean),
+    },
+    {
+      title: "动力系统",
+      rows: [
+        paramRow("电机类型", p.motorType),
+        paramRow("电池类型", p.batteryType),
+        paramRow("电池容量", p.batteryCapacityMah, "mAh"),
+        paramRow("电池电压", p.batteryVoltage),
+        paramRow("电池能量", p.batteryEnergyWh, "Wh"),
+        paramRow("充电时间", p.chargeTimeMinutes, "分钟"),
+        paramRow("桨叶规格", p.propellerSize),
+      ].filter(Boolean),
+    },
+    {
+      title: "飞行性能",
+      rows: [
+        paramRow("最大速度", p.maxSpeedKph, "km/h"),
+        paramRow("巡航速度", p.cruiseSpeedKph, "km/h"),
+        paramRow("最大飞行时间", p.maxFlightTimeMinutes, "分钟"),
+        paramRow("最大航程", p.maxRangeKilometers, "km"),
+        paramRow("最大升限", p.maxAltitudeM, "m"),
+        paramRow("爬升率", p.climbRateMs, "m/s"),
+        paramRow("抗风等级", p.windResistance),
+      ].filter(Boolean),
+    },
+    {
+      title: "感知安全",
+      rows: [
+        paramRow("避障系统", p.obstacleAvoidance),
+        paramRow("卫星定位", p.gnssType),
+        paramRow("防护等级", p.ipRating),
+        paramRow("工作温度", p.operatingTemperature),
+      ].filter(Boolean),
+    },
+    {
+      title: "相机载荷",
+      rows: [
+        paramRow("传感器尺寸", p.cameraSensorSize),
+        paramRow("有效像素", p.cameraPixels),
+        paramRow("视频分辨率", p.videoResolution),
+        paramRow("镜头光圈", p.lensAperture),
+        paramRow("ISO范围", p.isoRange),
+      ].filter(Boolean),
+    },
+    {
+      title: "图传通信",
+      rows: [
+        paramRow("图传系统", p.transmissionSystem),
+        paramRow("图传距离", p.transmissionRangeM, "m"),
+      ].filter(Boolean),
+    },
+    {
+      title: "认证资质",
+      rows: [
+        paramRow("认证类型", p.certificationType),
+        paramRow("噪音等级", p.noiseLevelDb, "dB"),
+      ].filter(Boolean),
+    },
   ];
 
   function patchModelInteractionState(
@@ -526,6 +592,17 @@ export function ModelDetailPage() {
               <MessageCircleIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
               <span className="text-xs">{item.commentCount}</span>
             </button>
+
+            <Link
+              className={cn(
+                "group flex flex-col items-center gap-0.5 rounded-full px-1.5 py-2.5 text-muted-foreground shadow-none outline-none transition",
+                "hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+              )}
+              to={`${APP_ROUTES.modelCompare}?slugs=${item.slug}`}
+            >
+              <ArrowLeftRightIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
+              <span className="text-xs">对比</span>
+            </Link>
 
             <DetailMoreActions
               canDelete={canManageModel}
