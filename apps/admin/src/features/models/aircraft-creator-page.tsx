@@ -285,6 +285,93 @@ export function AircraftCreatorPage() {
                 <InputNumber min={0} precision={0} />
               </Form.Item>
             </Space>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">基础规格</div>
+              <Space wrap>
+                <Form.Item label="巡航速度（km/h）" name="cruiseSpeedKph">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="翼展（mm）" name="wingspanMm">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="长度（mm）" name="lengthMm">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="高度（mm）" name="heightMm">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="最大升限（m）" name="maxAltitudeM">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="爬升率（m/s）" name="climbRateMs">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="抗风等级" name="windResistance"><Input /></Form.Item>
+                <Form.Item label="机身材料" name="materialType"><Input /></Form.Item>
+              </Space>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">动力系统</div>
+              <Space wrap>
+                <Form.Item label="电机类型" name="motorType"><Input /></Form.Item>
+                <Form.Item label="电池类型" name="batteryType"><Input /></Form.Item>
+                <Form.Item label="电池容量（mAh）" name="batteryCapacityMah">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="电池电压" name="batteryVoltage"><Input /></Form.Item>
+                <Form.Item label="电池能量（Wh）" name="batteryEnergyWh">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="充电时间（分钟）" name="chargeTimeMinutes">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+                <Form.Item label="桨叶规格" name="propellerSize"><Input /></Form.Item>
+              </Space>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">感知安全</div>
+              <Space wrap>
+                <Form.Item label="避障系统" name="obstacleAvoidance"><Input /></Form.Item>
+                <Form.Item label="卫星定位" name="gnssType"><Input /></Form.Item>
+                <Form.Item label="防护等级" name="ipRating"><Input /></Form.Item>
+                <Form.Item label="工作温度" name="operatingTemperature"><Input /></Form.Item>
+              </Space>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">相机载荷</div>
+              <Space wrap>
+                <Form.Item label="传感器尺寸" name="cameraSensorSize"><Input /></Form.Item>
+                <Form.Item label="有效像素" name="cameraPixels"><Input /></Form.Item>
+                <Form.Item label="视频分辨率" name="videoResolution"><Input /></Form.Item>
+                <Form.Item label="镜头光圈" name="lensAperture"><Input /></Form.Item>
+                <Form.Item label="ISO范围" name="isoRange"><Input /></Form.Item>
+              </Space>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">图传通信</div>
+              <Space wrap>
+                <Form.Item label="图传系统" name="transmissionSystem"><Input /></Form.Item>
+                <Form.Item label="图传距离（m）" name="transmissionRangeM">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+              </Space>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="mb-3 text-sm font-semibold text-gray-700">认证资质</div>
+              <Space wrap>
+                <Form.Item label="认证类型" name="certificationType"><Input /></Form.Item>
+                <Form.Item label="噪音等级（dB）" name="noiseLevelDb">
+                  <InputNumber min={0} precision={0} />
+                </Form.Item>
+              </Space>
+            </div>
+
             <Form.Item label="发布状态" name="isPublished">
               <Select
                 options={[
