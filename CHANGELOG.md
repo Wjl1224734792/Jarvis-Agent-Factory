@@ -4,6 +4,20 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.0] - 2026-05-19
+
+### Added
+- `/skill-flow` 指令：会话流水线流程导出为可复用 Skill 模板，支持 export/save/list/apply 4个子命令
+- `session_export` MCP 工具：导出当前会话的流水线流程数据（Gate序列、Agent spawn、产物、时间线）
+- `flow_skill_save` MCP 工具：将导出的流程数据保存为 flow_skills 表记录
+- `flow_skill_list` MCP 工具：列出所有已保存的流程 Skill 模板
+- `flow_skills` 数据库表：存储导出流程模板（名称/描述/流水线类型/Gate序列/Agent spawn/Skill加载）
+- `saveFlowSkill` / `getFlowSkills` / `getFlowSkill` / `deleteFlowSkill` / `getFlowSkillCount` CRUD 函数
+- 指令总数 39→40
+
+### Changed
+- README.md / AGENTS.md / commands-reference.html 同步更新至 v4.3.0
+
 ## [4.2.2] - 2026-05-19
 
 ### Changed

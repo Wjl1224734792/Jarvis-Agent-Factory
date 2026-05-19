@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 71 Agent · 39 Command · 34 Skill · 15 Pipeline · v4.2.2
+> Jarvis Agent Factory · 71 Agent · 40 Command · 34 Skill · 15 Pipeline · v4.3.0
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -16,7 +16,7 @@
 
 | Agents | Commands | Skills | Pipelines |
 |:------:|:--------:|:------:|:---------:|
-| 71 | 39 | 34 | 15 |
+| 71 | 40 | 34 | 15 |
 
 ### 文档同步约束
 
@@ -144,7 +144,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 ## L4 — 工作模式与指令入口
 
-> **仅 Claude Code 平台可用。** 共 39 条指令。
+> **仅 Claude Code 平台可用。** 共 40 条指令。
 
 ### 编排入口
 
@@ -191,6 +191,10 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 ### 专用工具
 
 `/bug-fix` `/browser-explore`
+
+### 流程管理
+
+`/skill-flow` — 会话流程导出为可复用 Skill 模板（export/save/list/apply 子命令）
 
 ### Web 面板
 

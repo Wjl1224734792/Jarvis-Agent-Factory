@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.2.2-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.3.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.2.1** — 生产就绪度加固：catch 硬化 + SSE 并发锁 + Gate C2 5次重试 + 15 MCP核心API集成测试 + 3 Expo Agent + 364全绿
+> **v4.3.0** — 新增 `/skill-flow` 指令：会话流水线流程导出为可复用 Skill 模板（export/save/list/apply）
 
 ## 快速开始
 
@@ -318,13 +318,14 @@ test-doc-writer → test-executor → remediation-expert
 | 完整发布流 | `/publish` |
 | 快速发布 | `/release` |
 | 文档同步 | `/sync` |
+| 流程管理 | `/skill-flow` |
 
 ## 统计
 
 | | Claude Code |
 |---|:--:|
 | Agents | 71 |
-| Commands | 39 |
+| Commands | 40 |
 | Skills | 34 |
 | Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |
 | 钩子 | settings.json |
@@ -407,6 +408,7 @@ test-doc-writer → test-executor → remediation-expert
 | **改进** | `/improve` | [improve.md](docs/flows/improve.md) | IM0目标→IM1研究→IM2计划→IM3执行→IM4评估 (5门,迭代循环) |
 | **核心编排** | `/publish` | [publish.md](docs/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
 | | `/sync` | [sync.md](docs/flows/sync.md) | 检查并同步核心文档与代码一致性 |
+| | `/skill-flow` | [skill-flow.md](docs/flows/skill-flow.md) | 会话流程导出为Skill模板(export/save/list/apply) |
 | | `/browser-explore` | [browser-explore.md](docs/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |
 | | `/task-bdd` | [task-bdd.md](docs/flows/task-bdd.md) | BDD行为驱动：Gherkin场景编写 |
 | | `/task-ddd` | [task-ddd.md](docs/flows/task-ddd.md) | DDD领域驱动：聚合/实体/值对象分析 |

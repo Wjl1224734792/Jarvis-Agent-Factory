@@ -129,11 +129,11 @@
 <div class="hero">
   <h1>Jarvis Agent Factory</h1>
   <div class="tagline">多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线</div>
-  <span class="version">v4.2.2</span>
+  <span class="version">v4.3.0</span>
 </div>
 
 <div class="stats">
-  <div class="stat accent"><div class="num">39</div><div class="label">指令 Commands</div></div>
+  <div class="stat accent"><div class="num">40</div><div class="label">指令 Commands</div></div>
   <div class="stat green"><div class="num">71</div><div class="label">智能体 Agents</div></div>
   <div class="stat purple"><div class="num">34</div><div class="label">技能 Skills</div></div>
   <div class="stat orange"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
@@ -208,10 +208,11 @@
 <!-- ============================================================ -->
 <!-- 指令体系 -->
 <!-- ============================================================ -->
-<h2 id="commands">指令体系 <span class="count">— 39 条指令，8 个分类</span></h2>
+<h2 id="commands">指令体系 <span class="count">— 40 条指令，9 个分类</span></h2>
 
 <div class="intro">
   <p>每条指令是一条完整的开发流水线入口。输入 <code>/指令名 任务描述</code> 即可启动。引擎自动推进 Gate 序列，在对应阶段 spawn 专业 Agent 执行任务。<strong>不确定用什么指令？直接用 <code>/auto</code>。</strong></p>
+  <p><strong>新增：</strong><code>/skill-flow</code> — 将当前会话的流水线流程导出为可复用 Skill 模板（export/save/list/apply），实现"一次执行、永久复用"。</p>
 </div>
 
 <!-- 编排入口 -->
@@ -745,6 +746,27 @@
 </div>
 </div>
 
+<!-- 流程管理 -->
+<h3>九、流程管理（1条）</h3>
+
+<div class="recommend tip">
+  <strong>新功能：</strong>将任意会话的流水线流程导出为可复用 Skill 模板，实现"一次执行、永久复用"。参考 OMC 将工作流封装为 Skill 的模式。
+</div>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/skill-flow</div>
+  <div class="cmd-desc"><strong>会话流程导出</strong> — 4 子命令：export（导出流程JSON）、save（保存为Skill模板）、list（列出已保存）、apply（应用到当前会话）。参考 OMC 的多阶段工作流 Skill 模式。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">export</span><span class="step-desc">导出当前会话的流水线流程数据：Gate序列、Agent spawn、产物、时间线</span></div>
+    <div class="flow-step"><span class="step-tag green">save</span><span class="step-desc">将流程数据保存为 flow_skills 表记录 + 生成 .claude/skills/flow-* 目录的 SKILL.md</span></div>
+    <div class="flow-step"><span class="step-tag orange">list</span><span class="step-desc">列出所有已保存的流程 Skill 模板（名称/流水线类型/创建时间）</span></div>
+    <div class="flow-step"><span class="step-tag accent">apply</span><span class="step-desc">读取已保存 Skill 的 Gate序列，与当前会话对比，加载匹配的 Agent/Skill 配置</span></div>
+  </div>
+  <div class="agents"><span>相关 MCP 工具：</span>session_export / flow_skill_save / flow_skill_list</div>
+</div>
+</div>
+
 <!-- ============================================================ -->
 <!-- 智能体体系 -->
 <!-- ============================================================ -->
@@ -1112,13 +1134,13 @@
 <!-- ============================================================ -->
 <div class="footer">
   <p>
-    <strong>Jarvis Agent Factory v4.2.2</strong> &nbsp;·&nbsp;
+    <strong>Jarvis Agent Factory v4.3.0</strong> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/README.md">README.md</a>
   </p>
-  <p style="margin-top:8px">39 Commands · 71 Agents · 34 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">40 Commands · 71 Agents · 34 Skills · 15 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>

@@ -76,6 +76,21 @@ function initSchema(db: DbConn) {
     CREATE INDEX IF NOT EXISTS idx_pipeline_runs_session ON pipeline_runs(session_id, started_at DESC);
   `);
 
+  // flow_skills: 会话流程导出为可复用 Skill 模板
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS flow_skills (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      pipeline_type TEXT NOT NULL DEFAULT 'full',
+      gate_sequence TEXT NOT NULL,
+      agent_spawns TEXT NOT NULL DEFAULT '[]',
+      skill_loads TEXT NOT NULL DEFAULT '[]',
+      source_session_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // artifacts: pipeline run 产物记录
   db.exec(`
     CREATE TABLE IF NOT EXISTS artifacts (
@@ -680,5 +695,32 @@ export function getResumeData(db: DbConn,  runId: string): Record<string, unknow
  */
 export function updateSessionMetadata(db: DbConn,  sessionId: string,  metadata: Record<string, unknown>) {
   db.prepare('UPDATE sessions SET metadata=? WHERE id=?').run(JSON.stringify(metadata), sessionId);
+}
+
+// ── flow_skills: 会话流程导出为可复用 Skill 模板 ──────────────
+
+export function saveFlowSkill(db: DbConn,  name: string,  description: string,  pipeline_type: string,  gate_sequence: string,  agent_spawns: string,  skill_loads: string,  source_session_id: string) {
+  const id = `fs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  db.prepare(`INSERT INTO flow_skills (id, name, description, pipeline_type, gate_sequence, agent_spawns, skill_loads, source_session_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`)
+    .run(id, name, description, pipeline_type, gate_sequence, agent_spawns, skill_loads, source_session_id);
+  return id;
+}
+
+export function getFlowSkills(db: DbConn) {
+  return db.prepare('SELECT * FROM flow_skills ORDER BY created_at DESC').all();
+}
+
+export function getFlowSkill(db: DbConn,  id: string) {
+  return db.prepare('SELECT * FROM flow_skills WHERE id=?').get(id);
+}
+
+export function deleteFlowSkill(db: DbConn,  id: string) {
+  return db.prepare('DELETE FROM flow_skills WHERE id=?').run(id);
+}
+
+export function getFlowSkillCount(db: DbConn): number {
+  const row = db.prepare('SELECT COUNT(*) as cnt FROM flow_skills').get() as any;
+  return row?.cnt || 0;
 }
 
