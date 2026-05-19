@@ -16,6 +16,7 @@ updated: "2026-05-14"
 ```
 Skill("behavioral-guidelines")
 Skill("security-and-hardening")
+Skill("security-testing")
 ```
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：

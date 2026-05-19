@@ -1,101 +1,81 @@
-# Autopilot Spec: Jarvis 指令体系补全
+# Autopilot Spec: 低优先级项完善
 
-## 差距分析：OMC 插件 vs Jarvis 指令
+## 差距 1：15 个 orphan skills 未在命令中加载
 
-### 当前 Jarvis 指令（36条）覆盖情况
+### 现状
+15 个技能模板目录存在于 `src/templates/platforms/claude/skills/` 但从未被任何命令通过 `Skill()` 加载。之前假设它们由 agent .md 提示词内部加载——但验证后发现 agent 提示词中也未引用。
 
-| 类别 | 已有指令 | 覆盖率 |
-|------|---------|:------:|
-| 全流程编排 | /jarvis, /jarvis-lite | 100% |
-| 平台开发 | /frontend, /backend, /android, /ios, /flutter, /expo, /taro, /react-native | 100% |
-| 需求探询 | /ask (4模式) | 100% |
-| 任务分解 | /task-ddd, /task-bdd, /task-tdd | 100% |
-| 代码审查 | /review, /review-fix | 80% |
-| 测试 | /test-unit, /test-integration, /test-e2e, /test-perf, /test-security, /browser-test | 100% |
-| 架构 | /frontend-architect, /backend-architect, /algorithm-expert | 100% |
-| Bug修复 | /bug-fix | 100% |
-| 重构 | /refactor (R1-R5) | 60% |
-| 紧急修复 | /hotfix (H0-H3) | 100% |
-| 迁移 | /migrate (M1-M4) | 100% |
-| 评估 | /evaluate (E0-E3) | 100% |
-| 调试 | /debug (D0-D4) | 50% |
-| 研究 | /research (RS0-RS4) | 100% |
-| 发布 | /release (RL0-RL4), /publish | 100% |
-| 浏览器 | /browser-explore | 100% |
-| 同步 | /sync | 100% |
+### 修复方案
+按语义分配给对应命令的步骤 0（初始化阶段加载）：
 
-### 识别到的 3 个关键缺口
+| Skill | 分配命令 | 理由 |
+|-------|---------|------|
+| `chinese-documentation` | `/sync` `/jarvis` | 文档维护和中文项目开发 |
+| `code-review-and-quality` | `/review` `/review-fix` | 代码审查和质量把关 |
+| `context-engineering` | `/jarvis` `/auto` | 上下文工程是编排基础 |
+| `debugging-deep` | `/debug` | 深度调试补充基础调试技能 |
+| `documentation-and-adrs` | `/sync` `/research` | 文档和架构决策记录 |
+| `frontend-design` | `/frontend` | 前端设计 |
+| `incremental-implementation` | `/jarvis` `/auto` | 增量实现模式 |
+| `perf-testing` | `/test-perf` | 性能测试 |
+| `security-testing` | `/test-security` | 安全测试 |
+| `test-data-factory` | `/test-unit` `/test-integration` | 测试数据生成 |
+| `verification-before-completion` | `/jarvis` `/auto` | 完成前验证 |
+| `find-docs` | (系统级，不修改) | 由 CLI 自动加载 |
+| `find-skills` | (系统级，不修改) | 由 CLI 自动加载 |
+| `mcp-builder` | (保留备用) | 特殊工具类，不常加载 |
+| `writing-skills` | (系统级，不修改) | 技能编写时手动调用 |
+| `browser-use` | `/browser-explore` `/browser-test` | 浏览器自动化 |
 
-#### 缺口 1: 代码简化/质量清理指令（对照 OMC: simplify + ai-slop-cleaner）
+## 差距 2：browser-use skill 未加载
 
-OMC 有 `simplify`（Review changed code for reuse, quality, and efficiency）和 `ai-slop-cleaner`（Clean AI-generated code slop with a regression-safe, deletion-first workflow）。Jarvis 有 `/refactor`（结构性重构）和 `/review`（审查发现），但缺少**专门针对代码质量简化、冗余消除、AI 痕迹清理**的指令。
+### 修复
+在 `/browser-explore` 和 `/browser-test` 命令的步骤 0 中加载 `browser-use` 技能（与 `agent-browser` 配合使用）。
 
-#### 缺口 2: 因果追踪指令（对照 OMC: trace）
+## 差距 3：平台 Agent 不在 GATE_AGENT_GUIDE
 
-OMC 有 `trace`（Evidence-driven tracing lane that orchestrates competing tracer hypotheses）。Jarvis 有 `/debug`（调试诊断 D0-D4）和 `/research`（深度研究 RS0-RS4），但缺少**假设驱动的因果追踪**——能同时追踪多个竞态假设、收集证据、逐步缩小根因范围的科学方法。
+### 现状
+34 个移动端/跨端 Agent（android/flutter/ios/react-native/taro/expo 的 dev/ui/state/test/review）只通过各自的命令模板（`/android`, `/flutter` 等）直接路由，不在 `GATE_AGENT_GUIDE` 管道注册中。
 
-#### 缺口 3: 自主迭代改进指令（对照 OMC: self-improve + autoresearch + ralph）
+### 修复方案（参考 OMC 插件路由模式）
+参考 OMC `autopilot`（任务→自动选流水线）和 `ralplan`（自动路由到最优审查者）的设计：
 
-OMC 有 `self-improve`（Tournament selection improvement loop）、`autoresearch`（Stateful single-mission improvement loop）、`ralph`（Self-referential loop until task completion）。Jarvis 有 `/refactor`（单次重构）和 `/review-fix`（审查修复闭环），但缺少**带度量指标的自主迭代改进循环**——定义目标→研究→计划→执行→评估→迭代直到达标。
+1. **在 GATE_AGENT_GUIDE 中添加平台 Agent 的"按需路由"备注** —— 不修改 `can_spawn` 列表（保持管道纯净），但在 note 中添加"平台任务→spawn 对应平台 Agent"的指引
 
-### 新增 3 条指令
+2. **增强 `/auto` 命令的平台路由** —— 当检测到移动端/跨端平台任务时，自动路由到 `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` 等平台命令，由这些命令各自的 Gate 序列执行
 
-| 指令 | Gate 序列 | 对标 OMC | 用途 |
-|------|----------|---------|------|
-| **/simplify** | S0→S1→S2→S3 | simplify + ai-slop-cleaner | 代码质量简化：分析→简化→验证→报告 |
-| **/trace** | T0→T1→T2→T3→T4 | trace | 因果追踪：问题框架→假设生成→证据收集→因果分析→解决方案 |
-| **/improve** | IM0→IM1→IM2→IM3→IM4 | self-improve + autoresearch + ralph | 自主迭代改进：目标定义→研究→计划→执行→评估→迭代 |
+3. **平台命令的 GATE_AGENT_GUIDE 自洽** —— 每个平台命令内部有完整的 Agent spawn 逻辑，不需要在主 GATE_AGENT_GUIDE 中重复注册
 
-## 技术规格
-
-### /simplify — 代码简化与质量清理
-
-**Gate 序列**: S0 → S1 → S2 → S3
-
-| Gate | 名称 | 操作 | Agent 调度 |
-|------|------|------|-----------|
-| S0 | 代码分析 | 分析目标代码质量/复杂度/冗余/AI痕迹 | subagent: code-explore-expert |
-| S1 | 简化执行 | 删除冗余→提取复用→简化逻辑→规范化 | prefer_team: 按模块并行 |
-| S2 | 回归验证 | Lint+Type-check+Build+Test | 编排者主导 |
-| S3 | 报告产出 | before/after对比+简化统计 | 编排者产出 |
-
-### /trace — 因果追踪
-
-**Gate 序列**: T0 → T1 → T2 → T3 → T4
-
-| Gate | 名称 | 操作 | Agent 调度 |
-|------|------|------|-----------|
-| T0 | 问题框架 | 定义症状、上下文、已知信息 | 编排者主导 |
-| T1 | 假设生成 | 生成2-5个竞态假设，含先验概率 | subagent: algorithm-expert |
-| T2 | 证据收集 | 收集每个假设的证据（for/against） | subagent: code-explore-expert 并行 |
-| T3 | 因果分析 | 贝叶斯更新→假设排序→根因定位 | 编排者主导 |
-| T4 | 解决方案 | 推荐修复方案+验证步骤 | 编排者产出 |
-
-### /improve — 自主迭代改进
-
-**Gate 序列**: IM0 → IM1 → IM2 → IM3 → IM4
-
-| Gate | 名称 | 操作 | Agent 调度 |
-|------|------|------|-----------|
-| IM0 | 目标定义 | 定义改进目标+可量化指标+停止条件 | 编排者主导 |
-| IM1 | 研究分析 | 分析代码库，识别改进机会 | subagent: code-explore-expert |
-| IM2 | 计划制定 | 生成改进计划+假设+预期收益 | subagent: planner |
-| IM3 | 执行验证 | 实施改进+运行基准 | prefer_team: executor 并行 |
-| IM4 | 评估迭代 | 对比指标→决策继续/停止 | 编排者主导 |
-
-### Agent 调度约束
-
-遵循 AGENTS.md 约束 23（Team 模块隔离）和 24（混合编排）：
-- **subagent_only**: S0, T1, T2, IM1 — 只读探索
-- **prefer_team**: S1, IM3 — 并行实现，各成员独占模块
-- **编排者主导**: S2, S3, T0, T3, T4, IM0, IM2, IM4 — 分析/决策/产出
+### 实际改动
+- 在 GATE_AGENT_GUIDE 中添加平台 Agent 的 `can_spawn` 到实现门（Gate C-impl）中，使平台 Agent 在 Team 模式下也可通过管道调度
+- 注意：平台 Agent 数量多（34个），需要合理分组避免 `can_spawn` 列表过长
 
 ## 实现范围
 
-1. `src/engine/gates.ts` — 新增 3 条管道定义 + 全部 Gate 配置
-2. `src/engine/server.ts` — 注册 3 个新管道类型
-3. `src/templates/platforms/claude/commands/` — 3 个新命令模板
-4. `src/web/routes.ts` — 路由分类更新
-5. `AGENTS.md` — 命令列表 + 管道表更新
-6. `README.md` — 命令文档更新
-7. `docs/flows/` — 3 个新流程图
+### 命令模板修改（添加 Skill 加载）
+
+1. `/debug` — 添加 `Skill("debugging-deep")`
+2. `/frontend` — 添加 `Skill("frontend-design")`
+3. `/jarvis` — 添加 `Skill("context-engineering")` `Skill("incremental-implementation")` `Skill("verification-before-completion")`
+4. `/review` — 添加 `Skill("code-review-and-quality")`
+5. `/review-fix` — 添加 `Skill("code-review-and-quality")`
+6. `/research` — 添加 `Skill("documentation-and-adrs")`
+7. `/sync` — 添加 `Skill("chinese-documentation")` `Skill("documentation-and-adrs")`
+8. `/test-perf` — 添加 `Skill("perf-testing")`
+9. `/test-security` — 添加 `Skill("security-testing")`
+10. `/test-unit` — 添加 `Skill("test-data-factory")`
+11. `/test-integration` — 添加 `Skill("test-data-factory")`
+12. `/browser-explore` — 添加 `Skill("browser-use")`
+13. `/browser-test` — 添加 `Skill("browser-use")`
+14. `/auto` — 添加 `Skill("context-engineering")` `Skill("incremental-implementation")` `Skill("verification-before-completion")`
+
+### GATE_AGENT_GUIDE 修改
+
+将平台实现 Agent（14个 -dev-expert/-ui-expert/-state-expert）添加到 Gate C-impl
+将平台测试 Agent（6个）添加到 Gate C2
+将平台审查 Agent（6个）添加到 Gate D
+
+### 文档同步
+
+- AGENTS.md 技能表更新覆盖说明
+- README.md 版本摘要更新

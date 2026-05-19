@@ -13,6 +13,7 @@ updated: "2026-05-14"
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
+   - `Skill("code-review-and-quality")`
 
 2. 注册引擎会话（硬约束——引擎确保各阶段操作权限不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`

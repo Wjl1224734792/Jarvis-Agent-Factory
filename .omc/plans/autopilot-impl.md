@@ -1,13 +1,15 @@
-# Autopilot Implementation Plan: 3 New Commands
+# Autopilot Implementation Plan: 低优先级项完善
 
 ## Execution Order
 
-1. **gates.ts** — Add 3 pipeline definitions + all gate configs
-2. **Command templates** — Create simplify.md, trace.md, improve.md
-3. **Engine/UI** — Update server.ts, routes.ts
-4. **Documentation** — Update AGENTS.md, README.md, docs/flows/
-5. **QA** — Build, lint, engine tests, web panel tests
+### Batch 1 (parallel) — Skill wiring + GATE_AGENT_GUIDE
+- Update command templates: add Skill() calls to 14 commands
+- Update gates.ts: add platform agents to GATE_AGENT_GUIDE
 
-## Parallel Opportunities
-- gates.ts and 3 command templates are independent → parallel
-- Engine/UI updates and docs/flow diagrams are independent → parallel
+### Batch 2 — Documentation sync
+- Update AGENTS.md skill table
+- Update README.md version summary
+
+### Batch 3 — QA & Release
+- Build + test
+- Commit + push

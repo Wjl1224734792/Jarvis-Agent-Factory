@@ -16,6 +16,7 @@ updated: "2026-05-19"
 ```
 Skill("behavioral-guidelines")
 Skill("source-driven-development")
+Skill("documentation-and-adrs")
 ```
 
 **引擎会话注册**（硬约束——引擎确保研究操作按 Gate 权限执行）：

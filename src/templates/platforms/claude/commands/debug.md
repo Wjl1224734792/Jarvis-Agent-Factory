@@ -16,6 +16,7 @@ updated: "2026-05-14"
 ```
 Skill("behavioral-guidelines")
 Skill("debugging-and-error-recovery")
+Skill("debugging-deep")
 ```
 
 **引擎会话注册**（硬约束——引擎确保调试操作按 Gate 权限执行）：

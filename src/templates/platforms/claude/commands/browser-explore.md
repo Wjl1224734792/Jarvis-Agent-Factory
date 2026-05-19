@@ -20,6 +20,7 @@ updated: "2026-05-14"
 加载以下技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("browser-testing")`
+   - `Skill("browser-use")`
 
 **引擎会话注册**（硬约束——引擎确保测试操作不越权）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`

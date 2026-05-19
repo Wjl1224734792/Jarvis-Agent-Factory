@@ -12,6 +12,7 @@ updated: "2026-05-14"
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
+   - `Skill("frontend-design")`
 
 2. 注册引擎会话：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "frontend" })`

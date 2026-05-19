@@ -35,6 +35,9 @@ updated: "2026-05-14"
 2. 加载基座技能（并行）：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
+   - `Skill("context-engineering")`
+   - `Skill("incremental-implementation")`
+   - `Skill("verification-before-completion")`
 
 3. 判断是否适合流水线：
    - ❌ 不适合：纯信息提问、单 agent 可完成的简单修改、纯文档翻译

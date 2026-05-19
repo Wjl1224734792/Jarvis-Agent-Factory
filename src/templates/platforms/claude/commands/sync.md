@@ -11,6 +11,10 @@ updated: "2026-05-19"
 
 ## 步骤 0：扫描项目现状
 
+加载技能：
+- `Skill("chinese-documentation")`
+- `Skill("documentation-and-adrs")`
+
 首先了解项目当前实际情况（用于后续对比文档）：
 
 1. **技术栈**：读取 `package.json`（scripts、dependencies）、`tsconfig.json`、框架配置文件

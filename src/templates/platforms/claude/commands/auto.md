@@ -17,6 +17,9 @@ updated: "2026-05-19"
 ```
 Skill("behavioral-guidelines")
 Skill("using-agent-skills")
+Skill("context-engineering")
+Skill("incremental-implementation")
+Skill("verification-before-completion")
 ```
 
 > **核心理念**：参考 OMC 插件 `autopilot`（全自动执行）和 `ralplan`（共识路由）的自动路由模式。**你输入什么，我自动检测 → 自动选流水线 → 自动跳过无关 Gate → 自动分配 Agent**。不需要你告诉我"这是 bug 修复"或"这是重构"。
