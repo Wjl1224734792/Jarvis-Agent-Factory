@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis 指令参考 — 39 Commands</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9;
+    --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --orange: #d2991d;
+    --red: #f85149; --purple: #a371f7; --cyan: #39c5cf;
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif; max-width:1200px; margin:0 auto; padding:20px }
+  h1 { font-size:28px; margin-bottom:8px; color:#fff }
+  h1 small { font-size:16px; color:var(--muted); font-weight:400 }
+  h2 { font-size:20px; color:#fff; margin:32px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border) }
+  h3 { font-size:16px; color:var(--accent); margin:16px 0 8px }
+  .summary { display:flex; gap:16px; flex-wrap:wrap; margin:16px 0 }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 20px; text-align:center; min-width:100px }
+  .stat .num { font-size:24px; font-weight:700; color:#fff }
+  .stat .label { font-size:12px; color:var(--muted) }
+  .cmd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; margin:12px 0 }
+  .cmd-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; transition:border-color .2s }
+  .cmd-card:hover { border-color:var(--accent) }
+  .cmd-card .name { font-size:16px; font-weight:700; color:var(--accent); font-family:monospace }
+  .cmd-card .desc { color:var(--text); margin:4px 0 }
+  .cmd-card .meta { font-size:12px; color:var(--muted); margin-top:6px }
+  .cmd-card .gates { display:inline-block; background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:2px 8px; margin:4px 2px 0 0; font-size:11px; font-family:monospace; color:var(--green) }
+  .recommend { background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:12px 16px; margin:8px 0; font-size:13px }
+  .recommend .icon { color:var(--accent) }
+  .flow-table { width:100%; border-collapse:collapse; margin:8px 0; font-size:13px }
+  .flow-table th { text-align:left; color:var(--accent); padding:8px 10px; border-bottom:2px solid var(--border) }
+  .flow-table td { padding:8px 10px; border-bottom:1px solid var(--border) }
+  .flow-table tr:hover { background:var(--card) }
+  .tag { display:inline-block; border-radius:4px; padding:1px 6px; font-size:11px }
+  .tag-blue { background:rgba(88,166,255,0.15); color:var(--accent) }
+  .tag-green { background:rgba(63,185,80,0.15); color:var(--green) }
+  .tag-orange { background:rgba(210,153,29,0.15); color:var(--orange) }
+  .tag-purple { background:rgba(163,113,247,0.15); color:var(--purple) }
+  .tag-red { background:rgba(248,81,73,0.15); color:var(--red) }
+  .nav { position:sticky; top:0; background:var(--bg); padding:12px 0; border-bottom:1px solid var(--border); margin-bottom:20px; z-index:10; display:flex; gap:12px; flex-wrap:wrap }
+  .nav a { color:var(--text); text-decoration:none; font-size:13px; padding:4px 8px; border-radius:4px }
+  .nav a:hover { color:var(--accent); background:var(--card) }
+  .toc { columns:3; gap:16px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:12px 0 }
+  .toc a { color:var(--accent); text-decoration:none; display:block; padding:2px 0; font-size:13px }
+  .toc a:hover { text-decoration:underline }
+  .flow-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); margin-top:4px }
+  .flow-badge a { color:var(--accent); text-decoration:none }
+  @media (max-width:768px) { .cmd-grid{grid-template-columns:1fr} .toc{columns:2} }
+</style>
+</head>
+<body>
+
+<h1>Jarvis 指令参考 <small>— 39 Commands · 15 Pipelines · 71 Agents · v4.2.1</small></h1>
+
+<div class="summary">
+  <div class="stat"><div class="num">39</div><div class="label">指令 Commands</div></div>
+  <div class="stat"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
+  <div class="stat"><div class="num">71</div><div class="label">智能体 Agents</div></div>
+  <div class="stat"><div class="num">34</div><div class="label">技能 Skills</div></div>
+  <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
+</div>
+
+<nav class="nav">
+  <a href="#orchestrate">编排入口</a>
+  <a href="#platform">平台开发</a>
+  <a href="#requirements">需求与设计</a>
+  <a href="#engineering">工程操作</a>
+  <a href="#review">审查与修复</a>
+  <a href="#testing">测试体系</a>
+  <a href="#expert">专家咨询</a>
+  <a href="#tools">专用工具</a>
+  <a href="#recommendations">使用推荐</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="orchestrate">编排入口（2）</h2>
+
+<div class="recommend">
+  <span class="icon">�</span> <strong>日常默认入口：</strong><code style="color:var(--accent)">/auto</code> — 自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配 Team/Subagent。<strong>不确定用什么指令时，直接用 /auto。</strong>
+</div>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/jarvis</div>
+  <div class="desc">全流程严格模式 — 13 Gate 全部强制执行，适合中大型功能开发。完整需求→DDD→BDD→TDD→架构→规划→并行实现→质量门→视觉验证→测试→评审→发布</div>
+  <div class="meta">
+    <span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</span>
+    <span class="gates">13门</span>
+    <span class="tag tag-blue">prefer_team</span>
+  </div>
+</div>
+<div class="cmd-card">
+  <div class="name">/auto</div>
+  <div class="desc">智能路由模式 — 自动检测12种任务类型→路由最优流水线→跳过无关Gate→按复杂度(轻/中/重)分配 Team/Subagent。日常默认入口</div>
+  <div class="meta">
+    <span class="gates">自适应</span>
+    <span class="tag tag-green">allow_jump</span>
+    <span class="tag tag-blue">推荐首选</span>
+  </div>
+  <div class="flow-badge">→ <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/docs/flows/auto.md" target="_blank">流程图</a></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="platform">平台开发（6）</h2>
+
+<div class="recommend">
+  <span class="icon">�</span> <strong>推荐：</strong>移动端/跨端开发使用对应平台命令，它们使用平台专属 Agent（如 android-dev-expert、flutter-ui-expert）并强制执行 C1.5 视觉验证。
+</div>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/frontend</div>
+  <div class="desc">前端开发生命周期 — C1.5 视觉验证强制。Agent: frontend-architect / frontend-dev-expert / frontend-ui-expert / frontend-state-expert</div>
+  <div class="meta"><span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/backend</div>
+  <div class="desc">后端开发生命周期 — 跳过 C1.5 视觉验证。Agent: backend-architect / backend-dev-expert / backend-api-expert / backend-logic-expert / backend-data-expert</div>
+  <div class="meta"><span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E</span> <span class="tag tag-red">跳过C1.5</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/android</div>
+  <div class="desc">Android 原生开发生命周期 — Kotlin/Jetpack Compose。Agent: android-dev-expert / android-ui-expert / android-state-expert / android-test-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/ios</div>
+  <div class="desc">iOS 原生开发生命周期 — Swift/SwiftUI。Agent: ios-dev-expert / ios-ui-expert / ios-state-expert / ios-test-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/flutter</div>
+  <div class="desc">Flutter 跨端开发生命周期 — Dart。Agent: flutter-dev-expert / flutter-ui-expert / flutter-state-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/expo</div>
+  <div class="desc">Expo 跨端开发生命周期 — React Native + Expo SDK。Agent: expo-dev-expert / expo-ui-expert / expo-state-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/react-native</div>
+  <div class="desc">React Native 跨端开发生命周期。Agent: react-native-dev-expert / react-native-ui-expert / react-native-state-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/taro</div>
+  <div class="desc">Taro 小程序/H5 跨端开发生命周期。Agent: taro-dev-expert / taro-ui-expert / taro-state-expert</div>
+  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="requirements">需求与设计（5）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/ask</div>
+  <div class="desc">需求探询 — 4模式自适应：Interview(模糊→Socratic追问)、Direct(清晰→直接分析)、Consensus(ralplan式3阶段共识)、Review(Critic评估现有计划)。含5维度评分矩阵(BV/EF/RS/UI/DC)</div>
+  <div class="meta"><span class="gates">K0→K1→K2→K3</span> <span class="tag tag-green">allow_jump</span> <span class="tag tag-purple">评分矩阵</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/research</div>
+  <div class="desc">深度研究 — RS0课题定义→RS1信息收集→RS2多维分析→RS3假设验证→RS4研究报告。竞争假设+证据矩阵</div>
+  <div class="meta"><span class="gates">RS0→RS1→RS2→RS3→RS4</span> <span class="gates">5门</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/task-ddd</div>
+  <div class="desc">DDD 领域驱动分析 — 聚合/实体/值对象/领域服务/聚合行为清单+路由建议</div>
+  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-DDD</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/task-bdd</div>
+  <div class="desc">BDD 行为驱动场景 — Gherkin Given/When/Then 格式，BDD验收场景编写</div>
+  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-BDD</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/task-tdd</div>
+  <div class="desc">TDD 测试驱动任务分解 — Red→Green→Refactor 循环，TASK-XXX 映射 REQ-XXX</div>
+  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-TDD</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="engineering">工程操作（7）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/refactor</div>
+  <div class="desc">代码重构安全网 — R1定义边界→R2基线测试+覆盖率→R3执行重构→R4行为漂移检测→R5报告</div>
+  <div class="meta"><span class="gates">R1→R2→R3→R4→R5</span> <span class="gates">5门</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/hotfix</div>
+  <div class="desc">紧急热修复 — H0紧急声明+审批→H1最小化修复→H2快速验证+回滚→H3事后审计</div>
+  <div class="meta"><span class="gates">H0→H1→H2→H3</span> <span class="gates">4门</span> <span class="tag tag-red">紧急协议</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/migrate</div>
+  <div class="desc">框架迁移 — M1验证规则→M2应用迁移→M3编译验证→M4自动修复Lint(≤2轮)</div>
+  <div class="meta"><span class="gates">M1→M2→M3→M4</span> <span class="gates">4门</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/debug</div>
+  <div class="desc">调试诊断 — D0收集信息→D1最小复现→D2调试会话→D3交互诊断→D4报告+修复方案</div>
+  <div class="meta"><span class="gates">D0→D1→D2→D3→D4</span> <span class="gates">5门</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/evaluate</div>
+  <div class="desc">技术评估 — E0定义标准+权重→E1生成原型→E2收集指标→E3多维度报告+推荐</div>
+  <div class="meta"><span class="gates">E0→E1→E2→E3</span> <span class="gates">4门</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/simplify</div>
+  <div class="desc">代码简化 — S0五桶分析(死代码/重复/过度抽象/AI痕迹/复杂性)→S1并行简化→S2回归验证→S3报告。失败自动回滚</div>
+  <div class="meta"><span class="gates">S0→S1→S2→S3</span> <span class="gates">4门</span> <span class="tag tag-green">自动回滚</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/improve</div>
+  <div class="desc">度量驱动迭代改进 — IM0量化目标→IM1研究→IM2计划→IM3执行+benchmark→IM4评估→迭代/停止。支持IM4→IM1循环</div>
+  <div class="meta"><span class="gates">IM0→IM1→IM2→IM3→IM4</span> <span class="gates">5门</span> <span class="tag tag-green">allow_jump</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/trace</div>
+  <div class="desc">因果追踪 — T0问题框架→T1假设生成(2-5竞争假设)→T2证据收集→T3贝叶斯更新(>70%方案/<70%重假设)→T4解决方案</div>
+  <div class="meta"><span class="gates">T0→T1→T2→T3→T4</span> <span class="gates">5门</span> <span class="tag tag-purple">贝叶斯</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="review">审查与修复（3）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/review</div>
+  <div class="desc">只读代码审查 — 不修改文件。spawn 审查 Agent 并行收集 findings（每条含文件/行号/依据），产出审查报告+严重度分级</div>
+  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">并行审查</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/review-fix</div>
+  <div class="desc">审查修复优化闭环 — ①初审(只读)②修复规划③执行修复④验证(质量重检)⑤复审。最多2轮</div>
+  <div class="meta"><span class="tag tag-orange">闭环</span> <span class="tag tag-red">≤2轮</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/bug-fix</div>
+  <div class="desc">Bug修复闭环 — 浏览器复现→根因定位→修复→浏览器验证。涉及前端/交互类 Bug 的7步闭环</div>
+  <div class="meta"><span class="tag tag-orange">浏览器闭环</span> <span class="tag tag-green">Playwright</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="testing">测试体系（6）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/test-unit</div>
+  <div class="desc">单元测试 — 检测框架→分析代码→生成(Red)→运行(Green)→重构(Refactor)。TDD 循环</div>
+  <div class="meta"><span class="tag tag-blue">TDD</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/test-integration</div>
+  <div class="desc">集成测试 — 识别API契约→启动环境→生成测试→运行→清理环境</div>
+  <div class="meta"><span class="tag tag-purple">API契约</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/test-e2e</div>
+  <div class="desc">端到端测试 — 用户故事→选择工具→编写用例→运行→报告。覆盖完整用户流程</div>
+  <div class="meta"><span class="tag tag-orange">全栈</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/test-perf</div>
+  <div class="desc">性能测试 — 定义性能目标→选择工具→建立基线→负载/压力测试→定位瓶颈→报告</div>
+  <div class="meta"><span class="tag tag-red">负载</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/test-security</div>
+  <div class="desc">安全测试 — 确认授权范围→爬取→主动漏洞扫描→修复验证→安全审计报告</div>
+  <div class="meta"><span class="tag tag-red">OWASP</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/browser-test</div>
+  <div class="desc">浏览器交互测试 — 文档驱动：test-doc-writer→test-executor→remediation-expert 闭环。最多2轮修复重测</div>
+  <div class="meta"><span class="tag tag-green">Playwright</span> <span class="tag tag-orange">文档驱动</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="expert">专家咨询（3）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/frontend-architect</div>
+  <div class="desc">前端架构咨询 — 只读。spawn frontend-architect Agent。适用：组件架构设计、性能优化方案、状态管理选型</div>
+  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/backend-architect</div>
+  <div class="desc">后端架构咨询 — 只读。spawn backend-architect Agent。适用：API设计、数据库架构、服务拆分</div>
+  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/algorithm-expert</div>
+  <div class="desc">算法设计与优化咨询 — 只读。spawn algorithm-expert Agent。适用：复杂度优化、数据结构选型、数学建模</div>
+  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="tools">发布与工具（4）</h2>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="name">/release</div>
+  <div class="desc">快速发布 — RL0环境检测→RL1质量门→RL2版本递增+CHANGELOG→RL3 commit+tag+push→RL4验证(CI+npm)</div>
+  <div class="meta"><span class="gates">RL0→RL1→RL2→RL3→RL4</span> <span class="gates">5门</span> <span class="tag tag-green">CI自动</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/publish</div>
+  <div class="desc">完整发布流程(含PR+审查+合并) — 工作分支→质量门→测试→版本→commit→push→PR→合并→tag→发布。团队协作</div>
+  <div class="meta"><span class="tag tag-purple">PR工作流</span> <span class="tag tag-orange">团队协作</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/sync</div>
+  <div class="desc">文档同步 — 检查 CLAUDE.md/AGENTS.md/README.md/CHANGELOG.md 与代码一致性，清理过时文件。支持 --dry-run</div>
+  <div class="meta"><span class="tag tag-blue">文档维护</span></div>
+</div>
+<div class="cmd-card">
+  <div class="name">/browser-explore</div>
+  <div class="desc">浏览器自主探索 — browser-use Agent 自主探索页面+发现UI bug+产出结构化报告</div>
+  <div class="meta"><span class="tag tag-green">Playwright</span> <span class="tag tag-purple">自主探索</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="recommendations">使用推荐</h2>
+
+<div class="recommend">
+  <span class="icon">�</span> <strong>新手入门路径：</strong>
+  <code>/auto 需求描述</code> → 自动路由 + 引导 →
+  <code>/review</code> 审查产出 →
+  <code>/review-fix</code> 修复问题 →
+  <code>/release</code> 发布
+</div>
+
+<table class="flow-table">
+<thead>
+<tr><th>场景</th><th>推荐指令</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>日常开发（默认）</td><td><code>/auto</code></td><td>自动任务分类+路由，最省心</td></tr>
+<tr><td>中大型功能</td><td><code>/jarvis</code></td><td>13 Gate 完整流程，质量保证最强</td></tr>
+<tr><td>重构代码</td><td><code>/refactor</code></td><td>R1-R5 安全网，基线→验证→漂移检测</td></tr>
+<tr><td>紧急修复线上故障</td><td><code>/hotfix</code></td><td>H0-H3 紧急协议，审批+回滚预案</td></tr>
+<tr><td>代码质量清理</td><td><code>/simplify</code></td><td>五桶分析，失败自动回滚</td></tr>
+<tr><td>排查Bug</td><td><code>/debug</code> 或 <code>/trace</code></td><td>/debug=交互式诊断，/trace=贝叶斯因果推理</td></tr>
+<tr><td>性能优化</td><td><code>/improve</code></td><td>度量驱动迭代，IM4→IM1循环直到达标</td></tr>
+<tr><td>技术选型</td><td><code>/evaluate</code> 或 <code>/research</code></td><td>/evaluate=原型+指标，/research=深度分析+假设验证</td></tr>
+<tr><td>需求不清晰</td><td><code>/ask</code> (Interview模式)</td><td>Socratic追问→K1探索→K2评分矩阵</td></tr>
+<tr><td>框架升级</td><td><code>/migrate</code></td><td>M1-M4 迁移+自动修复</td></tr>
+<tr><td>代码审查</td><td><code>/review</code> → <code>/review-fix</code></td><td>先审查→后修复→再验证，最多2轮</td></tr>
+<tr><td>测试补齐</td><td><code>/test-unit</code> / <code>/test-integration</code></td><td>按需选择测试类型</td></tr>
+<tr><td>发布上线</td><td><code>/release</code></td><td>质量门+版本递增+CI自动发布</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="pipeline-summary">流水线总览</h2>
+
+<table class="flow-table">
+<thead>
+<tr><th>流水线</th><th>指令</th><th>Gate 序列</th><th>门数</th><th>特色</th></tr>
+</thead>
+<tbody>
+<tr><td>full</td><td><code>/jarvis</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>12</td><td>完整生命周期</td></tr>
+<tr><td>full</td><td><code>/frontend</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>12</td><td>C1.5视觉验证强制</td></tr>
+<tr><td>backend</td><td><code>/backend</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E</td><td>11</td><td>跳过C1.5</td></tr>
+<tr><td>lite</td><td><code>/auto</code></td><td>A→...→E (allow_jump)</td><td>自适应</td><td>智能跳过无关Gate</td></tr>
+<tr><td>refactor</td><td><code>/refactor</code></td><td>R1→R2→R3→R4→R5</td><td>5</td><td>行为漂移检测</td></tr>
+<tr><td>hotfix</td><td><code>/hotfix</code></td><td>H0→H1→H2→H3</td><td>4</td><td>审批+回滚预案</td></tr>
+<tr><td>migrate</td><td><code>/migrate</code></td><td>M1→M2→M3→M4</td><td>4</td><td>自动修复Lint≤2轮</td></tr>
+<tr><td>evaluate</td><td><code>/evaluate</code></td><td>E0→E1→E2→E3</td><td>4</td><td>原型+指标</td></tr>
+<tr><td>debug</td><td><code>/debug</code></td><td>D0→D1→D2→D3→D4</td><td>5</td><td>交互式诊断</td></tr>
+<tr><td>research</td><td><code>/research</code></td><td>RS0→RS1→RS2→RS3→RS4</td><td>5</td><td>假设验证+证据矩阵</td></tr>
+<tr><td>release</td><td><code>/release</code></td><td>RL0→RL1→RL2→RL3→RL4</td><td>5</td><td>CI自动发布</td></tr>
+<tr><td>ask</td><td><code>/ask</code></td><td>K0→K1→K2→K3</td><td>4</td><td>4模式+评分矩阵</td></tr>
+<tr><td>simplify</td><td><code>/simplify</code></td><td>S0→S1→S2→S3</td><td>4</td><td>自动回滚</td></tr>
+<tr><td>trace</td><td><code>/trace</code></td><td>T0→T1→T2→T3→T4</td><td>5</td><td>贝叶斯因果推理</td></tr>
+<tr><td>improve</td><td><code>/improve</code></td><td>IM0→IM1→IM2→IM3→IM4</td><td>5</td><td>迭代循环(allow_jump)</td></tr>
+</tbody>
+</table>
+
+<hr style="border-color:var(--border);margin:32px 0">
+
+<div style="text-align:center;color:var(--muted);font-size:12px;margin:24px 0">
+  Jarvis Agent Factory v4.2.1 · <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory" style="color:var(--accent)">GitHub</a> ·
+  <a href="https://www.npmjs.com/package/jarvis-agent-factory" style="color:var(--accent)">npm</a> ·
+  <a href="../AGENTS.md" style="color:var(--accent)">AGENTS.md</a> ·
+  39 Commands · 71 Agents · 34 Skills · 15 Pipelines
+</div>
+
+</body>
+</html>
