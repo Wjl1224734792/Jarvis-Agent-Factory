@@ -45,6 +45,11 @@ const ModelComparePage = lazy(() =>
     default: module.ModelComparePage
   }))
 );
+const CircleDetailPage = lazy(() =>
+  import("./routes/circle-detail-page").then((module) => ({
+    default: module.CircleDetailPage
+  }))
+);
 const NotificationsPage = lazy(() =>
   import("./routes/notifications-page").then((module) => ({
     default: module.NotificationsPage
@@ -287,6 +292,17 @@ export function App() {
                 <CirclePage />,
                 <DeferredFallback>
                   <CirclePageRouteSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.circleDetail),
+              element: withSuspenseFallback(
+                <CircleDetailPage />,
+                <DeferredFallback>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
                 </DeferredFallback>
               )
             },

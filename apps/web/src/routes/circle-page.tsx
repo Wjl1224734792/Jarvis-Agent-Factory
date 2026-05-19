@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { Link } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PlusIcon } from "lucide-react";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import {
@@ -81,6 +84,30 @@ export function CirclePage() {
     queryFn: () => apiClient.listCircles({ sort: "hot" }),
   });
   const circles = (circlesQuery.data?.items ?? []) as Array<{ id: string; slug: string; name: string; description?: string | null; memberCount: number; postCount: number }>;
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [newCircleName, setNewCircleName] = useState("");
+  const [newCircleSlug, setNewCircleSlug] = useState("");
+  const [newCircleDesc, setNewCircleDesc] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  async function handleCreateCircle() {
+    setCreateError(null);
+    if (!newCircleName.trim() || !newCircleSlug.trim()) {
+      setCreateError("名称和Slug不能为空");
+      return;
+    }
+    try {
+      await apiClient.createCircle({ name: newCircleName.trim(), slug: newCircleSlug.trim(), description: newCircleDesc.trim() || undefined });
+      setShowCreate(false);
+      setNewCircleName("");
+      setNewCircleSlug("");
+      setNewCircleDesc("");
+      circlesQuery.refetch();
+    } catch (e: any) {
+      setCreateError(e?.message ?? "创建失败");
+    }
+  }
 
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", activeTab],
@@ -229,6 +256,41 @@ export function CirclePage() {
 
   return (
     <SitePage className="gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">飞友圈</h2>
+        {authStatus === "authenticated" ? (
+          <Button size="sm" variant="outline" onClick={() => setShowCreate(!showCreate)}>
+            <PlusIcon className="size-3.5 mr-1" />
+            创建圈子
+          </Button>
+        ) : null}
+      </div>
+
+      {showCreate ? (
+        <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">
+          <Input
+            onChange={(e) => setNewCircleName(e.target.value)}
+            placeholder="圈子名称"
+            value={newCircleName}
+          />
+          <Input
+            onChange={(e) => setNewCircleSlug(e.target.value)}
+            placeholder="Slug（英文标识）"
+            value={newCircleSlug}
+          />
+          <Input
+            onChange={(e) => setNewCircleDesc(e.target.value)}
+            placeholder="圈子简介（选填）"
+            value={newCircleDesc}
+          />
+          {createError ? <div className="text-xs text-red-500">{createError}</div> : null}
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleCreateCircle}>确认创建</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+          </div>
+        </div>
+      ) : null}
+
       {circles.length > 0 ? (
         <div className="overflow-x-auto">
           <div className="flex gap-3 pb-2">

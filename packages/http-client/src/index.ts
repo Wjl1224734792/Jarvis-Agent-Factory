@@ -884,6 +884,40 @@ export function createApiClient(options: ApiClientOptions) {
       if (!response.ok) throw new Error(`Failed to list circles: ${response.status}`);
       return response.json() as Promise<{ items: unknown[] }>;
     },
+    async getCircleDetail(slug: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.detail(slug)}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to get circle: ${response.status}`);
+      return response.json() as Promise<{ item: Record<string, unknown> }>;
+    },
+    async createCircle(input: { slug: string; name: string; description?: string; joinMode?: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.create}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to create circle: ${response.status}`);
+      return response.json() as Promise<{ item: Record<string, unknown> }>;
+    },
+    async joinCircle(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.join(id)}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to join circle: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    async leaveCircle(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.leave(id)}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to leave circle: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
     async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
       const search = new URLSearchParams({ tab: parsedTab });
