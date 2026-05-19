@@ -1,144 +1,218 @@
-import type { IDomEditor } from '@wangeditor/editor';
 import { UploadOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
-import { useCallback, useRef } from 'react';
+import { Button, Modal, Typography } from 'antd';
+import { useCallback, useRef, useState } from 'react';
+
+const { Text } = Typography;
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const ACCEPTED_EXTENSIONS = '.docx,.md,.txt';
+const VALID_EXTENSIONS = ['.md', '.markdown'];
 
-/** 将 .docx 文件解析为 HTML */
-async function parseDocxFile(file: File): Promise<string> {
-  const mammoth = await import('mammoth');
-  const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer });
-  return result.value;
+interface ImportFileButtonProps {
+  /** 导入回调，接收净化后的 HTML 字符串 */
+  onImport: (html: string) => void;
+  /** 按钮禁用状态 */
+  disabled?: boolean;
 }
 
 /** 将 .md 文件解析为 HTML */
 async function parseMarkdownFile(file: File): Promise<string> {
   const { marked } = await import('marked');
   const text = await file.text();
-  // 显式 async: false 确保返回 string 而非 Promise<string>
   return marked.parse(text, { async: false, gfm: true, breaks: true });
 }
 
-/** 将 .txt 文件包裹为 HTML 段落 */
-function parsePlainTextFile(file: File): Promise<string> {
-  return file.text().then(
-    text =>
-      text
-        .split('\n')
-        .map(line => `<p>${line || '<br>'}</p>`)
-        .join('')
-  );
-}
-
-/** 根据文件扩展名选择解析策略 */
-function parseFileByExtension(file: File): Promise<string> {
+/** 校验文件扩展名 */
+function isValidMarkdownFile(file: File): boolean {
   const name = file.name.toLowerCase();
-
-  if (name.endsWith('.docx')) {
-    return parseDocxFile(file);
-  }
-
-  if (name.endsWith('.md') || name.endsWith('.markdown')) {
-    return parseMarkdownFile(file);
-  }
-
-  if (name.endsWith('.txt')) {
-    return parsePlainTextFile(file);
-  }
-
-  return Promise.reject(new Error('不支持的文件格式'));
-}
-
-interface ImportFileButtonProps {
-  /** wangEditor 编辑器实例，为 null 时按钮禁用 */
-  editor: IDomEditor | null;
+  return VALID_EXTENSIONS.some(ext => name.endsWith(ext));
 }
 
 /**
- * 文件导入按钮（admin 端） — 支持 docx/md/txt 浏览器端解析并注入 wangEditor。
+ * Markdown 文件导入按钮（admin 端） — 弹窗支持拖拽和点击选择 .md 文件，
+ * 浏览器端解析并回调净化后的 HTML。
  *
- * @param props.editor - wangEditor 编辑器实例。
- * @returns 渲染导入文件按钮。
- * @throws 不会主动抛出异常，解析失败通过 editor.alert 展示。
+ * @param props.onImport - 文件解析成功后的回调。
+ * @param props.disabled - 按钮禁用状态。
+ * @returns 渲染导入按钮及弹窗。
  */
-export function ImportFileButton({ editor }: ImportFileButtonProps) {
+export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) {
+  const [open, setOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) {
+  const resetInput = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  }, []);
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setError(null);
+
+      if (!isValidMarkdownFile(file)) {
+        setError('仅支持 .md (Markdown) 文件');
         return;
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        editor?.alert('文件过大，请缩减内容后重试', 'error');
-        resetInput();
+        setError('文件过大（最大 10MB），请缩减内容后重试');
         return;
       }
 
       try {
         const { default: DOMPurify } = await import('dompurify');
-        const rawHtml = await parseFileByExtension(file);
+        const rawHtml = await parseMarkdownFile(file);
         const cleanHtml = DOMPurify.sanitize(rawHtml);
 
         if (!cleanHtml.trim()) {
-          editor?.alert('文件内容为空或无法解析', 'warning');
-          resetInput();
+          setError('文件内容为空或无法解析');
           return;
         }
 
-        if (editor) {
-          const currentHtml = editor.getHtml();
-          if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
-            editor.dangerouslyInsertHtml(cleanHtml);
-          } else {
-            // 通过 DOM 设置内容保留列表结构，
-            // wangEditor 的 setHtml 会剥离 ol/ul/li 标签
-            const editable = document.getElementById(editor.id);
-            if (editable) {
-              editable.innerHTML = cleanHtml;
-              editable.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          }
-          editor.focus();
-        }
+        onImport(cleanHtml);
+        setOpen(false);
+        setError(null);
       } catch {
-        editor?.alert('文件解析失败，请检查文件格式后重试', 'error');
+        setError('文件解析失败，请检查文件格式后重试');
       }
 
       resetInput();
     },
-    [editor]
+    [onImport, resetInput]
   );
 
-  function resetInput() {
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
-  }
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        void processFile(file);
+      }
+    },
+    [processFile]
+  );
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragOver(false);
+
+      const file = event.dataTransfer.files[0];
+      if (file) {
+        void processFile(file);
+      }
+    },
+    [processFile]
+  );
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    setError(null);
+    setIsDragOver(false);
+    resetInput();
+  }, [resetInput]);
 
   return (
     <>
       <input
-        accept={ACCEPTED_EXTENSIONS}
-        aria-label="选择要导入的文件"
+        accept=".md,.markdown"
+        aria-label="选择要导入的 Markdown 文件"
         style={{ display: 'none' }}
         onChange={event => void handleFileChange(event)}
         ref={inputRef}
         type="file"
       />
+
       <Button
-        disabled={!editor}
+        disabled={disabled}
         icon={<UploadOutlined />}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => setOpen(true)}
         size="small"
       >
-        导入文件
+        导入 MD
       </Button>
+
+      <Modal
+        cancelText="取消"
+        okButtonProps={{ style: { display: 'none' } }}
+        onCancel={handleClose}
+        open={open}
+        title="导入 Markdown 文件"
+        width={480}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Text type="secondary">将 .md 文件内容导入到编辑器中</Text>
+
+          {/* 拖拽区域 */}
+          <div
+            onClick={() => inputRef.current?.click()}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            role="button"
+            style={{
+              alignItems: 'center',
+              borderColor: isDragOver ? '#1677ff' : '#d9d9d9',
+              borderRadius: 12,
+              borderStyle: 'dashed',
+              borderWidth: 2,
+              backgroundColor: isDragOver ? '#e6f4ff' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              justifyContent: 'center',
+              padding: 32,
+              transition: 'all 0.2s'
+            }}
+            tabIndex={0}
+          >
+            <UploadOutlined
+              style={{
+                color: isDragOver ? '#1677ff' : '#999',
+                fontSize: 36
+              }}
+            />
+            <div style={{ textAlign: 'center' }}>
+              <Text
+                strong
+                style={{ color: isDragOver ? '#1677ff' : undefined }}
+              >
+                {isDragOver ? '释放以导入文件' : '拖拽 .md 文件到此处'}
+              </Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                仅支持 .md (Markdown) 文件，最大 10MB
+              </Text>
+            </div>
+          </div>
+
+          {/* 错误提示 */}
+          {error ? (
+            <Text type="danger">{error}</Text>
+          ) : null}
+        </div>
+      </Modal>
     </>
   );
 }

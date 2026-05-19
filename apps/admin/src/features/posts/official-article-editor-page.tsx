@@ -177,6 +177,28 @@ export function OfficialArticleEditorPage() {
 
   const mediaManager = useMemo(() => createMediaManager(), []);
 
+  /** 将解析后的 HTML 注入 wangEditor */
+  const handleImportHtml = useCallback((html: string) => {
+    const editor = editorInstance;
+    if (!editor) {
+      return;
+    }
+
+    const currentHtml = editor.getHtml();
+    if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
+      editor.dangerouslyInsertHtml(html);
+    } else {
+      // 通过 DOM 设置内容保留列表结构，
+      // wangEditor 的 setHtml 会剥离 ol/ul/li 标签
+      const editable = document.getElementById(editor.id);
+      if (editable) {
+        editable.innerHTML = html;
+        editable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    editor.focus();
+  }, [editorInstance]);
+
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
     queryFn: () => apiClient.listAdminContentCategories()
@@ -707,7 +729,10 @@ export function OfficialArticleEditorPage() {
             <div className="admin-official-article-editor__ai-toolbar" style={{ marginBottom: 8 }}>
               <Space size="small">
                 <AiFormatButton editor={editorInstance} />
-                <ImportFileButton editor={editorInstance} />
+                <ImportFileButton
+                  disabled={!editorInstance}
+                  onImport={handleImportHtml}
+                />
               </Space>
             </div>
 

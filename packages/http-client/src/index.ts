@@ -959,6 +959,14 @@ export function createApiClient(options: ApiClientOptions) {
       if (!response.ok) throw new Error(`Failed to create circle post: ${response.status}`);
       return response.json() as Promise<{ id: string }>;
     },
+    async fetchLinkPreview(url: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.linkPreview}?url=${encodeURIComponent(url)}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to fetch link preview: ${response.status}`);
+      return response.json() as Promise<{ item: { type: string; title?: string; coverUrl?: string | null; description?: string | null; href: string } }>;
+    },
     async createCircleFeedPost(input: { title: string; content?: string; images?: string[]; videos?: string[] }) {
       const response = await fetch(`${baseUrl}${API_ROUTES.circles.createPost}`, {
         method: "POST",

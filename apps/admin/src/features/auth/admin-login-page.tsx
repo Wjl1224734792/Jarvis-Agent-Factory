@@ -1,6 +1,6 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockOutlined, ReloadOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
-import { Alert, Button, Flex, Form, Input, Space } from "antd";
+import { Alert, Button, Flex, Form, Input, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -48,6 +48,7 @@ export function AdminLoginPage() {
         ? "网络请求失败，请检查网络连接或服务器状态"
         : reason instanceof Error ? reason.message : "图形验证码加载失败";
       setError(msg);
+      message.error(msg);
     } finally {
       setIsCaptchaLoading(false);
     }
@@ -115,10 +116,13 @@ export function AdminLoginPage() {
                 })
                 .then((response: AdminLoginResult) => {
                   setAuthenticated(response.user);
+                  message.success("登录成功");
                   void navigate(redirectTo, { replace: true });
                 })
                 .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "管理员登录失败");
+                  const msg = reason instanceof Error ? reason.message : "管理员登录失败";
+                  setError(msg);
+                  message.error(msg);
                   void refreshLoginCaptcha(false);
                 })
                 .finally(() => {

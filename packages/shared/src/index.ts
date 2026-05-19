@@ -283,6 +283,7 @@ export const API_ROUTES = {
     adminReviewCommentReports: (id: string) => withApiV1Prefix(`/admin/review-comments/${id}/reports`),
     compare: withApiV1Prefix("/models/compare"),
   },
+  linkPreview: withApiV1Prefix("/link-preview"),
   circles: {
     list: withApiV1Prefix("/circles"),
     detail: (slug: string) => withApiV1Prefix(`/circles/${slug}`),

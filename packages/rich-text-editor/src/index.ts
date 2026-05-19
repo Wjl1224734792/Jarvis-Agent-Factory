@@ -20,3 +20,9 @@ export {
 } from "./media-uploader";
 
 export { RichTextEditor, type RichTextEditorProps } from "./rich-text-editor";
+
+export {
+  buildLinkCardHtml,
+  buildUnknownLinkCardHtml,
+  type LinkCardData,
+} from "./link-card";

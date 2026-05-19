@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { AuthCaptchaSvg } from "@/components/auth-captcha-challenge";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,17 @@ type SendSmsCaptchaDialogProps = {
 export function SendSmsCaptchaDialog(props: SendSmsCaptchaDialogProps) {
   const { flow } = props;
   const { refreshCaptcha } = flow;
+  const hasShownExpiredToast = useRef(false);
+
+  useEffect(() => {
+    if (flow.isCaptchaExpired && props.open && !hasShownExpiredToast.current) {
+      toast.warning("图形验证码已过期，请点击刷新");
+      hasShownExpiredToast.current = true;
+    }
+    if (!flow.isCaptchaExpired) {
+      hasShownExpiredToast.current = false;
+    }
+  }, [flow.isCaptchaExpired, props.open]);
 
   useEffect(() => {
     if (!props.open) {

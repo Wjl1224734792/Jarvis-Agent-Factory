@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import {
   SitePage,
@@ -458,33 +459,34 @@ export function SettingsPage() {
       onSuccess: (response) => {
         setPasswordRequestId(response.requestId);
         setIsPasswordSmsCaptchaOpen(false);
+        toast.success("短信验证码已发送");
       }
     });
   }
 
   async function changePassword() {
     if (hasPassword && !passwordForm.currentPassword) {
-      setStatusMessage("请输入当前密码");
+      setPasswordActionError("请输入当前密码");
       return;
     }
 
     if (!strongPasswordSchema.safeParse(passwordForm.newPassword).success) {
-      setStatusMessage(passwordPolicyHint);
+      setPasswordActionError(passwordPolicyHint);
       return;
     }
 
     if (hasPassword && passwordForm.currentPassword === passwordForm.newPassword) {
-      setStatusMessage("新密码不能与当前密码相同");
+      setPasswordActionError("新密码不能与当前密码相同");
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setStatusMessage("两次输入的新密码不一致");
+      setPasswordActionError("两次输入的新密码不一致");
       return;
     }
 
     if (!passwordRequestId || !passwordSmsFlow.smsCode.trim()) {
-      setStatusMessage("请输入手机短信验证码");
+      setPasswordActionError("请输入手机短信验证码");
       return;
     }
 
@@ -521,16 +523,17 @@ export function SettingsPage() {
             queryKey: ["current-user-profile", currentUser.id]
           });
         }
-        setStatusMessage("登录密码已设置");
+        toast.success("登录密码已设置");
         return;
       }
       queryClient.clear();
       setPasswordRequestId(null);
       passwordSmsFlow.reset();
       setAnonymous();
+      toast.success("密码修改成功，请使用新密码重新登录");
       void navigate(APP_ROUTES.webLogin, { replace: true });
     } catch (reason: unknown) {
-      setStatusMessage(reason instanceof Error ? reason.message : "密码修改失败");
+      setPasswordActionError(reason instanceof Error ? reason.message : "密码修改失败");
     } finally {
       setIsChangingPassword(false);
     }

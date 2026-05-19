@@ -4,6 +4,7 @@ import { ApiClientError } from "@feijia/http-client";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { SendSmsCaptchaDialog } from "./send-sms-captcha-dialog";
 import { AuthCaptchaSvg } from "@/components/auth-captcha-challenge";
 import {
@@ -94,6 +95,7 @@ export function LoginPage() {
       errorFallback: "短信验证码发送失败",
       onSuccess: () => {
         setIsSmsCaptchaOpen(false);
+        toast.success("短信验证码已发送");
       }
     });
   }
@@ -327,6 +329,7 @@ export function LoginPage() {
                       .then(async response => {
                         if (response.kind === "authenticated") {
                           await syncAuthenticatedUser(response.user);
+                          toast.success("登录成功");
                           void navigate(redirectTo ?? APP_ROUTES.feedHome, {
                             replace: true
                           });
