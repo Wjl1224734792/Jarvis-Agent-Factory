@@ -284,7 +284,35 @@ export const aircraftModelsTable = pgTable(
     maxFlightTimeMinutes: integer("max_flight_time_minutes"),
     maxRangeKilometers: integer("max_range_kilometers"),
     maxSpeedKph: integer("max_speed_kph"),
+    cruiseSpeedKph: integer("cruise_speed_kph"),
     takeoffWeightGrams: integer("takeoff_weight_grams"),
+    wingspanMm: integer("wingspan_mm"),
+    lengthMm: integer("length_mm"),
+    heightMm: integer("height_mm"),
+    maxAltitudeM: integer("max_altitude_m"),
+    climbRateMs: integer("climb_rate_ms"),
+    windResistance: text("wind_resistance"),
+    motorType: text("motor_type"),
+    batteryType: text("battery_type"),
+    batteryCapacityMah: integer("battery_capacity_mah"),
+    batteryVoltage: text("battery_voltage"),
+    batteryEnergyWh: integer("battery_energy_wh"),
+    chargeTimeMinutes: integer("charge_time_minutes"),
+    propellerSize: text("propeller_size"),
+    obstacleAvoidance: text("obstacle_avoidance"),
+    gnssType: text("gnss_type"),
+    ipRating: text("ip_rating"),
+    operatingTemperature: text("operating_temperature"),
+    cameraSensorSize: text("camera_sensor_size"),
+    cameraPixels: text("camera_pixels"),
+    videoResolution: text("video_resolution"),
+    lensAperture: text("lens_aperture"),
+    isoRange: text("iso_range"),
+    transmissionSystem: text("transmission_system"),
+    transmissionRangeM: integer("transmission_range_m"),
+    certificationType: text("certification_type"),
+    noiseLevelDb: integer("noise_level_db"),
+    materialType: text("material_type"),
     coverImageFileId: text("cover_image_file_id"),
     galleryImageFileIds: text("gallery_image_file_ids").default("[]").notNull(),
     videoFileId: text("video_file_id"),
@@ -1142,3 +1170,118 @@ export const rolesTable = pgTable("roles", {
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// 圈子社区
+// ---------------------------------------------------------------------------
+
+/** 圈子表（独立主圈） */
+export const circlesTable = pgTable("circles", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  coverImageFileId: text("cover_image_file_id"),
+  ownerId: text("owner_id").notNull(),
+  joinMode: text("join_mode").default("free").notNull(),
+  memberCount: integer("member_count").default(0).notNull(),
+  postCount: integer("post_count").default(0).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  slugUnique: uniqueIndex("circles_slug_unique").on(table.slug),
+  joinModeCheck: check("circles_join_mode_check", sql`${table.joinMode} IN ('free', 'audit')`),
+  ownerIdIdx: index("circles_owner_id_idx").on(table.ownerId),
+}));
+
+/** 圈子成员表 */
+export const circleMembersTable = pgTable("circle_members", {
+  id: text("id").primaryKey(),
+  circleId: text("circle_id").notNull(),
+  userId: text("user_id").notNull(),
+  role: text("role").default("member").notNull(),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  circleUserUnique: uniqueIndex("circle_members_circle_user_unique").on(table.circleId, table.userId),
+  roleCheck: check("circle_members_role_check", sql`${table.role} IN ('owner', 'admin', 'member')`),
+  userIdIdx: index("circle_members_user_id_idx").on(table.userId),
+}));
+
+/** 圈子帖子表 */
+export const circlePostsTable = pgTable("circle_posts", {
+  id: text("id").primaryKey(),
+  circleId: text("circle_id").notNull(),
+  authorId: text("author_id").notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  images: text("images").default("[]").notNull(),
+  videos: text("videos").default("[]").notNull(),
+  status: text("status").default("published").notNull(),
+  likeCount: integer("like_count").default(0).notNull(),
+  commentCount: integer("comment_count").default(0).notNull(),
+  shareCount: integer("share_count").default(0).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
+  hotScore: integer("hot_score").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  statusCheck: check("circle_posts_status_check", sql`${table.status} IN ('published', 'hidden', 'deleted')`),
+  circleIdIdx: index("circle_posts_circle_id_idx").on(table.circleId),
+  authorIdIdx: index("circle_posts_author_id_idx").on(table.authorId),
+  hotScoreIdx: index("circle_posts_hot_score_idx").on(table.hotScore),
+  createdAtIdx: index("circle_posts_created_at_idx").on(table.createdAt),
+}));
+
+/** 圈子帖子互动表 */
+export const circlePostInteractionsTable = pgTable("circle_post_interactions", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").notNull(),
+  userId: text("user_id").notNull(),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  postUserTypeUnique: uniqueIndex("circle_post_interactions_post_user_type_unique").on(table.postId, table.userId, table.type),
+  typeCheck: check("circle_post_interactions_type_check", sql`${table.type} IN ('like', 'favorite', 'share')`),
+}));
+
+/** 圈子帖子评论表 */
+export const circlePostCommentsTable = pgTable("circle_post_comments", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").notNull(),
+  authorId: text("author_id").notNull(),
+  parentCommentId: text("parent_comment_id"),
+  replyToCommentId: text("reply_to_comment_id"),
+  replyToUserId: text("reply_to_user_id"),
+  content: text("content").notNull(),
+  status: text("status").default("visible").notNull(),
+  likeCount: integer("like_count").default(0).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  statusCheck: check("circle_post_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`),
+}));
+
+/** 用户圈子分类表（用户自建圈子分类栏目） */
+export const circleUserCategoriesTable = pgTable("circle_user_categories", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("circle_user_categories_user_id_idx").on(table.userId),
+}));
+
+/** 圈子分类关联表 */
+export const circleCategoryAssignmentsTable = pgTable("circle_category_assignments", {
+  id: text("id").primaryKey(),
+  categoryId: text("category_id").notNull(),
+  circleId: text("circle_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  categoryCircleUnique: uniqueIndex("circle_category_assignments_category_circle_unique").on(table.categoryId, table.circleId),
+}));

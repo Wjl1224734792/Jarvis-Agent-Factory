@@ -98,6 +98,7 @@ import {
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
+  modelCompareResponseSchema,
   createReviewCommentInputSchema,
   createReviewCommentResponseSchema,
   createModelCommentInputSchema,
@@ -1647,6 +1648,18 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, modelListResponseSchema);
+    },
+    async compareModels(slugs: string[]) {
+      const params = new URLSearchParams();
+      for (const s of slugs) {
+        params.append("slugs", s);
+      }
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.compare}?${params.toString()}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, modelCompareResponseSchema);
     },
     async getModelDetail(slug: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.detail(slug)}`, {

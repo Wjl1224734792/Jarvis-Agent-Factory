@@ -13,6 +13,8 @@ import {
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
+  modelCompareQuerySchema,
+  modelCompareResponseSchema,
   reportContentInputSchema,
   updateModelCommentInputSchema,
   updateModelCommentStatusInputSchema
@@ -58,6 +60,14 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
   return context.json(modelListResponseSchema.parse(payload));
 });
 
+aircraftModelsRoute.get(API_ROUTES.models.compare, async (context) => {
+  const query = modelCompareQuerySchema.parse({
+    slugs: context.req.queries("slugs"),
+  });
+  const items = await aircraftModelsService.compareModels(query.slugs);
+  return context.json(modelCompareResponseSchema.parse({ items }));
+});
+
 aircraftModelsRoute.get(API_ROUTES.models.detail(":slug"), async (context) => {
   const slug = context.req.param("slug");
   if (!slug) {
@@ -83,7 +93,35 @@ aircraftModelsRoute.get(API_ROUTES.models.detail(":slug"), async (context) => {
           maxFlightTimeMinutes: item.maxFlightTimeMinutes,
           maxRangeKilometers: item.maxRangeKilometers,
           maxSpeedKph: item.maxSpeedKph,
-          takeoffWeightGrams: item.takeoffWeightGrams
+          cruiseSpeedKph: item.cruiseSpeedKph,
+          takeoffWeightGrams: item.takeoffWeightGrams,
+          wingspanMm: item.wingspanMm,
+          lengthMm: item.lengthMm,
+          heightMm: item.heightMm,
+          maxAltitudeM: item.maxAltitudeM,
+          climbRateMs: item.climbRateMs,
+          windResistance: item.windResistance,
+          motorType: item.motorType,
+          batteryType: item.batteryType,
+          batteryCapacityMah: item.batteryCapacityMah,
+          batteryVoltage: item.batteryVoltage,
+          batteryEnergyWh: item.batteryEnergyWh,
+          chargeTimeMinutes: item.chargeTimeMinutes,
+          propellerSize: item.propellerSize,
+          obstacleAvoidance: item.obstacleAvoidance,
+          gnssType: item.gnssType,
+          ipRating: item.ipRating,
+          operatingTemperature: item.operatingTemperature,
+          cameraSensorSize: item.cameraSensorSize,
+          cameraPixels: item.cameraPixels,
+          videoResolution: item.videoResolution,
+          lensAperture: item.lensAperture,
+          isoRange: item.isoRange,
+          transmissionSystem: item.transmissionSystem,
+          transmissionRangeM: item.transmissionRangeM,
+          certificationType: item.certificationType,
+          noiseLevelDb: item.noiseLevelDb,
+          materialType: item.materialType
         }
       }
     })

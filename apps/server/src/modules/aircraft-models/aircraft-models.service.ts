@@ -363,6 +363,21 @@ export const aircraftModelsService = {
     const item = await aircraftModelsRepo.findById(id);
     return item;
   },
+  async compareModels(slugs: string[]) {
+    const items = await aircraftModelsRepo.findBySlugs(slugs);
+    const publicItems = await Promise.all(
+      items.map(async (item) => {
+        const { coverImageFileId, videoFileId, ...rest } = item;
+        const [coverImageUrl, coverVideoUrl] = await Promise.all([
+          resolvePublicUploadedFileUrl(coverImageFileId ?? null),
+          resolvePublicUploadedFileUrl(videoFileId ?? null),
+        ]);
+        return { ...rest, coverImageUrl, coverVideoUrl };
+      })
+    );
+    return publicItems;
+  },
+
   async createModel(input: {
     slug: string;
     name: string;

@@ -209,11 +209,11 @@ const ModelCard = memo(function ModelCard({ model, index }: { model: WebModelLis
 
   return (
     <Link
-      className="group block min-w-0 overflow-hidden bg-white transition hover:bg-sky-50/34"
+      className="group block min-w-0 overflow-hidden rounded-xl transition active:scale-[0.98]"
       {...DETAIL_PAGE_LINK_PROPS}
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
-      <div className="aspect-[4/3] w-full overflow-hidden">
+      <div className="aspect-square w-full overflow-hidden rounded-xl bg-slate-100">
         <ModelThumbCover
           alt={model.name}
           className="h-full w-full transition duration-200 group-hover:scale-[1.02]"
@@ -224,8 +224,8 @@ const ModelCard = memo(function ModelCard({ model, index }: { model: WebModelLis
           powerType={model.powerType}
         />
       </div>
-      <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
-        <div className="line-clamp-2 text-[0.92rem] leading-5 font-semibold text-foreground">
+      <div className="space-y-1 px-1 pb-1.5 pt-2">
+        <div className="line-clamp-2 text-[0.88rem] leading-[1.25rem] font-semibold text-foreground">
           {model.name}
         </div>
         <BrandIdentity
@@ -234,8 +234,8 @@ const ModelCard = memo(function ModelCard({ model, index }: { model: WebModelLis
           logoUrl={model.brand.logoUrl}
           name={model.brand.name}
         />
-        {priceLabel ? <div className="text-[0.78rem] font-semibold text-primary">{priceLabel}</div> : null}
-        <div className="line-clamp-2 text-[0.8rem] leading-5 text-muted-foreground">
+        {priceLabel ? <div className="text-[0.82rem] font-semibold text-primary">{priceLabel}</div> : null}
+        <div className="line-clamp-2 text-[0.75rem] leading-[1.15rem] text-muted-foreground">
           {model.summary ?? `${model.category.name} / ${powerTypeLabels[model.powerType]}`}
         </div>
       </div>

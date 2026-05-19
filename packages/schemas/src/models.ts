@@ -110,7 +110,35 @@ export const modelParameterSchema = z.object({
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
-  takeoffWeightGrams: z.number().nonnegative().nullable()
+  cruiseSpeedKph: z.number().nonnegative().nullable(),
+  takeoffWeightGrams: z.number().nonnegative().nullable(),
+  wingspanMm: z.number().nonnegative().nullable(),
+  lengthMm: z.number().nonnegative().nullable(),
+  heightMm: z.number().nonnegative().nullable(),
+  maxAltitudeM: z.number().nonnegative().nullable(),
+  climbRateMs: z.number().nonnegative().nullable(),
+  windResistance: z.string().nullable(),
+  motorType: z.string().nullable(),
+  batteryType: z.string().nullable(),
+  batteryCapacityMah: z.number().nonnegative().nullable(),
+  batteryVoltage: z.string().nullable(),
+  batteryEnergyWh: z.number().nonnegative().nullable(),
+  chargeTimeMinutes: z.number().nonnegative().nullable(),
+  propellerSize: z.string().nullable(),
+  obstacleAvoidance: z.string().nullable(),
+  gnssType: z.string().nullable(),
+  ipRating: z.string().nullable(),
+  operatingTemperature: z.string().nullable(),
+  cameraSensorSize: z.string().nullable(),
+  cameraPixels: z.string().nullable(),
+  videoResolution: z.string().nullable(),
+  lensAperture: z.string().nullable(),
+  isoRange: z.string().nullable(),
+  transmissionSystem: z.string().nullable(),
+  transmissionRangeM: z.number().nonnegative().nullable(),
+  certificationType: z.string().nullable(),
+  noiseLevelDb: z.number().nonnegative().nullable(),
+  materialType: z.string().nullable()
 });
 
 export const modelDetailSchema = modelListItemSchema.safeExtend({
@@ -314,7 +342,35 @@ export const adminModelInputSchema = z.object({
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
+  cruiseSpeedKph: z.number().nonnegative().nullable(),
   takeoffWeightGrams: z.number().nonnegative().nullable(),
+  wingspanMm: z.number().nonnegative().nullable(),
+  lengthMm: z.number().nonnegative().nullable(),
+  heightMm: z.number().nonnegative().nullable(),
+  maxAltitudeM: z.number().nonnegative().nullable(),
+  climbRateMs: z.number().nonnegative().nullable(),
+  windResistance: z.string().nullable(),
+  motorType: z.string().nullable(),
+  batteryType: z.string().nullable(),
+  batteryCapacityMah: z.number().nonnegative().nullable(),
+  batteryVoltage: z.string().nullable(),
+  batteryEnergyWh: z.number().nonnegative().nullable(),
+  chargeTimeMinutes: z.number().nonnegative().nullable(),
+  propellerSize: z.string().nullable(),
+  obstacleAvoidance: z.string().nullable(),
+  gnssType: z.string().nullable(),
+  ipRating: z.string().nullable(),
+  operatingTemperature: z.string().nullable(),
+  cameraSensorSize: z.string().nullable(),
+  cameraPixels: z.string().nullable(),
+  videoResolution: z.string().nullable(),
+  lensAperture: z.string().nullable(),
+  isoRange: z.string().nullable(),
+  transmissionSystem: z.string().nullable(),
+  transmissionRangeM: z.number().nonnegative().nullable(),
+  certificationType: z.string().nullable(),
+  noiseLevelDb: z.number().nonnegative().nullable(),
+  materialType: z.string().nullable(),
   coverImageFileId: z.string().trim().min(1).nullable().optional().default(null),
   galleryImageFileIds: z.array(z.string().trim().min(1)).max(6).optional().default([]),
   videoFileId: z.string().trim().min(1).nullable().optional().default(null),
@@ -338,3 +394,30 @@ export type ModelInteractionType = z.infer<typeof modelInteractionTypeSchema>;
 export type ModelListItem = z.infer<typeof modelListItemSchema>;
 export type ModelDetail = z.infer<typeof modelDetailSchema>;
 export type ModelComment = z.infer<typeof modelCommentSchema>;
+
+// ---------------------------------------------------------------------------
+// 机型对比
+// ---------------------------------------------------------------------------
+
+export const modelCompareQuerySchema = z.object({
+  slugs: z.array(z.string().min(1)).min(1).max(5),
+});
+
+export const modelCompareItemSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  summary: z.string().nullable(),
+  priceMin: priceValueSchema,
+  priceMax: priceValueSchema,
+  powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
+  category: aircraftCategorySchema.pick({ id: true, slug: true, name: true }),
+  brand: brandSchema.pick({ id: true, slug: true, name: true, logoUrl: true }),
+  coverImageUrl: z.string().min(1).nullable().default(null),
+  parameters: modelParameterSchema,
+});
+
+export const modelCompareResponseSchema = z.object({
+  items: z.array(modelCompareItemSchema),
+});

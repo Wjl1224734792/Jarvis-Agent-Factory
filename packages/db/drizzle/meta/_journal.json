@@ -15,6 +15,13 @@
       "when": 1778070505236,
       "tag": "0001_nervous_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779184997276,
+      "tag": "0002_burly_ken_ellis",
+      "breakpoints": true
     }
   ]
 }
