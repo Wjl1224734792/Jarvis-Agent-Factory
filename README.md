@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.53.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.0.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.53.0** — 深度研究 · 发布 · 需求探索指令 · 文档全面更新
+> **v4.0.0** — /explore→/ask 4模式重做 + 3条新指令(/simplify /trace /improve)，指令总数39条
 
 ## 快速开始
 
@@ -291,7 +291,7 @@ test-doc-writer → test-executor → fix-retest
 | 行为驱动场景 | `/task-bdd` |
 | 测试驱动任务 | `/task-tdd` |
 | **探索与研究** | |
-| 需求探索 | `/explore` |
+| 需求探询 | `/ask` |
 | 深度研究 | `/research` |
 | 浏览器探索 | `/browser-explore` |
 | **测试** | |
@@ -316,9 +316,9 @@ test-doc-writer → test-executor → fix-retest
 | | Claude Code |
 |---|:--:|
 | Agents | 69 |
-| Commands | 36 |
+| Commands | 39 |
 | Skills | 34 |
-| Pipeline | 12 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/explore） |
+| Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
 
@@ -393,7 +393,10 @@ test-doc-writer → test-executor → fix-retest
 
 | **研究** | `/research` | [research.md](docs/flows/research.md) | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 (5门) |
 | **发布** | `/release` | [release.md](docs/flows/release.md) | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 (5门) |
-| **探索** | `/explore` | [explore.md](docs/flows/explore.md) | X0澄清→X1场景→X2收敛→X3规格 (4门) |
+| **探询** | `/ask` | [ask.md](docs/flows/ask.md) | K0摄入→K1收集→K2分析→K3产出 (4门,4模式自适应) |
+| **简化** | `/simplify` | [simplify.md](docs/flows/simplify.md) | S0分析→S1简化→S2验证→S3报告 (4门) |
+| **追踪** | `/trace` | [trace.md](docs/flows/trace.md) | T0框架→T1假设→T2证据→T3分析→T4方案 (5门) |
+| **改进** | `/improve` | [improve.md](docs/flows/improve.md) | IM0目标→IM1研究→IM2计划→IM3执行→IM4评估 (5门,迭代循环) |
 | **核心编排** | `/publish` | [publish.md](docs/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
 | | `/sync` | [sync.md](docs/flows/sync.md) | 检查并同步核心文档与代码一致性 |
 | | `/browser-explore` | [browser-explore.md](docs/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |

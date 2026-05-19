@@ -4,7 +4,29 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
-## [3.53.1] - 2026-05-19
+## [4.0.0] - 2026-05-19
+
+### Breaking
+- `/explore` 指令移除，替换为 `/ask`（K0需求摄入→K1信息收集→K2分析综合→K3交付产出，4模式自适应）
+- 旧 X0-X3 Gate 全部移除，替换为 K0-K3 Gate
+- `explore` 管道类型移除，Web 面板分类从 `testing` 改为 `requirements`
+
+### Added
+- 新增 `/simplify` 指令：S0代码分析→S1简化执行→S2回归验证→S3报告产出，对标 OMC simplify+ai-slop-cleaner
+- 新增 `/trace` 指令：T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案，假设驱动因果追踪
+- 新增 `/improve` 指令：IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代，自主迭代改进循环
+- 3条新流水线：simplify/trace/improve，流水线总数 12→15，指令总数 36→39
+
+### Changed
+- `/ask` 支持4种工作模式：Interview(模糊澄清)/Direct(快速分析)/Consensus(多角色审查)/Review(流程优化)
+- `/ask` 文档驱动强化：每个 Gate 每个模式有明确文档产出，含异常处理表+模式转换规则
+- `/ask` Team/Subagent 调度冲突修复：Critic 角色由编排者担任，Architect 由 Agent spawn，TeamCreate 有 subagent 回退
+- 引擎 Agent 指引更新：K2 团队策略和规则与实际 Consensus 流程一致
+- Web 面板路由：`/ask/` 会话分类为 `requirements`，新增 simplify/trace/improve 分类
+
+### Fixed
+- `inferPipelineType()` 补全 simplify/trace/improve/ask/research/release 管道类型
+- 测试断言更新：GATE_OPERATIONS 48→62, 命令数 36→39
 
 ### Changed
 - 深度优化16条指令工程化质量：12条平台/架构/审查指令补全红线约束章节

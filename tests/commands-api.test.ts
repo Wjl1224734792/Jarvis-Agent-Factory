@@ -267,7 +267,7 @@ describe('Commands API - GET /api/commands (TASK-CM-001)', () => {
 
       expect(res.status).toBe(200);
       expect(body.project.commands).toEqual([]);
-      expect(body.global.commands.length).toBe(36);
+      expect(body.global.commands.length).toBe(39);
 
       rmSync(PROJECT_CMDS, { recursive: true, force: true });
       rmSync(GLOBAL_CMDS, { recursive: true, force: true });

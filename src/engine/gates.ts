@@ -70,10 +70,32 @@ export const PIPELINE_DEFS = {
     name: '发布',
     gates: ['RL0', 'RL1', 'RL2', 'RL3', 'RL4'],
   },
-  /** 需求探索：问题澄清→场景挖掘→需求收敛→规格产出 */
-  explore: {
-    name: '需求探索',
-    gates: ['X0', 'X1', 'X2', 'X3'],
+  /** 需求探询：4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)
+   *  Interview: 一次一问→代码探索→分析综合→计划产出
+   *  Direct: 解析需求→快速上下文→快速分析→直接计划
+   *  Consensus: 加载计划→计划分析→Architect+Critic审查→共识裁决(≤5轮)
+   *  Review: 加载计划→流程评估→Critic评估→优化建议
+   */
+  ask: {
+    name: '需求探询',
+    gates: ['K0', 'K1', 'K2', 'K3'],
+    allow_jump: true,
+  },
+  /** 代码简化：S0代码分析→S1简化执行→S2回归验证→S3报告产出 */
+  simplify: {
+    name: '代码简化',
+    gates: ['S0', 'S1', 'S2', 'S3'],
+  },
+  /** 因果追踪：T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案 */
+  trace: {
+    name: '因果追踪',
+    gates: ['T0', 'T1', 'T2', 'T3', 'T4'],
+  },
+  /** 自主迭代改进：IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代 */
+  improve: {
+    name: '自主迭代改进',
+    gates: ['IM0', 'IM1', 'IM2', 'IM3', 'IM4'],
+    allow_jump: true,
   },
 };
 
@@ -114,8 +136,14 @@ export const GATE_DIRS = {
   'RS0':'research','RS1':'research','RS2':'research','RS3':'research','RS4':'research',
   // /release → docs/shipping/
   'RL0':'shipping','RL1':'shipping','RL2':'shipping','RL3':'shipping','RL4':'shipping',
-  // /explore → docs/requirements/
-  'X0':'requirements','X1':'requirements','X2':'requirements','X3':'requirements',
+  // /ask → docs/requirements/
+  'K0':'requirements','K1':'requirements','K2':'requirements','K3':'requirements',
+  // /simplify → docs/simplification/
+  'S0':'simplification','S1':'simplification','S2':'simplification','S3':'simplification',
+  // /trace → docs/trace/
+  'T0':'trace','T1':'trace','T2':'trace','T3':'trace','T4':'trace',
+  // /improve → docs/improvement/
+  'IM0':'improvement','IM1':'improvement','IM2':'improvement','IM3':'improvement','IM4':'improvement',
 };
 
 export const GATE_CHECKS = {
@@ -168,11 +196,28 @@ export const GATE_CHECKS = {
   'RL2':{check:'版本号已递增，CHANGELOG已更新'},
   'RL3':{check:'Commit+Tag+Push+npm publish已完成'},
   'RL4':{check:'Tag存在+CI已触发+Registry版本已更新'},
-  // /explore 流水线检查条件
-  'X0':{check:'问题空间已澄清，含核心痛点+上下文约束'},
-  'X1':{check:'使用场景清单已产出，含主流程+边缘场景'},
-  'X2':{check:'需求优先级矩阵已产出，含MVP范围定义'},
-  'X3':{check:'结构化需求规格已产出，含功能需求+非功能需求+验收标准'},
+  // /ask 流水线检查条件
+  'K0':{check:'需求摄入完成，模式已选择（Interview/Direct/Consensus/Review），核心问题或需求已明确'},
+  'K1':{check:'信息收集完成：代码上下文已探索（Interview）/需求已解析（Direct）/计划已加载（Consensus/Review）'},
+  'K2':{check:'分析综合完成：需求分析+计划草案已产出（Interview/Direct）/架构审查+批评评估已执行（Consensus/Review）'},
+  'K3':{check:'最终交付物已产出：结构化需求计划（Interview/Direct）/共识裁决结果（Consensus）/优化建议+修订方案（Review）'},
+  // /simplify 流水线检查条件
+  'S0':{check:'代码分析报告已产出，含复杂度/冗余/AI痕迹/改进机会清单'},
+  'S1':{check:'简化执行完成，代码已按分析报告优化，所有功能保持不变'},
+  'S2':{check:'回归验证通过：Lint+Type-check+Build+Test全部通过，无回归'},
+  'S3':{check:'简化报告已产出，含before/after对比+简化统计+变更清单'},
+  // /trace 流水线检查条件
+  'T0':{check:'问题框架已明确，含症状描述+上下文+已知信息+时间线'},
+  'T1':{check:'2-5个竞态假设已生成，每个假设含先验概率+支持条件+证伪条件'},
+  'T2':{check:'每个假设的证据已收集，含支持证据+反对证据+不确定性评估'},
+  'T3':{check:'因果分析完成：贝叶斯更新已执行+假设排序+根因概率+置信度'},
+  'T4':{check:'解决方案已产出，含推荐修复+验证步骤+预防建议'},
+  // /improve 流水线检查条件
+  'IM0':{check:'改进目标已定义，含量化指标+基准值+目标值+停止条件'},
+  'IM1':{check:'研究分析完成，代码库改进机会已识别，含优先级排序+预期收益'},
+  'IM2':{check:'改进计划已制定，含可测试假设+实现方案+验证方法'},
+  'IM3':{check:'改进已执行，基准测试已运行，结果已记录'},
+  'IM4':{check:'评估完成：指标对比+迭代决策（继续/停止）+总结报告'},
 };
 
 /**
@@ -246,11 +291,28 @@ export const GATE_OPERATIONS = {
   'RL2': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   'RL3': { allow: ['read','deploy','write_doc'],                   deny: ['write_code','spawn_impl','spawn_test','lint','build'] },
   'RL4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  // /explore 流水线 Gate 操作矩阵
-  'X0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  'X1': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  'X2': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  'X3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // /ask 流水线 Gate 操作矩阵
+  'K0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'K1': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'K2': { allow: ['read','write_doc','spawn_impl','sweep_arch'],  deny: ['write_code','spawn_test','build','deploy'] },
+  'K3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // /simplify 流水线 Gate 操作矩阵
+  'S0': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'S1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
+  'S2': { allow: ['read','lint','build','spawn_test','fix'],      deny: ['write_code','spawn_impl','deploy'] },
+  'S3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // /trace 流水线 Gate 操作矩阵
+  'T0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'T1': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'T2': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'T3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'T4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  // /improve 流水线 Gate 操作矩阵
+  'IM0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'IM1': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'IM2': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'IM3': { allow: ['read','write_code','spawn_impl','lint','build','spawn_test','fix'], deny: ['deploy'] },
+  'IM4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
 };
 
 /** 获取当前 Gate 允许的操作列表 */
@@ -316,11 +378,28 @@ export const GATE_AGENT_GUIDE = {
   'RL2': { can_spawn: [], note: '版本递增——编排者执行版本号bump+CHANGELOG更新' },
   'RL3': { can_spawn: ['infra-deploy-expert', 'security-review-expert'], note: '发布执行——commit+tag+push+npm publish；安全审计并行' },
   'RL4': { can_spawn: [], note: '发布验证——确认tag存在、CI触发、Registry更新' },
-  // /explore 流水线 Agent 生成指引
-  'X0': { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '问题澄清——苏格拉底式Q&A，探索现有代码库+领域知识', team_strategy: 'subagent_only' },
-  'X1': { can_spawn: ['code-explore-expert'], note: '场景挖掘——发现使用场景和边缘情况' },
-  'X2': { can_spawn: [], note: '需求收敛——编排者综合分析，产出优先级矩阵+MVP范围' },
-  'X3': { can_spawn: [], note: '规格产出——编排者产出结构化需求规格文档' },
+  // /ask 流水线 Agent 生成指引
+  'K0': { can_spawn: [], note: '需求摄入——编排者判断输入清晰度，自动选择Interview/Direct/Consensus/Review模式；苏格拉底式追问（Interview）或直接解析（Direct）', team_strategy: 'subagent_only' },
+  'K1': { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '信息收集——Interview:深度代码探索+外部资源; Direct:快速上下文确认; Consensus:分析现有计划覆盖范围; Review:评估现有流程编排', team_strategy: 'subagent_only' },
+  'K2': { can_spawn: ['code-explore-expert', 'frontend-architect', 'backend-architect', 'algorithm-expert'], note: '分析综合——Interview:编排者主导分析+code-explore-expert辅助; Direct:快速分析+code-explore-expert确认; Consensus:编排者(Critic角色)评估+Architect并行审查(≤5轮); Review:编排者(Critic角色)评估+优化建议', team_strategy: 'prefer_team', team_rules: 'Consensus模式: Architect子Agent并行审查(spawn Agent),编排者同时担任Critic独立评估,两者只读不修改文件,编排者汇总后修订计划。Interview/Direct: 编排者主导,code-explore-expert作为subagent辅助(只读)。Review: 编排者独占到K2完成' },
+  'K3': { can_spawn: [], note: '交付产出——编排者产出最终交付物:结构化需求计划(Interview/Direct)/共识裁决结果(Consensus)/优化建议+修订方案(Review)' },
+  // /simplify 流水线 Agent 生成指引
+  'S0': { can_spawn: ['code-explore-expert'], note: '代码分析——spawn code-explore-expert扫描目标代码，识别复杂度/冗余/重复/AI痕迹模式', team_strategy: 'subagent_only' },
+  'S1': { can_spawn: ['frontend-dev-expert', 'backend-dev-expert', 'backend-logic-expert', 'remediation-expert'], note: '简化执行——推荐 Agent Team 按模块并行简化，各成员独占文件区域，确保功能不变', team_strategy: 'prefer_team', team_rules: '每个Team成员独占模块/文件区域,禁止多成员共享同一文件。前端按组件拆分,后端按服务模块拆分。只做删除冗余+提取复用+简化逻辑,不改变功能行为' },
+  'S2': { can_spawn: ['frontend-test-expert', 'backend-test-expert'], note: '回归验证——Lint+Type-check+Build+Test全跑，确保简化无回归', team_strategy: 'subagent_only' },
+  'S3': { can_spawn: [], note: '报告产出——编排者汇总before/after对比+简化统计+变更清单' },
+  // /trace 流水线 Agent 生成指引
+  'T0': { can_spawn: [], note: '问题框架——编排者定义症状、上下文、已知信息、时间线' },
+  'T1': { can_spawn: ['algorithm-expert', 'code-explore-expert'], note: '假设生成——spawn algorithm-expert+code-explore-expert生成2-5个竞态假设，每个含先验概率+证伪条件', team_strategy: 'subagent_only' },
+  'T2': { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '证据收集——spawn code-explore-expert+external-resource-expert并行收集每个假设的支持/反对证据', team_strategy: 'subagent_only' },
+  'T3': { can_spawn: [], note: '因果分析——编排者执行贝叶斯更新，按证据权重排序假设，定位根因' },
+  'T4': { can_spawn: [], note: '解决方案——编排者基于确认的根因推荐修复方案+验证步骤+预防建议' },
+  // /improve 流水线 Agent 生成指引
+  'IM0': { can_spawn: [], note: '目标定义——编排者与用户确认改进目标+可量化指标+基准值+目标值+停止条件' },
+  'IM1': { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '研究分析——spawn code-explore-expert分析代码库改进机会，external-resource-expert补充外部最佳实践', team_strategy: 'subagent_only' },
+  'IM2': { can_spawn: ['planner'], note: '计划制定——spawn planner制定改进计划，含可测试假设+实现方案+验证方法+预期收益', team_strategy: 'subagent_only' },
+  'IM3': { can_spawn: ['frontend-dev-expert', 'backend-dev-expert', 'backend-logic-expert', 'remediation-expert', 'frontend-test-expert', 'backend-test-expert'], note: '执行验证——推荐 Agent Team 并行实现改进+运行基准测试，各成员独占模块', team_strategy: 'prefer_team', team_rules: '每个Team成员独占模块/文件区域,禁止多成员共享同一文件。实现和测试Agent各自独立,测试确认改进效果' },
+  'IM4': { can_spawn: [], note: '评估迭代——编排者对比指标+决策继续/停止，若继续则跳回IM1研究新一轮改进' },
 };
 
 /** 获取当前 Gate 可生成的 Agent 指引 */
@@ -370,9 +449,28 @@ export const MAX_RETRY = {
   'RL0': 2, 'RL1': 3,
   'RL2': 2, 'RL3': 2,
   'RL4': 2,
-  // /explore 流水线重试次数
-  'X0': Infinity, // 需求澄清可无限迭代
-  'X1': 2, 'X2': 2, 'X3': 2,
+  // /ask 流水线重试次数
+  'K0': Infinity, // 需求摄入可无限迭代(Socratic追问)
+  'K1': 2,
+  'K2': 5, // Consensus模式最多5轮Architect+Critic审查
+  'K3': 2,
+  // /simplify 流水线重试次数
+  'S0': 2,
+  'S1': 2,
+  'S2': 3, // 回归验证失败可修复后重试
+  'S3': 2,
+  // /trace 流水线重试次数
+  'T0': 2,
+  'T1': 2,
+  'T2': 2,
+  'T3': 3, // 因果分析证据不充分时可补充收集
+  'T4': 2,
+  // /improve 流水线重试次数
+  'IM0': 2,
+  'IM1': 2,
+  'IM2': 2,
+  'IM3': 3, // 执行失败可修复后重试
+  'IM4': Infinity, // 迭代直到停止条件满足
 };
 
 /** 各个 Gate 的入口条件检查 */
@@ -420,10 +518,24 @@ export const GATE_ENTRY_CONDITIONS = {
   'RL2': 'Gate RL1 质量门全部通过',
   'RL3': 'Gate RL2 版本已递增',
   'RL4': 'Gate RL3 发布已执行',
-  // /explore 流水线入口条件
-  'X1': 'Gate X0 问题空间已澄清',
-  'X2': 'Gate X1 场景已挖掘',
-  'X3': 'Gate X2 需求已收敛',
+  // /ask 流水线入口条件
+  'K1': 'Gate K0 需求已摄入，模式已选择',
+  'K2': 'Gate K1 信息已收集',
+  'K3': 'Gate K2 分析已完成',
+  // /simplify 流水线入口条件
+  'S1': 'Gate S0 代码分析报告已产出',
+  'S2': 'Gate S1 简化执行已完成',
+  'S3': 'Gate S2 回归验证已通过',
+  // /trace 流水线入口条件
+  'T1': 'Gate T0 问题框架已明确',
+  'T2': 'Gate T1 假设已生成',
+  'T3': 'Gate T2 证据已收集',
+  'T4': 'Gate T3 因果分析已完成',
+  // /improve 流水线入口条件
+  'IM1': 'Gate IM0 改进目标已定义',
+  'IM2': 'Gate IM1 研究分析已完成',
+  'IM3': 'Gate IM2 改进计划已制定',
+  'IM4': 'Gate IM3 改进已执行',
 };
 
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */

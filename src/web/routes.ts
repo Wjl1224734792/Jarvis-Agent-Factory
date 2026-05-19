@@ -851,6 +851,12 @@ function inferPipelineType(content: string): string {
   if (lower.includes('migrate')) return 'migrate';
   if (lower.includes('evaluate')) return 'evaluate';
   if (lower.includes('debug')) return 'debug';
+  if (lower.includes('simplify')) return 'simplify';
+  if (lower.includes('trace')) return 'trace';
+  if (lower.includes('improve')) return 'improve';
+  if (lower.includes('research')) return 'research';
+  if (lower.includes('release')) return 'release';
+  if (lower.includes('session_join') && lower.includes('pipeline_type')) return 'ask';
   return 'full';
 }
 
@@ -866,7 +872,10 @@ function inferCategory(name: string): string {
   if (/migrate/.test(name)) return 'migrate';
   if (/evaluate/.test(name)) return 'evaluate';
   if (/^debug/.test(name) || /bug/.test(name)) return 'debug';
-  if (/explore/.test(name)) return 'testing';
+  if (/simplify/.test(name)) return 'simplification';
+  if (/trace/.test(name)) return 'trace';
+  if (/improve/.test(name)) return 'improvement';
+  if (/ask/.test(name)) return 'requirements';
   if (/review/.test(name)) return 'review';
   if (/architect/.test(name)) return 'architecture';
   if (/^task-/.test(name)) return 'task';
