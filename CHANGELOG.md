@@ -4,6 +4,23 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.1.1] - 2026-05-19
+
+### Added
+- `/ask` K2 新增评分与权重框架（OMC数学化模式）：5维度需求评分矩阵(BV/EF/RS/UI/DC)+方案对比矩阵+权重自适应
+- Agent-registry 新增"规划"分类（planner/task-design/skill-assignment-expert/remediation-planner）
+
+### Changed
+- 移除死代理 `fix-retest.md`（0引用），Agent总数 69→68
+- AGENTS.md 测试类 16→15，智能体体系 69→68
+- README.md `fix-retest`→`remediation-expert` 引用更新
+
+### Fixed
+- `browser-test.md` Skill() 语法修复（反引号文本→正确函数调用）
+- `review.md` / `review-fix.md` allowed-tools 补全 `Skill`
+- `remediation-planner` 添加到 GATE_AGENT_GUIDE Gate C-impl
+- `inferPipelineType()` ESLint 转义字符修复
+
 ## [4.1.0] - 2026-05-19
 
 ### Changed

@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.1.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.1.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.1.0** — /jarvis-lite→/auto 智能路由重设计 + 确认约束补全(/simplify /research /auto) + inferPipelineType 路由修复
+> **v4.1.1** — 评分权重框架(/ask K2) + Agent生态清理(69→68) + review/allowed-tools修复 + Agent-registry"规划"分类
 
 ## 快速开始
 
@@ -39,7 +39,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
 | **Agent Team 支持** | `jarvis init` 自动启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，Team + SubAgent 混合编排 |
 | **智能路由** | `/auto` 自动检测任务→路由最优流水线→跳过无关Gate→按复杂度分配Agent |
-| **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
+| **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug / research / release / ask / simplify / trace / improve 共 15 种模式，按需选择 |
 | **项目记忆系统** | `.jarvis/memory/` 跨会话笔记/决策记录/项目上下文，OMC 风格持久化 |
 | **会话事件日志** | `session_events` 表记录生命周期事件，跨会话可观测性 |
 | **项目级存储隔离** | `<project>/.jarvis/` 独立数据库 + PID，每个项目跨会话记忆不跨项目共享 |
@@ -47,7 +47,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **Web 面板** | 数据看板首页（#/）· 流水线看板（#/dashboard）· 归档（#/archive）· Agent 配置（#/agents）· SSE 实时推送 |
 | **远程面板** | 单 HTML 文件下载即可打开，无需本地 web 构建 |
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md` 源文件 |
-| **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
+| **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → remediation-expert 闭环 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
 | **智能 MCP 合并** | `jarvis upgrade` / `jarvis init` 增量合并 MCP 配置，不覆盖用户自定义服务 |
 | **智能 env 合并** | `jarvis init` 增量合并 settings.json env，保护用户自定义环境变量 |
@@ -192,7 +192,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 ## 浏览器测试工作流
 
 ```
-test-doc-writer → test-executor → fix-retest
+test-doc-writer → test-executor → remediation-expert
    (编写用例)       (按文档执行)      (失败→修复→复测)
 ```
 
@@ -200,7 +200,7 @@ test-doc-writer → test-executor → fix-retest
 
 1. **test-doc-writer** — 编写结构化测试用例文档（步骤、预期结果），不执行测试
 2. **test-executor** — 严格按照文档执行测试，产出通过/失败清单报告
-3. **fix-retest** — 分析失败用例，spawn 对应修复 Agent，最多 2 轮修复-重测
+3. **remediation-expert** — 分析失败用例，spawn 对应修复 Agent，最多 2 轮修复-重测
 
 ## MCP 配置指南
 
@@ -297,6 +297,10 @@ test-doc-writer → test-executor → fix-retest
 | 需求探询 | `/ask` |
 | 深度研究 | `/research` |
 | 浏览器探索 | `/browser-explore` |
+| **工程优化** | |
+| 代码简化 | `/simplify` |
+| 因果追踪 | `/trace` |
+| 迭代改进 | `/improve` |
 | **测试** | |
 | 单元测试 | `/test-unit` |
 | 集成测试 | `/test-integration` |
@@ -318,7 +322,7 @@ test-doc-writer → test-executor → fix-retest
 
 | | Claude Code |
 |---|:--:|
-| Agents | 69 |
+| Agents | 68 |
 | Commands | 39 |
 | Skills | 34 |
 | Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |

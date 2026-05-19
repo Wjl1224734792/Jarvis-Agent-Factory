@@ -16,7 +16,8 @@ updated: "2026-05-14"
 
 ## 步骤 0：加载技能 + 注册引擎
 
-加载 `behavioral-guidelines` `browser-testing` 两个技能。
+Skill("behavioral-guidelines")
+Skill("browser-testing")
 
 **引擎会话注册**（硬约束——引擎确保测试操作不越权）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`

@@ -238,7 +238,7 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 | **需求** | `spec-driven-development` `idea-refine` |
 | **规划** | `planning-and-task-breakdown` |
 | **实现** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` `frontend-design` `refactoring` |
-| **框架** | `antd` `ant-design` |
+| **框架** | — |
 | **质量** | `code-quality-gate` `code-review-and-quality` `verification-before-completion` |
 | **测试** | `perf-testing` `test-data-factory` |
 | **调试** | `debugging-and-error-recovery` `debugging-deep` |
@@ -272,13 +272,13 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 - docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
 - browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
 
-## 智能体体系（69 个 Agent，仅 Claude Code 平台）
+## 智能体体系（68 个 Agent，仅 Claude Code 平台）
 
 ### 实现类（22）
 `frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
-### 测试类（16）
-`frontend-test-expert` `backend-test-expert` `android-test-expert` `ios-test-expert` `flutter-test-expert` `taro-test-expert` `expo-test-expert` `react-native-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
+### 测试类（15）
+`frontend-test-expert` `backend-test-expert` `android-test-expert` `ios-test-expert` `flutter-test-expert` `taro-test-expert` `expo-test-expert` `react-native-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor`
 
 ### 规划/任务（4）
 `task-design` `planner` `skill-assignment-expert` `remediation-planner`
