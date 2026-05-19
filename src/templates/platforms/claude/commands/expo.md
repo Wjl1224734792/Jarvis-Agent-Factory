@@ -39,9 +39,9 @@ updated: "2026-05-14"
 
 | 层级 | subagent_type |
 |------|--------------|
-| 全栈实现 | `react-native-dev-expert` |
-| UI/布局/动画 | `react-native-ui-expert` |
-| 状态/数据/路由 | `react-native-state-expert` |
+| 全栈实现 | `expo-dev-expert` |
+| UI/布局/动画 | `expo-ui-expert` |
+| 状态/数据/路由 | `expo-state-expert` |
 | 任务分解（复杂需求） | `task-design` |
 | Expo 测试 | `expo-test-expert` |
 | Expo 审查 | `expo-review-expert` |
@@ -66,8 +66,8 @@ updated: "2026-05-14"
 ```
 Gate B-DDD/B-BDD/B-TDD: [task-design]（复杂需求时触发，简单需求跳过）
 Gate C-impl:
-  Batch 1: [react-native-ui-expert, react-native-state-expert]  ← UI + 状态/路由并行
-  Batch 2: [react-native-dev-expert]                            ← 集成组装
+  Batch 1: [expo-ui-expert, expo-state-expert]  ← UI + 状态/路由并行
+  Batch 2: [expo-dev-expert]                            ← 集成组装
   Batch 3: [browser-test-expert]                                ← Web 端浏览器交互测试
   Batch 4: [e2e-test-expert]                                    ← 真机/模拟器 E2E
 ```
@@ -133,7 +133,7 @@ Expo 专项：
 **审查不通过回退**：
 1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
 2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
-3. Expo 审查不通过 → spawn 原 Expo 实现 Agent（react-native-dev-expert / react-native-ui-expert / react-native-state-expert）
+3. Expo 审查不通过 → spawn 原 Expo 实现 Agent（expo-dev-expert / expo-ui-expert / expo-state-expert）
 4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`
 
 通过后：`advance_gate({ gate: "Gate E" })`

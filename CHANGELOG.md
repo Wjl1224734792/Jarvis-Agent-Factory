@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.2] - 2026-05-19
+
+### Fixed
+- AGENTS.md/README.md 版本号同步 v4.3.0→v4.3.1，命令统计 39→40
+- expo.md 5 处 react-native-* Agent 引用更正为 expo-* Agent（Gate C-impl + Gate D）
+- 5 个审查 Agent 补入 GATE_AGENT_GUIDE Gate D（change-review-expert/diff-review-expert/project-review-expert/review-fix-optimize/review-only）
+
 ## [4.3.1] - 2026-05-19
 
 ### Changed
