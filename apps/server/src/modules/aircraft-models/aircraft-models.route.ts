@@ -61,10 +61,27 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
 });
 
 aircraftModelsRoute.get(API_ROUTES.models.compare, async (context) => {
-  const query = modelCompareQuerySchema.parse({
-    slugs: context.req.queries("slugs"),
+  const raw = (context.req.queries("slugs") ?? [context.req.query("slugs")])
+    .filter(Boolean)
+    .flatMap(s => s!.split(","))
+    .filter(Boolean);
+  const query = modelCompareQuerySchema.parse({ slugs: raw });
+  const flatItems = await aircraftModelsService.compareModels(query.slugs);
+  const items = flatItems.map((item: Record<string, unknown>) => {
+    const { coverImageUrl, coverVideoUrl, ...rest } = item;
+    const paramKeys = [
+      "maxFlightTimeMinutes","maxRangeKilometers","maxSpeedKph","cruiseSpeedKph",
+      "takeoffWeightGrams","wingspanMm","lengthMm","heightMm","maxAltitudeM",
+      "climbRateMs","windResistance","motorType","batteryType","batteryCapacityMah",
+      "batteryVoltage","batteryEnergyWh","chargeTimeMinutes","propellerSize",
+      "obstacleAvoidance","gnssType","ipRating","operatingTemperature","cameraSensorSize",
+      "cameraPixels","videoResolution","lensAperture","isoRange","transmissionSystem",
+      "transmissionRangeM","certificationType","noiseLevelDb","materialType"
+    ];
+    const parameters = Object.fromEntries(paramKeys.map(k => [k, rest[k] ?? null]));
+    const nonParam = Object.fromEntries(Object.entries(rest).filter(([k]) => !paramKeys.includes(k)));
+    return { ...nonParam, coverImageUrl, coverVideoUrl, parameters };
   });
-  const items = await aircraftModelsService.compareModels(query.slugs);
   return context.json(modelCompareResponseSchema.parse({ items }));
 });
 

@@ -588,8 +588,8 @@ export function ModelsPage() {
 
   return (
     <SitePage className="w-full min-w-0 gap-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
-        <div className="space-y-4 xl:order-1">
+      <div className="xl:block">
+        <div className="space-y-4">
           <div className="space-y-3">
             <div className="hidden xl:block">{desktopFilterBar}</div>
             <div className="flex flex-wrap items-start justify-between gap-3 xl:hidden bg-white px-4 py-4">
