@@ -37,7 +37,7 @@ function makeSid(): string {
  * 创建 mock McpServer 用于测试工具注册
  * 返回 { server, tools } 其中 tools 按名称索引工具处理器
  */
-type ToolHandler = (params: Record<string, unknown>, extra?: { sessionId?: string }) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+type ToolHandler = (_params: Record<string, unknown>, _extra?: { sessionId?: string }) => Promise<{ content: Array<{ type: string; text?: string }> }>;
 
 function createMockMcpServer(): { server: Record<string, unknown>; tools: Record<string, ToolHandler> } {
   const tools: Record<string, ToolHandler> = {} as Record<string, ToolHandler>;

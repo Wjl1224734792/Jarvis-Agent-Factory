@@ -1,6 +1,6 @@
 # Jarvis Agent Factory
 
-多智能体配置工程，专注 **Claude Code** 平台。39 条指令、68 个 Agent、34 个 Skill、15 条流水线。
+多智能体配置工程，专注 **Claude Code** 平台。39 条指令、71 个 Agent、34 个 Skill、15 条流水线。
 
 > **所有智能体启动时必须读取 [AGENTS.md](./AGENTS.md)** — 分层文档含项目约束、流水线、Agent/Skill 目录、发布流程。
 

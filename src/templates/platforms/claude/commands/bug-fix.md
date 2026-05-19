@@ -13,7 +13,6 @@ updated: "2026-05-14"
 ## 步骤 0：加载技能 + 注册引擎
 ```
 Skill("behavioral-guidelines")
-Skill("agent-browser")
 Skill("browser-testing")
 ```
 

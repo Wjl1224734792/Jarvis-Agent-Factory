@@ -4,6 +4,8 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 
+type DbConn = any;
+
 /**
  * 打开引擎数据库，存储在项目级 <projectRoot>/.jarvis/engine.db
  * 每个项目拥有独立数据库，实现项目级数据隔离。
@@ -11,7 +13,7 @@ import { randomBytes } from 'node:crypto';
  * @param {string} [dbPath] 可选自定义路径（测试用，优先级最高）
  * @returns {DatabaseSync}
  */
-export function openDb(projectRoot?: string, dbPath?: string) {
+export function openDb(projectRoot?: string,  dbPath?: string) {
   // 单参数且以 .db 结尾 → 视为显式数据库路径（测试兼容）
   // 项目目录名不会以 .db 结尾，此启发式仅用于区分测试调用 openDb('/tmp/test.db')
   const effectiveDbPath = dbPath || (projectRoot && projectRoot.endsWith('.db') ? projectRoot : undefined);
@@ -26,7 +28,7 @@ export function openDb(projectRoot?: string, dbPath?: string) {
   return db;
 }
 
-function initSchema(db) {
+function initSchema(db: DbConn) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS pipeline (
       session_id TEXT PRIMARY KEY,
@@ -86,7 +88,7 @@ function initSchema(db) {
     );
   `);
 
-  try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch {}
+  try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ---- 迁移：修复旧 pipeline 表 CHECK(id=1) 约束 ----
   const pipeSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='pipeline'").get();
@@ -117,7 +119,7 @@ function initSchema(db) {
       console.log('  ✓  pipeline 表已从旧 CHECK(id=1) 模式迁移为多会话模式');
     } catch (e) {
       db.exec('ROLLBACK');
-      console.error('  ✗  pipeline 迁移失败:', e.message);
+      console.error('  ✗  pipeline 迁移失败:', String(e));
     }
   }
 
@@ -148,34 +150,34 @@ function initSchema(db) {
       console.log('  ✓  checkpoints 表已迁移为 session_id+gate 联合唯一约束');
     } catch (e) {
       db.exec('ROLLBACK');
-      console.error('  ✗  checkpoints 迁移失败:', e.message);
+      console.error('  ✗  checkpoints 迁移失败:', String(e));
     }
   }
 
   // ---- 旧列迁移（向后兼容） ----
-  try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
+  try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ---- 会话任务名迁移 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN task_name TEXT"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN task_name TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ---- Run 归档迁移 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN archived INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN archived INTEGER DEFAULT 0"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ---- Run 置顶迁移 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  TASK-001: Gate 进入时间记录 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN gate_entered_at TEXT"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN gate_entered_at TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  TASK-001: Checkpoint 耗时字段 ----
-  try { db.exec("ALTER TABLE checkpoints ADD COLUMN duration_seconds INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN duration_seconds INTEGER"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  TASK-002: Checkpoint 质量门禁违反记录 ----
-  try { db.exec("ALTER TABLE checkpoints ADD COLUMN violations TEXT"); } catch {}
-  try { db.exec("ALTER TABLE checkpoints ADD COLUMN quality_profile_source TEXT"); } catch {}
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN violations TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN quality_profile_source TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ---- 清除遗留的 agent_events 表（v3.47.6+ 已废弃） ----
-  try { db.exec("DROP TABLE IF EXISTS agent_events"); } catch {}
+  try { db.exec("DROP TABLE IF EXISTS agent_events"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  OMC-inspired: 会话事件日志表（跨会话可观测性） ----
   db.exec(`
@@ -192,10 +194,10 @@ function initSchema(db) {
   `);
 
   // ----  OMC-inspired: pipeline_runs 恢复数据列 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN resume_data TEXT"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN resume_data TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  OMC-inspired: sessions 元数据列 ----
-  try { db.exec("ALTER TABLE sessions ADD COLUMN metadata TEXT"); } catch {}
+  try { db.exec("ALTER TABLE sessions ADD COLUMN metadata TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
   // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
@@ -217,7 +219,7 @@ function initSchema(db) {
   }
 
   // ----  TASK-002: 任务总耗时列 ----
-  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN total_duration_seconds INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN total_duration_seconds INTEGER"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
   // ----  TASK-002: 回填已完成/已中止 run 的 total_duration_seconds ----
   const backfillDurationResult = db.prepare(`
@@ -249,24 +251,24 @@ function initSchema(db) {
 }
 
 // ---- Pipeline (per-session) ----
-export function getPipeline(db, sessionId) {
+export function getPipeline(db: DbConn,  sessionId: any) {
   if (!sessionId) return null;
   return db.prepare('SELECT * FROM pipeline WHERE session_id=?').get(sessionId);
 }
-export function updatePipelineGate(db, sessionId, gate) {
+export function updatePipelineGate(db: DbConn,  sessionId: any,  gate: any) {
   if (!sessionId) throw new Error('session_id required');
   db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId);
 }
 /** @param {'full'|'frontend'|'backend'} pipelineType */
-export function initPipeline(db, sessionId, project, pipelineType = 'full') {
+export function initPipeline(db: DbConn,  sessionId: any,  project: any,  pipelineType : any = 'full') {
   db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, pipeline_type, started_at, updated_at) VALUES (?, ?, 'Gate A', ?, datetime('now'), datetime('now'))`).run(sessionId, project, pipelineType);
 }
-export function getAllPipelines(db) {
+export function getAllPipelines(db: DbConn) {
   return db.prepare('SELECT * FROM pipeline ORDER BY updated_at DESC').all();
 }
 
 // ---- Checkpoints (per-session) ----
-export function getCheckpoints(db, gate, sessionId) {
+export function getCheckpoints(db: DbConn,  gate: any,  sessionId: any) {
   if (!sessionId) return [];
   if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId);
   return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId);
@@ -281,7 +283,7 @@ export function getCheckpoints(db, gate, sessionId) {
  * @param {string} [violations] 质量门禁违反记录 JSON 字符串（TASK-002）
  * @param {string} [qualityProfileSource] 质量门禁配置来源（TASK-002）
  */
-export function addCheckpoint(db, gate, advanceTo, sessionId, durationSeconds: number | undefined = undefined, violations: string | undefined = undefined, qualityProfileSource: string | undefined = undefined) {
+export function addCheckpoint(db: DbConn,  gate: any,  advanceTo: any,  sessionId: any,  durationSeconds: number | undefined = undefined,  violations: string | undefined = undefined,  qualityProfileSource: string | undefined = undefined) {
   if (violations !== undefined || qualityProfileSource !== undefined) {
     db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to, duration_seconds, violations, quality_profile_source) VALUES (?, ?, datetime('now'), ?, ?, ?, ?)`).run(sessionId, gate, advanceTo, durationSeconds ?? null, violations ?? null, qualityProfileSource ?? null);
   } else if (durationSeconds !== undefined) {
@@ -299,7 +301,7 @@ export function addCheckpoint(db, gate, advanceTo, sessionId, durationSeconds: n
  * @param {'active'|'inactive'|undefined} statusFilter
  * @returns {Array<{id: string; platform: string; role: string; status: string; created_at: number; last_heartbeat: number; latest_run_started_at: string|null}>}
  */
-export function getSessions(db, statusFilter = undefined) {
+export function getSessions(db: DbConn,  statusFilter : any = undefined) {
   const orderClause = `
     ORDER BY
       CASE WHEN latest_run_started_at IS NULL THEN 1 ELSE 0 END,
@@ -322,50 +324,50 @@ export function getSessions(db, statusFilter = undefined) {
     ${orderClause}
   `).all();
 }
-export function getSession(db, sid) {
+export function getSession(db: DbConn,  sid: any) {
   return db.prepare('SELECT * FROM sessions WHERE id=?').get(sid);
 }
-export function addSession(db, sid, platform, role) {
+export function addSession(db: DbConn,  sid: any,  platform: any,  role: any) {
   db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, status, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?)').run(sid, platform, role || 'member', 'active', Date.now(), Date.now());
 }
 /** 更新会话活动时间——每次 MCP 工具调用即视为心跳 */
-export function touchSession(db, sid) {
+export function touchSession(db: DbConn,  sid: any) {
   db.prepare("UPDATE sessions SET last_heartbeat=?, status='active' WHERE id=?").run(Date.now(), sid);
 }
-export function removeSession(db, sid) {
+export function removeSession(db: DbConn,  sid: any) {
   db.prepare('DELETE FROM sessions WHERE id=?').run(sid);
 }
-export function updateSessionRole(db, sid, role) {
+export function updateSessionRole(db: DbConn,  sid: any,  role: any) {
   db.prepare('UPDATE sessions SET role=? WHERE id=?').run(role, sid);
 }
 /** 将会话标记为 inactive 而非删除，保留 pipeline 数据供恢复 */
-export function markStaleSessions(db, timeoutMs) {
+export function markStaleSessions(db: DbConn,  timeoutMs: any) {
   const cutoff = Date.now() - timeoutMs;
   const stale = db.prepare("SELECT id FROM sessions WHERE last_heartbeat < ? AND status='active'").all(cutoff);
   for (const s of stale) db.prepare("UPDATE sessions SET status='inactive' WHERE id=?").run(s.id);
   return stale.map(s => s.id);
 }
 /** 恢复 inactive 会话为 active */
-export function resumeSession(db, sid) {
+export function resumeSession(db: DbConn,  sid: any) {
   db.prepare("UPDATE sessions SET status='active', last_heartbeat=? WHERE id=?").run(Date.now(), sid);
 }
 /** 迁移旧会话的 pipeline 和 checkpoints 到新 sessionId（用于 MCP 重连恢复） */
-export function migrateSession(db, oldSid, newSid) {
+export function migrateSession(db: DbConn,  oldSid: any,  newSid: any) {
   db.prepare('UPDATE pipeline SET session_id=? WHERE session_id=?').run(newSid, oldSid);
   db.prepare('UPDATE checkpoints SET session_id=? WHERE session_id=?').run(newSid, oldSid);
 }
-export function getOldestSession(db) {
+export function getOldestSession(db: DbConn) {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();
 }
 
 // ---- Agent Models ----
-export function getAgentConfig(db) {
+export function getAgentConfig(db: DbConn) {
   const rows = db.prepare('SELECT agent_id, model, effort FROM agent_models').all();
   const cfg = {};
   for (const r of rows) cfg[r.agent_id] = { model: r.model, effort: r.effort };
   return cfg;
 }
-export function setAgentModel(db, agentId, model, effort) {
+export function setAgentModel(db: DbConn,  agentId: any,  model: any,  effort: any) {
   db.prepare(`INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, datetime('now'))`).run(agentId, model, effort);
 }
 
@@ -379,7 +381,7 @@ export function setAgentModel(db, agentId, model, effort) {
  * @param {string} [pipelineType='full']
  * @returns {string} runId
  */
-export function createPipelineRun(db, sessionId, project, pipelineType = 'full') {
+export function createPipelineRun(db: DbConn,  sessionId: any,  project: any,  pipelineType : any = 'full') {
   const id = 'run_' + Date.now() + '_' + randomBytes(3).toString('base64url');
   db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, gate_entered_at)
     VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'), datetime('now'))`).run(id, sessionId, project, pipelineType);
@@ -387,7 +389,7 @@ export function createPipelineRun(db, sessionId, project, pipelineType = 'full')
 }
 
 /** 获取指定 run */
-export function getPipelineRun(db, runId) {
+export function getPipelineRun(db: DbConn,  runId: any) {
   return db.prepare('SELECT * FROM pipeline_runs WHERE id=?').get(runId);
 }
 
@@ -395,7 +397,7 @@ export function getPipelineRun(db, runId) {
  * 获取 session 的当前活跃 run（最新一条 status=active）
  * @returns {object|undefined}
  */
-export function getActiveRun(db, sessionId) {
+export function getActiveRun(db: DbConn,  sessionId: any) {
   return db.prepare("SELECT * FROM pipeline_runs WHERE session_id=? AND status='active' AND archived=0 ORDER BY started_at DESC LIMIT 1").get(sessionId);
 }
 
@@ -403,12 +405,12 @@ export function getActiveRun(db, sessionId) {
  * 获取 session 的所有 runs（按时间倒序）
  * @returns {object[]}
  */
-export function getSessionRuns(db, sessionId) {
+export function getSessionRuns(db: DbConn,  sessionId: any) {
   return db.prepare('SELECT * FROM pipeline_runs WHERE session_id=? ORDER BY started_at DESC').all(sessionId);
 }
 
 /** 更新 run 的当前 Gate */
-export function updateRunGate(db, runId, gate) {
+export function updateRunGate(db: DbConn,  runId: any,  gate: any) {
   db.prepare("UPDATE pipeline_runs SET current_gate=? WHERE id=?").run(gate, runId);
 }
 
@@ -418,12 +420,12 @@ export function updateRunGate(db, runId, gate) {
  * @param {string} runId
  * @param {string} isoTime 进入时间的 ISO 字符串
  */
-export function updateRunGateEnteredAt(db, runId, isoTime) {
+export function updateRunGateEnteredAt(db: DbConn,  runId: any,  isoTime: any) {
   db.prepare('UPDATE pipeline_runs SET gate_entered_at=? WHERE id=?').run(isoTime, runId);
 }
 
 /** 完成 run，同时计算总耗时 */
-export function completeRun(db, runId) {
+export function completeRun(db: DbConn,  runId: any) {
   db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
   // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
   db.prepare(`
@@ -435,7 +437,7 @@ export function completeRun(db, runId) {
 }
 
 /** 中止 run，同时计算总耗时 */
-export function abortRun(db, runId) {
+export function abortRun(db: DbConn,  runId: any) {
   db.prepare("UPDATE pipeline_runs SET status='aborted', completed_at=datetime('now') WHERE id=?").run(runId);
   // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
   db.prepare(`
@@ -455,7 +457,7 @@ export function abortRun(db, runId) {
  * @param {string} name
  * @returns {{ ok: boolean; task_name: string | null; error?: string }}
  */
-export function setRunTaskName(db, runId, name) {
+export function setRunTaskName(db: DbConn,  runId: any,  name: any) {
   if (!runId) return { ok: false, task_name: null, error: 'runId required' };
   const trimmed = name?.trim() || null;
   if (trimmed) {
@@ -475,7 +477,7 @@ export function setRunTaskName(db, runId, name) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
-export function archiveRun(db, runId) {
+export function archiveRun(db: DbConn,  runId: any) {
   if (!runId) return { ok: false };
   const result = db.prepare('UPDATE pipeline_runs SET archived=1 WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
@@ -487,7 +489,7 @@ export function archiveRun(db, runId) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
-export function unarchiveRun(db, runId) {
+export function unarchiveRun(db: DbConn,  runId: any) {
   if (!runId) return { ok: false };
   const result = db.prepare('UPDATE pipeline_runs SET archived=0 WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
@@ -498,7 +500,7 @@ export function unarchiveRun(db, runId) {
  * @param {DatabaseSync} db
  * @returns {object[]}
  */
-export function getArchivedRuns(db) {
+export function getArchivedRuns(db: DbConn) {
   return db.prepare("SELECT * FROM pipeline_runs WHERE archived=1 ORDER BY session_id, started_at DESC").all();
 }
 
@@ -514,7 +516,7 @@ export function getArchivedRuns(db) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
-export function deleteRun(db, runId) {
+export function deleteRun(db: DbConn,  runId: any) {
   if (!runId) return { ok: false };
   try {
     // 先查出该 run 所属的 session_id
@@ -539,7 +541,7 @@ export function deleteRun(db, runId) {
     db.exec('COMMIT');
     return { ok: result.changes > 0 };
   } catch (e) {
-    try { db.exec('ROLLBACK'); } catch {}
+    try { db.exec('ROLLBACK'); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
     throw e;
   }
 }
@@ -550,7 +552,7 @@ export function deleteRun(db, runId) {
  * @param {string} sessionId
  * @returns {{ ok: boolean }}
  */
-export function deleteSession(db, sessionId) {
+export function deleteSession(db: DbConn,  sessionId: any) {
   if (!sessionId) return { ok: false };
   try {
     db.exec('BEGIN');
@@ -566,7 +568,7 @@ export function deleteSession(db, sessionId) {
     db.exec('COMMIT');
     return { ok: result.changes > 0 };
   } catch (e) {
-    try { db.exec('ROLLBACK'); } catch {}
+    try { db.exec('ROLLBACK'); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
     throw e;
   }
 }
@@ -577,7 +579,7 @@ export function deleteSession(db, sessionId) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
-export function pinRun(db, runId) {
+export function pinRun(db: DbConn,  runId: any) {
   if (!runId) return { ok: false };
   const result = db.prepare('UPDATE pipeline_runs SET pinned=1 WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
@@ -589,7 +591,7 @@ export function pinRun(db, runId) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
-export function unpinRun(db, runId) {
+export function unpinRun(db: DbConn,  runId: any) {
   if (!runId) return { ok: false };
   const result = db.prepare('UPDATE pipeline_runs SET pinned=0 WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
@@ -605,7 +607,7 @@ export function unpinRun(db, runId) {
  * @param {string} filepath 相对于 docs/ 的路径，如 "2026-05-10/requirements/REQ-001.md"
  * @returns {{ ok: boolean }}
  */
-export function insertArtifact(db, runId, gate, filepath) {
+export function insertArtifact(db: DbConn,  runId: any,  gate: any,  filepath: any) {
   const result = db.prepare('INSERT OR IGNORE INTO artifacts (run_id, gate, filepath) VALUES (?, ?, ?)').run(runId, gate, filepath);
   return { ok: result.changes > 0 };
 }
@@ -616,7 +618,7 @@ export function insertArtifact(db, runId, gate, filepath) {
  * @param {string} runId
  * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
  */
-export function getArtifactsByRun(db, runId) {
+export function getArtifactsByRun(db: DbConn,  runId: any) {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? ORDER BY created_at').all(runId);
 }
 
@@ -627,7 +629,7 @@ export function getArtifactsByRun(db, runId) {
  * @param {string} gate
  * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
  */
-export function getArtifactsByRunAndGate(db, runId, gate) {
+export function getArtifactsByRunAndGate(db: DbConn,  runId: any,  gate: any) {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
 }
 
@@ -636,7 +638,7 @@ export function getArtifactsByRunAndGate(db, runId, gate) {
 /**
  * 记录会话事件
  */
-export function logSessionEvent(db, sessionId: string, eventType: string, opts?: { runId?: string; gate?: string; detail?: string }) {
+export function logSessionEvent(db: DbConn,  sessionId: string,  eventType: string,  opts?: { runId?: string; gate?: string; detail?: string }) {
   db.prepare('INSERT INTO session_events (session_id, run_id, event_type, gate, detail) VALUES (?, ?, ?, ?, ?)')
     .run(sessionId, opts?.runId || null, eventType, opts?.gate || null, opts?.detail || null);
 }
@@ -644,14 +646,14 @@ export function logSessionEvent(db, sessionId: string, eventType: string, opts?:
 /**
  * 获取会话事件日志
  */
-export function getSessionEvents(db, sessionId: string, limit = 50) {
+export function getSessionEvents(db: DbConn,  sessionId: string,  limit : any = 50) {
   return db.prepare('SELECT * FROM session_events WHERE session_id=? ORDER BY created_at DESC LIMIT ?').all(sessionId, limit);
 }
 
 /**
  * 获取 run 的事件日志
  */
-export function getRunEvents(db, runId: string) {
+export function getRunEvents(db: DbConn,  runId: string) {
   return db.prepare('SELECT * FROM session_events WHERE run_id=? ORDER BY created_at DESC').all(runId);
 }
 
@@ -660,14 +662,14 @@ export function getRunEvents(db, runId: string) {
 /**
  * 保存 run 的恢复数据
  */
-export function saveResumeData(db, runId: string, data: Record<string, unknown>) {
+export function saveResumeData(db: DbConn,  runId: string,  data: Record<string, unknown>) {
   db.prepare('UPDATE pipeline_runs SET resume_data=? WHERE id=?').run(JSON.stringify(data), runId);
 }
 
 /**
  * 获取 run 的恢复数据
  */
-export function getResumeData(db, runId: string): Record<string, unknown> | null {
+export function getResumeData(db: DbConn,  runId: string): Record<string, unknown> | null {
   const row = db.prepare('SELECT resume_data FROM pipeline_runs WHERE id=?').get(runId);
   if (!row?.resume_data) return null;
   try { return JSON.parse(row.resume_data); } catch { return null; }
@@ -676,7 +678,7 @@ export function getResumeData(db, runId: string): Record<string, unknown> | null
 /**
  * 更新 session metadata
  */
-export function updateSessionMetadata(db, sessionId: string, metadata: Record<string, unknown>) {
+export function updateSessionMetadata(db: DbConn,  sessionId: string,  metadata: Record<string, unknown>) {
   db.prepare('UPDATE sessions SET metadata=? WHERE id=?').run(JSON.stringify(metadata), sessionId);
 }
 

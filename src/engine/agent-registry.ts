@@ -58,11 +58,11 @@ const ICON_MAP = {
 // 按优先级排列：越具体的规则越靠前
 const CATEGORY_RULES = [
   { cat: '编排', keys: ['jarvis', 'orchestrat'] },
-  { cat: '测试', keys: ['test-expert', 'test-expert', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'perf-test', 'performance-test', 'performance_test'] },
+  { cat: '测试', keys: ['test-expert', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'perf-test', 'performance-test', 'performance_test'] },
   { cat: '审查', keys: ['review-expert', 'review', 'audit', 'security', 'qa'] },
   { cat: '架构', keys: ['architect', 'algorithm-expert'] },
   { cat: '浏览器', keys: ['browser-use', 'browser-test'] },
-  { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state'] },
+  { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state', 'expo-dev-expert', 'expo-ui', 'expo-state'] },
   { cat: '规划', keys: ['planner', 'task-design', 'skill-assignment', 'remediation-planner'] },
   { cat: '支撑', keys: ['external-resource', 'infra-deploy', 'code-explore-expert', 'api-contract', 'remediation', 'docs-engineer'] },
   { cat: '实现', keys: ['-dev-expert', '-ui-expert', '-state-expert', '-api-expert', '-logic-expert', '-data-expert'] },
@@ -104,7 +104,7 @@ export function getCategories(db?: unknown) {
 }
 
 /** 根据文件名+内容推断领域分类 */
-function inferCategory(fileName, content) {
+function inferCategory(fileName: string, content: string) {
   const lower = ((fileName || '') + ' ' + (content || '')).toLowerCase();
   for (const rule of CATEGORY_RULES) {
     for (const key of rule.keys) {
@@ -115,7 +115,7 @@ function inferCategory(fileName, content) {
 }
 
 /** 从 agent 文件名/内容推断图标 */
-function inferIcon(fileName, content) {
+function inferIcon(fileName: string, content: string) {
   const lower = (fileName + ' ' + (content || '')).toLowerCase();
   for (const [key, icon] of Object.entries(ICON_MAP)) {
     if (lower.includes(key)) return icon;
@@ -124,7 +124,7 @@ function inferIcon(fileName, content) {
 }
 
 /** 从 agent 内容提取 role 描述 */
-function inferRole(fileName, desc) {
+function inferRole(fileName: string, desc: string) {
   if (desc) {
     const m = desc.match(/^(.+?)(?::|——|·|，|,)/);
     if (m) return m[1].trim().slice(0, 20);
@@ -381,7 +381,7 @@ export function getPlatformModels(force?: boolean): Record<string, string[]> {
     if (!models[p]) models[p] = new Set();
     for (const m of list) models[p].add(m);
   }
-  const result = {};
+  const result: Record<string, string[]> = {};
   for (const [p, s] of Object.entries(models)) result[p] = [...s];
   return result;
 }

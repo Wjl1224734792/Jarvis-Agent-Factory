@@ -17,6 +17,9 @@ import { setupApiRoutes } from '../web/routes.js';
 import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
 import { emitEvent } from './pubsub.js';
 
+/** 白名单校验 pipeline_type，防止存储型 XSS */
+const VALID_PIPELINE_TYPES = Object.keys(PIPELINE_DEFS);
+
 // ── TASK-003: 全局错误处理 + 请求日志 ─────────────────────
 
 /** 敏感信息脱敏：替换 API 密钥（sk-前缀）、Bearer Token 等 */
@@ -70,7 +73,7 @@ const DEFAULT_WEB_PORT = 3457;
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → 标记 inactive（个人工具，不需要频繁过期）
 
 /** stdio 模式下 extra?.sessionId 为空，用此变量记录最近一次 session_join 的会话 ID */
-let _lastSessionId = null;
+let _lastSessionId: any = null;
 
 /** 绑定地址：仅 IPv4 本地回环 */
 const BIND_HOST = '127.0.0.1';
@@ -201,7 +204,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // ---- MCP Tools (不变) ----
   registerMcpTools(mcpServer, db, root);
 
-  const log = (...args) => (stdio ? process.stderr : process.stdout).write(args.join(' ') + '\n');
+  const log = (...args: any[]) => (stdio ? process.stderr : process.stdout).write(args.join(' ') + '\n');
 
   // 注册 REST API 路由（Hono）
   setupApiRoutes(app, db, root);
@@ -292,7 +295,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
         log(`Jarvis Engine v${readPkgVersion()} — stdio MCP (HTTP on port ${port} handled by another instance)`);
       }
     } catch (e) {
-      log(`Jarvis Engine v${readPkgVersion()} — HTTP server unavailable: ${e.message}`);
+      log(`Jarvis Engine v${readPkgVersion()} — HTTP server unavailable: ${String(e)}`);
     }
 
     const transport = new StdioServerTransport();
@@ -329,7 +332,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
         } catch (e) {
           if (!res.headersSent) {
             res.writeHead(500, { 'Content-Type': 'application/json' })
-              .end(JSON.stringify({ error: e.message }));
+              .end(JSON.stringify({ error: String(e) }));
           }
         }
         return;
@@ -434,12 +437,6 @@ export function registerMcpTools(server, db, root) {
       const sid = extra?.sessionId || `s${Date.now()}`;
       _lastSessionId = sid; // stdio 模式回退：记录最近会话
       const pt = pipeline_type || DEFAULT_PIPELINE;
-      // 白名单校验 pipeline_type，防止存储型 XSS
-      const VALID_PIPELINE_TYPES = [
-        'full', 'frontend', 'backend', 'lite',
-        'refactor', 'hotfix', 'migrate', 'evaluate', 'debug',
-        'research', 'release', 'ask', 'simplify', 'trace', 'improve',
-      ];
       if (!VALID_PIPELINE_TYPES.includes(pt)) {
         return resp({ error: `Invalid pipeline_type: ${pt}. Valid: ${VALID_PIPELINE_TYPES.join(', ')}` });
       }
@@ -553,7 +550,7 @@ export function registerMcpTools(server, db, root) {
     async ({ project_name, pipeline_type, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
-      const pt = pipeline_type || DEFAULT_PIPELINE;
+      const pt = (pipeline_type && VALID_PIPELINE_TYPES.includes(pipeline_type)) ? pipeline_type : DEFAULT_PIPELINE;
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
@@ -682,7 +679,7 @@ export function registerMcpTools(server, db, root) {
             }
           }
         } catch (e) {
-          console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, e.message);
+          console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, String(e));
         }
       }
       // TASK-001: 计算当前 Gate 耗时（进入时间 → 现在）
@@ -736,7 +733,7 @@ export function registerMcpTools(server, db, root) {
       const p = getPipeline(db, sid);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const def = PIPELINE_DEFS[pt];
-      if (!def?.allow_jump) return resp({ allowed: false, error: `gate_jump 仅在 lite 模式可用。当前: ${pt}` });
+      if (!def?.allow_jump) return resp({ allowed: false, error: `gate_jump 仅在 lite/ask/improve 模式可用。当前: ${pt}` });
       const gateList = sessionGates(db, sid);
       const ti = gateList.indexOf(gate);
       if (ti === -1) return resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });

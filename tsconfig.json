@@ -15,7 +15,6 @@
     "types": ["node"],
     "sourceMap": true,
     "noImplicitAny": false,
-    "useUnknownInCatchVariables": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },

@@ -42,8 +42,8 @@ function cleanup(dir: string) {
 // ============================================================
 // 测试目标模块 — lazy require 以便在实现文件创建后加载
 // ============================================================
-let loadQualityGates: (projectRoot: string) => any;
-let evaluateQualityGate: (profile: any, metrics: Record<string, number>) => any;
+let loadQualityGates: (_projectRoot: string) => any;
+let evaluateQualityGate: (_profile: any, _metrics: Record<string, number>) => any;
 
 beforeEach(() => {
   tmpDir = createTempDir();

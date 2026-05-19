@@ -4,6 +4,31 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.2.1] - 2026-05-19
+
+### Added
+- MCP Core API 集成测试 15 个（session_join/gate_check/gate_enforce/advance_gate/pipeline_init/pipeline_guide），覆盖 Gate 操作权限、FSM 状态机、pipeline 生命周期
+- 3 个缺失 Expo Agent 模板（expo-dev-expert/ui-expert/state-expert），修复 Gate C-impl Expo 平台 spawn 失败
+
+### Changed
+- 生产就绪度加固：`useUnknownInCatchVariables: true` 启用 TypeScript 严格 catch 检查，db.ts 12 处静默迁移 catch 添加错误日志
+- SSE broadcast 添加 `_broadcasting` 并发锁，防止多事件驱动广播时的竞态条件
+- Gate C2 MAX_RETRY 2→5（匹配复杂 Bug 诊断需要更多轮次）
+- `DbConn` 类型别名引入 db.ts，显式标注数据库连接类型
+- 移除 `.git-rewrite/` 历史遗留目录（100+ 重复文件）
+
+### Fixed
+- bug-fix.md / review-fix.md 中 `Skill("agent-browser")` 失效引用修复
+- publish.md / sync.md 补齐引擎会话注册，sync.md 添加完整红线表格
+- 8 个平台命令补齐 `## 步骤 0` 标题规范
+- backend.md / frontend.md 增强引擎集成文档（pipeline_guide/gate_check/advance_gate）
+- gate_jump 错误消息覆盖全部 allow_jump 管线（lite/ask/improve）
+- pipeline_init 添加 pipeline_type 白名单校验
+- backend 流水线 C2 入口条件文本修正
+- agent-registry.ts 修复重复 test-expert 键，Expo Agent 归入移动端分类
+- 5 个测试文件 lint 警告清零
+- Agent 总数 68→71（新增 expo-dev/expo-ui/expo-state）
+
 ## [4.2.0] - 2026-05-19
 
 ### Added
@@ -12,6 +37,17 @@ Note: This project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - `/ask` K2 新增评分与权重框架：5 维度需求评分矩阵(BV/EF/RS/UI/DC) + 方案对比矩阵 + 权重自适应（参考 OMC deep-interview/trace/self-improve/ralplan 数学化评分模式）
+- 生产就绪度改进：`useUnknownInCatchVariables: true` 启用 TypeScript 严格 catch 类型检查，db.ts 12 处静默迁移 catch 添加错误日志，SSE broadcast 添加并发锁防止竞态，移除 `.git-rewrite/` 历史遗留目录（100+ 重复文件），所有 catch(e.message)→String(e) 适配 unknown 类型
+
+### Fixes
+- 3 个缺失 Expo Agent 模板（expo-dev-expert/ui-expert/state-expert），修复 Gate C-impl Expo 平台 spawn 失败
+- bug-fix.md / review-fix.md 中 `Skill("agent-browser")` 失效引用修复
+- publish.md / sync.md 补齐引擎会话注册，sync.md 添加完整红线表格
+- 8 个平台命令补齐 `## 步骤 0` 标题规范，backend.md / frontend.md 增强引擎集成文档
+- Gate C2 MAX_RETRY 2→5（匹配 OMC 5 轮诊断实践），gate_jump 错误消息覆盖全部 allow_jump 管线
+- pipeline_init 添加 pipeline_type 白名单校验，backend 流水线 C2 入口条件文本修正
+- agent-registry.ts 修复重复 test-expert 键，Expo Agent 归入移动端分类
+- Agent 总数更新：68→71（新增 expo-dev/expo-ui/expo-state）
 
 ## [4.1.1] - 2026-05-19
 

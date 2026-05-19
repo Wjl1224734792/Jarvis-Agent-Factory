@@ -18,6 +18,8 @@ type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSS
 export let sseClients: SSEClient[] = [];
 let sseDbRef: any = null;
 let _sseTimer: ReturnType<typeof setInterval> | null = null;
+/** SSE 广播锁：防止并发广播时的竞态条件 */
+let _broadcasting = false;
 // TASK-002: 事件驱动广播去抖状态
 let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let _debounceStart = 0;
@@ -87,6 +89,9 @@ function _initPubSubListeners(): void {
  * 由外部 setInterval 或 PubSub 事件驱动调用
  */
 export function broadcastSSE() {
+  if (_broadcasting) return; // 跳过并发广播
+  _broadcasting = true;
+  try {
   incrementBroadcastCount();
   if (sseClients.length === 0) return;
   const sessions = getSessions(sseDbRef);
@@ -156,6 +161,9 @@ export function broadcastSSE() {
   }
   if (stale.length > 0) {
     sseClients = sseClients.filter(c => !stale.includes(c));
+  }
+  } finally {
+    _broadcasting = false;
   }
 }
 
@@ -377,7 +385,7 @@ export function setupApiRoutes(app, db, root) {
           }
         }
       } catch (e) {
-        console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, e.message);
+        console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, String(e));
       }
     }
     // TASK-005: 发布 Gate 推进事件
@@ -724,7 +732,7 @@ export function setupApiRoutes(app, db, root) {
             category: inferCategory(name),
           });
         } catch (e) {
-          console.warn(`[commands] 跳过 ${file}:`, e.message);
+          console.warn(`[commands] 跳过 ${file}:`, String(e));
         }
       }
       return results;

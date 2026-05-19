@@ -7,7 +7,7 @@ updated: "2026-05-14"
 
 # Taro 小程序/H5 开发生命周期
 
-立即执行以下初始化步骤：
+## 步骤 0：加载技能 + 注册引擎
 
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`

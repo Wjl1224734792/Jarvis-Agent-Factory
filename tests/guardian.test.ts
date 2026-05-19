@@ -252,14 +252,14 @@ describe('TASK-004: 守护进程管理', () => {
     });
 
     /** 获取已注册的 uncaughtException 处理器并触发它 */
-    function getCrashHandler(): (err: Error) => void {
+    function getCrashHandler(): (_err: Error) => void {
       const onSpy = (process.on as ReturnType<typeof vi.spyOn>);
       const calls = onSpy.mock?.calls || [];
       const uncaughtCall = calls.find(
         (c: unknown[]) => c[0] === 'uncaughtException',
       );
       if (!uncaughtCall) throw new Error('uncaughtException handler not registered');
-      return uncaughtCall[1] as (err: Error) => void;
+      return uncaughtCall[1] as (_err: Error) => void;
     }
 
     it('第 1 次崩溃：1 秒后退避调用 onRestart', () => {
@@ -399,7 +399,7 @@ describe('TASK-004: 守护进程管理', () => {
         (c: unknown[]) => c[0] === 'uncaughtException',
       );
       if (uncaughtCall) {
-        const handler = uncaughtCall[1] as (err: Error) => void;
+        const handler = uncaughtCall[1] as (_err: Error) => void;
         handler(new Error('崩溃'));
       }
       vi.advanceTimersByTime(1000); // 退避
@@ -428,7 +428,7 @@ describe('TASK-004: 守护进程管理', () => {
         (c: unknown[]) => c[0] === 'uncaughtException',
       );
       if (!uncaughtCall) return;
-      const handler = uncaughtCall[1] as (err: Error) => void;
+      const handler = uncaughtCall[1] as (_err: Error) => void;
 
       // 第一次崩溃 → 重启 → 30s 后复位
       handler(new Error('崩溃 1'));

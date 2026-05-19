@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, afterAll, vi } from 'vitest';
 import { Hono } from 'hono';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import { resolve, join } from 'path';

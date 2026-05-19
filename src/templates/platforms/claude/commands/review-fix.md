@@ -8,7 +8,7 @@ updated: "2026-05-14"
 
 # 审查修复优化闭环
 
-立即执行以下初始化步骤：
+## 步骤 0：加载技能 + 注册引擎
 
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
@@ -25,7 +25,7 @@ updated: "2026-05-14"
    ### **阶段一：初审**（不可绕过）
    - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
    - 可并发调用 `project-review-expert`、`diff-review-expert`、`perf-review-expert`、`code-explore-expert` 收集 findings
-   - **涉及前端页面/交互的 Bug**：加载 `Skill("agent-browser")` 和 `Skill("browser-testing")`，用 `agent-browser` CLI 复现 Bug（open→snapshot -i→复现步骤→screenshot 异常状态），复现证据作为 finding 附件
+   - **涉及前端页面/交互的 Bug**：加载 `Skill("browser-testing")`，用 Playwright MCP 工具复现 Bug（browser_navigate→browser_snapshot→复现步骤→browser_take_screenshot 异常状态），复现证据作为 finding 附件
    - 所有只读 Agent 返回后再进入下一阶段
 
    ### **阶段二：修复/优化规划**（不可绕过）

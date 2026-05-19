@@ -202,8 +202,11 @@ describe('MAX_RETRY', () => {
     expect(MAX_RETRY['Gate B-BDD']).toBe(2);
     expect(MAX_RETRY['Gate B-TDD']).toBe(2);
     expect(MAX_RETRY['Gate B1']).toBe(2);
-    expect(MAX_RETRY['Gate C2']).toBe(2);
     expect(MAX_RETRY['Gate D']).toBe(2);
+  });
+
+  it('Gate C2 最多 5 次重试（复杂 Bug 诊断需要更多轮次）', () => {
+    expect(MAX_RETRY['Gate C2']).toBe(5);
   });
 });
 

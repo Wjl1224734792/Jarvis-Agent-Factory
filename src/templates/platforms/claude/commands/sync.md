@@ -9,11 +9,17 @@ updated: "2026-05-19"
 
 检查项目核心文档是否与代码现状一致，修复不一致处，清理过时文件。
 
-## 步骤 0：扫描项目现状
+## 步骤 0：加载技能 + 注册引擎
 
 加载技能：
+- `Skill("behavioral-guidelines")`
 - `Skill("chinese-documentation")`
 - `Skill("documentation-and-adrs")`
+
+**引擎会话注册**（硬约束——引擎确保文档操作可追踪）：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- 修改文档前调用 `mcp__jarvis-engine__gate_check({ operation: "write_doc" })`
+- 完成后调用 `mcp__jarvis-engine__gate_enforce` 验证条件
 
 首先了解项目当前实际情况（用于后续对比文档）：
 
@@ -135,3 +141,14 @@ updated: "2026-05-19"
 - 对 README.md 只修正事实性错误，不改变写作风格
 - 清理步骤需用户确认后才执行实际删除
 - 路径使用 `/`（Unix 风格，跨平台）
+- **修改文档前必须先确认需求与目标**，不可跳过确认直接写文档
+
+## 红线
+
+- 未经确认直接修改文档（必须先展示差异报告，用户确认后再写入）
+- 清理构建产物（dist/、build/、.next/）——导致编译失败
+- 修改 .env / node_modules / .git 下的任何文件
+- 凭记忆判断文档内容而不实际读取文件
+- 改变 README.md 的写作风格和叙述结构
+- 清理 docs/YYYY-MM-DD/ 日期目录下的流水线产物
+- 自动创建 CHANGELOG.md（应由开发者手动维护）

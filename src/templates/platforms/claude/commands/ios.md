@@ -7,7 +7,7 @@ updated: "2026-05-14"
 
 # iOS 原生开发生命周期
 
-立即执行以下初始化步骤：
+## 步骤 0：加载技能 + 注册引擎
 
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`

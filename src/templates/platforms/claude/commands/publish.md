@@ -18,12 +18,19 @@ updated: "2026-05-19"
 
 立即执行以下初始化步骤：
 
-## 步骤 0：加载技能 + 环境检测
+## 步骤 0：加载技能 + 注册引擎
 
 ```
+Skill("behavioral-guidelines")
 Skill("code-quality-gate")
 Skill("git-workflow-and-versioning")
 ```
+
+**引擎会话注册**（硬约束——引擎驱动全流程，不可绕过）：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "release" })`
+- 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
+- 质量门/Lint/Type-check/Build 前调用 `gate_check({ operation: "lint" })` / `gate_check({ operation: "build" })`
+- 每个 Gate 完成后调用 `mcp__jarvis-engine__advance_gate` 推进
 
 ### 0.1 检测默认分支
 

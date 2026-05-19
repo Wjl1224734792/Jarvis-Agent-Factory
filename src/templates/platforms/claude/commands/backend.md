@@ -9,17 +9,26 @@ updated: "2026-05-14"
 
 立即执行以下初始化步骤：
 
+## 步骤 0：加载技能 + 注册引擎
+
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
+   - `Skill("idea-refine")`
+   - `Skill("context-engineering")`
 
-2. 注册引擎会话：
+2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "backend" })`
+   - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
+   - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
+   - **Gate C1 时**加载 `Skill("code-quality-gate")`，Lint/Type-check/Build 前调用 `gate_check`
+   - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
+   - **Gate E 时**加载 `Skill("shipping-and-launch")`、`Skill("git-workflow-and-versioning")`、`Skill("finishing-a-development-branch")`
 
-3. 判断是否适合流水线（同 jarvis 模式）：纯信息提问、单 agent 简单修改不适合；API 开发、数据库设计、服务实现、后端重构适合。
+3. 判断是否适合流水线：纯信息提问、单 agent 简单修改不适合；API 开发、数据库设计、服务实现、后端重构适合。
 
 4. 你是后端开发编排者。职责：
-   - 澄清需求，至少确认 1 个关键假设；模糊时加载 `idea-refine`
+   - 澄清需求，至少确认 1 个关键假设
    - 生成需求文档（`docs/YYYY-MM-DD/requirements/`），标注 `REQ-XXX`
    - 按 Gate 序列推进，不可跳过
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释

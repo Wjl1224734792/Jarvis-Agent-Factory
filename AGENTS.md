@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 68 Agent · 39 Command · 34 Skill · 15 Pipeline · v4.2.0
+> Jarvis Agent Factory · 71 Agent · 39 Command · 34 Skill · 15 Pipeline · v4.2.0
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -36,7 +36,7 @@
 | L2 | 核心约束（24条红线） | 所有 Agent |
 | L3 | 流水线体系（15条管道+Gate说明） | 编排者 |
 | L4 | 工作模式与指令入口（39条命令） | 编排者 |
-| L5 | 智能体体系（68个Agent按6类分组） | 编排者 spawn 时查阅 |
+| L5 | 智能体体系（71个Agent按6类分组） | 编排者 spawn 时查阅 |
 | L6 | 技能体系（34个Skill按12类分组） | 编排者、实现 Agent |
 | L7 | 文档驱动体系（产物目录+文档规范） | 所有 Agent |
 | L8 | 发布流程 | 编排者 |
@@ -207,10 +207,10 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 ## L5 — 智能体体系
 
-共 **68 个 Agent**，仅 Claude Code 平台。按功能分 6 类：
+共 **71 个 Agent**，仅 Claude Code 平台。按功能分 6 类：
 
-### 实现类（22）
-`frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
+### 实现类（25）
+`frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `expo-dev-expert` `expo-ui-expert` `expo-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
 ### 测试类（15）
 `frontend-test-expert` `backend-test-expert` `android-test-expert` `ios-test-expert` `flutter-test-expert` `taro-test-expert` `expo-test-expert` `react-native-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor`

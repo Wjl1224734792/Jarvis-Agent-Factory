@@ -10,7 +10,7 @@ vi.stubGlobal('fetch', mockFetch);
 
 const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, 'error').mockImplementation(() => {});
 
 import { hookCommand } from '../src/hook.js';
 

@@ -105,13 +105,13 @@ export const DEFAULT_PIPELINE = 'full';
 export const GATES = PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
 
 /** 按流水线类型获取 Gate 序列 */
-export function getPipelineGates(type) {
+export function getPipelineGates(type: any) {
   const def = PIPELINE_DEFS[type];
   return def ? def.gates : PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
 }
 
 /** 获取流水线定义名称 */
-export function getPipelineName(type) {
+export function getPipelineName(type: any) {
   const def = PIPELINE_DEFS[type];
   return def ? def.name : (type || DEFAULT_PIPELINE);
 }
@@ -316,7 +316,7 @@ export const GATE_OPERATIONS = {
 };
 
 /** 获取当前 Gate 允许的操作列表 */
-export function getGateOperations(gate) {
+export function getGateOperations(gate: any) {
   return GATE_OPERATIONS[gate] || { allow: [], deny: [] };
 }
 
@@ -403,12 +403,12 @@ export const GATE_AGENT_GUIDE = {
 };
 
 /** 获取当前 Gate 可生成的 Agent 指引 */
-export function getGateAgentGuide(gate) {
+export function getGateAgentGuide(gate: any) {
   return GATE_AGENT_GUIDE[gate] || { can_spawn: [], note: '未知Gate' };
 }
 
 /** 获取当前 Gate 的团队策略指引（team/spawn 混合模式选择） */
-export function getGateTeamStrategy(gate) {
+export function getGateTeamStrategy(gate: any) {
   const guide = GATE_AGENT_GUIDE[gate];
   return guide?.team_strategy || 'subagent_only';
 }
@@ -424,7 +424,7 @@ export const MAX_RETRY = {
   'Gate C-impl': 3,
   'Gate C1': 3,
   'Gate C1.5': 2,
-  'Gate C2': 2,
+  'Gate C2': 5,
   'Gate D': 2,
   'Gate E': 2,
   // TASK-001: /refactor 流水线重试次数
@@ -483,7 +483,7 @@ export const GATE_ENTRY_CONDITIONS = {
   'Gate C-impl': 'Gate C 执行计划已产出',
   'Gate C1': 'Gate C-impl 实现代码已提交',
   'Gate C1.5': 'Gate C1 质量检查通过',
-  'Gate C2': 'Gate C1+C1.5 通过',
+  'Gate C2': 'Gate C1（后端）或 Gate C1+C1.5（前端/移动端）通过',
   'Gate D': 'Gate C2 测试通过',
   'Gate E': 'Gate D 审查通过',
   // TASK-001: /refactor 流水线入口条件
@@ -613,6 +613,6 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   return [];
 }
 
-export function formatGateDisplay(gates, current) {
+export function formatGateDisplay(gates: any, current: any) {
   return gates.map(g => `${g.passed ? '✅' : g.gate === current ? '🔵' : '⏳'} ${g.gate}${g.passed && g.checkpoints?.length ? ` (${g.checkpoints[0].passed_at?.slice(0,10)})` : ''}`).join(' → ');
 }
