@@ -4,6 +4,14 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.53.1] - 2026-05-19
+
+### Changed
+- 深度优化16条指令工程化质量：12条平台/架构/审查指令补全红线约束章节
+- jarvis.md / jarvis-lite.md 核心指令补全红线约束
+- sync.md 版本号同步更新（3.47.3→3.53.0）
+- 所有红线内容针对各自领域定制（前端/后端/移动端/跨端/架构/审查）
+
 ## [3.53.0] - 2026-05-19
 
 ### Added
