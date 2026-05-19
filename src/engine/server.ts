@@ -438,6 +438,7 @@ export function registerMcpTools(server, db, root) {
       const VALID_PIPELINE_TYPES = [
         'full', 'frontend', 'backend', 'lite',
         'refactor', 'hotfix', 'migrate', 'evaluate', 'debug',
+        'research', 'release', 'explore',
       ];
       if (!VALID_PIPELINE_TYPES.includes(pt)) {
         return resp({ error: `Invalid pipeline_type: ${pt}. Valid: ${VALID_PIPELINE_TYPES.join(', ')}` });

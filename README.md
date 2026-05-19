@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.52.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.53.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v3.52.0** — 会话自动归档 · 历史详情页 · 项目记忆系统 · 数据看板 · Team 模块隔离
+> **v3.53.0** — 深度研究 · 发布 · 需求探索指令 · 文档全面更新
 
 ## 快速开始
 
@@ -270,6 +270,7 @@ test-doc-writer → test-executor → fix-retest
 | 领域 | Claude Code |
 |------|------------|
 | 全栈 | `/jarvis` |
+| 轻量编排 | `/jarvis-lite` |
 | 前端 | `/frontend` |
 | 后端 | `/backend` |
 | Android | `/android` |
@@ -285,6 +286,14 @@ test-doc-writer → test-executor → fix-retest
 | 算法专家 | `/algorithm-expert` |
 | 前端架构 | `/frontend-architect` |
 | 后端架构 | `/backend-architect` |
+| **任务分解** | |
+| 领域驱动分析 | `/task-ddd` |
+| 行为驱动场景 | `/task-bdd` |
+| 测试驱动任务 | `/task-tdd` |
+| **探索与研究** | |
+| 需求探索 | `/explore` |
+| 深度研究 | `/research` |
+| 浏览器探索 | `/browser-explore` |
 | **测试** | |
 | 单元测试 | `/test-unit` |
 | 集成测试 | `/test-integration` |
@@ -297,15 +306,19 @@ test-doc-writer → test-executor → fix-retest
 | 框架迁移 | `/migrate` |
 | 技术评估 | `/evaluate` |
 | 调试诊断 | `/debug` |
+| **发布与同步** | |
+| 完整发布流 | `/publish` |
+| 快速发布 | `/release` |
+| 文档同步 | `/sync` |
 
 ## 统计
 
 | | Claude Code |
 |---|:--:|
 | Agents | 69 |
-| Commands | 33 |
+| Commands | 36 |
 | Skills | 34 |
-| Pipeline | 9 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug） |
+| Pipeline | 12 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/explore） |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
 
@@ -378,6 +391,15 @@ test-doc-writer → test-executor → fix-retest
 | | `/evaluate` | [evaluate.md](docs/flows/evaluate.md) | E0标准→E1原型→E2指标→E3报告 (4门) |
 | | `/debug` | [debug.md](docs/flows/debug.md) | D0收集→D1复现→D2调试→D3诊断→D4报告 (5门) |
 
+| **研究** | `/research` | [research.md](docs/flows/research.md) | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 (5门) |
+| **发布** | `/release` | [release.md](docs/flows/release.md) | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 (5门) |
+| **探索** | `/explore` | [explore.md](docs/flows/explore.md) | X0澄清→X1场景→X2收敛→X3规格 (4门) |
+| **核心编排** | `/publish` | [publish.md](docs/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
+| | `/sync` | [sync.md](docs/flows/sync.md) | 检查并同步核心文档与代码一致性 |
+| | `/browser-explore` | [browser-explore.md](docs/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |
+| | `/task-bdd` | [task-bdd.md](docs/flows/task-bdd.md) | BDD行为驱动：Gherkin场景编写 |
+| | `/task-ddd` | [task-ddd.md](docs/flows/task-ddd.md) | DDD领域驱动：聚合/实体/值对象分析 |
+| | `/task-tdd` | [task-tdd.md](docs/flows/task-tdd.md) | TDD测试驱动：测试骨架+任务包生成 |
 > 所有流程图使用 `flowchart TD` 统一风格。读取 `docs/flows/` 目录下的 `.md` 文件可在支持 Mermaid 的 Markdown 渲染器中查看。
 
 ## License

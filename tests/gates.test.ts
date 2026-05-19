@@ -133,8 +133,8 @@ describe('GATE_OPERATIONS', () => {
     }
   });
 
-  it('共 34 个 Gate 有操作定义（12 原有 + 22 新增）', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(34);
+  it('共 48 个 Gate 有操作定义（12 原有 + 22 新增 + 14 最新）', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(48);
   });
 });
 
@@ -310,8 +310,8 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
 });
 
 describe('TASK-001: GATE_OPERATIONS 注册 22 个新 Gate', () => {
-  it('9. GATE_OPERATIONS 共 34 个条目（12 原有 + 22 新增）', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(34);
+  it('9. GATE_OPERATIONS 共 48 个条目（12 原有 + 22 新增 + 14 最新）', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(48);
   });
 
   it('10. 所有 22 个新 Gate 都允许 read', () => {

@@ -1,11 +1,20 @@
 ---
-description: 一键发布——环境检测→质量门→测试→版本bump→commit→push→PR→合并→tag→发布
+description: 完整发布流程（含PR+审查+合并）——环境检测→质量门→测试→版本bump→commit→push→PR→合并→tag→发布；区别于简易的/release指令
 argument-hint: [版本类型：patch|minor|major，默认patch]
-version: "3.47.2"
-updated: "2026-05-14"
+version: "3.53.0"
+updated: "2026-05-19"
 ---
 
 # 一键发布
+
+> **区别于 `/release`**：`/publish` 走完整的分支工作流（工作分支→PR创建→代码审查→合并到默认分支→tag），适合团队协作的正式发布。如果是在当前分支直接提交+tag+push的快速发布，请使用 `/release`。
+>
+> | 特性 | `/publish`（本指令） | `/release` |
+> |------|---------------------|-----------|
+> | 分支策略 | 工作分支→PR→默认分支 | 当前分支直接发布 |
+> | 代码审查 | PR 审查流程 | 无 |
+> | 适用场景 | 团队正式发布 | 快速迭代/单人项目 |
+> | Tag 位置 | 默认分支（main） | 当前分支 |
 
 立即执行以下初始化步骤：
 

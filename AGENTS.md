@@ -41,6 +41,9 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | **迁移** | `/migrate` | M1(迁移规则) → M2(应用迁移) → M3(编译验证) → M4(Lint 修复) | 4 | 框架升级、依赖替换、跨平台迁移 |
 | **评估** | `/evaluate` | E0(评估标准) → E1(快速原型) → E2(指标收集) → E3(评估报告) | 4 | 技术选型、方案对比、可行性研究 |
 | **调试** | `/debug` | D0(信息收集) → D1(复现用例) → D2(调试会话) → D3(交互诊断) → D4(报告) | 5 | 异常排查、根因定位、疑难 Bug |
+| **研究** | `/research` | RS0(课题定义) → RS1(信息收集) → RS2(深度分析) → RS3(假设验证) → RS4(研究报告) | 5 | 技术调研、架构分析、方案研究 |
+| **发布** | `/release` | RL0(环境检测) → RL1(质量门) → RL2(版本递增) → RL3(发布执行) → RL4(发布验证) | 5 | 当前分支快速发布（区别于 /publish 的完整 PR 流程） |
+| **探索** | `/explore` | X0(问题澄清) → X1(场景挖掘) → X2(需求收敛) → X3(规格产出) | 4 | 需求域澄清、场景发现、需求优先级收敛 |
 
 ## 工作模式
 
@@ -122,7 +125,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 2. **修改技能前先读 writing-skills** — 技能文件需遵循 TDD 规范
 3. **技能修改仅限 Claude Code** — `.claude/skills/` 为主力维护，`.codex/skills/` 和 `.opencode/skills/` 已冻结不更新
 4. **子智能体不可递归** — 子智能体不得再 spawn 其他子智能体
-5. **闸门不可绕过** — 标准流水线 Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃。专业流水线同理不可绕过：重构 R1→R2→R3→R4→R5、热修复 H0→H1→H2→H3、迁移 M1→M2→M3→M4、评估 E0→E1→E2→E3、调试 D0→D1→D2→D3→D4。
+5. **闸门不可绕过** — 标准流水线 Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃。专业流水线同理不可绕过：重构 R1→R2→R3→R4→R5、热修复 H0→H1→H2→H3、迁移 M1→M2→M3→M4、评估 E0→E1→E2→E3、调试 D0→D1→D2→D3→D4、研究 RS0→RS1→RS2→RS3→RS4、发布 RL0→RL1→RL2→RL3→RL4、探索 X0→X1→X2→X3。
     - Gate B1（架构评审）为条件性 Gate：涉及前端/后端/数据库/算法变更时强制执行
     - Gate C1.5（视觉验证）为条件性 Gate：纯后端/逻辑/算法任务可跳过
 6. **同 Batch 并行** — 无依赖任务必须在同一消息中批量发起
@@ -286,5 +289,5 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ### 探索/支撑（7）
 `code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `docs-research-expert`
 
-### Claude Code 命令入口（31）
-`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug`
+### Claude Code 命令入口（36）
+`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug` `/research` `/release` `/explore`

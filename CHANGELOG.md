@@ -4,6 +4,20 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.53.0] - 2026-05-19
+
+### Added
+- 新增深度研究指令 /research：RS0课题定义->RS1信息收集->RS2深度分析->RS3假设验证->RS4研究报告，5Gate深度研究流程
+- 新增发布指令 /release：RL0环境检测->RL1质量门->RL2版本递增->RL3发布执行->RL4发布验证，5Gate简化发布流程
+- 新增需求探索指令 /explore：X0问题澄清->X1场景挖掘->X2需求收敛->X3规格产出，4Gate苏格拉底式需求澄清流程
+- 新增 research、release、explore 三条流水线定义（共12条流水线）
+
+### Changed
+- 更新 README.md：命令数量33->36，流水线9->12，补全缺失的命令流程图入口（/publish、/sync、/browser-explore、/task-bdd、/task-ddd、/task-tdd）
+- 更新 AGENTS.md：命令入口31->36，同步流水线统计
+- 更新 docs/README.md：产物目录结构补充research等新目录
+- /publish 指令增加与 /release 的区别说明
+
 ## [3.52.2] - 2026-05-19
 
 ### Changed
