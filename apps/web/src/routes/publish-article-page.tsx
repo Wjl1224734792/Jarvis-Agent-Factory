@@ -26,7 +26,6 @@ import {
 } from "@/lib/uploads/local-preview-assets";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
-import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
 import {
   formatArticleMediaSummary,
@@ -185,20 +184,25 @@ export function PublishArticlePage() {
   const [linkCardUrl, setLinkCardUrl] = useState("");
   const [linkCardLoading, setLinkCardLoading] = useState(false);
 
+  const [linkCardError, setLinkCardError] = useState<string | null>(null);
+
   const handleInsertLinkCard = useCallback(async () => {
     if (!linkCardUrl.trim() || !editorRef.current || linkCardLoading) return;
     setLinkCardLoading(true);
+    setLinkCardError(null);
     try {
       const { item } = await (apiClient as any).fetchLinkPreview(linkCardUrl.trim());
-      const html = item.type !== "unknown"
-        ? buildLinkCardHtml(item)
-        : buildUnknownLinkCardHtml(linkCardUrl.trim());
+      if (item.type === "unknown") {
+        setLinkCardError("无法识别该链接，请检查链接格式。");
+        return;
+      }
+      const html = buildLinkCardHtml(item);
       editorRef.current.dangerouslyInsertHtml(`<p><br></p>${html}<p><br></p>`);
       setShowLinkCardDialog(false);
       setLinkCardUrl("");
       editorRef.current.focus();
     } catch {
-      // ignore
+      setLinkCardError("链接解析失败，请检查网络或稍后重试。");
     } finally {
       setLinkCardLoading(false);
     }
@@ -965,9 +969,12 @@ export function PublishArticlePage() {
               placeholder="粘贴链接，例如 /models/dji-mini-4-pro"
               value={linkCardUrl}
             />
+            {linkCardError ? (
+              <div className="text-sm text-destructive">{linkCardError}</div>
+            ) : null}
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => { setShowLinkCardDialog(false); setLinkCardUrl(""); }}
+                onClick={() => { setShowLinkCardDialog(false); setLinkCardUrl(""); setLinkCardError(null); }}
                 size="sm"
                 type="button"
                 variant="outline"
