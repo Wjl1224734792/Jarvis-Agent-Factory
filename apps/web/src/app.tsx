@@ -40,6 +40,11 @@ const ModelsPage = lazy(() =>
     default: module.ModelsPage
   }))
 );
+const ModelComparePage = lazy(() =>
+  import("./routes/model-compare-page").then((module) => ({
+    default: module.ModelComparePage
+  }))
+);
 const NotificationsPage = lazy(() =>
   import("./routes/notifications-page").then((module) => ({
     default: module.NotificationsPage
@@ -358,6 +363,17 @@ export function App() {
                 <ModelDetailPage />,
                 <DeferredFallback>
                   <ModelDetailPageSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.modelCompare),
+              element: withSuspenseFallback(
+                <ModelComparePage />,
+                <DeferredFallback>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
                 </DeferredFallback>
               )
             },

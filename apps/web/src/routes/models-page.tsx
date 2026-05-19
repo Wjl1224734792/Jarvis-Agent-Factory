@@ -6,8 +6,8 @@ import type {
   PowerType
 } from "@feijia/schemas";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
-import { LockKeyholeIcon, SearchIcon, SlidersHorizontal } from "lucide-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { ArrowLeftRightIcon, LockKeyholeIcon, SearchIcon, SlidersHorizontal, XIcon } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
@@ -204,42 +204,73 @@ function PowerSection(props: {
   );
 }
 
-const ModelCard = memo(function ModelCard({ model, index }: { model: WebModelListItem; index: number }) {
+const ModelCard = memo(function ModelCard({
+  model,
+  index,
+  isCompared,
+  onToggleCompare
+}: {
+  model: WebModelListItem;
+  index: number;
+  isCompared?: boolean;
+  onToggleCompare?: (slug: string) => void;
+}) {
   const priceLabel = formatModelPriceRange(model.priceMin ?? null, model.priceMax ?? null);
 
   return (
-    <Link
-      className="group block min-w-0 overflow-hidden rounded-xl transition active:scale-[0.98]"
-      {...DETAIL_PAGE_LINK_PROPS}
-      to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
-    >
-      <div className="aspect-square w-full overflow-hidden rounded-xl bg-slate-100">
-        <ModelThumbCover
-          alt={model.name}
-          className="h-full w-full transition duration-200 group-hover:scale-[1.02]"
-          coverImageUrl={model.coverImageUrl ?? null}
-          coverVideoUrl={model.coverVideoUrl ?? null}
-          index={index}
-          slug={model.slug}
-          powerType={model.powerType}
-        />
-      </div>
-      <div className="space-y-1 px-1 pb-1.5 pt-2">
-        <div className="line-clamp-2 text-[0.88rem] leading-[1.25rem] font-semibold text-foreground">
-          {model.name}
+    <div className="relative">
+      <Link
+        className="group block min-w-0 overflow-hidden rounded-xl transition active:scale-[0.98]"
+        {...DETAIL_PAGE_LINK_PROPS}
+        to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
+      >
+        <div className="aspect-square w-full overflow-hidden rounded-xl bg-slate-100">
+          <ModelThumbCover
+            alt={model.name}
+            className="h-full w-full transition duration-200 group-hover:scale-[1.02]"
+            coverImageUrl={model.coverImageUrl ?? null}
+            coverVideoUrl={model.coverVideoUrl ?? null}
+            index={index}
+            slug={model.slug}
+            powerType={model.powerType}
+          />
         </div>
-        <BrandIdentity
-          className="max-w-full text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted-foreground"
-          imageClassName="size-3.5"
-          logoUrl={model.brand.logoUrl}
-          name={model.brand.name}
-        />
-        {priceLabel ? <div className="text-[0.82rem] font-semibold text-primary">{priceLabel}</div> : null}
-        <div className="line-clamp-2 text-[0.75rem] leading-[1.15rem] text-muted-foreground">
-          {model.summary ?? `${model.category.name} / ${powerTypeLabels[model.powerType]}`}
+        <div className="space-y-1 px-1 pb-1.5 pt-2">
+          <div className="line-clamp-2 text-[0.88rem] leading-[1.25rem] font-semibold text-foreground">
+            {model.name}
+          </div>
+          <BrandIdentity
+            className="max-w-full text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+            imageClassName="size-3.5"
+            logoUrl={model.brand.logoUrl}
+            name={model.brand.name}
+          />
+          {priceLabel ? <div className="text-[0.82rem] font-semibold text-primary">{priceLabel}</div> : null}
+          <div className="line-clamp-2 text-[0.75rem] leading-[1.15rem] text-muted-foreground">
+            {model.summary ?? `${model.category.name} / ${powerTypeLabels[model.powerType]}`}
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {onToggleCompare ? (
+        <button
+          aria-label={isCompared ? "取消对比" : "加入对比"}
+          className={`
+            absolute top-2 right-2 z-10 flex size-7 items-center justify-center rounded-full border-2 transition
+            ${isCompared
+              ? "border-primary bg-primary text-white shadow-sm"
+              : "border-white/80 bg-black/30 text-white hover:bg-black/50"}
+          `}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare(model.slug); }}
+          type="button"
+        >
+          {isCompared ? (
+            <svg className="size-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+          ) : (
+            <ArrowLeftRightIcon className="size-3.5" />
+          )}
+        </button>
+      ) : null}
+    </div>
   );
 });
 
@@ -254,6 +285,17 @@ export function ModelsPage() {
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
   const filtersState = readModelFilterParams(searchParams);
   const [keywordDraft, setKeywordDraft] = useState(filtersState.keyword);
+  const [compareSlugs, setCompareSlugs] = useState<string[]>([]);
+
+  const toggleCompare = useCallback((slug: string) => {
+    setCompareSlugs(prev => {
+      if (prev.includes(slug)) {
+        return prev.filter(s => s !== slug);
+      }
+      if (prev.length >= 5) return prev;
+      return [...prev, slug];
+    });
+  }, []);
 
   useEffect(() => {
     setKeywordDraft(filtersState.keyword);
@@ -527,7 +569,12 @@ export function ModelsPage() {
                       gap={CIRCLE_CARD_COLUMN_GAP}
                       itemKey={({ item: model }) => model.id}
                       renderItem={({ item: model, absoluteIndex }) => (
-                        <ModelCard index={absoluteIndex} model={model} />
+                        <ModelCard
+                          index={absoluteIndex}
+                          isCompared={compareSlugs.includes(model.slug)}
+                          model={model}
+                          onToggleCompare={toggleCompare}
+                        />
                       )}
                     />
                   ) : (
@@ -550,6 +597,34 @@ export function ModelsPage() {
           )}
         </div>
       </div>
+
+      {compareSlugs.length > 0 ? (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground">
+                已选 {compareSlugs.length}/5 个机型
+              </span>
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setCompareSlugs([])}
+                type="button"
+              >
+                清空
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
+                to={`${APP_ROUTES.models}/compare?slugs=${compareSlugs.join(",")}`}
+              >
+                <ArrowLeftRightIcon className="size-4" />
+                开始对比
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
         <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-md" side="right">
