@@ -518,7 +518,35 @@ export const aircraftModelsRepo = {
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
+    cruiseSpeedKph?: number | null;
     takeoffWeightGrams: number | null;
+    wingspanMm?: number | null;
+    lengthMm?: number | null;
+    heightMm?: number | null;
+    maxAltitudeM?: number | null;
+    climbRateMs?: number | null;
+    windResistance?: string | null;
+    motorType?: string | null;
+    batteryType?: string | null;
+    batteryCapacityMah?: number | null;
+    batteryVoltage?: string | null;
+    batteryEnergyWh?: number | null;
+    chargeTimeMinutes?: number | null;
+    propellerSize?: string | null;
+    obstacleAvoidance?: string | null;
+    gnssType?: string | null;
+    ipRating?: string | null;
+    operatingTemperature?: string | null;
+    cameraSensorSize?: string | null;
+    cameraPixels?: string | null;
+    videoResolution?: string | null;
+    lensAperture?: string | null;
+    isoRange?: string | null;
+    transmissionSystem?: string | null;
+    transmissionRangeM?: number | null;
+    certificationType?: string | null;
+    noiseLevelDb?: number | null;
+    materialType?: string | null;
     coverImageFileId?: string | null;
     galleryImageFileIds?: string[];
     videoFileId?: string | null;
@@ -543,7 +571,35 @@ export const aircraftModelsRepo = {
       maxFlightTimeMinutes: input.maxFlightTimeMinutes,
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
+      cruiseSpeedKph: input.cruiseSpeedKph ?? null,
       takeoffWeightGrams: input.takeoffWeightGrams,
+      wingspanMm: input.wingspanMm ?? null,
+      lengthMm: input.lengthMm ?? null,
+      heightMm: input.heightMm ?? null,
+      maxAltitudeM: input.maxAltitudeM ?? null,
+      climbRateMs: input.climbRateMs ?? null,
+      windResistance: input.windResistance ?? null,
+      motorType: input.motorType ?? null,
+      batteryType: input.batteryType ?? null,
+      batteryCapacityMah: input.batteryCapacityMah ?? null,
+      batteryVoltage: input.batteryVoltage ?? null,
+      batteryEnergyWh: input.batteryEnergyWh ?? null,
+      chargeTimeMinutes: input.chargeTimeMinutes ?? null,
+      propellerSize: input.propellerSize ?? null,
+      obstacleAvoidance: input.obstacleAvoidance ?? null,
+      gnssType: input.gnssType ?? null,
+      ipRating: input.ipRating ?? null,
+      operatingTemperature: input.operatingTemperature ?? null,
+      cameraSensorSize: input.cameraSensorSize ?? null,
+      cameraPixels: input.cameraPixels ?? null,
+      videoResolution: input.videoResolution ?? null,
+      lensAperture: input.lensAperture ?? null,
+      isoRange: input.isoRange ?? null,
+      transmissionSystem: input.transmissionSystem ?? null,
+      transmissionRangeM: input.transmissionRangeM ?? null,
+      certificationType: input.certificationType ?? null,
+      noiseLevelDb: input.noiseLevelDb ?? null,
+      materialType: input.materialType ?? null,
       coverImageFileId: input.coverImageFileId ?? null,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
       videoFileId: input.videoFileId ?? null,
@@ -570,7 +626,35 @@ export const aircraftModelsRepo = {
       maxFlightTimeMinutes: number | null;
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
+      cruiseSpeedKph?: number | null;
       takeoffWeightGrams: number | null;
+      wingspanMm?: number | null;
+      lengthMm?: number | null;
+      heightMm?: number | null;
+      maxAltitudeM?: number | null;
+      climbRateMs?: number | null;
+      windResistance?: string | null;
+      motorType?: string | null;
+      batteryType?: string | null;
+      batteryCapacityMah?: number | null;
+      batteryVoltage?: string | null;
+      batteryEnergyWh?: number | null;
+      chargeTimeMinutes?: number | null;
+      propellerSize?: string | null;
+      obstacleAvoidance?: string | null;
+      gnssType?: string | null;
+      ipRating?: string | null;
+      operatingTemperature?: string | null;
+      cameraSensorSize?: string | null;
+      cameraPixels?: string | null;
+      videoResolution?: string | null;
+      lensAperture?: string | null;
+      isoRange?: string | null;
+      transmissionSystem?: string | null;
+      transmissionRangeM?: number | null;
+      certificationType?: string | null;
+      noiseLevelDb?: number | null;
+      materialType?: string | null;
       coverImageFileId?: string | null;
       galleryImageFileIds?: string[];
       videoFileId?: string | null;
@@ -595,7 +679,35 @@ export const aircraftModelsRepo = {
         maxFlightTimeMinutes: input.maxFlightTimeMinutes,
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
+        cruiseSpeedKph: input.cruiseSpeedKph ?? null,
         takeoffWeightGrams: input.takeoffWeightGrams,
+        wingspanMm: input.wingspanMm ?? null,
+        lengthMm: input.lengthMm ?? null,
+        heightMm: input.heightMm ?? null,
+        maxAltitudeM: input.maxAltitudeM ?? null,
+        climbRateMs: input.climbRateMs ?? null,
+        windResistance: input.windResistance ?? null,
+        motorType: input.motorType ?? null,
+        batteryType: input.batteryType ?? null,
+        batteryCapacityMah: input.batteryCapacityMah ?? null,
+        batteryVoltage: input.batteryVoltage ?? null,
+        batteryEnergyWh: input.batteryEnergyWh ?? null,
+        chargeTimeMinutes: input.chargeTimeMinutes ?? null,
+        propellerSize: input.propellerSize ?? null,
+        obstacleAvoidance: input.obstacleAvoidance ?? null,
+        gnssType: input.gnssType ?? null,
+        ipRating: input.ipRating ?? null,
+        operatingTemperature: input.operatingTemperature ?? null,
+        cameraSensorSize: input.cameraSensorSize ?? null,
+        cameraPixels: input.cameraPixels ?? null,
+        videoResolution: input.videoResolution ?? null,
+        lensAperture: input.lensAperture ?? null,
+        isoRange: input.isoRange ?? null,
+        transmissionSystem: input.transmissionSystem ?? null,
+        transmissionRangeM: input.transmissionRangeM ?? null,
+        certificationType: input.certificationType ?? null,
+        noiseLevelDb: input.noiseLevelDb ?? null,
+        materialType: input.materialType ?? null,
         coverImageFileId: input.coverImageFileId ?? null,
         galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
         videoFileId: input.videoFileId ?? null,
