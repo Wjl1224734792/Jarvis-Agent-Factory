@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.1] - 2026-05-19
+
+### Changed
+- 构建脚本优化：每次构建前自动 clean + 移除 dist/tests/ 测试产物（npm 包文件数 342→276，解压大小 5.2MB→4.7MB）
+- 新增 `clean` / `prebuild` 脚本，确保幂等构建
+- `.npmignore` 完善：排除 `*.js.map` / `*.d.ts.map` / `dist/tests/`
+
 ## [4.3.0] - 2026-05-19
 
 ### Added
