@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.1.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.2.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.1.1** — 评分权重框架(/ask K2) + Agent生态清理(69→68) + review/allowed-tools修复 + Agent-registry"规划"分类
+> **v4.2.0** — 孤立技能全接入(13个)+平台Agent全覆盖(GATE_AGENT_GUIDE+34)+评分权重框架(/ask K2)
 
 ## 快速开始
 

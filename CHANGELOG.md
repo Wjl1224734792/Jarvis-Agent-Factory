@@ -4,6 +4,15 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.2.0] - 2026-05-19
+
+### Added
+- 15个孤立技能接入对应命令：debugging-deep→/debug, frontend-design→/frontend, code-review-and-quality→/review+/review-fix, documentation-and-adrs→/research+/sync, context-engineering/incremental-implementation/verification→/jarvis+/auto, perf-testing→/test-perf, security-testing→/test-security, test-data-factory→/test-unit+/test-integration, browser-use→/browser-explore, chinese-documentation→/sync
+- GATE_AGENT_GUIDE 补全 34 个平台 Agent：Gate C-impl 新增 14 个平台开发 Agent，Gate C2 新增 6 个平台测试 Agent，Gate D 新增 6 个平台审查 Agent（覆盖 android/ios/flutter/taro/react-native/expo）
+
+### Changed
+- `/ask` K2 新增评分与权重框架：5 维度需求评分矩阵(BV/EF/RS/UI/DC) + 方案对比矩阵 + 权重自适应（参考 OMC deep-interview/trace/self-improve/ralplan 数学化评分模式）
+
 ## [4.1.1] - 2026-05-19
 
 ### Added
