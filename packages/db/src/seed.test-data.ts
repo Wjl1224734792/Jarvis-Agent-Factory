@@ -69,7 +69,11 @@ import {
   siteSettingsTable,
   userFollowsTable,
   userSettingsTable,
-  usersTable
+  usersTable,
+  circlesTable,
+  circleMembersTable,
+  circlePostsTable,
+  circlePostCommentsTable,
 } from "./schema.js";
 import { sql } from "drizzle-orm";
 import {
@@ -260,11 +264,11 @@ const BRAND_DATA = [
 
 const MODEL_IDS: string[] = [];
 const MODEL_DATA = [
-  { slug: "mini-4-pro", name: "DJI Mini 4 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 18, speed: 58, weight: 249 },
-  { slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 13888, priceMax: 17688, flight: 43, range: 28, speed: 75, weight: 958 },
-  { slug: "air-3", name: "DJI Air 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 6988, priceMax: 9988, flight: 46, range: 20, speed: 68, weight: 720 },
-  { slug: "inspire-3", name: "DJI Inspire 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 109999, priceMax: 139999, flight: 28, range: 15, speed: 94, weight: 3995 },
-  { slug: "matrice-350", name: "DJI Matrice 350 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 59999, priceMax: 79999, flight: 55, range: 20, speed: 82, weight: 6300 },
+  { slug: "mini-4-pro", name: "DJI Mini 4 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 18, speed: 58, cruiseSpeed: 35, weight: 249, wingspan: 245, len: 150, ht: 60, altitude: 4000, climbRate: 5, windResist: "Level 5", motor: "无刷电机", battery: "Li-ion", batteryCap: 3850, batteryVolt: "7.4V", batteryEgy: 28, chargeTime: 70, propSize: "3inch", obstacle: "全向", gnss: "GPS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "1/1.3\"", pixels: "48MP", videoRes: "4K/60fps", aperture: "f/1.7", iso: "100-6400", transSys: "O4", transRange: 10000, certType: "FAA Part 107", noise: 65, material: "碳纤维复合材料" },
+  { slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 13888, priceMax: 17688, flight: 43, range: 28, speed: 75, cruiseSpeed: 50, weight: 958, wingspan: 350, len: 220, ht: 110, altitude: 6000, climbRate: 8, windResist: "Level 6", motor: "无刷电机", battery: "Li-Po", batteryCap: 5000, batteryVolt: "15.4V", batteryEgy: 77, chargeTime: 90, propSize: "5inch", obstacle: "全向+LiDAR", gnss: "GPS+GLONASS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "4/3\"", pixels: "50MP", videoRes: "6K/60fps", aperture: "f/2.0", iso: "100-12800", transSys: "O4+", transRange: 15000, certType: "CAAC", noise: 72, material: "碳纤维+铝合金" },
+  { slug: "air-3", name: "DJI Air 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 6988, priceMax: 9988, flight: 46, range: 20, speed: 68, cruiseSpeed: 45, weight: 720, wingspan: 310, len: 190, ht: 90, altitude: 5000, climbRate: 6, windResist: "Level 5", motor: "无刷电机", battery: "Li-ion", batteryCap: 4241, batteryVolt: "14.4V", batteryEgy: 61, chargeTime: 80, propSize: "5inch", obstacle: "全向", gnss: "GPS+BeiDou+Galileo", ip: "IP43", opTemp: "0°C~40°C", sensorSize: "1\"", pixels: "48MP", videoRes: "4K/120fps", aperture: "f/1.7", iso: "100-6400", transSys: "O4", transRange: 12000, certType: "FAA Part 107", noise: 68, material: "碳纤维复合材料" },
+  { slug: "inspire-3", name: "DJI Inspire 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 109999, priceMax: 139999, flight: 28, range: 15, speed: 94, cruiseSpeed: 60, weight: 3995, wingspan: 520, len: 350, ht: 180, altitude: 7000, climbRate: 10, windResist: "Level 6", motor: "无刷电机×4", battery: "Li-Po", batteryCap: 8500, batteryVolt: "22.2V", batteryEgy: 189, chargeTime: 120, propSize: "10inch", obstacle: "全向+LiDAR", gnss: "GPS+GLONASS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "4/3\"", pixels: "50MP", videoRes: "8K/25fps", aperture: "f/2.0", iso: "100-25600", transSys: "O4+", transRange: 15000, certType: "CAAC", noise: 80, material: "碳纤维+钛合金" },
+  { slug: "matrice-350", name: "DJI Matrice 350 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 59999, priceMax: 79999, flight: 55, range: 20, speed: 82, cruiseSpeed: 50, weight: 6300, wingspan: 650, len: 420, ht: 220, altitude: 7000, climbRate: 6, windResist: "Level 7", motor: "无刷电机×6", battery: "Li-Po", batteryCap: 12000, batteryVolt: "52.2V", batteryEgy: 626, chargeTime: 180, propSize: "12inch", obstacle: "全向+LiDAR+RTK", gnss: "GPS+GLONASS+BeiDou+RTK", ip: "IP55", opTemp: "-20°C~50°C", sensorSize: "1\"", pixels: "20MP", videoRes: "4K/30fps", aperture: "f/2.8", iso: "100-25600", transSys: "O4 Enterprise", transRange: 15000, certType: "CAAC", noise: 85, material: "碳纤维复合材料" },
   { slug: "evo-lite-plus", name: "Autel EVO Lite+", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 7299, priceMax: 8599, flight: 40, range: 24, speed: 68, weight: 835 },
   { slug: "evo-nano-plus", name: "Autel EVO Nano+", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 4299, priceMax: 5499, flight: 28, range: 16, speed: 54, weight: 249 },
   { slug: "evo-max-4t", name: "Autel EVO Max 4T", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 42, range: 20, speed: 72, weight: 1150 },
@@ -811,7 +815,35 @@ async function seedPostgreSQL() {
       maxFlightTimeMinutes: m.flight || null,
       maxRangeKilometers: m.range || null,
       maxSpeedKph: m.speed || null,
+      cruiseSpeedKph: (m as Record<string, unknown>).cruiseSpeed as number || null,
       takeoffWeightGrams: m.weight || null,
+      wingspanMm: (m as Record<string, unknown>).wingspan as number || null,
+      lengthMm: (m as Record<string, unknown>).len as number || null,
+      heightMm: (m as Record<string, unknown>).ht as number || null,
+      maxAltitudeM: (m as Record<string, unknown>).altitude as number || null,
+      climbRateMs: (m as Record<string, unknown>).climbRate as number || null,
+      windResistance: (m as Record<string, unknown>).windResist as string || null,
+      motorType: (m as Record<string, unknown>).motor as string || null,
+      batteryType: (m as Record<string, unknown>).battery as string || null,
+      batteryCapacityMah: (m as Record<string, unknown>).batteryCap as number || null,
+      batteryVoltage: (m as Record<string, unknown>).batteryVolt as string || null,
+      batteryEnergyWh: (m as Record<string, unknown>).batteryEgy as number || null,
+      chargeTimeMinutes: (m as Record<string, unknown>).chargeTime as number || null,
+      propellerSize: (m as Record<string, unknown>).propSize as string || null,
+      obstacleAvoidance: (m as Record<string, unknown>).obstacle as string || null,
+      gnssType: (m as Record<string, unknown>).gnss as string || null,
+      ipRating: (m as Record<string, unknown>).ip as string || null,
+      operatingTemperature: (m as Record<string, unknown>).opTemp as string || null,
+      cameraSensorSize: (m as Record<string, unknown>).sensorSize as string || null,
+      cameraPixels: (m as Record<string, unknown>).pixels as string || null,
+      videoResolution: (m as Record<string, unknown>).videoRes as string || null,
+      lensAperture: (m as Record<string, unknown>).aperture as string || null,
+      isoRange: (m as Record<string, unknown>).iso as string || null,
+      transmissionSystem: (m as Record<string, unknown>).transSys as string || null,
+      transmissionRangeM: (m as Record<string, unknown>).transRange as number || null,
+      certificationType: (m as Record<string, unknown>).certType as string || null,
+      noiseLevelDb: (m as Record<string, unknown>).noise as number || null,
+      materialType: (m as Record<string, unknown>).material as string || null,
       coverImageFileId: null,
       galleryImageFileIds: "[]",
       videoFileId: null,
@@ -1417,7 +1449,35 @@ async function seedPostgreSQL() {
       maxFlightTimeMinutes: randInt(15, 60),
       maxRangeKilometers: randInt(5, 50),
       maxSpeedKph: randInt(40, 150),
+      cruiseSpeedKph: randInt(20, 80),
       takeoffWeightGrams: randInt(200, 5000),
+      wingspanMm: randInt(200, 2000),
+      lengthMm: randInt(150, 3000),
+      heightMm: randInt(50, 800),
+      maxAltitudeM: randInt(100, 6000),
+      climbRateMs: randInt(2, 15),
+      windResistance: pick(["Level 4", "Level 5", "Level 6", null]),
+      motorType: pick(["无刷电机", "外转子无刷", null]),
+      batteryType: pick(["Li-ion", "Li-Po", "Semi-solid-state", null]),
+      batteryCapacityMah: randInt(1500, 12000),
+      batteryVoltage: pick(["7.4V", "11.1V", "14.8V", "22.2V", null]),
+      batteryEnergyWh: randInt(15, 100),
+      chargeTimeMinutes: randInt(30, 180),
+      propellerSize: pick(["5inch", "7inch", "10inch", null]),
+      obstacleAvoidance: pick(["前+下", "全向", "全向+LiDAR", null]),
+      gnssType: pick(["GPS+GLONASS", "GPS+BeiDou+Galileo", null]),
+      ipRating: pick(["IP43", "IP55", null]),
+      operatingTemperature: pick(["-10°C~40°C", "0°C~40°C", null]),
+      cameraSensorSize: pick(["1/2\"", "1/1.3\"", "1\"", "4/3\"", null]),
+      cameraPixels: pick(["12MP", "48MP", "50MP", null]),
+      videoResolution: pick(["4K/30fps", "4K/60fps", "6K/60fps", null]),
+      lensAperture: pick(["f/1.7", "f/1.8", "f/2.0", "f/2.8", null]),
+      isoRange: pick(["100-3200", "100-6400", "100-12800", null]),
+      transmissionSystem: pick(["O2", "O3", "O4", null]),
+      transmissionRangeM: randInt(2000, 15000),
+      certificationType: pick(["FAA Part 107", "CAAC", null]),
+      noiseLevelDb: randInt(55, 85),
+      materialType: pick(["碳纤维复合材料", "铝合金+碳纤维", "工程塑料", null]),
       approvedModelId: status === "approved" ? pick(MODEL_IDS) : null,
       createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
       updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
@@ -1571,7 +1631,48 @@ async function seedPostgreSQL() {
   }
   console.log("  ✓ 设备: 60 个");
 
-  // 27. 站点设置
+  // 27. 圈子 (5)
+  console.log("  🔵 创建圈子...");
+  const circleSeeds = [
+    { slug: "drone-enthusiasts", name: "航模发烧友", desc: "热爱航模飞行的爱好者聚集地", joinMode: "free" as const },
+    { slug: "fpv-racing", name: "FPV竞速圈", desc: "穿越机竞速与技巧交流", joinMode: "free" as const },
+    { slug: "aerial-photography", name: "航拍摄影", desc: "分享航拍作品与摄影技巧", joinMode: "free" as const },
+    { slug: "diy-build", name: "DIY装机", desc: "自组无人机方案与调试交流", joinMode: "free" as const },
+    { slug: "industry-application", name: "行业应用", desc: "测绘/巡检/植保等工业应用讨论", joinMode: "audit" as const },
+  ];
+  const CIRCLE_IDS: string[] = [];
+  for (const c of circleSeeds) {
+    const id = uid("circle");
+    CIRCLE_IDS.push(id);
+    await db.insert(circlesTable).values({
+      id, slug: c.slug, name: c.name, description: c.desc,
+      ownerId: adminId, joinMode: c.joinMode,
+      memberCount: randInt(5, 30), postCount: randInt(2, 10),
+    });
+    // 圈主
+    await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: adminId, role: "owner" });
+    // 随机成员
+    for (let j = 0; j < randInt(3, 15); j++) {
+      await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: pick(regularUsers)!, role: "member" });
+    }
+  }
+  console.log("  ✓ 圈子: 5 个");
+
+  // 28. 圈子帖子 (25)
+  console.log("  📝 创建圈子帖子...");
+  for (let i = 0; i < 25; i++) {
+    const circleId = pick(CIRCLE_IDS);
+    await db.insert(circlePostsTable).values({
+      id: uid("cp"), circleId, authorId: pick(USER_IDS),
+      title: pick(["新人报到", "分享我的航拍作品", "求推荐入门机型", "今天飞了一把FPV", "DIY装机记录", "航拍后期调色教程", "避障功能实测", "远航里程挑战"]),
+      content: pick(["详细内容见图片", "和大家分享飞行体验", "欢迎交流讨论"]),
+      images: "[]", videos: "[]", hotScore: randInt(10, 200),
+      likeCount: randInt(0, 30), commentCount: randInt(0, 8),
+    });
+  }
+  console.log("  ✓ 圈子帖子: 25 个");
+
+  // 29. 站点设置
   console.log("  ⚙️ 创建站点设置...");
   await db.insert(siteSettingsTable).values({
     id: uid("site"),

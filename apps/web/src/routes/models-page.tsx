@@ -431,16 +431,168 @@ export function ModelsPage() {
     </>
   );
 
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+
+  const desktopFilterBar = (
+    <div className="space-y-3">
+      {/* \u5206\u7c7b\u6a2a\u6ed1 Tab */}
+      <div className="flex items-center gap-2 overflow-x-auto">
+        <button
+          className={cn(
+            "shrink-0 rounded-full px-3.5 py-1.5 text-sm transition",
+            filtersState.categorySlugs.length === 0
+              ? "bg-primary text-white font-medium"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          )}
+          onClick={() => updateParams({ categorySlugs: [] })}
+          type="button"
+        >
+          \u5168\u90e8
+        </button>
+        {categories.map((c) => {
+          const active = filtersState.categorySlugs.includes(c.slug);
+          return (
+            <button
+              className={cn(
+                "shrink-0 rounded-full px-3.5 py-1.5 text-sm transition",
+                active
+                  ? "bg-primary text-white font-medium"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              )}
+              key={c.slug}
+              onClick={() => toggleGroupValue("categorySlugs", c.slug)}
+              type="button"
+            >
+              {c.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* \u54c1\u724c Logo \u5899 + \u4ef7\u683c + \u66f4\u591a\u7b5b\u9009 */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {brands.slice(0, 8).map((b) => {
+            const active = filtersState.brandSlugs.includes(b.slug);
+            return (
+              <button
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition",
+                  active
+                    ? "border-primary bg-primary/8 text-primary"
+                    : "border-border/60 text-muted-foreground hover:border-primary/40"
+                )}
+                key={b.slug}
+                onClick={() => toggleGroupValue("brandSlugs", b.slug)}
+                type="button"
+              >
+                {b.logoUrl ? (
+                  <img alt={b.name} className="size-4 rounded object-contain" src={b.logoUrl} />
+                ) : null}
+                {b.name}
+              </button>
+            );
+          })}
+          {brands.length > 8 ? (
+            <span className="text-xs text-muted-foreground">+{brands.length - 8}</span>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1.5 text-sm">
+            <input
+              className="w-20 rounded-lg border border-border/60 px-2 py-1 text-xs"
+              onChange={(e) => setPriceMin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updateParams({
+                    priceMin: priceMin || undefined,
+                    priceMax: priceMax || undefined,
+                  } as Record<string, unknown>);
+                }
+              }}
+              placeholder="\u6700\u4f4e\u4ef7"
+              type="number"
+              value={priceMin}
+            />
+            <span className="text-muted-foreground">-</span>
+            <input
+              className="w-20 rounded-lg border border-border/60 px-2 py-1 text-xs"
+              onChange={(e) => setPriceMax(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updateParams({
+                    priceMin: priceMin || undefined,
+                    priceMax: priceMax || undefined,
+                  } as Record<string, unknown>);
+                }
+              }}
+              placeholder="\u6700\u9ad8\u4ef7"
+              type="number"
+              value={priceMax}
+            />
+          </div>
+
+          <div className="relative">
+            <button
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm transition",
+                showMoreFilters || filtersState.powerTypes.length > 0
+                  ? "border-primary bg-primary/8 text-primary"
+                  : "border-border/60 text-muted-foreground hover:border-primary/40"
+              )}
+              onClick={() => setShowMoreFilters(!showMoreFilters)}
+              type="button"
+            >
+              <SlidersHorizontal className="size-3.5" />
+              \u7b5b\u9009
+              {filtersState.powerTypes.length > 0 ? ` (${filtersState.powerTypes.length})` : ""}
+            </button>
+            {showMoreFilters ? (
+              <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-xl border border-border/60 bg-white p-3 shadow-lg">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">\u52a8\u529b\u7c7b\u578b</div>
+                {powerTypeOptions.map((opt) => {
+                  const active = filtersState.powerTypes.includes(opt.slug);
+                  return (
+                    <button
+                      className={cn(
+                        "block w-full rounded-lg px-2 py-1.5 text-left text-sm transition",
+                        active ? "bg-primary/8 text-primary" : "hover:bg-muted"
+                      )}
+                      key={opt.slug}
+                      onClick={() => toggleGroupValue("powerTypes", opt.slug)}
+                      type="button"
+                    >
+                      {opt.name} {active ? "\u2713" : ""}
+                    </button>
+                  );
+                })}
+                {filtersState.powerTypes.length > 0 ? (
+                  <button
+                    className="mt-1 text-xs text-primary hover:underline"
+                    onClick={() => updateParams({ powerTypes: [] })}
+                    type="button"
+                  >
+                    \u6e05\u7a7a\u52a8\u529b\u7b5b\u9009
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <SitePage className="w-full min-w-0 gap-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
-        <div className="hidden space-y-3 xl:order-2 xl:block xl:sticky xl:top-[5.5rem] xl:self-start">
-          {filterPanels}
-        </div>
-
         <div className="space-y-4 xl:order-1">
-          <div className="space-y-3 bg-white px-4 py-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-3">
+            <div className="hidden xl:block">{desktopFilterBar}</div>
+            <div className="flex flex-wrap items-start justify-between gap-3 xl:hidden bg-white px-4 py-4">
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="text-sm font-medium text-foreground">
                   {"\u673a\u578b\u5217\u8868"}
@@ -450,7 +602,7 @@ export function ModelsPage() {
                 </div>
               </div>
               <Button
-                className="shrink-0 gap-1.5 xl:hidden"
+                className="shrink-0 gap-1.5"
                 onClick={() => {
                   setMobileFiltersOpen(true);
                 }}
