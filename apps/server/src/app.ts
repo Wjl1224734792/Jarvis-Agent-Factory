@@ -8,6 +8,7 @@ import { adminLogsRoute } from './modules/admin-logs/admin-logs.route';
 import { adminReportsRoute } from './modules/admin-reports/admin-reports.route';
 import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.route';
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
+import { circlesRoute } from './modules/circles/circles.route';
 import { auditsRoute } from './modules/audits/audits.route';
 import { authRoute } from './modules/auth/auth.route';
 import { resolveAuthCodeConfig } from './modules/auth/auth.repo';
@@ -234,6 +235,7 @@ app.route(API_ROUTES.models.brands, brandsRoute);
 app.route('/', powerTypesRoute);
 app.route('/', contentCategoriesRoute);
 app.route('/', aiRoute);
+app.route('/', circlesRoute);
 
 app.notFound(context =>
   context.json(
