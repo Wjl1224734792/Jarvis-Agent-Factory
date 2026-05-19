@@ -320,7 +320,7 @@ export function SettingsPage() {
     setSavingField(field);
     try {
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
-      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
+      applyProfileSnapshot(payload.item);
       setStatusMessage(successMessage);
     } catch (reason: unknown) {
       setDraft((current) => restoreSettingsBooleanField(current, field, previousValue));
@@ -343,7 +343,7 @@ export function SettingsPage() {
       setDraft(nextDraft);
 
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
-      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
+      applyProfileSnapshot(payload.item);
       setStatusMessage("头像已更新");
     } catch (reason: unknown) {
       setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");

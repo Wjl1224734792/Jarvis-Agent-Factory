@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IDomEditor } from "@wangeditor/editor";
 import { AiFormatButton } from "../features/ai/ai-format-button";
 import { ImportFileButton } from "../features/ai/import-file-button";
-import { buildLinkCardHtml, buildUnknownLinkCardHtml } from "@feijia/rich-text-editor";
+import { buildLinkCardHtml } from "@feijia/rich-text-editor";
 import { apiClient } from "@/lib/api-client";
 import { useAiFeatures } from "../features/ai/use-ai-features";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -407,7 +407,7 @@ export function PublishArticlePage() {
       }
       const entry = { id: blobUrl, url: blobUrl, fileName: file.name, isLocal: true as const };
       if (file.type.startsWith("video/")) {
-        videos.push(entry as unknown as UploadedVideo);
+        videos.push(entry);
       } else {
         images.push(entry);
       }

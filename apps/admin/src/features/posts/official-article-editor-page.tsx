@@ -556,7 +556,7 @@ export function OfficialArticleEditorPage() {
           content: document.plainText,
           contentHtml: document.contentHtml
         } satisfies OfficialArticleFormValues,
-        Array.from(new Set([coverId, ...uploadedImages.map((item) => item.id), ...newImageIds].filter(Boolean))) as string[],
+        Array.from(new Set([coverId, ...uploadedImages.map((item) => item.id), ...newImageIds].filter(Boolean))),
         [...uploadedVideos.map((item) => item.id), ...newVideoIds]
       );
 
@@ -687,7 +687,7 @@ export function OfficialArticleEditorPage() {
                   rules={watchedDeclaration === 'reprinted' ? [{ required: true, message: '转载内容必须填写来源名称' }] : undefined}
                 >
                   <Select
-                    onChange={(value) => {
+                    onChange={(value: string) => {
                       const defaultUrl = SOURCE_URL_MAP[value];
                       if (defaultUrl !== undefined) {
                         form.setFieldValue('sourceUrl', defaultUrl);
