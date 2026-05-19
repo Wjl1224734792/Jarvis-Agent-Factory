@@ -158,3 +158,11 @@ Flutter 专项：
 Agent 失败重试（最多 3 次）、Batch 部分失败仅重试失败任务、Gate 失败回退修复、会话检查点。
 
 向用户确认已进入 Flutter 开发生命周期模式。
+
+---
+
+## 红线
+- 跨端 UI 必须在 iOS 和 Android 上都验证——单端通过不算通过
+- Platform Channel 调用必须有错误处理——原生端崩溃会带崩 Flutter
+- 状态管理方案选定后不可混用——Provider/Riverpod/Bloc 选一不可混
+- Widget build 方法不能有副作用——build 可能被频繁调用

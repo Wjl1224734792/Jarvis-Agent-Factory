@@ -418,3 +418,12 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 - 只读探索可在 Gate A 通过后立即并行
 - TDD 的 Red→Green→Refactor 必须串行
 - 不同 TDD 任务的同阶段步骤可按路径边界并行
+
+---
+
+## 红线
+- Gate 不可跳跃——严格遵守 A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序
+- 需求文档必须先产出再编码——先写 REQ-XXX 再写代码
+- Agent 不可递归 spawn——子 Agent 不得再生成其他 Agent
+- 测试不通过不得推进 Gate——Gate C2 是硬门禁
+- 质量门不通过不得发布——Gate E 前置条件不可跳过
