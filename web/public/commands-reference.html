@@ -3,402 +3,1122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jarvis 指令参考 — 39 Commands</title>
+<title>Jarvis Agent Factory — 多智能体 AI 编程助手配置工厂</title>
 <style>
   :root {
     --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9;
     --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --orange: #d2991d;
-    --red: #f85149; --purple: #a371f7; --cyan: #39c5cf;
+    --red: #f85149; --purple: #a371f7; --cyan: #39c5cf; --pink: #db61a2;
   }
   * { box-sizing:border-box; margin:0; padding:0 }
-  body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif; max-width:1200px; margin:0 auto; padding:20px }
-  h1 { font-size:28px; margin-bottom:8px; color:#fff }
-  h1 small { font-size:16px; color:var(--muted); font-weight:400 }
-  h2 { font-size:20px; color:#fff; margin:32px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border) }
-  h3 { font-size:16px; color:var(--accent); margin:16px 0 8px }
-  .summary { display:flex; gap:16px; flex-wrap:wrap; margin:16px 0 }
-  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 20px; text-align:center; min-width:100px }
-  .stat .num { font-size:24px; font-weight:700; color:#fff }
-  .stat .label { font-size:12px; color:var(--muted) }
-  .cmd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; margin:12px 0 }
-  .cmd-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; transition:border-color .2s }
+  body { background:var(--bg); color:var(--text); font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; max-width:1200px; margin:0 auto; padding:20px }
+
+  /* Hero */
+  .hero { text-align:center; padding:48px 0 32px; border-bottom:1px solid var(--border); margin-bottom:32px }
+  .hero h1 { font-size:36px; color:#fff; margin-bottom:8px; letter-spacing:-0.5px }
+  .hero .tagline { font-size:18px; color:var(--muted); margin-bottom:20px }
+  .hero .version { display:inline-block; background:var(--accent); color:#fff; border-radius:4px; padding:2px 10px; font-size:13px; font-weight:600 }
+
+  /* Stats row */
+  .stats { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin:24px 0 }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 28px; text-align:center; min-width:100px; transition:border-color .2s }
+  .stat:hover { border-color:var(--accent) }
+  .stat .num { font-size:32px; font-weight:800; color:#fff; line-height:1.1 }
+  .stat .label { font-size:12px; color:var(--muted); margin-top:4px }
+  .stat.accent .num { color:var(--accent) }
+  .stat.green .num { color:var(--green) }
+  .stat.purple .num { color:var(--purple) }
+  .stat.orange .num { color:var(--orange) }
+
+  /* Nav */
+  .nav { position:sticky; top:0; background:rgba(13,17,23,0.92); backdrop-filter:blur(8px); padding:12px 0; border-bottom:1px solid var(--border); margin-bottom:28px; z-index:10; display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
+  .nav a { color:var(--text); text-decoration:none; font-size:13px; padding:5px 10px; border-radius:4px; white-space:nowrap }
+  .nav a:hover { color:var(--accent); background:var(--card) }
+
+  /* Section */
+  h2 { font-size:22px; color:#fff; margin:40px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px }
+  h2 .count { font-size:14px; color:var(--muted); font-weight:400 }
+  h3 { font-size:17px; color:var(--accent); margin:24px 0 10px }
+  h4 { font-size:15px; color:#fff; margin:16px 0 8px }
+
+  /* Intro block */
+  .intro { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin:16px 0; line-height:1.8 }
+  .intro strong { color:#fff }
+  .intro code { background:rgba(88,166,255,0.12); color:var(--accent); padding:1px 5px; border-radius:3px; font-size:13px }
+
+  /* Concept grid */
+  .concept-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin:12px 0 }
+  .concept-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px }
+  .concept-card .icon { font-size:24px; margin-bottom:6px }
+  .concept-card h4 { margin:0 0 6px; font-size:15px }
+  .concept-card p { font-size:13px; color:var(--muted); line-height:1.6 }
+
+  /* Command card */
+  .cmd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:12px; margin:12px 0 }
+  .cmd-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; transition:border-color .2s }
   .cmd-card:hover { border-color:var(--accent) }
-  .cmd-card .name { font-size:16px; font-weight:700; color:var(--accent); font-family:monospace }
-  .cmd-card .desc { color:var(--text); margin:4px 0 }
-  .cmd-card .meta { font-size:12px; color:var(--muted); margin-top:6px }
-  .cmd-card .gates { display:inline-block; background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:2px 8px; margin:4px 2px 0 0; font-size:11px; font-family:monospace; color:var(--green) }
-  .recommend { background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:12px 16px; margin:8px 0; font-size:13px }
-  .recommend .icon { color:var(--accent) }
-  .flow-table { width:100%; border-collapse:collapse; margin:8px 0; font-size:13px }
-  .flow-table th { text-align:left; color:var(--accent); padding:8px 10px; border-bottom:2px solid var(--border) }
-  .flow-table td { padding:8px 10px; border-bottom:1px solid var(--border) }
-  .flow-table tr:hover { background:var(--card) }
-  .tag { display:inline-block; border-radius:4px; padding:1px 6px; font-size:11px }
+  .cmd-card .cmd-name { font-size:16px; font-weight:700; color:var(--accent); font-family:monospace }
+  .cmd-card .cmd-desc { color:var(--text); margin:6px 0; font-size:13px; line-height:1.6 }
+  .cmd-card .cmd-flow { margin-top:8px; padding-top:8px; border-top:1px solid var(--border) }
+  .cmd-card .flow-step { display:flex; gap:6px; margin:3px 0; font-size:12px; align-items:baseline }
+  .cmd-card .flow-step .step-tag { background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:0 5px; font-family:monospace; font-size:11px; white-space:nowrap; min-width:fit-content }
+  .cmd-card .flow-step .step-tag.green { color:var(--green); border-color:rgba(63,185,80,0.3) }
+  .cmd-card .flow-step .step-tag.orange { color:var(--orange); border-color:rgba(210,153,29,0.3) }
+  .cmd-card .flow-step .step-tag.accent { color:var(--accent); border-color:rgba(88,166,255,0.3) }
+  .cmd-card .flow-step .step-tag.red { color:var(--red); border-color:rgba(248,81,73,0.3) }
+  .cmd-card .flow-step .step-desc { color:var(--muted) }
+  .cmd-card .agents { margin-top:8px; font-size:11px; color:var(--muted) }
+  .cmd-card .agents span { color:var(--purple) }
+
+  /* Tags */
+  .tag { display:inline-block; border-radius:4px; padding:1px 7px; font-size:11px; font-weight:500 }
   .tag-blue { background:rgba(88,166,255,0.15); color:var(--accent) }
   .tag-green { background:rgba(63,185,80,0.15); color:var(--green) }
   .tag-orange { background:rgba(210,153,29,0.15); color:var(--orange) }
   .tag-purple { background:rgba(163,113,247,0.15); color:var(--purple) }
   .tag-red { background:rgba(248,81,73,0.15); color:var(--red) }
-  .nav { position:sticky; top:0; background:var(--bg); padding:12px 0; border-bottom:1px solid var(--border); margin-bottom:20px; z-index:10; display:flex; gap:12px; flex-wrap:wrap }
-  .nav a { color:var(--text); text-decoration:none; font-size:13px; padding:4px 8px; border-radius:4px }
-  .nav a:hover { color:var(--accent); background:var(--card) }
-  .toc { columns:3; gap:16px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:12px 0 }
-  .toc a { color:var(--accent); text-decoration:none; display:block; padding:2px 0; font-size:13px }
-  .toc a:hover { text-decoration:underline }
-  .flow-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); margin-top:4px }
-  .flow-badge a { color:var(--accent); text-decoration:none }
-  @media (max-width:768px) { .cmd-grid{grid-template-columns:1fr} .toc{columns:2} }
+  .tag-cyan { background:rgba(57,197,207,0.15); color:var(--cyan) }
+
+  /* Agent table */
+  .agent-category { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin:12px 0 }
+  .agent-category h4 { margin:0 0 8px; font-size:15px; display:flex; align-items:center; gap:8px }
+  .agent-category h4 .count { font-size:12px; color:var(--muted); font-weight:400 }
+  .agent-list { display:flex; flex-wrap:wrap; gap:6px }
+  .agent-tag { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:2px 8px; font-size:12px; font-family:monospace; color:var(--text) }
+
+  /* Pipeline table */
+  .pipe-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px }
+  .pipe-table th { text-align:left; color:var(--accent); padding:10px 12px; border-bottom:2px solid var(--border); font-weight:600 }
+  .pipe-table td { padding:8px 12px; border-bottom:1px solid var(--border) }
+  .pipe-table tr:hover { background:var(--card) }
+  .pipe-table .pipe-name { font-family:monospace; color:var(--green) }
+
+  /* Recommend */
+  .recommend { background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:14px 18px; margin:10px 0; font-size:13px; line-height:1.7 }
+  .recommend.warn { border-left-color:var(--orange) }
+  .recommend.tip { border-left-color:var(--green) }
+  .recommend strong { color:#fff }
+
+  /* Scenario grid */
+  .scenario-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; margin:12px 0 }
+  .scenario-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px }
+  .scenario-card h4 { margin:0 0 6px; font-size:14px }
+  .scenario-card p { font-size:12px; color:var(--muted); line-height:1.6 }
+  .scenario-card code { background:rgba(88,166,255,0.12); color:var(--accent); padding:1px 5px; border-radius:3px; font-size:12px }
+
+  /* Footer */
+  .footer { text-align:center; color:var(--muted); font-size:12px; margin:40px 0 24px; padding-top:24px; border-top:1px solid var(--border) }
+  .footer a { color:var(--accent); text-decoration:none }
+  .footer a:hover { text-decoration:underline }
+
+  /* Responsive */
+  @media (max-width:768px) {
+    .cmd-grid,.concept-grid,.scenario-grid { grid-template-columns:1fr }
+    .hero h1 { font-size:26px }
+    .stats { gap:8px }
+    .stat { padding:12px 16px; min-width:70px }
+    .stat .num { font-size:24px }
+  }
 </style>
 </head>
 <body>
 
-<h1>Jarvis 指令参考 <small>— 39 Commands · 15 Pipelines · 71 Agents · v4.2.1</small></h1>
+<!-- ============================================================ -->
+<!-- HERO -->
+<!-- ============================================================ -->
+<div class="hero">
+  <h1>Jarvis Agent Factory</h1>
+  <div class="tagline">多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线</div>
+  <span class="version">v4.2.1</span>
+</div>
 
-<div class="summary">
-  <div class="stat"><div class="num">39</div><div class="label">指令 Commands</div></div>
-  <div class="stat"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
-  <div class="stat"><div class="num">71</div><div class="label">智能体 Agents</div></div>
-  <div class="stat"><div class="num">34</div><div class="label">技能 Skills</div></div>
+<div class="stats">
+  <div class="stat accent"><div class="num">39</div><div class="label">指令 Commands</div></div>
+  <div class="stat green"><div class="num">71</div><div class="label">智能体 Agents</div></div>
+  <div class="stat purple"><div class="num">34</div><div class="label">技能 Skills</div></div>
+  <div class="stat orange"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
   <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
 </div>
 
+<!-- ============================================================ -->
+<!-- NAV -->
+<!-- ============================================================ -->
 <nav class="nav">
-  <a href="#orchestrate">编排入口</a>
-  <a href="#platform">平台开发</a>
-  <a href="#requirements">需求与设计</a>
-  <a href="#engineering">工程操作</a>
-  <a href="#review">审查与修复</a>
-  <a href="#testing">测试体系</a>
-  <a href="#expert">专家咨询</a>
-  <a href="#tools">专用工具</a>
-  <a href="#recommendations">使用推荐</a>
+  <a href="#overview">项目概览</a>
+  <a href="#concepts">核心概念</a>
+  <a href="#commands">指令体系</a>
+  <a href="#agents">智能体体系</a>
+  <a href="#pipelines">流水线架构</a>
+  <a href="#skills">技能体系</a>
+  <a href="#scenarios">使用推荐</a>
+  <a href="#quickstart">快速开始</a>
 </nav>
 
 <!-- ============================================================ -->
-<h2 id="orchestrate">编排入口（2）</h2>
+<!-- 项目概览 -->
+<!-- ============================================================ -->
+<h2 id="overview">项目概览</h2>
 
-<div class="recommend">
-  <span class="icon">�</span> <strong>日常默认入口：</strong><code style="color:var(--accent)">/auto</code> — 自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配 Team/Subagent。<strong>不确定用什么指令时，直接用 /auto。</strong>
+<div class="intro">
+  <p><strong>Jarvis Agent Factory</strong>（贾维斯智能体工厂）是一套面向 <strong>Claude Code</strong> 平台的多智能体配置工程。它将软件开发从"手动编码"提升为"编排驱动"——通过 39 条指令、71 个专业智能体、34 个技能和 15 条流水线，覆盖从需求澄清到发布上线的完整软件生命周期。</p>
+  <br>
+  <p>核心思路：<strong>FSM 硬约束闸门系统</strong>（Gate A→E）强制每个阶段完成必要产出后才能推进，确保工程严谨性；同时 <code>/auto</code> 智能路由自动检测任务类型并跳过无关闸门，兼顾日常效率。</p>
+  <br>
+  <p>安装方式：<code>npm i -g jarvis-agent-factory</code> → <code>jarvis init -y</code> → Claude Code 重启后引擎自动拉起。零原生依赖（Node 22.5+ 内置 node:sqlite），安装秒级完成。</p>
 </div>
 
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/jarvis</div>
-  <div class="desc">全流程严格模式 — 13 Gate 全部强制执行，适合中大型功能开发。完整需求→DDD→BDD→TDD→架构→规划→并行实现→质量门→视觉验证→测试→评审→发布</div>
-  <div class="meta">
-    <span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</span>
-    <span class="gates">13门</span>
-    <span class="tag tag-blue">prefer_team</span>
+<!-- ============================================================ -->
+<!-- 核心概念 -->
+<!-- ============================================================ -->
+<h2 id="concepts">核心概念</h2>
+
+<div class="concept-grid">
+  <div class="concept-card">
+    <div class="icon">&#x1F4CB;</div>
+    <h4>指令 Command</h4>
+    <p>用户交互入口，以 <code>/</code> 开头（如 <code>/jarvis</code>、<code>/auto</code>）。每条指令对应一条流水线，定义从需求到交付的完整流程。共 39 条。</p>
+  </div>
+  <div class="concept-card">
+    <div class="icon">&#x1F916;</div>
+    <h4>智能体 Agent</h4>
+    <p>专业化 AI 角色，在流水线各阶段由编排者 spawn 执行。按职能分 6 类：实现(25)、测试(15)、审查(16)、规划(4)、架构(4)、支撑(7)。共 71 个。</p>
+  </div>
+  <div class="concept-card">
+    <div class="icon">&#x1F4AA;</div>
+    <h4>技能 Skill</h4>
+    <p>可复用的行为指南和能力模块，由 Agent 在任务执行中加载。涵盖需求、规划、实现、质量、测试、安全、文档等 12 个领域。共 34 个。</p>
+  </div>
+  <div class="concept-card">
+    <div class="icon">&#x1F3ED;</div>
+    <h4>流水线 Pipeline</h4>
+    <p>预定义的 Gate 序列，每种开发场景对应一条。full（13门完整）和 lite（自适应跳过）是两条核心流水线，另有 13 条专业流水线。共 15 条。</p>
+  </div>
+  <div class="concept-card">
+    <div class="icon">&#x1F6AA;</div>
+    <h4>闸门 Gate</h4>
+    <p>FSM 硬约束检查点，当前 Gate 通过后才能推进到下一 Gate。引擎通过 <code>gate_check</code> 和 <code>gate_enforce</code> 强制执行操作权限表，禁止跳过或回退。</p>
+  </div>
+  <div class="concept-card">
+    <div class="icon">&#x2699;</div>
+    <h4>引擎 Engine</h4>
+    <p>MCP stdio 自动拉起的编排引擎（端口 3456），内置 SQLite WAL 模式、SSE 实时推送、FSM Gate 系统。负责会话管理、Gate 执行、Agent 调度和文档产物追踪。</p>
   </div>
 </div>
+
+<!-- ============================================================ -->
+<!-- 指令体系 -->
+<!-- ============================================================ -->
+<h2 id="commands">指令体系 <span class="count">— 39 条指令，8 个分类</span></h2>
+
+<div class="intro">
+  <p>每条指令是一条完整的开发流水线入口。输入 <code>/指令名 任务描述</code> 即可启动。引擎自动推进 Gate 序列，在对应阶段 spawn 专业 Agent 执行任务。<strong>不确定用什么指令？直接用 <code>/auto</code>。</strong></p>
+</div>
+
+<!-- 编排入口 -->
+<h3>一、编排入口（2条）</h3>
+
+<div class="recommend">
+  <strong>日常默认入口：</strong><code style="color:var(--accent)">/auto</code> — 自动检测 12 种任务类型 → 路由最优流水线 → 智能跳过无关 Gate → 按复杂度分配 Team/Subagent。<strong>99% 的情况用它就够了。</strong>
+</div>
+
+<div class="cmd-grid">
 <div class="cmd-card">
-  <div class="name">/auto</div>
-  <div class="desc">智能路由模式 — 自动检测12种任务类型→路由最优流水线→跳过无关Gate→按复杂度(轻/中/重)分配 Team/Subagent。日常默认入口</div>
-  <div class="meta">
-    <span class="gates">自适应</span>
-    <span class="tag tag-green">allow_jump</span>
-    <span class="tag tag-blue">推荐首选</span>
+  <div class="cmd-name">/jarvis</div>
+  <div class="cmd-desc"><strong>全流程严格模式</strong> — 13 Gate 全部强制执行，适合中大型功能开发。从需求到发布的完整生命周期。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A</span><span class="step-desc">需求澄清：分析用户输入，产出 REQ-XXX 需求文档</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate B-DDD</span><span class="step-desc">领域驱动分析：识别聚合/实体/值对象/领域服务</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate B-BDD</span><span class="step-desc">行为驱动场景：Gherkin Given/When/Then 验收场景</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate B-TDD</span><span class="step-desc">测试驱动分解：TASK-XXX 映射 REQ-XXX，Red→Green→Refactor</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">架构评审：spawn 对应架构师，产出架构评审报告</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C</span><span class="step-desc">执行规划：planner 产出 parallel_batches 并行任务分组</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C-impl</span><span class="step-desc">并行实现：Team 模式 spawn 多个实现 Agent 并行编码</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1</span><span class="step-desc">质量门：Lint + Type-check + Build + Deps Audit 全部通过</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1.5</span><span class="step-desc">视觉验证：截图对比，确保 UI 与设计一致（条件性）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2</span><span class="step-desc">测试验证：Team 模式 spawn 测试 Agent，最多 5 次重试</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate D</span><span class="step-desc">评审：Team 模式 spawn 审查 Agent，产出分级审查报告</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate E</span><span class="step-desc">发布上线：质量重检 → 版本递增 → CHANGELOG → commit+tag+push</span></div>
   </div>
-  <div class="flow-badge">→ <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/docs/flows/auto.md" target="_blank">流程图</a></div>
+  <div class="agents"><span>关键 Agent：</span>task-design / planner / frontend-architect / backend-architect / 实现类 Agent / 测试类 Agent / 审查类 Agent</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/auto</div>
+  <div class="cmd-desc"><strong>智能路由模式</strong> — 自动检测 12 种任务类型（新功能/Bug/重构/热修复/审查/调研/调试/简化/改进/迁移/发布/小修改），路由最优流水线，智能跳过无关 Gate。按复杂度（轻/中/重）分配 Team 或 Subagent。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag accent">Step 1</span><span class="step-desc">任务类型检测：分析输入，匹配 12 种已知类型</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 2</span><span class="step-desc">流水线路由：选择 full / refactor / hotfix / research / debug / simplify / improve / migrate / release 流水线</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 3</span><span class="step-desc">Gate 跳过：检测无关 Gate（如纯后端跳过 C1.5），调用 gate_jump</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 4</span><span class="step-desc">复杂度评估：轻→Subagent / 中→Team 2-3 / 重→Team 4-6</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 5</span><span class="step-desc">执行 + 质量门 + 测试 + 评审：按流水线 Gate 推进</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>按路由结果动态选择</div>
+</div>
+</div>
+
+<!-- 平台开发 -->
+<h3>二、平台开发（8条）</h3>
+
+<div class="recommend tip">
+  <strong>推荐：</strong>移动端/跨端开发使用对应平台命令，它们使用平台专属 Agent（如 android-dev-expert、flutter-ui-expert）并强制执行 C1.5 视觉验证 Gate。
+</div>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/frontend</div>
+  <div class="cmd-desc">前端开发生命周期 — C1.5 视觉验证强制。覆盖 React/Vue/Angular 等前端框架的完整开发流程。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A</span><span class="step-desc">需求澄清 → 前端需求文档</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate B</span><span class="step-desc">DDD→BDD→TDD 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">frontend-architect 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner 规划 → frontend-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → <strong>视觉验证强制</strong>（截图对比）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试 → 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>frontend-architect / frontend-dev-expert / frontend-ui-expert / frontend-state-expert / frontend-test-expert / frontend-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/backend</div>
+  <div class="cmd-desc">后端开发生命周期 — 跳过 C1.5 视觉验证（纯后端无 UI）。覆盖 API 设计、数据库架构、业务逻辑的完整开发流程。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A</span><span class="step-desc">需求澄清 → 后端需求文档</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate B</span><span class="step-desc">DDD→BDD→TDD 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">backend-architect / database-architect 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner 规划 → backend-dev/api/logic/data-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1</span><span class="step-desc">质量门（跳过 C1.5 视觉验证）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试 → 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>backend-architect / database-architect / backend-dev-expert / backend-api-expert / backend-logic-expert / backend-data-expert / backend-test-expert / backend-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/android</div>
+  <div class="cmd-desc">Android 原生开发生命周期 — Kotlin/Jetpack Compose。C1.5 视觉验证强制。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">android-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → android-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证（C1.5强制）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试（android-test-expert）→ 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>android-dev-expert / android-ui-expert / android-state-expert / android-test-expert / android-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/ios</div>
+  <div class="cmd-desc">iOS 原生开发生命周期 — Swift/SwiftUI。C1.5 视觉验证强制。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">ios-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → ios-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证（C1.5强制）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试（ios-test-expert）→ 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>ios-dev-expert / ios-ui-expert / ios-state-expert / ios-test-expert / ios-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/flutter</div>
+  <div class="cmd-desc">Flutter 跨端开发生命周期 — Dart。一套代码 Android+iOS+Web。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">flutter-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → flutter-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试（flutter-test-expert）→ 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>flutter-dev-expert / flutter-ui-expert / flutter-state-expert / flutter-test-expert / flutter-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/expo</div>
+  <div class="cmd-desc">Expo 跨端开发生命周期 — React Native + Expo SDK。快速原型和跨端发布。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">expo-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → expo-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试（expo-test-expert）→ 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>expo-dev-expert / expo-ui-expert / expo-state-expert / expo-test-expert / expo-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/react-native</div>
+  <div class="cmd-desc">React Native 跨端开发生命周期 — JavaScript/TypeScript。Android+iOS 原生桥接。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">react-native-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → react-native-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试 → 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>react-native-dev-expert / react-native-ui-expert / react-native-state-expert / react-native-test-expert / react-native-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/taro</div>
+  <div class="cmd-desc">Taro 小程序/H5 跨端开发生命周期 — 一套代码多端适配（微信/支付宝/百度/字节小程序 + H5）。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate A→B</span><span class="step-desc">需求澄清 → 任务分解</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate B1</span><span class="step-desc">taro-dev-expert 架构评审</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate C→C-impl</span><span class="step-desc">planner → taro-dev/ui/state-expert 并行实现</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate C1→C1.5</span><span class="step-desc">质量门 → 视觉验证（多端适配检查）</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate C2→D→E</span><span class="step-desc">测试（taro-test-expert）→ 评审 → 发布</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>taro-dev-expert / taro-ui-expert / taro-state-expert / taro-test-expert / taro-review-expert</div>
+</div>
+</div>
+
+<!-- 需求与设计 -->
+<h3>三、需求与设计（5条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/ask</div>
+  <div class="cmd-desc"><strong>需求探询</strong> — 4 模式自适应：Interview（模糊→Socratic 追问澄清）、Direct（清晰→直接分析）、Consensus（ralplan 式 3 阶段共识：Planner→Architect→Critic）、Review（Critic 评估现有计划）。含 5 维度评分矩阵（BV/EF/RS/UI/DC）。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate K0</span><span class="step-desc">模式选择：分析输入清晰度，选择 Interview/Direct/Consensus/Review</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate K1</span><span class="step-desc">信息收集：需求背景、业务价值、功能范围、用户场景</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate K2</span><span class="step-desc">多维度分析：BV(业务价值) / EF(工程可行) / RS(风险安全) / UI(用户体验) / DC(交付信心) 评分</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate K3</span><span class="step-desc">产出：需求分析报告 + 流水线路由建议</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/research</div>
+  <div class="cmd-desc"><strong>深度研究</strong> — 5 阶段技术调研：课题定义→信息收集→多维分析→假设验证→研究报告。竞争假设+证据矩阵，适合技术选型和方案研究。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate RS0</span><span class="step-desc">课题定义：明确研究范围、目标和成功标准</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate RS1</span><span class="step-desc">信息收集：多源数据采集（文档/社区/案例/基准测试）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate RS2</span><span class="step-desc">多维分析：技术成熟度/生态/性能/安全性/维护成本</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate RS3</span><span class="step-desc">假设验证：证据矩阵 + 竞争假设评估</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate RS4</span><span class="step-desc">研究报告：结论 + 推荐方案 + 实施路线图</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>docs-research-expert / external-resource-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/task-ddd</div>
+  <div class="cmd-desc"><strong>DDD 领域驱动分析</strong> — 产出聚合/实体/值对象/领域服务/聚合行为清单 + 流水线路由建议。对应 Gate B-DDD。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">业务领域识别：界定核心域/支撑域/通用域</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 2</span><span class="step-desc">聚合设计：识别聚合根/实体/值对象，定义不变性约束</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 3</span><span class="step-desc">领域服务：跨聚合业务流程建模</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">产出：DDD 分析文档 + 聚合行为清单 + 路由建议</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>task-design</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/task-bdd</div>
+  <div class="cmd-desc"><strong>BDD 行为驱动场景</strong> — Gherkin Given/When/Then 格式，编写验收场景。对应 Gate B-BDD。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">功能提取：从需求文档提取用户故事</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 2</span><span class="step-desc">场景编写：Given(前置)→When(操作)→Then(预期结果)</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 3</span><span class="step-desc">边界覆盖：正常流程+异常路径+边界条件</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">产出：BDD 场景文档（可执行验收测试用例）</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>task-design</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/task-tdd</div>
+  <div class="cmd-desc"><strong>TDD 测试驱动任务分解</strong> — Red→Green→Refactor 循环，TASK-XXX 映射 REQ-XXX。对应 Gate B-TDD。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">任务拆分：按 TDD 循环（Red 先写失败测试→Green 最小实现→Refactor 重构）</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 2</span><span class="step-desc">映射建立：TASK-XXX → REQ-XXX 可追溯映射</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 3</span><span class="step-desc">测试骨架：为每个 TASK 生成测试框架代码</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">产出：TDD 任务包（测试骨架 + 实现任务 + 重构清单）</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>task-design</div>
+</div>
+</div>
+
+<!-- 工程操作 -->
+<h3>四、工程操作（8条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/refactor</div>
+  <div class="cmd-desc"><strong>代码重构安全网</strong> — 5 Gate 保护：定义边界→基线测试+覆盖率→执行重构→行为漂移检测→报告。失败自动回滚。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate R1</span><span class="step-desc">定义边界：明确重构范围、不变性约束、成功标准</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate R2</span><span class="step-desc">基线建立：运行现有测试+记录覆盖率基线</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate R3</span><span class="step-desc">执行重构：逐文件重构，每步验证测试通过</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate R4</span><span class="step-desc">行为漂移检测：对比重构前后测试结果和覆盖率</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate R5</span><span class="step-desc">报告：变更清单 + 风险点 + 回归测试结果</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/hotfix</div>
+  <div class="cmd-desc"><strong>紧急热修复</strong> — 4 Gate 紧急协议：声明+审批→最小化修复→快速验证+回滚预案→事后审计。需要审批确认。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag red">Gate H0</span><span class="step-desc">紧急声明：评估影响范围+紧急程度+审批确认</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate H1</span><span class="step-desc">最小化修复：只修复根因，不做额外改动</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate H2</span><span class="step-desc">快速验证：核心流程回归 + 回滚预案确认</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate H3</span><span class="step-desc">事后审计：根因分析 + 预防措施 + 审计报告</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/migrate</div>
+  <div class="cmd-desc"><strong>框架迁移</strong> — 4 Gate：定义验证规则→应用迁移→编译验证→自动修复 Lint（最多 2 轮）。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate M1</span><span class="step-desc">迁移规则：定义 API 变更映射 + 验证标准</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate M2</span><span class="step-desc">应用迁移：批量替换 API 调用 + 更新依赖</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate M3</span><span class="step-desc">编译验证：确保项目编译通过</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate M4</span><span class="step-desc">自动修复：运行 Lint --fix，最多 2 轮</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/debug</div>
+  <div class="cmd-desc"><strong>调试诊断</strong> — 5 Gate 交互式诊断：收集信息→最小复现→调试会话→交互诊断→报告+修复方案。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate D0</span><span class="step-desc">信息收集：错误日志/堆栈/环境信息/复现步骤</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate D1</span><span class="step-desc">最小复现：隔离问题，构造最小可复现用例</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate D2</span><span class="step-desc">调试会话：断点/日志/变量追踪，定位根因</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate D3</span><span class="step-desc">交互诊断：多轮验证假设，排除干扰因素</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate D4</span><span class="step-desc">报告：根因 + 修复方案 + 预防建议</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/trace</div>
+  <div class="cmd-desc"><strong>贝叶斯因果追踪</strong> — 5 Gate：问题框架→竞争假设(2-5个)→证据收集→贝叶斯更新(>70%置信度)→解决方案。适合复杂根因分析。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate T0</span><span class="step-desc">问题框架：定义现象、时间线、已知事实</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate T1</span><span class="step-desc">假设生成：2-5 个竞争假设，每个标注先验概率</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate T2</span><span class="step-desc">证据收集：为每个假设收集支持/反对证据</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate T3</span><span class="step-desc">贝叶斯更新：用证据更新假设概率，置信度>70% 接受方案</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate T4</span><span class="step-desc">解决方案：基于最可能假设的修复方案</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/evaluate</div>
+  <div class="cmd-desc"><strong>技术评估</strong> — 4 Gate：定义标准+权重→生成原型→收集指标→多维度报告+推荐方案。适合技术选型。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate E0</span><span class="step-desc">评估标准：定义维度+权重（性能/生态/学习成本/维护性）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate E1</span><span class="step-desc">原型生成：为每个候选方案生成概念验证原型</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate E2</span><span class="step-desc">指标收集：运行基准测试，收集量化数据</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate E3</span><span class="step-desc">报告：多维雷达图 + 加权评分 + 推荐方案</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/simplify</div>
+  <div class="cmd-desc"><strong>代码简化</strong> — 4 Gate 五桶分析：死代码/重复/过度抽象/AI痕迹/复杂性。并行简化→回归验证→报告。失败自动回滚。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate S0</span><span class="step-desc">五桶分析：死代码→重复代码→过度抽象→AI痕迹→高复杂度，分类标记</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate S1</span><span class="step-desc">并行简化：5 个维度并行处理，每步安全检查和回归验证</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate S2</span><span class="step-desc">回归验证：全部测试通过+覆盖率不降，失败自动回滚</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate S3</span><span class="step-desc">报告：简化前后对比（行数/圈复杂度/重复率）</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/improve</div>
+  <div class="cmd-desc"><strong>度量驱动迭代改进</strong> — 5 Gate + 迭代循环：量化目标→研究→计划→执行+benchmark→评估→迭代/停止。支持 IM4→IM1 循环直到达标。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate IM0</span><span class="step-desc">量化目标：定义目标指标+baseline测量+成功阈值</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate IM1</span><span class="step-desc">研究：分析瓶颈，生成优化假设</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate IM2</span><span class="step-desc">计划：选择最佳假设，制定实施计划</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate IM3</span><span class="step-desc">执行：实施优化 + 运行 benchmark 测量</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate IM4</span><span class="step-desc">评估：达标→停止；未达标→回 Gate IM1 继续迭代</span></div>
+  </div>
+</div>
+</div>
+
+<!-- 审查与修复 -->
+<h3>五、审查与修复（3条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/review</div>
+  <div class="cmd-desc"><strong>只读代码审查</strong> — 不修改文件。spawn 多个审查 Agent 并行收集 findings（每条含文件/行号/依据/严重度），产出审查报告+严重度分级。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">范围确定：选定审查文件和关注维度</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">并行审查：spawn 审查 Agent 并行扫描（安全/性能/风格/架构）</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">发现汇总：合并 findings + 去重 + 严重度分级（P0/P1/P2/P3）</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">报告输出：审查报告（只读，不修改代码）</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>frontend-review-expert / backend-review-expert / security-review-expert / perf-review-expert / project-review-expert / diff-review-expert / change-review-expert / qa-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/review-fix</div>
+  <div class="cmd-desc"><strong>审查修复优化闭环</strong> — ①初审(只读)→②修复规划→③执行修复→④验证(质量重检)→⑤复审。最多 2 轮闭环。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">初审：spawn 审查 Agent 并行审查（同 /review）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">修复规划：remediation-planner 制定修复方案，按严重度排序</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">执行修复：spawn 对应实现 Agent 逐项修复</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 4</span><span class="step-desc">质量重检：Lint+Type-check+Build+测试 全部通过</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 5</span><span class="step-desc">复审：重新审查，≤2轮。仍失败→ABORT</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>review-fix-optimize / remediation-planner / review-only / 实现类+审查类 Agent</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/bug-fix</div>
+  <div class="cmd-desc"><strong>Bug 修复闭环</strong> — 浏览器复现→根因定位→修复→浏览器验证。涉及前端/交互类 Bug 的 7 步闭环，集成 Playwright MCP。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">Bug 描述：收集复现步骤+期望行为+实际行为</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">浏览器复现：Playwright 打开页面，按步骤操作确认 Bug</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 3</span><span class="step-desc">根因定位：代码追踪→假设验证→确定根因</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">修复实现：最小化代码修改</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 5</span><span class="step-desc">浏览器验证：Playwright 重新操作确认修复</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 6</span><span class="step-desc">回归测试：确保无新问题引入</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 7</span><span class="step-desc">修复报告：根因+修复+验证结果</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>remediation-expert / browser-test-expert</div>
+</div>
+</div>
+
+<!-- 测试体系 -->
+<h3>六、测试体系（6条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/test-unit</div>
+  <div class="cmd-desc"><strong>单元测试</strong> — TDD 循环：检测框架→分析代码→生成(Red)→运行(Green)→重构(Refactor)。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">框架检测：识别项目测试框架（vitest/jest/mocha）</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 2</span><span class="step-desc">代码分析：识别测试目标（函数/类/模块）</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">Red：生成失败测试（验证测试有效性）</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 4</span><span class="step-desc">Green：生成最小实现使测试通过</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 5</span><span class="step-desc">Refactor：重构代码，保持测试通过</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/test-integration</div>
+  <div class="cmd-desc"><strong>集成测试</strong> — 识别 API 契约→启动环境→生成测试→运行→清理环境。验证模块间交互。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">契约识别：读取 API 定义（OpenAPI/GraphQL schema/路由）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">环境准备：启动测试数据库/模拟服务</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">测试生成：按契约生成请求/响应验证用例</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 4</span><span class="step-desc">执行+清理：运行测试→清理环境</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>api-contract-expert / api-test-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/test-e2e</div>
+  <div class="cmd-desc"><strong>端到端测试</strong> — 用户故事→选择工具→编写用例→运行→报告。覆盖完整用户流程。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">用户故事提取：从需求文档提取关键用户旅程</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">工具选择：Playwright/Cypress/Selenium 按项目适配</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">用例编写：按用户旅程编写 E2E 测试脚本</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 4</span><span class="step-desc">运行+报告：执行全部 E2E → 通过/失败清单 + 截图</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>e2e-test-expert / browser-test-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/test-perf</div>
+  <div class="cmd-desc"><strong>性能测试</strong> — 定义目标→选择工具→建立基线→负载/压力测试→定位瓶颈→优化建议报告。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">目标定义：RT/吞吐量/并发数/资源使用指标</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">工具选择：k6/autocannon/artillery 按场景适配</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">基线+负载：建立性能基线→逐步加压→记录拐点</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 4</span><span class="step-desc">瓶颈定位+报告：火焰图/慢查询/内存分析→优化建议</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>perf-test-expert / perf-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/test-security</div>
+  <div class="cmd-desc"><strong>安全测试</strong> — 确认授权范围→爬取→主动漏洞扫描（OWASP Top 10）→修复验证→安全审计报告。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag red">Step 1</span><span class="step-desc">授权确认：明确扫描范围+授权边界（必须）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">信息收集：爬取端点+识别技术栈+攻击面分析</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">漏洞扫描：OWASP Top 10（注入/XSS/SSRF/越权等）</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 4</span><span class="step-desc">修复验证+报告：确认修复→安全审计报告</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>security-review-expert</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/browser-test</div>
+  <div class="cmd-desc"><strong>浏览器交互测试</strong> — 文档驱动闭环：test-doc-writer→test-executor→remediation-expert。最多 2 轮修复重测。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">用例编写：test-doc-writer 编写结构化测试文档（步骤+预期）</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">按文档执行：test-executor 严格按文档执行，不过度发挥</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">失败修复：remediation-expert 分析失败→spawn 修复→重测≤2轮</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">测试报告：通过/失败清单+截图+修复记录</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>test-doc-writer / test-executor / remediation-expert / remediation-planner</div>
+</div>
+</div>
+
+<!-- 专家咨询 -->
+<h3>七、专家咨询（3条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/frontend-architect</div>
+  <div class="cmd-desc"><strong>前端架构咨询</strong> — 只读模式，不修改文件。spawn frontend-architect Agent。适用：组件架构设计、性能优化方案、状态管理选型、微前端架构。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">问题收集：提取架构问题+当前技术栈+约束条件</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">spawn frontend-architect：只读分析+方案设计</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">输出呈现：架构方案+对比分析+推荐路径</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>frontend-architect</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/backend-architect</div>
+  <div class="cmd-desc"><strong>后端架构咨询</strong> — 只读模式。spawn backend-architect Agent。适用：API 设计、数据库架构、服务拆分、消息队列选型。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">问题收集：提取架构问题+当前技术栈+约束条件</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">spawn backend-architect + database-architect：只读分析</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">输出呈现：架构方案+数据模型+推荐路径</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>backend-architect / database-architect</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/algorithm-expert</div>
+  <div class="cmd-desc"><strong>算法设计与优化咨询</strong> — 只读模式。spawn algorithm-expert Agent。适用：复杂度优化、数据结构选型、数学建模、竞赛题目。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">问题收集：提取算法问题+约束+数据规模</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">spawn algorithm-expert：复杂度分析+多方案对比</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">输出呈现：最优算法+复杂度证明+实现伪代码</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>algorithm-expert</div>
+</div>
+</div>
+
+<!-- 发布与工具 -->
+<h3>八、发布与工具（4条）</h3>
+
+<div class="cmd-grid">
+<div class="cmd-card">
+  <div class="cmd-name">/release</div>
+  <div class="cmd-desc"><strong>快速发布</strong> — 5 Gate：环境检测→质量门→版本递增+CHANGELOG→commit+tag+push→验证(CI+npm)。适合个人/小团队快速发布。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Gate RL0</span><span class="step-desc">环境检测：检查工作区干净+分支正确+CI绿色</span></div>
+    <div class="flow-step"><span class="step-tag orange">Gate RL1</span><span class="step-desc">质量门：Lint+Type-check+Build+Test 全部通过</span></div>
+    <div class="flow-step"><span class="step-tag accent">Gate RL2</span><span class="step-desc">版本递增：patch/minor/major + CHANGELOG 更新</span></div>
+    <div class="flow-step"><span class="step-tag red">Gate RL3</span><span class="step-desc">发布：git commit+tag+push → CI 自动 npm publish</span></div>
+    <div class="flow-step"><span class="step-tag green">Gate RL4</span><span class="step-desc">验证：npm view + GitHub Release 确认</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/publish</div>
+  <div class="cmd-desc"><strong>完整发布流程</strong>（含 PR+审查+合并）。工作分支→质量门→测试→版本→commit→push→PR→审查→合并→tag→发布。适合团队协作。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">工作分支：从 main 创建 release/x.y.z 分支</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">质量门+测试：全部通过</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">版本+commit+push：更新版本号→提交→推送</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 4</span><span class="step-desc">PR+审查+合并：创建 PR→团队审查→合并到 main</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 5</span><span class="step-desc">Tag+发布：打 tag→push→CI 自动发布</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/sync</div>
+  <div class="cmd-desc"><strong>文档同步</strong> — 检查 CLAUDE.md/AGENTS.md/README.md/CHANGELOG.md 与代码一致性，清理过时文件。支持 --dry-run 预览模式。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">文档扫描：读取所有核心文档+代码统计</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">一致性检查：版本号/Agent数/Command数/Skill数交叉验证</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">差异报告：列出不一致项+过时文件</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">自动修复：更新统计数字+清理过时文件（--dry-run 仅预览）</span></div>
+  </div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/browser-explore</div>
+  <div class="cmd-desc"><strong>浏览器自主探索</strong> — browser-use Agent 自主探索页面+发现 UI bug+产出结构化报告。适合 UI 验收测试。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">目标设定：定义探索范围+检查维度</span></div>
+    <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">自主探索：browser-use Agent 自动浏览+交互+截图</span></div>
+    <div class="flow-step"><span class="step-tag red">Step 3</span><span class="step-desc">Bug 发现：自动识别 UI 异常/布局问题/交互缺陷</span></div>
+    <div class="flow-step"><span class="step-tag accent">Step 4</span><span class="step-desc">结构化报告：发现清单+截图+严重度+复现步骤</span></div>
+  </div>
+  <div class="agents"><span>关键 Agent：</span>browser-use-expert</div>
+</div>
 </div>
 </div>
 
 <!-- ============================================================ -->
-<h2 id="platform">平台开发（6）</h2>
+<!-- 智能体体系 -->
+<!-- ============================================================ -->
+<h2 id="agents">智能体体系 <span class="count">— 71 个 Agent，6 大类别</span></h2>
+
+<div class="intro">
+  <p>每个 Agent 是高度专业化的 AI 角色，在流水线对应 Gate 被编排者 spawn 执行。Agent 读取 <code>AGENTS.md</code> 获取项目约束，遵循 Gate 操作权限表，产出结构化文档。</p>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F4DD; 实现类 <span class="count">25 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">frontend-dev-expert</span>
+    <span class="agent-tag">frontend-ui-expert</span>
+    <span class="agent-tag">frontend-state-expert</span>
+    <span class="agent-tag">backend-dev-expert</span>
+    <span class="agent-tag">backend-api-expert</span>
+    <span class="agent-tag">backend-logic-expert</span>
+    <span class="agent-tag">backend-data-expert</span>
+    <span class="agent-tag">android-dev-expert</span>
+    <span class="agent-tag">android-ui-expert</span>
+    <span class="agent-tag">android-state-expert</span>
+    <span class="agent-tag">ios-dev-expert</span>
+    <span class="agent-tag">ios-ui-expert</span>
+    <span class="agent-tag">ios-state-expert</span>
+    <span class="agent-tag">flutter-dev-expert</span>
+    <span class="agent-tag">flutter-ui-expert</span>
+    <span class="agent-tag">flutter-state-expert</span>
+    <span class="agent-tag">expo-dev-expert</span>
+    <span class="agent-tag">expo-ui-expert</span>
+    <span class="agent-tag">expo-state-expert</span>
+    <span class="agent-tag">react-native-dev-expert</span>
+    <span class="agent-tag">react-native-ui-expert</span>
+    <span class="agent-tag">react-native-state-expert</span>
+    <span class="agent-tag">taro-dev-expert</span>
+    <span class="agent-tag">taro-ui-expert</span>
+    <span class="agent-tag">taro-state-expert</span>
+  </div>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F9EA; 测试类 <span class="count">15 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">frontend-test-expert</span>
+    <span class="agent-tag">backend-test-expert</span>
+    <span class="agent-tag">android-test-expert</span>
+    <span class="agent-tag">ios-test-expert</span>
+    <span class="agent-tag">flutter-test-expert</span>
+    <span class="agent-tag">taro-test-expert</span>
+    <span class="agent-tag">expo-test-expert</span>
+    <span class="agent-tag">react-native-test-expert</span>
+    <span class="agent-tag">browser-test-expert</span>
+    <span class="agent-tag">browser-use-expert</span>
+    <span class="agent-tag">e2e-test-expert</span>
+    <span class="agent-tag">perf-test-expert</span>
+    <span class="agent-tag">api-test-expert</span>
+    <span class="agent-tag">test-doc-writer</span>
+    <span class="agent-tag">test-executor</span>
+  </div>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F4CB; 规划/任务类 <span class="count">4 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">task-design</span>
+    <span class="agent-tag">planner</span>
+    <span class="agent-tag">skill-assignment-expert</span>
+    <span class="agent-tag">remediation-planner</span>
+  </div>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F50D; 审查类 <span class="count">16 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">frontend-review-expert</span>
+    <span class="agent-tag">backend-review-expert</span>
+    <span class="agent-tag">android-review-expert</span>
+    <span class="agent-tag">ios-review-expert</span>
+    <span class="agent-tag">flutter-review-expert</span>
+    <span class="agent-tag">taro-review-expert</span>
+    <span class="agent-tag">expo-review-expert</span>
+    <span class="agent-tag">react-native-review-expert</span>
+    <span class="agent-tag">diff-review-expert</span>
+    <span class="agent-tag">project-review-expert</span>
+    <span class="agent-tag">perf-review-expert</span>
+    <span class="agent-tag">security-review-expert</span>
+    <span class="agent-tag">qa-review-expert</span>
+    <span class="agent-tag">change-review-expert</span>
+    <span class="agent-tag">review-only</span>
+    <span class="agent-tag">review-fix-optimize</span>
+  </div>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F3DB; 架构/专家类 <span class="count">4 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">frontend-architect</span>
+    <span class="agent-tag">backend-architect</span>
+    <span class="agent-tag">database-architect</span>
+    <span class="agent-tag">algorithm-expert</span>
+  </div>
+</div>
+
+<div class="agent-category">
+  <h4>&#x1F50C; 探索/支撑类 <span class="count">7 个</span></h4>
+  <div class="agent-list">
+    <span class="agent-tag">code-explore-expert</span>
+    <span class="agent-tag">external-resource-expert</span>
+    <span class="agent-tag">api-contract-expert</span>
+    <span class="agent-tag">docs-engineer</span>
+    <span class="agent-tag">infra-deploy-expert</span>
+    <span class="agent-tag">remediation-expert</span>
+    <span class="agent-tag">docs-research-expert</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 流水线架构 -->
+<!-- ============================================================ -->
+<h2 id="pipelines">流水线架构</h2>
+
+<div class="intro">
+  <p>每条指令对应一条流水线，每条流水线由一组 Gate 组成。Gate 是 FSM 硬约束检查点——<strong>前一个 Gate 未通过，无法推进到下一个</strong>。引擎通过 MCP 工具 <code>gate_check</code> 和 <code>gate_enforce</code> 在每次 Agent spawn 后自动检查 Gate 状态，禁止跳过或回退。</p>
+</div>
+
+<h3>标准流水线 (full/frontend/backend/lite)</h3>
+
+<table class="pipe-table">
+<thead>
+<tr><th>Gate</th><th>名称</th><th>产出</th><th>操作权限</th><th>调度策略</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td class="pipe-name">Gate A</td>
+  <td>需求澄清</td>
+  <td>REQ-XXX 需求文档</td>
+  <td>read, write_doc</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate B-DDD</td>
+  <td>领域驱动分析</td>
+  <td>聚合/实体/值对象/领域服务</td>
+  <td>read, write_doc</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate B-BDD</td>
+  <td>行为驱动场景</td>
+  <td>Gherkin 验收场景（条件性）</td>
+  <td>read, write_doc</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate B-TDD</td>
+  <td>测试驱动分解</td>
+  <td>TASK-XXX → REQ-XXX 映射</td>
+  <td>read, write_doc</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate B1</td>
+  <td>架构评审</td>
+  <td>架构评审报告（条件性）</td>
+  <td>read, write_doc, sweep_arch</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate C</td>
+  <td>执行规划</td>
+  <td>parallel_batches 分组</td>
+  <td>read, write_doc, spawn_impl</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate C-impl</td>
+  <td>并行实现</td>
+  <td>代码实现 + 自查报告</td>
+  <td>read, write_code, spawn_impl</td>
+  <td><span class="tag tag-green">prefer_team</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate C1</td>
+  <td>代码质量门</td>
+  <td>Lint+Type-check+Build+Deps Audit</td>
+  <td>read, lint, build, fix</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate C1.5</td>
+  <td>视觉验证</td>
+  <td>截图对比报告（条件性）</td>
+  <td>read, preview, fix</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate C2</td>
+  <td>测试验证</td>
+  <td>测试报告 · 最多5次重试</td>
+  <td>read, spawn_test, fix</td>
+  <td><span class="tag tag-green">prefer_team</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate D</td>
+  <td>评审</td>
+  <td>审查报告+严重度分级</td>
+  <td>read, review, audit, fix</td>
+  <td><span class="tag tag-green">prefer_team</span></td>
+</tr>
+<tr>
+  <td class="pipe-name">Gate E</td>
+  <td>发布上线</td>
+  <td>版本递增+CHANGELOG+发布</td>
+  <td>read, deploy, write_doc</td>
+  <td><span class="tag tag-blue">subagent_only</span></td>
+</tr>
+</tbody>
+</table>
+
+<h3>专业流水线（13条）</h3>
+
+<table class="pipe-table">
+<thead>
+<tr><th>流水线</th><th>指令</th><th>Gate 序列</th><th>门数</th><th>核心特色</th></tr>
+</thead>
+<tbody>
+<tr><td class="pipe-name">refactor</td><td><code>/refactor</code></td><td>R1→R2→R3→R4→R5</td><td>5</td><td>基线测试+行为漂移检测+自动回滚</td></tr>
+<tr><td class="pipe-name">hotfix</td><td><code>/hotfix</code></td><td>H0→H1→H2→H3</td><td>4</td><td>紧急审批+回滚预案+事后审计</td></tr>
+<tr><td class="pipe-name">migrate</td><td><code>/migrate</code></td><td>M1→M2→M3→M4</td><td>4</td><td>自动修复Lint≤2轮</td></tr>
+<tr><td class="pipe-name">evaluate</td><td><code>/evaluate</code></td><td>E0→E1→E2→E3</td><td>4</td><td>原型+量化指标+雷达图</td></tr>
+<tr><td class="pipe-name">debug</td><td><code>/debug</code></td><td>D0→D1→D2→D3→D4</td><td>5</td><td>最小复现+交互式诊断</td></tr>
+<tr><td class="pipe-name">research</td><td><code>/research</code></td><td>RS0→RS1→RS2→RS3→RS4</td><td>5</td><td>竞争假设+证据矩阵+假设验证</td></tr>
+<tr><td class="pipe-name">release</td><td><code>/release</code></td><td>RL0→RL1→RL2→RL3→RL4</td><td>5</td><td>质量门前置+CI自动发布</td></tr>
+<tr><td class="pipe-name">ask</td><td><code>/ask</code></td><td>K0→K1→K2→K3</td><td>4</td><td>4模式自适应+5维评分矩阵</td></tr>
+<tr><td class="pipe-name">simplify</td><td><code>/simplify</code></td><td>S0→S1→S2→S3</td><td>4</td><td>五桶分析+失败自动回滚</td></tr>
+<tr><td class="pipe-name">trace</td><td><code>/trace</code></td><td>T0→T1→T2→T3→T4</td><td>5</td><td>贝叶斯概率更新+>70%置信度</td></tr>
+<tr><td class="pipe-name">improve</td><td><code>/improve</code></td><td>IM0→IM1→IM2→IM3→IM4</td><td>5</td><td>benchmark迭代循环(allow_jump)</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 技能体系 -->
+<!-- ============================================================ -->
+<h2 id="skills">技能体系 <span class="count">— 34 个 Skill，12 个领域</span></h2>
+
+<table class="pipe-table">
+<thead>
+<tr><th>领域</th><th>技能</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>基础</strong></td><td>behavioral-guidelines · context-engineering · using-agent-skills</td></tr>
+<tr><td><strong>需求</strong></td><td>spec-driven-development · idea-refine</td></tr>
+<tr><td><strong>规划</strong></td><td>planning-and-task-breakdown</td></tr>
+<tr><td><strong>实现</strong></td><td>source-driven-development · incremental-implementation · test-driven-development · code-standards · code-simplification · frontend-design · refactoring</td></tr>
+<tr><td><strong>质量</strong></td><td>code-quality-gate · code-review-and-quality · verification-before-completion</td></tr>
+<tr><td><strong>测试</strong></td><td>perf-testing · test-data-factory</td></tr>
+<tr><td><strong>调试</strong></td><td>debugging-and-error-recovery · debugging-deep</td></tr>
+<tr><td><strong>浏览器</strong></td><td>agent-browser · browser-testing · browser-use</td></tr>
+<tr><td><strong>安全</strong></td><td>security-and-hardening · security-testing</td></tr>
+<tr><td><strong>流程</strong></td><td>shipping-and-launch · git-workflow-and-versioning · finishing-a-development-branch</td></tr>
+<tr><td><strong>文档</strong></td><td>chinese-documentation · documentation-and-adrs · writing-skills</td></tr>
+<tr><td><strong>工具</strong></td><td>find-docs · find-skills · mcp-builder</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 使用推荐 -->
+<!-- ============================================================ -->
+<h2 id="scenarios">使用推荐</h2>
 
 <div class="recommend">
-  <span class="icon">�</span> <strong>推荐：</strong>移动端/跨端开发使用对应平台命令，它们使用平台专属 Agent（如 android-dev-expert、flutter-ui-expert）并强制执行 C1.5 视觉验证。
-</div>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/frontend</div>
-  <div class="desc">前端开发生命周期 — C1.5 视觉验证强制。Agent: frontend-architect / frontend-dev-expert / frontend-ui-expert / frontend-state-expert</div>
-  <div class="meta"><span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/backend</div>
-  <div class="desc">后端开发生命周期 — 跳过 C1.5 视觉验证。Agent: backend-architect / backend-dev-expert / backend-api-expert / backend-logic-expert / backend-data-expert</div>
-  <div class="meta"><span class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E</span> <span class="tag tag-red">跳过C1.5</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/android</div>
-  <div class="desc">Android 原生开发生命周期 — Kotlin/Jetpack Compose。Agent: android-dev-expert / android-ui-expert / android-state-expert / android-test-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/ios</div>
-  <div class="desc">iOS 原生开发生命周期 — Swift/SwiftUI。Agent: ios-dev-expert / ios-ui-expert / ios-state-expert / ios-test-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span> <span class="tag tag-green">C1.5强制</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/flutter</div>
-  <div class="desc">Flutter 跨端开发生命周期 — Dart。Agent: flutter-dev-expert / flutter-ui-expert / flutter-state-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/expo</div>
-  <div class="desc">Expo 跨端开发生命周期 — React Native + Expo SDK。Agent: expo-dev-expert / expo-ui-expert / expo-state-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/react-native</div>
-  <div class="desc">React Native 跨端开发生命周期。Agent: react-native-dev-expert / react-native-ui-expert / react-native-state-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/taro</div>
-  <div class="desc">Taro 小程序/H5 跨端开发生命周期。Agent: taro-dev-expert / taro-ui-expert / taro-state-expert</div>
-  <div class="meta"><span class="gates">A→B→B1→C→C-impl→C1→C1.5→C2→D→E</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="requirements">需求与设计（5）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/ask</div>
-  <div class="desc">需求探询 — 4模式自适应：Interview(模糊→Socratic追问)、Direct(清晰→直接分析)、Consensus(ralplan式3阶段共识)、Review(Critic评估现有计划)。含5维度评分矩阵(BV/EF/RS/UI/DC)</div>
-  <div class="meta"><span class="gates">K0→K1→K2→K3</span> <span class="tag tag-green">allow_jump</span> <span class="tag tag-purple">评分矩阵</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/research</div>
-  <div class="desc">深度研究 — RS0课题定义→RS1信息收集→RS2多维分析→RS3假设验证→RS4研究报告。竞争假设+证据矩阵</div>
-  <div class="meta"><span class="gates">RS0→RS1→RS2→RS3→RS4</span> <span class="gates">5门</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/task-ddd</div>
-  <div class="desc">DDD 领域驱动分析 — 聚合/实体/值对象/领域服务/聚合行为清单+路由建议</div>
-  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-DDD</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/task-bdd</div>
-  <div class="desc">BDD 行为驱动场景 — Gherkin Given/When/Then 格式，BDD验收场景编写</div>
-  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-BDD</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/task-tdd</div>
-  <div class="desc">TDD 测试驱动任务分解 — Red→Green→Refactor 循环，TASK-XXX 映射 REQ-XXX</div>
-  <div class="meta"><span class="tag tag-orange">agent指令模板</span> <span class="tag tag-blue">Gate B-TDD</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="engineering">工程操作（7）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/refactor</div>
-  <div class="desc">代码重构安全网 — R1定义边界→R2基线测试+覆盖率→R3执行重构→R4行为漂移检测→R5报告</div>
-  <div class="meta"><span class="gates">R1→R2→R3→R4→R5</span> <span class="gates">5门</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/hotfix</div>
-  <div class="desc">紧急热修复 — H0紧急声明+审批→H1最小化修复→H2快速验证+回滚→H3事后审计</div>
-  <div class="meta"><span class="gates">H0→H1→H2→H3</span> <span class="gates">4门</span> <span class="tag tag-red">紧急协议</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/migrate</div>
-  <div class="desc">框架迁移 — M1验证规则→M2应用迁移→M3编译验证→M4自动修复Lint(≤2轮)</div>
-  <div class="meta"><span class="gates">M1→M2→M3→M4</span> <span class="gates">4门</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/debug</div>
-  <div class="desc">调试诊断 — D0收集信息→D1最小复现→D2调试会话→D3交互诊断→D4报告+修复方案</div>
-  <div class="meta"><span class="gates">D0→D1→D2→D3→D4</span> <span class="gates">5门</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/evaluate</div>
-  <div class="desc">技术评估 — E0定义标准+权重→E1生成原型→E2收集指标→E3多维度报告+推荐</div>
-  <div class="meta"><span class="gates">E0→E1→E2→E3</span> <span class="gates">4门</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/simplify</div>
-  <div class="desc">代码简化 — S0五桶分析(死代码/重复/过度抽象/AI痕迹/复杂性)→S1并行简化→S2回归验证→S3报告。失败自动回滚</div>
-  <div class="meta"><span class="gates">S0→S1→S2→S3</span> <span class="gates">4门</span> <span class="tag tag-green">自动回滚</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/improve</div>
-  <div class="desc">度量驱动迭代改进 — IM0量化目标→IM1研究→IM2计划→IM3执行+benchmark→IM4评估→迭代/停止。支持IM4→IM1循环</div>
-  <div class="meta"><span class="gates">IM0→IM1→IM2→IM3→IM4</span> <span class="gates">5门</span> <span class="tag tag-green">allow_jump</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/trace</div>
-  <div class="desc">因果追踪 — T0问题框架→T1假设生成(2-5竞争假设)→T2证据收集→T3贝叶斯更新(>70%方案/<70%重假设)→T4解决方案</div>
-  <div class="meta"><span class="gates">T0→T1→T2→T3→T4</span> <span class="gates">5门</span> <span class="tag tag-purple">贝叶斯</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="review">审查与修复（3）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/review</div>
-  <div class="desc">只读代码审查 — 不修改文件。spawn 审查 Agent 并行收集 findings（每条含文件/行号/依据），产出审查报告+严重度分级</div>
-  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">并行审查</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/review-fix</div>
-  <div class="desc">审查修复优化闭环 — ①初审(只读)②修复规划③执行修复④验证(质量重检)⑤复审。最多2轮</div>
-  <div class="meta"><span class="tag tag-orange">闭环</span> <span class="tag tag-red">≤2轮</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/bug-fix</div>
-  <div class="desc">Bug修复闭环 — 浏览器复现→根因定位→修复→浏览器验证。涉及前端/交互类 Bug 的7步闭环</div>
-  <div class="meta"><span class="tag tag-orange">浏览器闭环</span> <span class="tag tag-green">Playwright</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="testing">测试体系（6）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/test-unit</div>
-  <div class="desc">单元测试 — 检测框架→分析代码→生成(Red)→运行(Green)→重构(Refactor)。TDD 循环</div>
-  <div class="meta"><span class="tag tag-blue">TDD</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/test-integration</div>
-  <div class="desc">集成测试 — 识别API契约→启动环境→生成测试→运行→清理环境</div>
-  <div class="meta"><span class="tag tag-purple">API契约</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/test-e2e</div>
-  <div class="desc">端到端测试 — 用户故事→选择工具→编写用例→运行→报告。覆盖完整用户流程</div>
-  <div class="meta"><span class="tag tag-orange">全栈</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/test-perf</div>
-  <div class="desc">性能测试 — 定义性能目标→选择工具→建立基线→负载/压力测试→定位瓶颈→报告</div>
-  <div class="meta"><span class="tag tag-red">负载</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/test-security</div>
-  <div class="desc">安全测试 — 确认授权范围→爬取→主动漏洞扫描→修复验证→安全审计报告</div>
-  <div class="meta"><span class="tag tag-red">OWASP</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/browser-test</div>
-  <div class="desc">浏览器交互测试 — 文档驱动：test-doc-writer→test-executor→remediation-expert 闭环。最多2轮修复重测</div>
-  <div class="meta"><span class="tag tag-green">Playwright</span> <span class="tag tag-orange">文档驱动</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="expert">专家咨询（3）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/frontend-architect</div>
-  <div class="desc">前端架构咨询 — 只读。spawn frontend-architect Agent。适用：组件架构设计、性能优化方案、状态管理选型</div>
-  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/backend-architect</div>
-  <div class="desc">后端架构咨询 — 只读。spawn backend-architect Agent。适用：API设计、数据库架构、服务拆分</div>
-  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/algorithm-expert</div>
-  <div class="desc">算法设计与优化咨询 — 只读。spawn algorithm-expert Agent。适用：复杂度优化、数据结构选型、数学建模</div>
-  <div class="meta"><span class="tag tag-blue">只读</span> <span class="tag tag-green">方案讨论</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="tools">发布与工具（4）</h2>
-
-<div class="cmd-grid">
-<div class="cmd-card">
-  <div class="name">/release</div>
-  <div class="desc">快速发布 — RL0环境检测→RL1质量门→RL2版本递增+CHANGELOG→RL3 commit+tag+push→RL4验证(CI+npm)</div>
-  <div class="meta"><span class="gates">RL0→RL1→RL2→RL3→RL4</span> <span class="gates">5门</span> <span class="tag tag-green">CI自动</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/publish</div>
-  <div class="desc">完整发布流程(含PR+审查+合并) — 工作分支→质量门→测试→版本→commit→push→PR→合并→tag→发布。团队协作</div>
-  <div class="meta"><span class="tag tag-purple">PR工作流</span> <span class="tag tag-orange">团队协作</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/sync</div>
-  <div class="desc">文档同步 — 检查 CLAUDE.md/AGENTS.md/README.md/CHANGELOG.md 与代码一致性，清理过时文件。支持 --dry-run</div>
-  <div class="meta"><span class="tag tag-blue">文档维护</span></div>
-</div>
-<div class="cmd-card">
-  <div class="name">/browser-explore</div>
-  <div class="desc">浏览器自主探索 — browser-use Agent 自主探索页面+发现UI bug+产出结构化报告</div>
-  <div class="meta"><span class="tag tag-green">Playwright</span> <span class="tag tag-purple">自主探索</span></div>
-</div>
-</div>
-
-<!-- ============================================================ -->
-<h2 id="recommendations">使用推荐</h2>
-
-<div class="recommend">
-  <span class="icon">�</span> <strong>新手入门路径：</strong>
+  <strong>&#x1F4A1; 新手入门路径：</strong><br>
   <code>/auto 需求描述</code> → 自动路由 + 引导 →
   <code>/review</code> 审查产出 →
   <code>/review-fix</code> 修复问题 →
-  <code>/release</code> 发布
+  <code>/release</code> 发布<br>
+  <strong>不需要记住所有指令，99% 的情况 /auto 就够了。</strong>
 </div>
 
-<table class="flow-table">
-<thead>
-<tr><th>场景</th><th>推荐指令</th><th>原因</th></tr>
-</thead>
-<tbody>
-<tr><td>日常开发（默认）</td><td><code>/auto</code></td><td>自动任务分类+路由，最省心</td></tr>
-<tr><td>中大型功能</td><td><code>/jarvis</code></td><td>13 Gate 完整流程，质量保证最强</td></tr>
-<tr><td>重构代码</td><td><code>/refactor</code></td><td>R1-R5 安全网，基线→验证→漂移检测</td></tr>
-<tr><td>紧急修复线上故障</td><td><code>/hotfix</code></td><td>H0-H3 紧急协议，审批+回滚预案</td></tr>
-<tr><td>代码质量清理</td><td><code>/simplify</code></td><td>五桶分析，失败自动回滚</td></tr>
-<tr><td>排查Bug</td><td><code>/debug</code> 或 <code>/trace</code></td><td>/debug=交互式诊断，/trace=贝叶斯因果推理</td></tr>
-<tr><td>性能优化</td><td><code>/improve</code></td><td>度量驱动迭代，IM4→IM1循环直到达标</td></tr>
-<tr><td>技术选型</td><td><code>/evaluate</code> 或 <code>/research</code></td><td>/evaluate=原型+指标，/research=深度分析+假设验证</td></tr>
-<tr><td>需求不清晰</td><td><code>/ask</code> (Interview模式)</td><td>Socratic追问→K1探索→K2评分矩阵</td></tr>
-<tr><td>框架升级</td><td><code>/migrate</code></td><td>M1-M4 迁移+自动修复</td></tr>
-<tr><td>代码审查</td><td><code>/review</code> → <code>/review-fix</code></td><td>先审查→后修复→再验证，最多2轮</td></tr>
-<tr><td>测试补齐</td><td><code>/test-unit</code> / <code>/test-integration</code></td><td>按需选择测试类型</td></tr>
-<tr><td>发布上线</td><td><code>/release</code></td><td>质量门+版本递增+CI自动发布</td></tr>
-</tbody>
-</table>
+<div class="scenario-grid">
+  <div class="scenario-card">
+    <h4>&#x1F4BB; 日常开发（默认）</h4>
+    <p>使用 <code>/auto</code>，自动检测任务类型→路由最优流水线→跳过无关Gate→按复杂度分配Agent。最省心。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F3D7; 中大型功能</h4>
+    <p>使用 <code>/jarvis</code>，13 Gate 完整生命周期。DDD→BDD→TDD→架构→规划→并行实现→视觉验证→测试→评审→发布，质量保证最强。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F527; 重构代码</h4>
+    <p>使用 <code>/refactor</code>，R1-R5 安全网保护。建立基线测试→执行重构→行为漂移检测→失败自动回滚。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F6A8; 紧急修复线上故障</h4>
+    <p>使用 <code>/hotfix</code>，H0-H3 紧急协议。影响声明+审批→最小化修复→快速验证+回滚预案→事后审计。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F9F9; 代码质量清理</h4>
+    <p>使用 <code>/simplify</code>，五桶分析（死代码/重复/过度抽象/AI痕迹/复杂性）。失败自动回滚，不怕改坏。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F50D; 排查 Bug</h4>
+    <p>简单问题用 <code>/debug</code>（交互式诊断），复杂根因用 <code>/trace</code>（贝叶斯因果推理，多假设竞争+证据更新）。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x26A1; 性能优化</h4>
+    <p>使用 <code>/improve</code>，度量驱动迭代。量化目标→研究→计划→执行+benchmark→评估→不达标继续迭代。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F4CA; 技术选型</h4>
+    <p>快速选型用 <code>/evaluate</code>（原型+量化指标+雷达图），深度调研用 <code>/research</code>（5阶段分析+竞争假设验证）。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x2753; 需求不清晰</h4>
+    <p>使用 <code>/ask</code>（Interview 模式），Socratic 追问→K1探索空间→K2五维评分矩阵→K3产出分析报告+路由建议。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F4E6; 框架升级</h4>
+    <p>使用 <code>/migrate</code>，M1-M4 迁移流程。定义规则→应用迁移→编译验证→自动修复Lint≤2轮。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F4DD; 代码审查</h4>
+    <p>使用 <code>/review</code>（只读审查）→ <code>/review-fix</code>（修复闭环）。先审查后修复再复审，最多2轮。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F4E4; 发布上线</h4>
+    <p>个人/小团队用 <code>/release</code>（质量门→版本递增→CI自动发布），团队协作用 <code>/publish</code>（含 PR+审查+合并流程）。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F3AF; 前端开发</h4>
+    <p>使用 <code>/frontend</code>，C1.5 视觉验证强制。spawn frontend-dev/ui/state-expert 并行实现，frontend-architect 架构评审。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F310; 后端开发</h4>
+    <p>使用 <code>/backend</code>，跳过 C1.5 视觉验证。spawn backend-dev/api/logic/data-expert 并行实现，database-architect 数据模型评审。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F4F1; 移动端/跨端开发</h4>
+    <p>使用平台对应指令（<code>/android</code> <code>/ios</code> <code>/flutter</code> <code>/expo</code> <code>/react-native</code> <code>/taro</code>），每个平台有专属 dev/ui/state/test/review 全套 Agent。</p>
+  </div>
+  <div class="scenario-card">
+    <h4>&#x1F9EA; 测试补齐</h4>
+    <p>按需选择：<code>/test-unit</code>（单元）<code>/test-integration</code>（集成）<code>/test-e2e</code>（端到端）<code>/test-perf</code>（性能）<code>/test-security</code>（安全）。前端用 <code>/browser-test</code> 文档驱动测试。</p>
+  </div>
+</div>
 
 <!-- ============================================================ -->
-<h2 id="pipeline-summary">流水线总览</h2>
+<!-- 快速开始 -->
+<!-- ============================================================ -->
+<h2 id="quickstart">快速开始</h2>
 
-<table class="flow-table">
-<thead>
-<tr><th>流水线</th><th>指令</th><th>Gate 序列</th><th>门数</th><th>特色</th></tr>
-</thead>
-<tbody>
-<tr><td>full</td><td><code>/jarvis</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>12</td><td>完整生命周期</td></tr>
-<tr><td>full</td><td><code>/frontend</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>12</td><td>C1.5视觉验证强制</td></tr>
-<tr><td>backend</td><td><code>/backend</code></td><td>A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E</td><td>11</td><td>跳过C1.5</td></tr>
-<tr><td>lite</td><td><code>/auto</code></td><td>A→...→E (allow_jump)</td><td>自适应</td><td>智能跳过无关Gate</td></tr>
-<tr><td>refactor</td><td><code>/refactor</code></td><td>R1→R2→R3→R4→R5</td><td>5</td><td>行为漂移检测</td></tr>
-<tr><td>hotfix</td><td><code>/hotfix</code></td><td>H0→H1→H2→H3</td><td>4</td><td>审批+回滚预案</td></tr>
-<tr><td>migrate</td><td><code>/migrate</code></td><td>M1→M2→M3→M4</td><td>4</td><td>自动修复Lint≤2轮</td></tr>
-<tr><td>evaluate</td><td><code>/evaluate</code></td><td>E0→E1→E2→E3</td><td>4</td><td>原型+指标</td></tr>
-<tr><td>debug</td><td><code>/debug</code></td><td>D0→D1→D2→D3→D4</td><td>5</td><td>交互式诊断</td></tr>
-<tr><td>research</td><td><code>/research</code></td><td>RS0→RS1→RS2→RS3→RS4</td><td>5</td><td>假设验证+证据矩阵</td></tr>
-<tr><td>release</td><td><code>/release</code></td><td>RL0→RL1→RL2→RL3→RL4</td><td>5</td><td>CI自动发布</td></tr>
-<tr><td>ask</td><td><code>/ask</code></td><td>K0→K1→K2→K3</td><td>4</td><td>4模式+评分矩阵</td></tr>
-<tr><td>simplify</td><td><code>/simplify</code></td><td>S0→S1→S2→S3</td><td>4</td><td>自动回滚</td></tr>
-<tr><td>trace</td><td><code>/trace</code></td><td>T0→T1→T2→T3→T4</td><td>5</td><td>贝叶斯因果推理</td></tr>
-<tr><td>improve</td><td><code>/improve</code></td><td>IM0→IM1→IM2→IM3→IM4</td><td>5</td><td>迭代循环(allow_jump)</td></tr>
-</tbody>
-</table>
+<div class="intro">
+  <p><strong>3 步开始：</strong></p>
+  <p>1. <code>npm i -g jarvis-agent-factory</code> — 安装 CLI（零原生依赖，Node 22.5+ 内置 node:sqlite）</p>
+  <p>2. <code>jarvis init -y</code> — 一键部署配置 + MCP + 钩子到当前项目</p>
+  <p>3. 重启 Claude Code → 引擎自动拉起 → 输入 <code>/auto 你的任务</code> 开始使用</p>
+  <br>
+  <p><strong>Web 面板：</strong><code>jarvis web</code> → <code>http://localhost:3457</code> 查看流水线看板、会话管理、Agent 配置、归档记录。</p>
+  <p><strong>远程面板：</strong>每次 GitHub Release 附带单 HTML 文件，下载即可打开，无需本地安装。</p>
+</div>
 
-<hr style="border-color:var(--border);margin:32px 0">
-
-<div style="text-align:center;color:var(--muted);font-size:12px;margin:24px 0">
-  Jarvis Agent Factory v4.2.1 · <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory" style="color:var(--accent)">GitHub</a> ·
-  <a href="https://www.npmjs.com/package/jarvis-agent-factory" style="color:var(--accent)">npm</a> ·
-  <a href="../AGENTS.md" style="color:var(--accent)">AGENTS.md</a> ·
-  39 Commands · 71 Agents · 34 Skills · 15 Pipelines
+<!-- ============================================================ -->
+<!-- FOOTER -->
+<!-- ============================================================ -->
+<div class="footer">
+  <p>
+    <strong>Jarvis Agent Factory v4.2.1</strong> &nbsp;·&nbsp;
+    <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
+    <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
+    <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a> &nbsp;·&nbsp;
+    <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/README.md">README.md</a>
+  </p>
+  <p style="margin-top:8px">39 Commands · 71 Agents · 34 Skills · 15 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>

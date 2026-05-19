@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.2.2] - 2026-05-19
+
+### Changed
+- 重写 `commands-reference.html` 为完整的项目介绍页面（1125行/77KB）：项目概览、核心概念、39条指令详细流程（含每条的 Gate 步骤说明和关键 Agent）、71个智能体6类目录、流水线架构、技能体系、16场景使用推荐、快速开始
+- README.md 更新 Web 面板介绍页描述和命令流程图链接文字
+
 ## [4.2.1] - 2026-05-19
 
 ### Added
