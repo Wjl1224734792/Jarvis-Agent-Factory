@@ -86,9 +86,10 @@ function createMockFile(
  * jsdom 的 File 实现可能不支持 text() 方法
  */
 function stubFileText() {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- saving original prototype method
   const original = File.prototype.text;
-  File.prototype.text = function () {
-    return (this as File).arrayBuffer().then(buf => {
+  File.prototype.text = function (this: File) {
+    return this.arrayBuffer().then(buf => {
       const decoder = new TextDecoder();
       return decoder.decode(buf);
     });
@@ -102,8 +103,7 @@ function stubFileText() {
 /*  模块级 mock 引用                                                    */
 /* ------------------------------------------------------------------ */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MockFn = any;
+type MockFn = ReturnType<typeof vi.fn>;
 let markedMock: { parse: MockFn };
 let dompurifyMock: { sanitize: MockFn };
 
@@ -119,11 +119,11 @@ describe('ImportFileButton', () => {
     restoreFileText = stubFileText();
 
     // 获取 mock 引用并配置默认实现
-    markedMock = (await import('marked')).marked as unknown as {
-      parse: ReturnType<typeof vi.fn>;
+    markedMock = (await import('marked')).marked as {
+      parse: MockFn;
     };
-    dompurifyMock = (await import('dompurify')).default as unknown as {
-      sanitize: ReturnType<typeof vi.fn>;
+    dompurifyMock = (await import('dompurify')).default as {
+      sanitize: MockFn;
     };
 
     // 配置默认 mock 实现
@@ -216,9 +216,9 @@ describe('ImportFileButton', () => {
         throw new Error('Parse error');
       });
 
-      expect(() =>
-        markedMock.parse('invalid', { async: false, gfm: true, breaks: true })
-      ).toThrow('Parse error');
+      expect(() => {
+        markedMock.parse('invalid', { async: false, gfm: true, breaks: true });
+      }).toThrow('Parse error');
     });
   });
 

@@ -73,7 +73,6 @@ import {
   circlesTable,
   circleMembersTable,
   circlePostsTable,
-  circlePostCommentsTable,
 } from "./schema.js";
 import { sql } from "drizzle-orm";
 import {
@@ -1653,7 +1652,7 @@ async function seedPostgreSQL() {
     await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: adminId, role: "owner" });
     // 随机成员
     for (let j = 0; j < randInt(3, 15); j++) {
-      await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: pick(regularUsers)!, role: "member" });
+      await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: pick(regularUsers), role: "member" });
     }
   }
   console.log("  ✓ 圈子: 5 个");
