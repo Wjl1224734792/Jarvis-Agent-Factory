@@ -918,6 +918,56 @@ export function createApiClient(options: ApiClientOptions) {
       if (!response.ok) throw new Error(`Failed to leave circle: ${response.status}`);
       return response.json() as Promise<{ success: boolean }>;
     },
+    async updateCircle(id: string, input: { name?: string; slug?: string; description?: string; joinMode?: string; isEnabled?: boolean }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.update(id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to update circle: ${response.status}`);
+      return response.json() as Promise<{ item: Record<string, unknown> }>;
+    },
+    async deleteCircle(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.update(id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to delete circle: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    async listCirclePosts(circleId: string, input?: { tab?: "recommended" | "latest"; limit?: number; offset?: number }) {
+      const params = new URLSearchParams();
+      if (input?.tab) params.set("tab", input.tab);
+      if (input?.limit) params.set("limit", String(input.limit));
+      if (input?.offset) params.set("offset", String(input.offset));
+      const qs = params.toString();
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.list(circleId)}${qs ? `?${qs}` : ""}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to list circle posts: ${response.status}`);
+      return response.json() as Promise<{ items: Record<string, unknown>[] }>;
+    },
+    async createCirclePost(circleId: string, input: { title: string; content?: string; images?: string[]; videos?: string[] }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.create(circleId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to create circle post: ${response.status}`);
+      return response.json() as Promise<{ id: string }>;
+    },
+    async listUserCircles(userId: string) {
+      // 通过成员表反查用户的圈子
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.list}?userId=${userId}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to list user circles: ${response.status}`);
+      return response.json() as Promise<{ items: Record<string, unknown>[] }>;
+    },
     async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
       const search = new URLSearchParams({ tab: parsedTab });

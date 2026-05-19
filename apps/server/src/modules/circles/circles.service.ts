@@ -197,6 +197,27 @@ export const circlesService = {
     await circlesRepo.removeCircleFromCategory(categoryId, circleId);
   },
 
+  // ── 圈子更新/删除 ──
+
+  async updateCircle(id: string, input: {
+    name?: string;
+    slug?: string;
+    description?: string | null;
+    joinMode?: "free" | "audit";
+    isEnabled?: boolean;
+  }) {
+    const updated = await circlesRepo.update(id, input);
+    if (!updated) return null;
+    const coverImageUrl = updated.coverImageFileId
+      ? await resolvePublicUploadedFileUrl(updated.coverImageFileId)
+      : null;
+    return { ...updated, coverImageUrl };
+  },
+
+  async deleteCircle(id: string) {
+    await circlesRepo.deleteById(id);
+  },
+
   // ── helpers ──
 
   async resolvePostMedia(posts: Awaited<ReturnType<typeof circlesRepo.listPosts>>) {

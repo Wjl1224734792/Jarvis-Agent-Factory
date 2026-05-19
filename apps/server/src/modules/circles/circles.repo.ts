@@ -8,6 +8,7 @@ import {
   circlesTable,
   createId,
   db,
+  userFollowsTable,
   usersTable,
 } from "@feijia/db";
 import { and, asc, desc, eq, or, sql } from "drizzle-orm";
@@ -422,6 +423,19 @@ export const circlesRepo = {
     limit?: number;
     offset?: number;
   }) {
+    const conditions: ReturnType<typeof eq>[] = [];
+
+    // "关注" Tab: 只显示已关注作者的帖子
+    if (filters.tab === "following" && filters.currentUserId) {
+      conditions.push(
+        sql`${circlePostsTable.authorId} IN (
+          SELECT ${userFollowsTable.followeeId}
+          FROM ${userFollowsTable}
+          WHERE ${userFollowsTable.followerId} = ${filters.currentUserId}
+        )`
+      );
+    }
+
     const orderBy = filters.tab === "latest"
       ? desc(circlePostsTable.createdAt)
       : desc(circlePostsTable.hotScore);
@@ -454,25 +468,24 @@ export const circlesRepo = {
       .from(circlePostsTable)
       .innerJoin(usersTable, eq(circlePostsTable.authorId, usersTable.id))
       .innerJoin(circlesTable, eq(circlePostsTable.circleId, circlesTable.id))
+      .where(and(...conditions))
       .orderBy(orderBy)
       .limit(filters.limit ?? 20)
       .offset(filters.offset ?? 0);
   },
 
-  // ── 热度计算（时间衰减） ──
+  // ── 热度计算（连续指数衰减 + 浏览权重 + 新内容发现加成） ──
 
   async updatePostHotScore(postId: string) {
     const now = new Date();
     const hoursSinceCreation = sql<number>`EXTRACT(EPOCH FROM (${now} - ${circlePostsTable.createdAt})) / 3600`;
-    const timeDecay = sql<number>`
-      CASE
-        WHEN ${hoursSinceCreation} <= 24 THEN 1.5
-        WHEN ${hoursSinceCreation} <= 168 THEN 1.0
-        ELSE 0.5
-      END
-    `;
+    // 连续指数衰减：7天半衰期，避免阶梯式跳变
+    const timeDecay = sql<number>`POW(0.5, ${hoursSinceCreation} / 168.0)`;
+    // 新内容发现加成：6小时内额外 +20%，帮助新内容获得初始曝光
+    const discoveryBoost = sql<number>`CASE WHEN ${hoursSinceCreation} <= 6 THEN 1.2 ELSE 1.0 END`;
+    // 热度 = (点赞 + 评论×2 + 分享×1.5 + 浏览×0.1) × 时间衰减 × 发现加成
     const hotScore = sql<number>`
-      (${circlePostsTable.likeCount} + ${circlePostsTable.commentCount} * 2 + ${circlePostsTable.shareCount} * 1.5) * ${timeDecay}
+      (${circlePostsTable.likeCount} + ${circlePostsTable.commentCount} * 2 + ${circlePostsTable.shareCount} * 1.5 + ${circlePostsTable.viewCount} * 0.1) * ${timeDecay} * ${discoveryBoost}
     `;
     await db
       .update(circlePostsTable)
@@ -542,5 +555,38 @@ export const circlesRepo = {
           eq(circleCategoryAssignmentsTable.circleId, circleId)
         )
       );
+  },
+
+  // ── 圈子更新/删除 ──
+
+  async update(id: string, input: {
+    name?: string;
+    slug?: string;
+    description?: string | null;
+    joinMode?: "free" | "audit";
+    isEnabled?: boolean;
+  }) {
+    const sets: Record<string, unknown> = { updatedAt: new Date() };
+    if (input.name !== undefined) sets.name = input.name;
+    if (input.slug !== undefined) sets.slug = input.slug;
+    if (input.description !== undefined) sets.description = input.description;
+    if (input.joinMode !== undefined) sets.joinMode = input.joinMode;
+    if (input.isEnabled !== undefined) sets.isEnabled = input.isEnabled;
+    await db.update(circlesTable).set(sets).where(eq(circlesTable.id, id));
+    return this.findById(id);
+  },
+
+  async deleteById(id: string) {
+    // 先删帖子相关（评论 → 互动 → 帖子），再删圈子元数据
+    const postRows = await db.select({ id: circlePostsTable.id }).from(circlePostsTable).where(eq(circlePostsTable.circleId, id));
+    const postIds = postRows.map(r => r.id);
+    if (postIds.length > 0) {
+      await db.delete(circlePostCommentsTable).where(sql`${circlePostCommentsTable.postId} = ANY(ARRAY[${sql.join(postIds.map(p => sql`${p}`), sql`, `)}])`);
+      await db.delete(circlePostInteractionsTable).where(sql`${circlePostInteractionsTable.postId} = ANY(ARRAY[${sql.join(postIds.map(p => sql`${p}`), sql`, `)}])`);
+    }
+    await db.delete(circlePostsTable).where(eq(circlePostsTable.circleId, id));
+    await db.delete(circleCategoryAssignmentsTable).where(eq(circleCategoryAssignmentsTable.circleId, id));
+    await db.delete(circleMembersTable).where(eq(circleMembersTable.circleId, id));
+    await db.delete(circlesTable).where(eq(circlesTable.id, id));
   },
 };

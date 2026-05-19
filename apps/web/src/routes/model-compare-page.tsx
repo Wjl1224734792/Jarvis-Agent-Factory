@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ModelCompareItem } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -182,7 +181,7 @@ export function ModelComparePage() {
                     </tr>
                     {group.keys.map((key) => {
                       const values = items.map((item) => {
-                        const params = (item as ModelCompareItem).parameters;
+                        const params = (item as Record<string, unknown>).parameters;
                         return (params as Record<string, unknown>)?.[key];
                       });
                       const allEmpty = values.every((v) => v === null || v === undefined);

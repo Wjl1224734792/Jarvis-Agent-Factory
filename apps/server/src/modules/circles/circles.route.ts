@@ -13,6 +13,11 @@ circlesRoute.use("*", attachCurrentUser);
 // ── 圈子列表 & 创建 ──
 
 circlesRoute.get(API_ROUTES.circles.list, async (context) => {
+  const userId = context.req.query("userId") || undefined;
+  if (userId) {
+    const items = await circlesService.listUserCircles(userId);
+    return context.json({ items });
+  }
   const items = await circlesService.listCircles({
     keyword: context.req.query("keyword") || undefined,
     sort: (context.req.query("sort") as "hot" | "latest") || undefined,
@@ -34,6 +39,32 @@ circlesRoute.post(API_ROUTES.circles.create, requireAuth, async (context) => {
     joinMode: body.joinMode ?? "free",
   });
   return context.json({ item }, 201);
+});
+
+// ── Feed（必须放在 :slug 之前，否则 "feed" 被当作 slug 解析） ──
+
+circlesRoute.get(API_ROUTES.circles.feed, async (context) => {
+  const items = await circlesService.listFeed({
+    tab: (context.req.query("tab") as "recommended" | "latest" | "following") || undefined,
+    currentUserId: context.get("currentUser")?.id,
+    limit: Number(context.req.query("limit")) || undefined,
+    offset: Number(context.req.query("offset")) || undefined,
+  });
+  return context.json({ items });
+});
+
+// ── 用户圈子分类（静态路由必须在 :id 之前） ──
+
+circlesRoute.get(API_ROUTES.circles.userCategories, requireAuth, async (context) => {
+  const items = await circlesService.listUserCategories(context.get("currentUser")!.id);
+  return context.json({ items });
+});
+
+circlesRoute.post(API_ROUTES.circles.userCategories, requireAuth, async (context) => {
+  const user = context.get("currentUser")!;
+  const body = await context.req.json();
+  const id = await circlesService.createUserCategory(user.id, body.name);
+  return context.json({ id }, 201);
 });
 
 // ── 圈子详情 ──
@@ -133,34 +164,29 @@ circlesRoute.post(API_ROUTES.circles.posts.comments(":circleId", ":postId"), req
   return context.json({ id }, 201);
 });
 
-// ── Feed ──
-
-circlesRoute.get(API_ROUTES.circles.feed, async (context) => {
-  const items = await circlesService.listFeed({
-    tab: (context.req.query("tab") as "recommended" | "latest" | "following") || undefined,
-    currentUserId: context.get("currentUser")?.id,
-    limit: Number(context.req.query("limit")) || undefined,
-    offset: Number(context.req.query("offset")) || undefined,
-  });
-  return context.json({ items });
-});
-
-// ── 用户圈子分类 ──
-
-circlesRoute.get(API_ROUTES.circles.userCategories, requireAuth, async (context) => {
-  const items = await circlesService.listUserCategories(context.get("currentUser")!.id);
-  return context.json({ items });
-});
-
-circlesRoute.post(API_ROUTES.circles.userCategories, requireAuth, async (context) => {
-  const user = context.get("currentUser")!;
-  const body = await context.req.json();
-  const id = await circlesService.createUserCategory(user.id, body.name);
-  return context.json({ id }, 201);
-});
-
 circlesRoute.delete(API_ROUTES.circles.userCategoryDetail(":id"), requireAuth, async (context) => {
   await circlesService.deleteUserCategory(context.req.param("id")!, context.get("currentUser")!.id);
+  return context.json({ success: true });
+});
+
+// ── 圈子更新/删除 ──
+
+circlesRoute.put(API_ROUTES.circles.update(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id")!;
+  const body = await context.req.json();
+  const item = await circlesService.updateCircle(id, {
+    name: body.name,
+    slug: body.slug,
+    description: body.description,
+    joinMode: body.joinMode,
+    isEnabled: body.isEnabled,
+  });
+  if (!item) return context.json({ code: "NOT_FOUND", message: "Circle not found." }, 404);
+  return context.json({ item });
+});
+
+circlesRoute.delete(API_ROUTES.circles.update(":id"), requireAuth, async (context) => {
+  await circlesService.deleteCircle(context.req.param("id")!);
   return context.json({ success: true });
 });
 
