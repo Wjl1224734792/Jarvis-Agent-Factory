@@ -297,6 +297,10 @@ export function ModelsPage() {
     });
   }, []);
 
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+
   useEffect(() => {
     setKeywordDraft(filtersState.keyword);
   }, [filtersState.keyword]);
@@ -430,10 +434,6 @@ export function ModelsPage() {
       />
     </>
   );
-
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
 
   const desktopFilterBar = (
     <div className="space-y-3">
