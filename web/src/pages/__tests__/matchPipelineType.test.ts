@@ -4,7 +4,9 @@ import { matchPipelineType } from '../matchPipelineType';
 describe('matchPipelineType', () => {
   // === REQ-021: '轻量' case Bug 修复 ===
   describe('轻量 (REQ-021)', () => {
-    it('应匹配 jarvis-lite 开头的智能体', () => {
+    it('应匹配 auto/jarvis-lite 开头的智能体', () => {
+      expect(matchPipelineType('auto', '轻量')).toBe(true);
+      expect(matchPipelineType('auto-bug', '轻量')).toBe(true);
       expect(matchPipelineType('jarvis-lite', '轻量')).toBe(true);
       expect(matchPipelineType('jarvis-lite-dev', '轻量')).toBe(true);
     });
@@ -118,7 +120,7 @@ describe('matchPipelineType', () => {
     });
 
     it('轻量智能体不应同时出现在全流程中', () => {
-      const liteIds = ['jarvis-lite', 'remediation-expert'];
+      const liteIds = ['auto', 'jarvis-lite', 'remediation-expert'];
       for (const id of liteIds) {
         expect(matchPipelineType(id, '轻量')).toBe(true);
         expect(matchPipelineType(id, '全流程')).toBe(false);

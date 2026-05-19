@@ -3,7 +3,7 @@ name: research
 description: 深度研究指令——RS0课题定义→RS1信息收集→RS2深度分析→RS3假设验证→RS4研究报告，5Gate深度研究流程
 model: deepseek-v4-pro
 argument-hint: [研究课题或问题描述]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, WebFetch, WebSearch
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "3.53.0"
 updated: "2026-05-19"
 ---
@@ -31,7 +31,14 @@ Skill("source-driven-development")
 
 **Gate 检查条件**：研究课题定义文档已产出，含研究范围+方法论+成功标准
 
+**🔴 前置约束**：若用户输入模糊（课题不明确/范围不清），必须先使用 `AskUserQuestion` 与用户确认研究课题和范围，确认后再产出课题定义文档。跳过确认直接写文档 → 违反红线。
+
 ### 步骤
+0. **确认研究课题**——若未明确，`AskUserQuestion` 确认：
+   - 要研究的核心问题是什么？
+   - 研究的范围和深度边界？
+   - 预期的产出形式（报告/方案/对比分析）？
+
 1. 明确研究课题和核心问题：
    - 要回答什么问题？
    - 为什么这个研究很重要？
@@ -205,6 +212,7 @@ Skill("source-driven-development")
 ---
 
 ## 红线
+- **跳过课题确认直接写文档**（RS0 必须先与用户确认研究课题和范围，未确认不得产出课题定义文档）
 - 未定义研究范围就收集信息（先锁定问题，再找答案）
 - 仅凭单一来源下结论（至少交叉验证 2 个来源）
 - 假设未经验证就写入报告（区分事实和推测）

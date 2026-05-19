@@ -3,7 +3,7 @@ name: simplify
 description: 代码简化与质量清理——S0代码分析→S1简化执行→S2回归验证→S3报告产出，对标OMC simplify+ai-slop-cleaner
 model: deepseek-v4-pro
 argument-hint: [目标文件/目录/模块]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, WebFetch, WebSearch
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.0.0"
 updated: "2026-05-19"
 ---
@@ -33,7 +33,14 @@ Skill("code-standards")
 
 **Gate 检查条件**：代码分析报告已产出，含复杂度/冗余/AI痕迹/改进机会清单
 
+**🔴 前置约束**：若用户输入模糊（未指定具体文件/目录/模块），必须先使用 `AskUserQuestion` 与用户确认目标范围，确认后再进入分析步骤。跳过确认直接分析 → 违反红线。
+
 ### 步骤
+
+0. **确认目标范围**——若未明确，`AskUserQuestion` 确认：
+   - 要简化哪些文件/目录/模块？
+   - 有什么特别注意或不可触碰的区域？
+   - 确认后记录到分析报告中
 
 1. **扫描目标代码**——spawn `code-explore-expert`（subagent，只读）：
    - 文件结构和模块依赖
@@ -160,6 +167,7 @@ Skill("code-standards")
 
 ## 红线
 
+- **跳过确认直接写文档**（S0 必须先与用户确认目标范围，未确认不得产出分析报告）
 - **改变功能行为**（简化不是重写，所有测试必须保持通过）
 - **删除错误处理**（try/catch、边界检查不得简化）
 - **合并不同职责**（一个函数只做一件事，但也不要把不相干的事合并）

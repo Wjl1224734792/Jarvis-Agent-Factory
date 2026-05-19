@@ -1,33 +1,39 @@
-# Ultragoal Plan: 全部指令流程完善 — 工程级规范
+# Ultragoal: 参考 OMC loop/ralph + Claude Code goal/loop 设计 Jarvis 适配指令
 
-## 目标
-完善所有 33 条 Command 指令和对应 Pipeline 流程，确保严格生产可用的工程级规范。
+## 分析对象
 
-## 背景
-Jarvis 当前有 9 条流水线（full/frontend/backend/lite/refactor/hotfix/migrate/evaluate/debug）
-和 33 条 Command 指令。需要逐一核查并完善 frontmatter、pipeline 映射、agent 生成指引、
-team strategy 和存储约束。
+### 1. Claude Code `/goal` — 会话级目标锁
+- 设置一个目标条件，阻止会话在条件满足前停止
+- 条件满足后自动清除
+- 问题：跨会话丢失状态，无持久化
 
-## 故事序列
+### 2. Claude Code `/loop` — 定时重复执行
+- 按间隔重复运行指定的 prompt 或斜杠命令
+- 适用轮询/监控场景
+- 问题：无状态追踪，无完成条件
 
-### Goal 1: 补齐缺失的 Command frontmatter（argument-hint）
-- G001: jarvis.md 缺少 argument-hint → 添加
-- G001: task-bdd.md 缺少 argument-hint → 添加
-- G001: task-ddd.md 缺少 argument-hint → 添加
-- G001: task-tdd.md 缺少 argument-hint → 添加
+### 3. OMC `ralph` — 持久化执行循环
+- PRD 驱动：用户故事 + 验收标准 + psses 布尔
+- 循环：实现 → 验证 → 标记完成 → 检查 PRD → 审查 → deslop → 回归验证
+- 持久化：state_write/state_read 跨会话保持
+- 停止条件：全部通过 或 用户取消
 
-### Goal 2: 验证 Pipeline 流程完整性
-- G002: 逐一核查 9 条流水线的 Gate 序列是否正确
-- G002: 确保每条流水线都有完整的 GATE_CHECKS + GATE_OPERATIONS + GATE_AGENT_GUIDE（含 team_strategy）
-- G002: 检查 api/commands 的 pipelineType 推断逻辑是否覆盖所有指令
+### 4. OMC `ultragoal` — 多目标持久工作流
+- 将简报分解为有序目标序列
+- 持久化分类账（ledger）记录开始/检查点/阻塞/失败
+- 与 Claude `/goal` 协调：打印模型可读的交接文本
+- 最终完成门控：ai-slop-cleaner + 验证 + 代码审查
 
-### Goal 3: 确保质量门禁通过
-- G003: 345 测试全部通过，0 错误
-- G003: TypeScript 零错误编译
-- G003: build 成功（npm run build + npm run build:web）
-- G003: lint 仅 warnings 无 errors
+## Jarvis 适配设计
 
-### Goal 4: 验证存储分层约束 + AGENTS.md 工程规范
-- G004: 代码中的 .jarvis/ 路径全部遵循项目级隔离
-- G004: AGENTS.md 约束完整且与代码一致
-- G004: 会话管理和记忆规范文档完整
+### 核心原则
+- 复用现有基础设施（session_join、pipeline_runs、artifacts、checkpoints）
+- 通过 Jarvis MCP 工具与引擎集成
+- 命令文件遵循现有 frontmatter 格式
+- 产物存入 docs/YYYY-MM-DD/ 日期目录
+- Web 面板可查看进度
+
+### Goal 1: `/persist` — 持久化任务执行器（对标 ralph）
+### Goal 2: `/focus` — 会话焦点目标（对标 /goal）  
+### Goal 3: `/watch` — 定时监控执行器（对标 /loop）
+### Goal 4: `/mission` — 多目标任务追踪（对标 ultragoal）

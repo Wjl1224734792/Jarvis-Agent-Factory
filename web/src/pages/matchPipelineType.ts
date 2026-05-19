@@ -24,6 +24,7 @@ export function matchPipelineType(id: string, type: string): boolean {
       return idStartsWith('backend-');
     case '轻量':
       return (
+        idStartsWith('auto') ||
         idStartsWith('jarvis-lite') ||
         ['remediation-expert']
           .some(n => idLower === n || idStartsWith(n))

@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.0.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.1.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.0.0** — /explore→/ask 4模式重做 + 3条新指令(/simplify /trace /improve)，指令总数39条
+> **v4.1.0** — /jarvis-lite→/auto 智能路由重设计 + 确认约束补全(/simplify /research /auto) + inferPipelineType 路由修复
 
 ## 快速开始
 
@@ -38,7 +38,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **MCP 编排引擎** | FSM 硬约束 Gate A→B→C→C1→C1.5→C2→D→E，跳过/回退被拒绝 |
 | **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
 | **Agent Team 支持** | `jarvis init` 自动启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`，Team + SubAgent 混合编排 |
-| **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
+| **智能路由** | `/auto` 自动检测任务→路由最优流水线→跳过无关Gate→按复杂度分配Agent |
 | **多流水线类型** | full / frontend / backend / lite / refactor / hotfix / migrate / evaluate / debug 九种模式，按需选择 |
 | **项目记忆系统** | `.jarvis/memory/` 跨会话笔记/决策记录/项目上下文，OMC 风格持久化 |
 | **会话事件日志** | `session_events` 表记录生命周期事件，跨会话可观测性 |
@@ -143,24 +143,27 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 也可直接设置环境变量（Linux/macOS）或通过系统环境变量配置（Windows）。
 
-## 轻量编排 `/jarvis-lite`
+## 智能路由编排 `/auto`
 
-跳过无关闸门，按任务类型智能映射 Gate 入口：
+自动检测任务类型 → 路由最优流水线 → 智能跳过无关 Gate → 按复杂度分配 Team/Subagent：
 
-| 任务类型 | 入口 Gate | 示例 |
-|---------|----------|------|
-| 发布/部署 | Gate E | `npm publish`、部署到服务器 |
-| Bug 修复 | Gate C | 小范围修复，直接进入实现 |
-| 代码审查 | Gate D | PR review、代码审计 |
-| 文档/配置 | Gate C | README、CI 配置等 |
-| 小功能添加 | Gate A | 从需求澄清开始 |
-| 重构/优化 | Gate C | 代码重构、性能优化 |
-| 热修复 | Gate H0 | 紧急故障恢复 |
-| 框架迁移 | Gate M1 | 框架版本升级、依赖替换 |
-| 技术评估 | Gate E0 | 技术选型、方案对比 |
-| 调试诊断 | Gate D0 | 异常排查、根因定位 |
+| 任务类型 | 路由流水线 | 入口 Gate | 示例 |
+|---------|-----------|-----------|------|
+| 新功能开发 | `full` | Gate A | 中大型功能 |
+| Bug 修复 | `full` | Gate C | 小范围修复 |
+| 小修改 | `full` | Gate C-impl | <3文件改动 |
+| 重构 | `refactor` | R1 | 代码重构、性能优化 |
+| 紧急修复 | `hotfix` | H0 | P0/P1 故障 |
+| 代码审查 | `full` | Gate D | PR review |
+| 技术调研 | `research` | RS0 | 技术选型、方案研究 |
+| 调试诊断 | `debug` | D0 | 异常排查、根因定位 |
+| 代码简化 | `simplify` | S0 | 冗余清理、AI痕迹清除 |
+| 迭代改进 | `improve` | IM0 | 度量驱动迭代 |
+| 框架迁移 | `migrate` | M1 | 框架升级、依赖替换 |
+| 发布上线 | `release` | RL0 | 快速发布 |
+| 无法分类 | `full` | Gate A | 默认全流程 |
 
-用法：在 Claude Code 中输入 `/jarvis-lite` 即可启动。
+用法：在 Claude Code 中输入 `/auto <任务描述>` 即可启动。**不确定用什么指令时，直接用 `/auto`。**
 
 ## Web 面板
 
@@ -270,7 +273,7 @@ test-doc-writer → test-executor → fix-retest
 | 领域 | Claude Code |
 |------|------------|
 | 全栈 | `/jarvis` |
-| 轻量编排 | `/jarvis-lite` |
+| 智能路由 | `/auto` |
 | 前端 | `/frontend` |
 | 后端 | `/backend` |
 | Android | `/android` |
@@ -364,7 +367,7 @@ test-doc-writer → test-executor → fix-retest
 | 分类 | 命令 | 流程图 | Gate 序列 |
 |------|------|--------|----------|
 | **核心编排** | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10门) |
-| | `/jarvis-lite` | [jarvis-lite.md](docs/flows/jarvis-lite.md) | 按任务类型智能映射入口 |
+| | `/auto` | [auto.md](docs/flows/auto.md) | 自动检测任务→路由最优流水线→跳过无关Gate→分配Agent |
 | **前端** | `/frontend` | [frontend.md](docs/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
 | **后端** | `/backend` | [backend.md](docs/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (跳过C1.5) |
 | **移动端** | `/android` | [android.md](docs/flows/android.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |

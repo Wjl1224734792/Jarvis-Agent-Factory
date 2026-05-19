@@ -55,7 +55,7 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 模式 | Claude Code（✅） | OpenCode（⛔） | Codex（⛔） |
 |------|-----------|----------|-------|
 | 全栈编排 | `/jarvis` | 切换到 `jarvis` agent | 加载 `jarvis` skill |
-| 轻量编排 | `/jarvis-lite` | 切换到 `jarvis-lite` agent | 加载 `jarvis-lite` skill |
+| 智能路由编排 | `/auto` | 自动检测任务→选最优流水线→跳过无关Gate→分配Agent |
 | 前端生命周期 | `/frontend` | 切换到 `frontend` agent | 加载 `frontend` skill |
 | 后端生命周期 | `/backend` | 切换到 `backend` agent | 加载 `backend` skill |
 | 移动端开发 | `/taro` `/android` `/ios` `/expo` `/flutter` `/react-native` | 切换到对应 agent | 加载对应 skill |
@@ -293,4 +293,4 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 `code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `docs-research-expert`
 
 ### Claude Code 命令入口（39）
-`/jarvis` `/jarvis-lite` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug` `/research` `/release` `/ask` `/simplify` `/trace` `/improve`
+`/jarvis` `/auto` `/publish` `/sync` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore` `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/refactor` `/hotfix` `/migrate` `/evaluate` `/debug` `/research` `/release` `/ask` `/simplify` `/trace` `/improve`

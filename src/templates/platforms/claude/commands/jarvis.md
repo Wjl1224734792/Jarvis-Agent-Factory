@@ -16,9 +16,9 @@ updated: "2026-05-14"
 1. **Write / Edit 工具受 Gate 管控** — 在 Gate A、B、B1、C、C1.5、C2、D 阶段，直接使用 `Write`/`Edit` 工具写代码会被 Hook 拦截（`exit 1`）。只有 Gate C-impl 和 Gate C1 允许直接写代码。
 2. **编排者禁止直接编码** — 你是编排中枢，不是实现者。所有代码变更必须通过 `Agent()` spawn 实现类子 Agent 完成。唯一的例外：Gate C1 质量修复、Gate E 发布脚本、以及该命令自身的维护。
 3. **Gate 序列不可跳过** — A→B→B1→C→C-impl→C1→C1.5→C2→D→E，引擎 FSM 拒绝回退/跳跃。
-4. **与 `/jarvis-lite` 区别**：
+4. **与 `/auto` 区别**：
    - `/jarvis`（本命令）— **全流程严格模式**，10 道闸门全部强制执行。适合中大型功能开发。
-   - `/jarvis-lite` — **智能跳过模式**，按任务类型映射入口 Gate（Bug修复→Gate C，审查→Gate D，发布→Gate E）。适合小范围修改。
+   - `/auto` — **智能路由模式**，自动检测任务类型→路由最优流水线→跳过无关Gate→按复杂度分配Team/Subagent。适合日常所有任务。
 
 > **你的 Write/Edit 操作会被实时检查。** 若当前 Gate 不允许写代码，操作将被引擎阻断并显示 `🚫 <Gate>: 操作 "write_code" 被禁止`。此时你只能通过 spawn Agent 推进流水线。
 

@@ -843,9 +843,24 @@ function parseFrontmatter(content: string): Record<string, string> {
  */
 function inferPipelineType(content: string): string {
   const lower = content.toLowerCase();
+  // Check specific pipeline types FIRST (narrow keyword match), then generic (may appear in any template)
+  if (lower.includes('name: auto')) return 'lite';
+  if (lower.includes('pipeline_type: "simplify"') || (lower.includes('simplify') && lower.includes('s0'))) return 'simplify';
+  if (lower.includes('pipeline_type: "trace"') || (lower.includes('trace') && lower.includes('t0'))) return 'trace';
+  if (lower.includes('pipeline_type: "improve"') || (lower.includes('improve') && lower.includes('im0'))) return 'improve';
+  if (lower.includes('pipeline_type: "ask"') || (lower.includes('session_join') && lower.includes('pipeline_type: "ask"'))) return 'ask';
+  if (lower.includes('pipeline_type: "research"') || (lower.includes('research') && lower.includes('rs0'))) return 'research';
+  if (lower.includes('pipeline_type: "release"') || (lower.includes('release') && lower.includes('rl0'))) return 'release';
+  if (lower.includes('pipeline_type: "refactor"') || (lower.includes('refactor') && lower.includes('r1'))) return 'refactor';
+  if (lower.includes('pipeline_type: "hotfix"') || (lower.includes('hotfix') && lower.includes('h0'))) return 'hotfix';
+  if (lower.includes('pipeline_type: "migrate"') || (lower.includes('migrate') && lower.includes('m1'))) return 'migrate';
+  if (lower.includes('pipeline_type: "evaluate"') || (lower.includes('evaluate') && lower.includes('e0'))) return 'evaluate';
+  if (lower.includes('pipeline_type: "debug"') || (lower.includes('debug') && lower.includes('d0'))) return 'debug';
+  if (lower.includes('pipeline_type: "lite"') || (lower.includes('auto') && lower.includes('pipeline_type'))) return 'lite';
+  // Generic fallbacks (broader keyword matching, may catch false positives)
   if (lower.includes('frontend')) return 'frontend';
   if (lower.includes('backend')) return 'backend';
-  if (lower.includes('jarvis-lite') || lower.includes('lite')) return 'lite';
+  if (lower.includes('jarvis-lite') || lower.includes('auto') || lower.includes('lite')) return 'lite';
   if (lower.includes('refactor')) return 'refactor';
   if (lower.includes('hotfix')) return 'hotfix';
   if (lower.includes('migrate')) return 'migrate';

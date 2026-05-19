@@ -4,6 +4,23 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] - 2026-05-19
+
+### Changed
+- `/jarvis-lite` 移除，替换为 `/auto`：智能自动路由编排——自动检测任务类型→路由最优流水线→跳过无关Gate→按复杂度分配Team/Subagent
+- `/auto` 支持12种任务类型自动路由（新功能→full, Bug修复→full/C, 重构→refactor, 紧急→hotfix等）
+- `/auto` 按复杂度3级Agent调度：小(<3文件)→subagent, 中(3-10)→并行subagent, 大(>10)→Team
+
+### Added
+- `/simplify`、`/research`、`/auto` 补全"先确认需求再写文档"硬约束（前置确认步骤+红线）
+- `/simplify` S0 新增 AskUserQuestion 确认目标范围
+- `/research` RS0 新增 AskUserQuestion 确认研究课题
+
+### Fixed
+- `inferPipelineType()` 路由修复：精确匹配优先于通用词匹配，修复 ask→frontend, trace→debug, auto→simplify 误判
+- Web 面板 matchPipelineType 支持 auto 分类
+- 指令总数保持39条（/auto 替换 /jarvis-lite）
+
 ## [4.0.0] - 2026-05-19
 
 ### Breaking
