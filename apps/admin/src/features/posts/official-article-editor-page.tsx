@@ -173,7 +173,7 @@ export function OfficialArticleEditorPage() {
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
-  const watchedDeclaration = (Form.useWatch("declaration", form) ?? "") as string;
+  const watchedDeclaration = Form.useWatch("declaration", form) ?? "";
 
   const mediaManager = useMemo(() => createMediaManager(), []);
 

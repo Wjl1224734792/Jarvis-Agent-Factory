@@ -291,7 +291,7 @@ export function SettingsPage() {
     setSavingField(fieldKey);
     try {
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(draft));
-      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
+      applyProfileSnapshot(payload.item);
       setStatusMessage(successMessage);
       setEditingField(null);
     } catch (reason: unknown) {

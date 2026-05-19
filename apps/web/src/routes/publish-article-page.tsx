@@ -177,11 +177,8 @@ export function PublishArticlePage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const editorRef = useRef<IDomEditor | null>(null);
-  const [editorReady, setEditorReady] = useState(false);
-
   const handleEditorCreated = useCallback((editor: IDomEditor) => {
     editorRef.current = editor;
-    setEditorReady(true);
   }, []);
 
   const [showLinkCardDialog, setShowLinkCardDialog] = useState(false);

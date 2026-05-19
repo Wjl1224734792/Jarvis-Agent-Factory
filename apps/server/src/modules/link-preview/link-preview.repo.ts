@@ -2,7 +2,6 @@ import { and, eq } from "drizzle-orm";
 import {
   aircraftModelsTable,
   brandsTable,
-  circlePostsTable,
   circlesTable,
   db,
   postsTable,
