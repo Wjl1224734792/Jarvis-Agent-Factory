@@ -272,7 +272,7 @@ export const circlesRepo = {
   },
 
   async createPost(input: {
-    circleId: string;
+    circleId?: string | null;
     authorId: string;
     title: string;
     content: string | null;
@@ -282,17 +282,19 @@ export const circlesRepo = {
     const id = createId("cp");
     await db.insert(circlePostsTable).values({
       id,
-      circleId: input.circleId,
+      circleId: input.circleId ?? null,
       authorId: input.authorId,
       title: input.title,
       content: input.content,
       images: JSON.stringify(input.images),
       videos: JSON.stringify(input.videos),
     });
-    await db
-      .update(circlesTable)
-      .set({ postCount: sql`${circlesTable.postCount} + 1` })
-      .where(eq(circlesTable.id, input.circleId));
+    if (input.circleId) {
+      await db
+        .update(circlesTable)
+        .set({ postCount: sql`${circlesTable.postCount} + 1` })
+        .where(eq(circlesTable.id, input.circleId));
+    }
     return id;
   },
 
@@ -467,7 +469,7 @@ export const circlesRepo = {
       })
       .from(circlePostsTable)
       .innerJoin(usersTable, eq(circlePostsTable.authorId, usersTable.id))
-      .innerJoin(circlesTable, eq(circlePostsTable.circleId, circlesTable.id))
+      .leftJoin(circlesTable, eq(circlePostsTable.circleId, circlesTable.id))
       .where(and(...conditions))
       .orderBy(orderBy)
       .limit(filters.limit ?? 20)

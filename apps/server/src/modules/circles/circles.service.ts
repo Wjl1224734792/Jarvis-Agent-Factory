@@ -111,7 +111,7 @@ export const circlesService = {
   },
 
   async createCirclePost(input: {
-    circleId: string;
+    circleId?: string | null;
     authorId: string;
     title: string;
     content: string | null;

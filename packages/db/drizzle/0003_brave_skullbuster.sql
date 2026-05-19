@@ -1,0 +1,1 @@
+ALTER TABLE "circle_posts" ALTER COLUMN "circle_id" DROP NOT NULL;

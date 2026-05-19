@@ -959,6 +959,16 @@ export function createApiClient(options: ApiClientOptions) {
       if (!response.ok) throw new Error(`Failed to create circle post: ${response.status}`);
       return response.json() as Promise<{ id: string }>;
     },
+    async createCircleFeedPost(input: { title: string; content?: string; images?: string[]; videos?: string[] }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.createPost}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to create feed post: ${response.status}`);
+      return response.json() as Promise<{ id: string }>;
+    },
     async listUserCircles(userId: string) {
       // 通过成员表反查用户的圈子
       const response = await fetch(`${baseUrl}${API_ROUTES.circles.list}?userId=${userId}`, {

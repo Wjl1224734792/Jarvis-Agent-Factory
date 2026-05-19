@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, SendIcon } from "lucide-react";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import {
@@ -90,6 +90,30 @@ export function CirclePage() {
   const [newCircleSlug, setNewCircleSlug] = useState("");
   const [newCircleDesc, setNewCircleDesc] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostContent, setNewPostContent] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  async function handleCreatePost() {
+    if (!newPostTitle.trim() || posting) return;
+    setPosting(true);
+    try {
+      await (apiClient as any).createCircleFeedPost({
+        title: newPostTitle.trim(),
+        content: newPostContent.trim() || undefined,
+      });
+      setNewPostTitle("");
+      setNewPostContent("");
+      setShowCreatePost(false);
+      circleFeedQuery.refetch();
+    } catch {
+      // ignore
+    } finally {
+      setPosting(false);
+    }
+  }
 
   async function handleCreateCircle() {
     setCreateError(null);
@@ -259,12 +283,39 @@ export function CirclePage() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">飞友圈</h2>
         {authStatus === "authenticated" ? (
-          <Button size="sm" variant="outline" onClick={() => setShowCreate(!showCreate)}>
-            <PlusIcon className="size-3.5 mr-1" />
-            创建圈子
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowCreatePost(!showCreatePost)}>
+              <SendIcon className="size-3.5 mr-1" />
+              发帖
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowCreate(!showCreate)}>
+              <PlusIcon className="size-3.5 mr-1" />
+              创建圈子
+            </Button>
+          </div>
         ) : null}
       </div>
+
+      {showCreatePost ? (
+        <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">
+          <Input
+            onChange={(e) => setNewPostTitle(e.target.value)}
+            placeholder="帖子标题"
+            value={newPostTitle}
+          />
+          <Input
+            onChange={(e) => setNewPostContent(e.target.value)}
+            placeholder="帖子内容（选填）"
+            value={newPostContent}
+          />
+          <div className="flex gap-2">
+            <Button disabled={!newPostTitle.trim() || posting} size="sm" onClick={handleCreatePost}>
+              {posting ? "发布中..." : "发布"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowCreatePost(false); setNewPostTitle(""); setNewPostContent(""); }}>取消</Button>
+          </div>
+        </div>
+      ) : null}
 
       {showCreate ? (
         <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">

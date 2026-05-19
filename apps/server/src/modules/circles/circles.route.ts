@@ -53,6 +53,21 @@ circlesRoute.get(API_ROUTES.circles.feed, async (context) => {
   return context.json({ items });
 });
 
+// ── 不选圈子的发帖（静态路由必须在 :param 之前） ──
+
+circlesRoute.post(API_ROUTES.circles.createPost, requireAuth, async (context) => {
+  const user = context.get("currentUser")!;
+  const body = await context.req.json();
+  const id = await circlesService.createCirclePost({
+    authorId: user.id,
+    title: body.title,
+    content: body.content ?? null,
+    images: body.images ?? [],
+    videos: body.videos ?? [],
+  });
+  return context.json({ id }, 201);
+});
+
 // ── 用户圈子分类（静态路由必须在 :id 之前） ──
 
 circlesRoute.get(API_ROUTES.circles.userCategories, requireAuth, async (context) => {

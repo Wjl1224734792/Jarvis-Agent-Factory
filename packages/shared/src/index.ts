@@ -298,6 +298,7 @@ export const API_ROUTES = {
       comments: (circleId: string, postId: string) => withApiV1Prefix(`/circles/${circleId}/posts/${postId}/comments`),
       interact: (circleId: string, postId: string) => withApiV1Prefix(`/circles/${circleId}/posts/${postId}/interact`),
     },
+    createPost: withApiV1Prefix("/circles/posts"),
     feed: withApiV1Prefix("/circles/feed"),
     userCategories: withApiV1Prefix("/circles/user-categories"),
     userCategoryDetail: (id: string) => withApiV1Prefix(`/circles/user-categories/${id}`),

@@ -1212,7 +1212,7 @@ export const circleMembersTable = pgTable("circle_members", {
 /** 圈子帖子表 */
 export const circlePostsTable = pgTable("circle_posts", {
   id: text("id").primaryKey(),
-  circleId: text("circle_id").notNull(),
+  circleId: text("circle_id"),
   authorId: text("author_id").notNull(),
   title: text("title").notNull(),
   content: text("content"),
