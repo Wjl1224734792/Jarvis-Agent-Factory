@@ -1,12 +1,33 @@
-// SVG logo 优先，体积 <1KB，无需回退到大体积位图
-const LOGO_MODULES = import.meta.glob<{ default: string }>(
-  "../../../../packages/shared/assets/logo/logo.svg",
-  { eager: true }
-);
+const LOGO_MODULES: Record<string, { default: string }> = {
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.png",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.svg",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.webp",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.jpg",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.jpeg",
+    { eager: true }
+  ),
+};
+
+const PRIORITY = [".png", ".svg", ".webp", ".jpg", ".jpeg"] as const;
 
 function pickLogoUrl(): string {
-  for (const mod of Object.values(LOGO_MODULES)) {
-    if (mod?.default) return mod.default;
+  const entries = Object.entries(LOGO_MODULES);
+  for (const ext of PRIORITY) {
+    const match = entries.find(([path]) => path.toLowerCase().endsWith(ext));
+    if (match?.[1]?.default) return match[1].default;
   }
   return "";
 }
