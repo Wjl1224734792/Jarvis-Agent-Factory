@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent, saveFlowSkill, getFlowSkills, getFlowSkill, saveResumeData, getResumeData, updateSessionMetadata } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, abortRun, logSessionEvent, saveFlowSkill, getFlowSkills, getFlowSkill, saveResumeData, getResumeData, updateSessionMetadata } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -544,11 +544,30 @@ export function registerMcpTools(server, db, root) {
     async (_args, extra) => {
       const sid = extra?.sessionId;
       if (!sid || !getSession(db, sid)) return resp({ ok: true });
+      // 离开前中止所有活跃 run
+      const activeRuns = db.prepare(
+        "SELECT id, task_name, current_gate FROM pipeline_runs WHERE session_id=? AND status='active'"
+      ).all(sid) as any[];
+      const abortedIds: string[] = [];
+      for (const r of activeRuns) {
+        abortRun(db, r.id);
+        abortedIds.push(r.id);
+        emitEvent('run:changed', { runId: r.id, sessionId: sid, action: 'cancel' });
+        logSessionEvent(db, sid, 'run_aborted', {
+          runId: r.id,
+          detail: `auto-aborted on session leave at ${r.current_gate || '?'} — task: ${r.task_name || '(unnamed)'}`,
+        });
+      }
       removeSession(db, sid);
       // TASK-005: 发布 session 离开事件
       emitEvent('session:changed', { sessionId: sid, action: 'leave' });
       logSessionEvent(db, sid, 'session_leave', { detail: 'session left' });
-      return resp({ ok: true, message: 'Session removed.' });
+      return resp({
+        ok: true,
+        message: 'Session removed.',
+        runs_aborted: abortedIds.length,
+        ...(abortedIds.length > 0 ? { aborted_run_ids: abortedIds } : {}),
+      });
     });
 
   server.tool('session_set_name',
@@ -815,6 +834,47 @@ export function registerMcpTools(server, db, root) {
       return resp({
         allowed: true, session_id: sid, run_id: runId, pipeline_type: pt, entry_gate: gate,
         message: `已跳转至 ${gate}，跳过了 ${gateList.slice(0, ti).join(', ')}。剩余: ${gateList.slice(ti).join(' → ')}`,
+      });
+    });
+
+  server.tool('pipeline_cancel',
+    '【会话隔离】取消当前流水线运行。中止活跃 run，清理恢复数据。可选同时离开会话。',
+    {
+      run_id: z.string().optional().describe('要取消的 run ID，默认当前活跃 run'),
+      leave_session: z.boolean().optional().describe('是否同时离开会话，默认 false'),
+    },
+    async ({ run_id, leave_session }, extra) => {
+      const sid = resolveSid(extra);
+      if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
+      const runId = run_id || getActiveRun(db, sid)?.id;
+      if (!runId) return resp({ ok: false, error: 'No active pipeline run to cancel.' });
+      const previousStatus = db.prepare('SELECT status, current_gate, task_name FROM pipeline_runs WHERE id=?').get(runId) as any;
+      if (!previousStatus) return resp({ ok: false, error: `Run ${runId} not found.` });
+      if (previousStatus.status !== 'active') {
+        return resp({ ok: false, error: `Run ${runId} is already ${previousStatus.status}.` });
+      }
+      abortRun(db, runId);
+      emitEvent('run:changed', { runId, sessionId: sid, action: 'cancel' });
+      logSessionEvent(db, sid, 'pipeline_cancel', {
+        runId,
+        detail: `cancelled at ${previousStatus.current_gate || '?'} — task: ${previousStatus.task_name || '(unnamed)'}`,
+      });
+      if (leave_session) {
+        removeSession(db, sid);
+        emitEvent('session:changed', { sessionId: sid, action: 'leave' });
+        logSessionEvent(db, sid, 'session_leave', { detail: 'session left after cancellation' });
+      }
+      return resp({
+        ok: true,
+        cancelled: true,
+        run_id: runId,
+        session_id: sid,
+        was_at_gate: previousStatus.current_gate,
+        task_name: previousStatus.task_name || null,
+        session_left: !!leave_session,
+        message: leave_session
+          ? `\u{1F6AB} 已取消 run「${previousStatus.task_name || '(未命名)'}」并离开会话。`
+          : `\u{1F6AB} 已取消 run「${previousStatus.task_name || '(未命名)'}」，会话仍保留。调用 pipeline_init 开始新任务。`,
       });
     });
 

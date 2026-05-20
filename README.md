@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.3.8-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.4.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.3.8** — 文档目录迁移 docs/→.jarvis/，统一产物管理
+> **v4.4.0** — 新增 /cancel 取消指令，完善会话生命周期管理
 
 ## 快速开始
 
@@ -175,7 +175,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 流水线看板 | `#/dashboard` | 会话列表（任务名/指令标签/Gate状态）· MCP 平台接入状态 · 置顶/归档/删除 |
 | 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
 | 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
-| 项目介绍 | `/commands-reference.html` | 项目概览 · 30条指令流程详解 · 71个Agent目录 · 流水线架构 · 使用推荐 |
+| 项目介绍 | `/commands-reference.html` | 项目概览 · 31条指令流程详解 · 71个Agent目录 · 流水线架构 · 使用推荐 |
 
 侧边栏实时显示 Claude Code 的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
 
@@ -368,7 +368,7 @@ test-doc-writer → test-executor → remediation-expert
 
 ## 命令流程图
 
-每个 Claude Code 命令的完整介绍，包含项目概览、40条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、71个智能体目录、流水线架构和使用推荐：[项目介绍页](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/web/public/commands-reference.html)
+每个 Claude Code 命令的完整介绍，包含项目概览、31条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、71个智能体目录、流水线架构和使用推荐：[项目介绍页](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/web/public/commands-reference.html)
 
 | 分类 | 命令 | 流程图 | Gate 序列 |
 |------|------|--------|----------|

@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 71 Agent · 30 Command · 35 Skill · 15 Pipeline · v4.3.8
+> Jarvis Agent Factory · 71 Agent · 31 Command · 35 Skill · 15 Pipeline · v4.4.0
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -35,7 +35,7 @@
 | L1 | 快速索引、项目类型、关键数字 | 所有 Agent |
 | L2 | 核心约束（24条红线） | 所有 Agent |
 | L3 | 流水线体系（15条管道+Gate说明） | 编排者 |
-| L4 | 工作模式与指令入口（40条命令） | 编排者 |
+| L4 | 工作模式与指令入口（31条命令） | 编排者 |
 | L5 | 智能体体系（71个Agent按6类分组） | 编排者 spawn 时查阅 |
 | L6 | 技能体系（35个Skill按14类分组） | 编排者、实现 Agent |
 | L7 | 文档驱动体系（产物目录+文档规范） | 所有 Agent |
@@ -144,7 +144,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 ## L4 — 工作模式与指令入口
 
-> **仅 Claude Code 平台可用。** 共 40 条指令。
+> **仅 Claude Code 平台可用。** 共 31 条指令。
 
 ### 编排入口
 
@@ -194,6 +194,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 ### 流程管理
 
 `/skill-flow` — 会话流程导出为可复用 Skill 模板（export/save/list/apply 子命令）
+`/cancel` — 取消流水线运行（--leave 离开会话 / --force 紧急清除）
 
 ### Web 面板
 
