@@ -166,16 +166,18 @@ jobs:
 
       - name: Verify npm auth
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
           echo "Authenticated as: $(npm whoami)"
           echo "Registry: $(npm config get registry)"
           npm ping
 
       - name: Publish to npm
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
           VERSION="${GITHUB_REF_NAME#v}"
           PUBLISHED=$(npm view jarvis-agent-factory@"$VERSION" version 2>/dev/null || echo "")
           if [ "$PUBLISHED" = "$VERSION" ]; then
