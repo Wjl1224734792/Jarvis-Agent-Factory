@@ -1,29 +1,12 @@
-const LOGO_MODULES: Record<string, { default: string }> = {
-  ...import.meta.glob<{ default: string }>(
-    "../../../../packages/shared/assets/logo/logo.png",
-    { eager: true }
-  ),
-  ...import.meta.glob<{ default: string }>(
-    "../../../../packages/shared/assets/logo/logo.jpg",
-    { eager: true }
-  ),
-  ...import.meta.glob<{ default: string }>(
-    "../../../../packages/shared/assets/logo/logo.jpeg",
-    { eager: true }
-  ),
-  ...import.meta.glob<{ default: string }>(
-    "../../../../packages/shared/assets/logo/logo.webp",
-    { eager: true }
-  ),
-};
-
-const PRIORITY = [".webp", ".png", ".jpg", ".jpeg"] as const;
+// SVG logo 优先，体积 <1KB，无需回退到大体积位图
+const LOGO_MODULES = import.meta.glob<{ default: string }>(
+  "../../../../packages/shared/assets/logo/logo.svg",
+  { eager: true }
+);
 
 function pickLogoUrl(): string {
-  const entries = Object.entries(LOGO_MODULES);
-  for (const ext of PRIORITY) {
-    const match = entries.find(([path]) => path.toLowerCase().endsWith(ext));
-    if (match?.[1]?.default) return match[1].default;
+  for (const mod of Object.values(LOGO_MODULES)) {
+    if (mod?.default) return mod.default;
   }
   return "";
 }
