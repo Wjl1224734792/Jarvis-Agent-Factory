@@ -127,8 +127,8 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-primary/12 bg-white shadow-[var(--shadow-soft)] xl:h-10 xl:w-10 xl:rounded-[1rem] xl:border-primary/15 xl:shadow-[var(--shadow-float)]">
-      <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
+    <div className="relative flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/12 bg-white px-2 shadow-[var(--shadow-soft)] xl:h-10 xl:rounded-[1rem] xl:border-primary/15 xl:shadow-[var(--shadow-float)]">
+      <img alt={`${APP_NAME} logo`} className="h-6 w-auto object-contain xl:h-7" src={logoUrl} />
     </div>
   );
 }
