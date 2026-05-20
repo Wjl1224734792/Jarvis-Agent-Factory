@@ -3,7 +3,8 @@ import { API_ROUTES } from '@feijia/shared';
 import {
   jsonRequestBody,
   jsonResponse,
-  stringPathParameter
+  stringPathParameter,
+  stringQueryParameter
 } from '../builders';
 
 import {
