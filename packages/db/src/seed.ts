@@ -43,7 +43,10 @@ import {
   userSettingsTable,
   userFollowsTable,
   usersTable,
-  rolesTable
+  rolesTable,
+  circlesTable,
+  circleMembersTable,
+  circlePostsTable,
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
 import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl, resolveSeedAssetByteSize } from "./runtime-seed.js";
@@ -1063,6 +1066,56 @@ async function seedAircraftSubmissions() {
     .onConflictDoNothing();
 }
 
+async function seedCircles(adminUserId: string) {
+  const circleSeeds = [
+    { slug: "drone-enthusiasts", name: "航模发烧友", desc: "热爱航模飞行的爱好者聚集地", joinMode: "free" as const },
+    { slug: "fpv-racing", name: "FPV竞速圈", desc: "穿越机竞速与技巧交流", joinMode: "free" as const },
+    { slug: "aerial-photography", name: "航拍摄影", desc: "分享航拍作品与摄影技巧", joinMode: "free" as const },
+    { slug: "diy-build", name: "DIY装机", desc: "自组无人机方案与调试交流", joinMode: "free" as const },
+    { slug: "industry-application", name: "行业应用", desc: "测绘/巡检/植保等工业应用讨论", joinMode: "audit" as const },
+  ];
+
+  const circleIds: string[] = [];
+  const seededUsers = [USER_IDS.skyline, USER_IDS.canyon, USER_IDS.ranking, USER_IDS.review, USER_IDS.aero, USER_IDS.night];
+
+  for (const c of circleSeeds) {
+    const id = createId("circle");
+    circleIds.push(id);
+    await db.insert(circlesTable).values({
+      id, slug: c.slug, name: c.name, description: c.desc,
+      ownerId: adminUserId, joinMode: c.joinMode,
+      memberCount: Math.floor(Math.random() * 15) + 3,
+      postCount: Math.floor(Math.random() * 5) + 1,
+    });
+    await db.insert(circleMembersTable).values({
+      id: createId("cm"), circleId: id, userId: adminUserId, role: "owner",
+    });
+    for (const uid of seededUsers.slice(0, Math.floor(Math.random() * 4) + 1)) {
+      await db.insert(circleMembersTable).values({
+        id: createId("cm"), circleId: id, userId: uid, role: "member",
+      }).onConflictDoNothing();
+    }
+  }
+
+  const postTitles = ["新人报到", "分享我的航拍作品", "求推荐入门机型", "今天飞了一把FPV", "DIY装机记录", "航拍后期调色教程", "避障功能实测", "远航里程挑战"];
+  const postContents = ["详细内容见图片", "和大家分享飞行体验", "欢迎交流讨论"];
+  for (let i = 0; i < 15; i++) {
+    const circleId = circleIds[Math.floor(Math.random() * circleIds.length)];
+    const authorId = i === 0 ? adminUserId : seededUsers[Math.floor(Math.random() * seededUsers.length)];
+    await db.insert(circlePostsTable).values({
+      id: createId("cp"),
+      circleId,
+      authorId,
+      title: postTitles[Math.floor(Math.random() * postTitles.length)],
+      content: postContents[Math.floor(Math.random() * postContents.length)],
+      images: "[]", videos: "[]",
+      hotScore: Math.floor(Math.random() * 100) + 10,
+      likeCount: Math.floor(Math.random() * 15),
+      commentCount: Math.floor(Math.random() * 5),
+    });
+  }
+}
+
 async function seedSiteSettings() {
   await db
     .insert(siteSettingsTable)
@@ -1130,6 +1183,8 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedAircraftSubmissions();
   await seedBrandApplications();
   await seedNotifications();
+  await seedSiteSettings();
+  await seedCircles(adminUserId);
 }
 
 export async function seedRankingsDatabase(options?: { reset?: boolean }) {

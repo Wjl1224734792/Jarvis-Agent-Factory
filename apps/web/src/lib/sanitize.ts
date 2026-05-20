@@ -66,7 +66,10 @@ const ALLOWED_ATTR: Config["ALLOWED_ATTR"] = [
   "rowspan",
   "style",
   "data-video-block",
-  "data-type"
+  "data-type",
+  "data-link-card-type",
+  "data-link-card-title",
+  "data-link-card-cover"
 ];
 
 const ALLOWED_URI_REGEXP =

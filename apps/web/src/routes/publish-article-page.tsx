@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { Clock3Icon, Link2Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IDomEditor } from "@wangeditor/editor";
 import { AiFormatButton } from "../features/ai/ai-format-button";
 import { ImportFileButton } from "../features/ai/import-file-button";
+import { buildLinkCardHtml } from "@feijia/rich-text-editor";
+import { apiClient } from "@/lib/api-client";
 import { useAiFeatures } from "../features/ai/use-ai-features";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichTextEditor } from "@/components/rich-text-editor";
@@ -24,7 +26,6 @@ import {
 } from "@/lib/uploads/local-preview-assets";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
-import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
 import {
   formatArticleMediaSummary,
@@ -175,11 +176,58 @@ export function PublishArticlePage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const editorRef = useRef<IDomEditor | null>(null);
-  const [editorReady, setEditorReady] = useState(false);
-
   const handleEditorCreated = useCallback((editor: IDomEditor) => {
     editorRef.current = editor;
-    setEditorReady(true);
+  }, []);
+
+  const [showLinkCardDialog, setShowLinkCardDialog] = useState(false);
+  const [linkCardUrl, setLinkCardUrl] = useState("");
+  const [linkCardLoading, setLinkCardLoading] = useState(false);
+
+  const [linkCardError, setLinkCardError] = useState<string | null>(null);
+
+  const handleInsertLinkCard = useCallback(async () => {
+    if (!linkCardUrl.trim() || !editorRef.current || linkCardLoading) return;
+    setLinkCardLoading(true);
+    setLinkCardError(null);
+    try {
+      const { item } = await (apiClient as any).fetchLinkPreview(linkCardUrl.trim());
+      if (item.type === "unknown") {
+        setLinkCardError("无法识别该链接，请检查链接格式。");
+        return;
+      }
+      const html = buildLinkCardHtml(item);
+      editorRef.current.dangerouslyInsertHtml(`<p><br></p>${html}<p><br></p>`);
+      setShowLinkCardDialog(false);
+      setLinkCardUrl("");
+      editorRef.current.focus();
+    } catch {
+      setLinkCardError("链接解析失败，请检查网络或稍后重试。");
+    } finally {
+      setLinkCardLoading(false);
+    }
+  }, [linkCardUrl, linkCardLoading]);
+
+  /** 将解析后的 HTML 注入 wangEditor */
+  const handleImportHtml = useCallback((html: string) => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const currentHtml = editor.getHtml();
+    if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
+      editor.dangerouslyInsertHtml(html);
+    } else {
+      // 通过 DOM 设置内容保留列表结构，
+      // wangEditor 的 setHtml 会剥离 ol/ul/li 标签
+      const editable = document.getElementById(editor.id);
+      if (editable) {
+        editable.innerHTML = html;
+        editable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    editor.focus();
   }, []);
 
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
@@ -359,7 +407,7 @@ export function PublishArticlePage() {
       }
       const entry = { id: blobUrl, url: blobUrl, fileName: file.name, isLocal: true as const };
       if (file.type.startsWith("video/")) {
-        videos.push(entry as unknown as UploadedVideo);
+        videos.push(entry);
       } else {
         images.push(entry);
       }
@@ -710,7 +758,20 @@ export function PublishArticlePage() {
 
                 <div className="flex justify-end gap-2">
                   {aiFormatEnabled ? <AiFormatButton editor={editorRef.current} /> : null}
-                  <ImportFileButton editor={editorRef.current} />
+                  <Button
+                    disabled={!editorRef.current}
+                    onClick={() => setShowLinkCardDialog(true)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Link2Icon className="size-3.5 mr-1" />
+                    链接卡片
+                  </Button>
+                  <ImportFileButton
+                    disabled={!editorRef.current}
+                    onImport={handleImportHtml}
+                  />
                 </div>
 
                 <RichTextEditor
@@ -890,6 +951,50 @@ export function PublishArticlePage() {
       }
       title={editId ? "编辑文章" : "发布文章"}
     />
+
+    {showLinkCardDialog ? (
+      <div className="fixed inset-0 z-[75] flex items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm">
+        <SitePanel className="w-full max-w-[480px]" variant="floating">
+          <SitePanelBody className="space-y-4">
+            <div>
+              <div className="text-lg font-semibold text-foreground">插入链接卡片</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                粘贴平台内部链接（飞行器、文章、飞友圈），自动生成可点击的样式卡片。
+              </p>
+            </div>
+            <Input
+              autoFocus
+              onChange={(e) => setLinkCardUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleInsertLinkCard(); }}
+              placeholder="粘贴链接，例如 /models/dji-mini-4-pro"
+              value={linkCardUrl}
+            />
+            {linkCardError ? (
+              <div className="text-sm text-destructive">{linkCardError}</div>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => { setShowLinkCardDialog(false); setLinkCardUrl(""); setLinkCardError(null); }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                取消
+              </Button>
+              <Button
+                disabled={!linkCardUrl.trim() || linkCardLoading}
+                onClick={() => void handleInsertLinkCard()}
+                size="sm"
+                type="button"
+                variant="hero"
+              >
+                {linkCardLoading ? "解析中..." : "插入卡片"}
+              </Button>
+            </div>
+          </SitePanelBody>
+        </SitePanel>
+      </div>
+    ) : null}
   </>
   );
 }

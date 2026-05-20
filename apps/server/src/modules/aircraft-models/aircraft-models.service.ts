@@ -363,6 +363,21 @@ export const aircraftModelsService = {
     const item = await aircraftModelsRepo.findById(id);
     return item;
   },
+  async compareModels(slugs: string[]) {
+    const items = await aircraftModelsRepo.findBySlugs(slugs);
+    const publicItems = await Promise.all(
+      items.map(async (item) => {
+        const { coverImageFileId, videoFileId, ...rest } = item;
+        const [coverImageUrl, coverVideoUrl] = await Promise.all([
+          resolvePublicUploadedFileUrl(coverImageFileId ?? null),
+          resolvePublicUploadedFileUrl(videoFileId ?? null),
+        ]);
+        return { ...rest, coverImageUrl, coverVideoUrl };
+      })
+    );
+    return publicItems;
+  },
+
   async createModel(input: {
     slug: string;
     name: string;
@@ -379,7 +394,35 @@ export const aircraftModelsService = {
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
+    cruiseSpeedKph?: number | null;
     takeoffWeightGrams: number | null;
+    wingspanMm?: number | null;
+    lengthMm?: number | null;
+    heightMm?: number | null;
+    maxAltitudeM?: number | null;
+    climbRateMs?: number | null;
+    windResistance?: string | null;
+    motorType?: string | null;
+    batteryType?: string | null;
+    batteryCapacityMah?: number | null;
+    batteryVoltage?: string | null;
+    batteryEnergyWh?: number | null;
+    chargeTimeMinutes?: number | null;
+    propellerSize?: string | null;
+    obstacleAvoidance?: string | null;
+    gnssType?: string | null;
+    ipRating?: string | null;
+    operatingTemperature?: string | null;
+    cameraSensorSize?: string | null;
+    cameraPixels?: string | null;
+    videoResolution?: string | null;
+    lensAperture?: string | null;
+    isoRange?: string | null;
+    transmissionSystem?: string | null;
+    transmissionRangeM?: number | null;
+    certificationType?: string | null;
+    noiseLevelDb?: number | null;
+    materialType?: string | null;
     coverImageFileId?: string | null;
     galleryImageFileIds?: string[];
     videoFileId?: string | null;
@@ -405,7 +448,35 @@ export const aircraftModelsService = {
       maxFlightTimeMinutes: number | null;
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
+      cruiseSpeedKph?: number | null;
       takeoffWeightGrams: number | null;
+      wingspanMm?: number | null;
+      lengthMm?: number | null;
+      heightMm?: number | null;
+      maxAltitudeM?: number | null;
+      climbRateMs?: number | null;
+      windResistance?: string | null;
+      motorType?: string | null;
+      batteryType?: string | null;
+      batteryCapacityMah?: number | null;
+      batteryVoltage?: string | null;
+      batteryEnergyWh?: number | null;
+      chargeTimeMinutes?: number | null;
+      propellerSize?: string | null;
+      obstacleAvoidance?: string | null;
+      gnssType?: string | null;
+      ipRating?: string | null;
+      operatingTemperature?: string | null;
+      cameraSensorSize?: string | null;
+      cameraPixels?: string | null;
+      videoResolution?: string | null;
+      lensAperture?: string | null;
+      isoRange?: string | null;
+      transmissionSystem?: string | null;
+      transmissionRangeM?: number | null;
+      certificationType?: string | null;
+      noiseLevelDb?: number | null;
+      materialType?: string | null;
       coverImageFileId?: string | null;
       galleryImageFileIds?: string[];
       videoFileId?: string | null;

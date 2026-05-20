@@ -168,6 +168,11 @@ const ModelsPage = lazy(() =>
     default: module.ModelsPage
   }))
 );
+const CirclesAdminPage = lazy(() =>
+  import("./features/circles/circles-page").then((module) => ({
+    default: module.CirclesPage
+  }))
+);
 const ContentCategoriesPage = lazy(() =>
   import("./features/posts/content-categories-page").then((module) => ({
     default: module.ContentCategoriesPage
@@ -413,6 +418,12 @@ const router = createBrowserRouter([
                 icon: <GatewayOutlined />
               },
               {
+                title: "圈子管理",
+                description: "管理所有飞友圈，包括编辑、启用和禁用圈子。",
+                to: ADMIN_ROUTE_PATHS.managementCircles,
+                icon: <InboxOutlined />
+              },
+              {
                 title: "机型分类",
                 description: "机型一级分类配置与展示顺序维护。",
                 to: ADMIN_ROUTE_PATHS.managementCategories,
@@ -504,6 +515,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementModels),
         element: withAdminRouteFallback(<ModelsPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementCircles),
+        element: withAdminRouteFallback(<CirclesAdminPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementContentCategories),

@@ -4,6 +4,14 @@ const LOGO_MODULES: Record<string, { default: string }> = {
     { eager: true }
   ),
   ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.svg",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
+    "../../../../packages/shared/assets/logo/logo.webp",
+    { eager: true }
+  ),
+  ...import.meta.glob<{ default: string }>(
     "../../../../packages/shared/assets/logo/logo.jpg",
     { eager: true }
   ),
@@ -11,13 +19,9 @@ const LOGO_MODULES: Record<string, { default: string }> = {
     "../../../../packages/shared/assets/logo/logo.jpeg",
     { eager: true }
   ),
-  ...import.meta.glob<{ default: string }>(
-    "../../../../packages/shared/assets/logo/logo.webp",
-    { eager: true }
-  ),
 };
 
-const PRIORITY = [".webp", ".png", ".jpg", ".jpeg"] as const;
+const PRIORITY = [".png", ".svg", ".webp", ".jpg", ".jpeg"] as const;
 
 function pickLogoUrl(): string {
   const entries = Object.entries(LOGO_MODULES);

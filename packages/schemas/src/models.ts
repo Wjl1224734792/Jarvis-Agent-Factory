@@ -110,7 +110,35 @@ export const modelParameterSchema = z.object({
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
-  takeoffWeightGrams: z.number().nonnegative().nullable()
+  cruiseSpeedKph: z.number().nonnegative().nullable().optional(),
+  takeoffWeightGrams: z.number().nonnegative().nullable(),
+  wingspanMm: z.number().nonnegative().nullable().optional(),
+  lengthMm: z.number().nonnegative().nullable().optional(),
+  heightMm: z.number().nonnegative().nullable().optional(),
+  maxAltitudeM: z.number().nonnegative().nullable().optional(),
+  climbRateMs: z.number().nonnegative().nullable().optional(),
+  windResistance: z.string().nullable().optional(),
+  motorType: z.string().nullable().optional(),
+  batteryType: z.string().nullable().optional(),
+  batteryCapacityMah: z.number().nonnegative().nullable().optional(),
+  batteryVoltage: z.string().nullable().optional(),
+  batteryEnergyWh: z.number().nonnegative().nullable().optional(),
+  chargeTimeMinutes: z.number().nonnegative().nullable().optional(),
+  propellerSize: z.string().nullable().optional(),
+  obstacleAvoidance: z.string().nullable().optional(),
+  gnssType: z.string().nullable().optional(),
+  ipRating: z.string().nullable().optional(),
+  operatingTemperature: z.string().nullable().optional(),
+  cameraSensorSize: z.string().nullable().optional(),
+  cameraPixels: z.string().nullable().optional(),
+  videoResolution: z.string().nullable().optional(),
+  lensAperture: z.string().nullable().optional(),
+  isoRange: z.string().nullable().optional(),
+  transmissionSystem: z.string().nullable().optional(),
+  transmissionRangeM: z.number().nonnegative().nullable().optional(),
+  certificationType: z.string().nullable().optional(),
+  noiseLevelDb: z.number().nonnegative().nullable().optional(),
+  materialType: z.string().nullable().optional()
 });
 
 export const modelDetailSchema = modelListItemSchema.safeExtend({
@@ -314,7 +342,35 @@ export const adminModelInputSchema = z.object({
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
+  cruiseSpeedKph: z.number().nonnegative().nullable().optional(),
   takeoffWeightGrams: z.number().nonnegative().nullable(),
+  wingspanMm: z.number().nonnegative().nullable().optional(),
+  lengthMm: z.number().nonnegative().nullable().optional(),
+  heightMm: z.number().nonnegative().nullable().optional(),
+  maxAltitudeM: z.number().nonnegative().nullable().optional(),
+  climbRateMs: z.number().nonnegative().nullable().optional(),
+  windResistance: z.string().nullable().optional(),
+  motorType: z.string().nullable().optional(),
+  batteryType: z.string().nullable().optional(),
+  batteryCapacityMah: z.number().nonnegative().nullable().optional(),
+  batteryVoltage: z.string().nullable().optional(),
+  batteryEnergyWh: z.number().nonnegative().nullable().optional(),
+  chargeTimeMinutes: z.number().nonnegative().nullable().optional(),
+  propellerSize: z.string().nullable().optional(),
+  obstacleAvoidance: z.string().nullable().optional(),
+  gnssType: z.string().nullable().optional(),
+  ipRating: z.string().nullable().optional(),
+  operatingTemperature: z.string().nullable().optional(),
+  cameraSensorSize: z.string().nullable().optional(),
+  cameraPixels: z.string().nullable().optional(),
+  videoResolution: z.string().nullable().optional(),
+  lensAperture: z.string().nullable().optional(),
+  isoRange: z.string().nullable().optional(),
+  transmissionSystem: z.string().nullable().optional(),
+  transmissionRangeM: z.number().nonnegative().nullable().optional(),
+  certificationType: z.string().nullable().optional(),
+  noiseLevelDb: z.number().nonnegative().nullable().optional(),
+  materialType: z.string().nullable().optional(),
   coverImageFileId: z.string().trim().min(1).nullable().optional().default(null),
   galleryImageFileIds: z.array(z.string().trim().min(1)).max(6).optional().default([]),
   videoFileId: z.string().trim().min(1).nullable().optional().default(null),
@@ -338,3 +394,30 @@ export type ModelInteractionType = z.infer<typeof modelInteractionTypeSchema>;
 export type ModelListItem = z.infer<typeof modelListItemSchema>;
 export type ModelDetail = z.infer<typeof modelDetailSchema>;
 export type ModelComment = z.infer<typeof modelCommentSchema>;
+
+// ---------------------------------------------------------------------------
+// 机型对比
+// ---------------------------------------------------------------------------
+
+export const modelCompareQuerySchema = z.object({
+  slugs: z.array(z.string().min(1)).min(1).max(5),
+});
+
+export const modelCompareItemSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  summary: z.string().nullable(),
+  priceMin: priceValueSchema,
+  priceMax: priceValueSchema,
+  powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
+  category: aircraftCategorySchema.pick({ id: true, slug: true, name: true }),
+  brand: brandSchema.pick({ id: true, slug: true, name: true, logoUrl: true }),
+  coverImageUrl: z.string().min(1).nullable().default(null),
+  parameters: modelParameterSchema,
+});
+
+export const modelCompareResponseSchema = z.object({
+  items: z.array(modelCompareItemSchema),
+});

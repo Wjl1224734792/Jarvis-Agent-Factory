@@ -272,6 +272,7 @@ describe("posts api client", () => {
       contentCategoryId: null,
       sourceLabel: "External bulletin",
       sourceUrl: "https://example.com/bulletin",
+      declaration: 'reprinted',
       imageIds: [],
       videoIds: []
     });
@@ -290,6 +291,7 @@ describe("posts api client", () => {
           coverImageId: null,
           sourceLabel: "External bulletin",
           sourceUrl: "https://example.com/bulletin",
+          declaration: 'reprinted',
           imageIds: [],
           videoIds: []
         })

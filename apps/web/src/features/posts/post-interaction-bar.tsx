@@ -170,9 +170,9 @@ export function PostInteractionBar(props: Props) {
   async function ensureAuthenticated() {
     if (
       promptLogin({
-        title: "\u767b\u5f55\u540e\u624d\u80fd\u4e92\u52a8",
+        title: "登录后才能互动",
         description:
-          "\u5173\u6ce8\u3001\u70b9\u8d5e\u3001\u6536\u85cf\u3001\u5206\u4eab\u90fd\u9700\u8981\u767b\u5f55\u540e\u624d\u80fd\u7ee7\u7eed\u3002"
+          "关注、点赞、收藏、分享都需要登录后才能继续。"
       })
     ) {
       return true;
@@ -232,7 +232,7 @@ export function PostInteractionBar(props: Props) {
       <div className={cn("flex flex-wrap items-center gap-2", layout === "vertical" && "flex-col gap-4")}>
         {typeof props.viewCount === "number" && layout !== "vertical" ? (
           <span
-            aria-label={`\u6d4f\u89c8\u91cf ${props.viewCount}`}
+            aria-label={`浏览量 ${props.viewCount}`}
             className="mr-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
           >
             <Eye className="size-4 shrink-0" aria-hidden />
@@ -249,8 +249,8 @@ export function PostInteractionBar(props: Props) {
             iconOnly
             label={
               props.viewer.isFollowingAuthor
-                ? "\u5df2\u5173\u6ce8\u4f5c\u8005"
-                : "\u5173\u6ce8\u4f5c\u8005"
+                ? "已关注作者"
+                : "关注作者"
             }
             layout={layout}
             onClick={() => {
@@ -268,7 +268,7 @@ export function PostInteractionBar(props: Props) {
                     patchPostAuthorFollowState(queryClient, props.authorId, props.viewer.isFollowingAuthor);
                   },
                   task: () => apiClient.toggleFollow(props.authorId),
-                  fallbackErrorMessage: "\u5173\u6ce8\u5931\u8d25"
+                  fallbackErrorMessage: "关注失败"
                 });
               });
             }}
@@ -284,7 +284,7 @@ export function PostInteractionBar(props: Props) {
           disabled={!props.isPublished || pendingActions.like}
           icon={Heart}
           iconOnly
-          label="\u70b9\u8d5e"
+          label="点赞"
           layout={layout}
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -309,7 +309,7 @@ export function PostInteractionBar(props: Props) {
                   });
                 },
                 task: () => apiClient.togglePostInteraction(props.postId, "like"),
-                fallbackErrorMessage: "\u70b9\u8d5e\u5931\u8d25"
+                fallbackErrorMessage: "点赞失败"
               });
             });
           }}
@@ -324,7 +324,7 @@ export function PostInteractionBar(props: Props) {
           disabled={!props.isPublished || pendingActions.favorite}
           icon={Bookmark}
           iconOnly
-          label="\u6536\u85cf"
+          label="收藏"
           layout={layout}
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -349,7 +349,7 @@ export function PostInteractionBar(props: Props) {
                   });
                 },
                 task: () => apiClient.togglePostInteraction(props.postId, "favorite"),
-                fallbackErrorMessage: "\u6536\u85cf\u5931\u8d25"
+                fallbackErrorMessage: "收藏失败"
               });
             });
           }}
@@ -362,7 +362,7 @@ export function PostInteractionBar(props: Props) {
             <div className={cn(layout === "vertical" ? "flex flex-col items-center gap-0.5" : "inline-flex items-center gap-1")}>
               <PageShareControl
                 active={props.viewer.hasShared}
-                aria-label={`\u5206\u4eab\uff08${props.shareCount} \u6b21\uff09`}
+                aria-label={`分享（${props.shareCount} 次）`}
                 className={cn(props.plain && "[&_button]:rounded-full")}
                 disabled={!props.isPublished || pendingActions.share}
                 iconClassName={layout === "vertical" ? "size-5" : "size-4"}
@@ -388,7 +388,7 @@ export function PostInteractionBar(props: Props) {
                       });
                     },
                     task: () => apiClient.togglePostInteraction(props.postId, "share"),
-                    fallbackErrorMessage: "\u5206\u4eab\u5931\u8d25"
+                    fallbackErrorMessage: "分享失败"
                   });
                 }}
                 sharePath={props.sharePath}
@@ -414,10 +414,10 @@ export function PostInteractionBar(props: Props) {
               disabled={!props.isPublished || pendingActions.share}
               icon={Share2}
               iconOnly
-              label="\u5206\u4eab"
+              label="分享"
               layout={layout}
               onClick={() => {
-                setError("\u5206\u4eab\u529f\u80fd\u6682\u672a\u5f00\u653e");
+                setError("分享功能暂未开放");
               }}
               plain={props.plain}
               tone="share"
@@ -434,7 +434,7 @@ export function PostInteractionBar(props: Props) {
           )}
           variant="destructive"
         >
-          <AlertTitle>\u4e92\u52a8\u5931\u8d25</AlertTitle>
+          <AlertTitle>互动失败</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}

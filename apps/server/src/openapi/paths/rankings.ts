@@ -3,7 +3,8 @@ import { API_ROUTES } from '@feijia/shared';
 import {
   jsonRequestBody,
   jsonResponse,
-  stringPathParameter
+  stringPathParameter,
+  stringQueryParameter
 } from '../builders';
 
 import {
@@ -42,6 +43,22 @@ export const rankingPaths = {
         ],
         responses: {
           '200': jsonResponse('AdminRankingsResponse', '返回榜单审核列表。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminItems]: {
+      get: {
+        tags: ['rankings'],
+        summary: '管理端查询评分对象列表',
+        security: adminSessionSecurity,
+        parameters: [
+          stringQueryParameter('status', '评分对象状态（pending/published/rejected/hidden）。'),
+          stringQueryParameter('keyword', '按名称模糊搜索。')
+        ],
+        responses: {
+          '200': jsonResponse('AdminRankingsResponse', '返回评分对象列表。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '非管理员会话。')
         }

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
+import { ArrowRightIcon, EyeOffIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
 import { UserProfilePageRouteSkeleton } from "@/components/route-skeletons";
@@ -35,6 +35,7 @@ export function UserProfilePage() {
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [visitorPage, setVisitorPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("content");
   const profileQuery = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: () => apiClient.getUserProfile(userId),
@@ -49,6 +50,15 @@ export function UserProfilePage() {
   const rawContentItems = useMemo(
     () => contentQuery.data?.items ?? [],
     [contentQuery.data?.items]
+  );
+  const circlesQuery = useQuery({
+    queryKey: ["user-circles", userId],
+    queryFn: () => (apiClient as any).listUserCircles(userId),
+    enabled: Boolean(userId),
+  });
+  const userCircles = useMemo(
+    () => (circlesQuery.data?.items ?? []) as Array<Record<string, unknown>>,
+    [circlesQuery.data?.items]
   );
   const visitorContentItems = useMemo(
     () => rawContentItems.filter((item) => !isFavoriteItem(item)),
@@ -231,6 +241,41 @@ export function UserProfilePage() {
     />
   );
 
+  const circlesNode = circlesQuery.isLoading ? (
+    <div className="py-8 text-center text-sm text-muted-foreground">加载中...</div>
+  ) : userCircles.length === 0 ? (
+    <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
+      这位飞友还没有加入任何圈子。
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {userCircles.map((c: any) => (
+        <Link
+          className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-4 transition hover:border-primary/30 hover:bg-sky-50/20"
+          key={c.id as string}
+          to={`/circles/${c.slug}`}
+        >
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-600">
+            <UsersIcon className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-foreground line-clamp-1">
+              {c.name as string}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {c.memberCount as number} 成员
+              {c.role ? (
+                <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[0.65rem]">
+                  {c.role === "owner" ? "圈主" : c.role === "admin" ? "管理员" : "成员"}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+
   const contentNode = isContentLoading ? (
     <div className="divide-y divide-border/60 border border-border/60 bg-white">
       {Array.from({ length: 6 }).map((_, index) => (
@@ -282,17 +327,18 @@ export function UserProfilePage() {
   return (
     <ProfileLayoutShell
       alert={alertNode}
-      activeTab="content"
+      activeTab={activeTab}
       banner={bannerNode}
       metaBar={metaBarNode}
-      onTabChange={() => {}}
+      onTabChange={(tab) => setActiveTab(tab)}
       statusHint={statusHintNode}
       tabs={[
         { value: "content", label: "内容" },
+        { value: "circles", label: "圈子" },
         { value: "favorites", label: "收藏", disabled: true, title: "无法查看其他飞友的收藏列表" }
       ]}
     >
-      {contentNode}
+      {activeTab === "circles" ? circlesNode : contentNode}
     </ProfileLayoutShell>
   );
 }

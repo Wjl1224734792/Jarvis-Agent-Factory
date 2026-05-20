@@ -40,6 +40,31 @@ export const modelPaths = {
         }
       }
     },
+    [API_ROUTES.models.compare]: {
+      get: {
+        tags: ['models'],
+        summary: '对比飞行器',
+        description: '按 slug 批量对比 2-5 个飞行器的核心参数与价格。',
+        parameters: [
+          stringQueryParameter('slugs', '机型 slug 列表，逗号分隔，最少 2 个最多 5 个。')
+        ],
+        responses: {
+          '200': jsonResponse('ModelCompareResponse', '返回机型对比结果。'),
+          '400': jsonResponse('ErrorResponse', '请求参数缺失或不合法。')
+        }
+      }
+    },
+    [API_ROUTES.models.view('{slug}')]: {
+      post: {
+        tags: ['models'],
+        summary: '记录机型浏览',
+        parameters: [stringPathParameter('slug', '机型 slug。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '已记录浏览。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      }
+    },
     [API_ROUTES.models.comments('{slug}')]: {
       get: {
         tags: ['models'],

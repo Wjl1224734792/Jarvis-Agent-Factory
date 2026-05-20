@@ -13,6 +13,8 @@ import {
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
+  modelCompareQuerySchema,
+  modelCompareResponseSchema,
   reportContentInputSchema,
   updateModelCommentInputSchema,
   updateModelCommentStatusInputSchema
@@ -58,6 +60,31 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
   return context.json(modelListResponseSchema.parse(payload));
 });
 
+aircraftModelsRoute.get(API_ROUTES.models.compare, async (context) => {
+  const raw = (context.req.queries("slugs") ?? [context.req.query("slugs")])
+    .filter(Boolean)
+    .flatMap(s => s!.split(","))
+    .filter(Boolean);
+  const query = modelCompareQuerySchema.parse({ slugs: raw });
+  const flatItems = await aircraftModelsService.compareModels(query.slugs);
+  const items = flatItems.map((item: Record<string, unknown>) => {
+    const { coverImageUrl, coverVideoUrl, ...rest } = item;
+    const paramKeys = [
+      "maxFlightTimeMinutes","maxRangeKilometers","maxSpeedKph","cruiseSpeedKph",
+      "takeoffWeightGrams","wingspanMm","lengthMm","heightMm","maxAltitudeM",
+      "climbRateMs","windResistance","motorType","batteryType","batteryCapacityMah",
+      "batteryVoltage","batteryEnergyWh","chargeTimeMinutes","propellerSize",
+      "obstacleAvoidance","gnssType","ipRating","operatingTemperature","cameraSensorSize",
+      "cameraPixels","videoResolution","lensAperture","isoRange","transmissionSystem",
+      "transmissionRangeM","certificationType","noiseLevelDb","materialType"
+    ];
+    const parameters = Object.fromEntries(paramKeys.map(k => [k, rest[k] ?? null]));
+    const nonParam = Object.fromEntries(Object.entries(rest).filter(([k]) => !paramKeys.includes(k)));
+    return { ...nonParam, coverImageUrl, coverVideoUrl, parameters };
+  });
+  return context.json(modelCompareResponseSchema.parse({ items }));
+});
+
 aircraftModelsRoute.get(API_ROUTES.models.detail(":slug"), async (context) => {
   const slug = context.req.param("slug");
   if (!slug) {
@@ -83,7 +110,35 @@ aircraftModelsRoute.get(API_ROUTES.models.detail(":slug"), async (context) => {
           maxFlightTimeMinutes: item.maxFlightTimeMinutes,
           maxRangeKilometers: item.maxRangeKilometers,
           maxSpeedKph: item.maxSpeedKph,
-          takeoffWeightGrams: item.takeoffWeightGrams
+          cruiseSpeedKph: item.cruiseSpeedKph,
+          takeoffWeightGrams: item.takeoffWeightGrams,
+          wingspanMm: item.wingspanMm,
+          lengthMm: item.lengthMm,
+          heightMm: item.heightMm,
+          maxAltitudeM: item.maxAltitudeM,
+          climbRateMs: item.climbRateMs,
+          windResistance: item.windResistance,
+          motorType: item.motorType,
+          batteryType: item.batteryType,
+          batteryCapacityMah: item.batteryCapacityMah,
+          batteryVoltage: item.batteryVoltage,
+          batteryEnergyWh: item.batteryEnergyWh,
+          chargeTimeMinutes: item.chargeTimeMinutes,
+          propellerSize: item.propellerSize,
+          obstacleAvoidance: item.obstacleAvoidance,
+          gnssType: item.gnssType,
+          ipRating: item.ipRating,
+          operatingTemperature: item.operatingTemperature,
+          cameraSensorSize: item.cameraSensorSize,
+          cameraPixels: item.cameraPixels,
+          videoResolution: item.videoResolution,
+          lensAperture: item.lensAperture,
+          isoRange: item.isoRange,
+          transmissionSystem: item.transmissionSystem,
+          transmissionRangeM: item.transmissionRangeM,
+          certificationType: item.certificationType,
+          noiseLevelDb: item.noiseLevelDb,
+          materialType: item.materialType
         }
       }
     })

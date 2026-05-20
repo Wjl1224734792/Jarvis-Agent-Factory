@@ -173,9 +173,31 @@ export function OfficialArticleEditorPage() {
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
-  const watchedDeclaration = (Form.useWatch("declaration", form) ?? "") as string;
+  const watchedDeclaration = Form.useWatch("declaration", form) ?? "";
 
   const mediaManager = useMemo(() => createMediaManager(), []);
+
+  /** 将解析后的 HTML 注入 wangEditor */
+  const handleImportHtml = useCallback((html: string) => {
+    const editor = editorInstance;
+    if (!editor) {
+      return;
+    }
+
+    const currentHtml = editor.getHtml();
+    if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
+      editor.dangerouslyInsertHtml(html);
+    } else {
+      // 通过 DOM 设置内容保留列表结构，
+      // wangEditor 的 setHtml 会剥离 ol/ul/li 标签
+      const editable = document.getElementById(editor.id);
+      if (editable) {
+        editable.innerHTML = html;
+        editable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    editor.focus();
+  }, [editorInstance]);
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -534,7 +556,7 @@ export function OfficialArticleEditorPage() {
           content: document.plainText,
           contentHtml: document.contentHtml
         } satisfies OfficialArticleFormValues,
-        Array.from(new Set([coverId, ...uploadedImages.map((item) => item.id), ...newImageIds].filter(Boolean))) as string[],
+        Array.from(new Set([coverId, ...uploadedImages.map((item) => item.id), ...newImageIds].filter(Boolean))),
         [...uploadedVideos.map((item) => item.id), ...newVideoIds]
       );
 
@@ -665,7 +687,7 @@ export function OfficialArticleEditorPage() {
                   rules={watchedDeclaration === 'reprinted' ? [{ required: true, message: '转载内容必须填写来源名称' }] : undefined}
                 >
                   <Select
-                    onChange={(value) => {
+                    onChange={(value: string) => {
                       const defaultUrl = SOURCE_URL_MAP[value];
                       if (defaultUrl !== undefined) {
                         form.setFieldValue('sourceUrl', defaultUrl);
@@ -707,7 +729,10 @@ export function OfficialArticleEditorPage() {
             <div className="admin-official-article-editor__ai-toolbar" style={{ marginBottom: 8 }}>
               <Space size="small">
                 <AiFormatButton editor={editorInstance} />
-                <ImportFileButton editor={editorInstance} />
+                <ImportFileButton
+                  disabled={!editorInstance}
+                  onImport={handleImportHtml}
+                />
               </Space>
             </div>
 

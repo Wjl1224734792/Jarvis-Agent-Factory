@@ -1,5 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
+import { Toaster } from "sonner";
 import { Suspense, lazy, useEffect, useMemo, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import {
@@ -38,6 +39,16 @@ const ModelDetailPage = lazy(() =>
 const ModelsPage = lazy(() =>
   import("./routes/models-page").then((module) => ({
     default: module.ModelsPage
+  }))
+);
+const ModelComparePage = lazy(() =>
+  import("./routes/model-compare-page").then((module) => ({
+    default: module.ModelComparePage
+  }))
+);
+const CircleDetailPage = lazy(() =>
+  import("./routes/circle-detail-page").then((module) => ({
+    default: module.CircleDetailPage
   }))
 );
 const NotificationsPage = lazy(() =>
@@ -286,6 +297,17 @@ export function App() {
               )
             },
             {
+              path: toRootChildPath(APP_ROUTES.circleDetail),
+              element: withSuspenseFallback(
+                <CircleDetailPage />,
+                <DeferredFallback>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                </DeferredFallback>
+              )
+            },
+            {
               path: toRootChildPath(APP_ROUTES.webLogin),
               element: withRouteFallback(<LoginPage />)
             },
@@ -358,6 +380,17 @@ export function App() {
                 <ModelDetailPage />,
                 <DeferredFallback>
                   <ModelDetailPageSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.modelCompare),
+              element: withSuspenseFallback(
+                <ModelComparePage />,
+                <DeferredFallback>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
                 </DeferredFallback>
               )
             },
@@ -457,6 +490,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
 }

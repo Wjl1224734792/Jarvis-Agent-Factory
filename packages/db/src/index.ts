@@ -46,7 +46,14 @@ export {
   siteSettingsTable,
   userSettingsTable,
   userFollowsTable,
-  usersTable
+  usersTable,
+  circlesTable,
+  circleMembersTable,
+  circlePostsTable,
+  circlePostInteractionsTable,
+  circlePostCommentsTable,
+  circleUserCategoriesTable,
+  circleCategoryAssignmentsTable
 } from "./schema.js";
 export {
   createId,

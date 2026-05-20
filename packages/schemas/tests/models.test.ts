@@ -190,6 +190,8 @@ describe("models contract", () => {
         maxRangeKilometers: null,
         maxSpeedKph: null,
         takeoffWeightGrams: null,
+        noiseLevelDb: null,
+        materialType: null,
         isPublished: true
       })
     ).toThrow(/price/i);
