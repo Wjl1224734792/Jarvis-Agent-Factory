@@ -312,7 +312,7 @@ Idea Refine → Requirements → Task Design → Architecture Review → Plannin
 
 1. Local dev + tests pass: `npm run check && npm run build && cd web && npm run build`
 2. Update `package.json` version (semver)
-3. **Sync AGENTS.md / README.md / .jarvis/README.md**
+3. **Sync AGENTS.md / README.md / docs/README.md**
 4. Commit + tag: `git tag -a v<version> -m "v<version> - <summary>"`
 5. Push to GitHub **with tag**: `git push origin main && git push origin v<version>`
 6. GitHub Actions: Release workflow auto-runs (quality check → Changelog → GitHub Release + single HTML panel → npm publish)
@@ -326,34 +326,34 @@ Complete Mermaid flowcharts for each Claude Code command, showing Gate sequences
 
 | Category | Command | Flowchart | Gate Sequence |
 |----------|---------|-----------|---------------|
-| **Core** | `/jarvis` | [jarvis.md](.jarvis/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10 gates) |
-| | `/jarvis-lite` | [jarvis-lite.md](.jarvis/flows/jarvis-lite.md) | Smart entry mapping |
-| **Frontend** | `/frontend` | [frontend.md](.jarvis/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5 mandatory) |
-| **Backend** | `/backend` | [backend.md](.jarvis/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (skip C1.5) |
-| **Mobile** | `/android` | [android.md](.jarvis/flows/android.md) | A→B→C→C1→C2→D→E (7 gates) |
-| | `/ios` | [ios.md](.jarvis/flows/ios.md) | A→B→C→C1→C2→D→E (7 gates) |
-| **Cross-platform** | `/flutter` | [flutter.md](.jarvis/flows/flutter.md) | A→B→C→C1→C2→D→E (7 gates) |
-| | `/expo` | [expo.md](.jarvis/flows/expo.md) | A→B→C→C1→C2→D→E (7 gates) |
-| | `/taro` | [taro.md](.jarvis/flows/taro.md) | A→B→C→C1→C2→D→E (7 gates) |
-| **Test/Fix** | `/browser-test` | [browser-test.md](.jarvis/flows/browser-test.md) | Write cases → execute → fix-retest loop |
-| | `/bug-fix` | [bug-fix.md](.jarvis/flows/bug-fix.md) | Reproduce → root cause → fix → verify 7-step loop |
-| **Review** | `/review` | [review.md](.jarvis/flows/review.md) | Read-only review |
-| | `/review-fix` | [review-fix.md](.jarvis/flows/review-fix.md) | Audit → plan → execute → verify → re-review |
-| **Architecture** | `/frontend-architect` | [frontend-architect.md](.jarvis/flows/frontend-architect.md) | Collect questions → spawn architect → present |
-| | `/backend-architect` | [backend-architect.md](.jarvis/flows/backend-architect.md) | Collect questions → spawn architect → present |
-| | `/algorithm-expert` | [algorithm-expert.md](.jarvis/flows/algorithm-expert.md) | Collect questions → spawn expert → present |
-| **Test Suite** | `/test-unit` | [test-unit.md](.jarvis/flows/test-unit.md) | Detect framework → analyze code → Red → Green → Refactor |
-| | `/test-integration` | [test-integration.md](.jarvis/flows/test-integration.md) | Identify contract → start env → generate → run → cleanup |
-| | `/test-e2e` | [test-e2e.md](.jarvis/flows/test-e2e.md) | User stories → pick tool → write → run → report |
-| | `/test-perf` | [test-perf.md](.jarvis/flows/test-perf.md) | Define targets → pick tool → baseline → load test → find bottleneck |
-| | `/test-security` | [test-security.md](.jarvis/flows/test-security.md) | Authorize → spider → active scan → fix → report |
-| **Engineering** | `/refactor` | [refactor.md](.jarvis/flows/refactor.md) | R1 boundary → R2 baseline → R3 refactor → R4 drift detect → R5 report (5 gates) |
-| | `/hotfix` | [hotfix.md](.jarvis/flows/hotfix.md) | H0 declare → H1 fix → H2 verify → H3 audit (4 gates) |
-| | `/migrate` | [migrate.md](.jarvis/flows/migrate.md) | M1 rules → M2 migrate → M3 compile → M4 lint (4 gates) |
-| | `/evaluate` | [evaluate.md](.jarvis/flows/evaluate.md) | E0 criteria → E1 prototype → E2 metrics → E3 report (4 gates) |
-| | `/debug` | [debug.md](.jarvis/flows/debug.md) | D0 collect → D1 reproduce → D2 debug → D3 diagnose → D4 report (5 gates) |
+| **Core** | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10 gates) |
+| | `/jarvis-lite` | [jarvis-lite.md](docs/flows/jarvis-lite.md) | Smart entry mapping |
+| **Frontend** | `/frontend` | [frontend.md](docs/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5 mandatory) |
+| **Backend** | `/backend` | [backend.md](docs/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (skip C1.5) |
+| **Mobile** | `/android` | [android.md](docs/flows/android.md) | A→B→C→C1→C2→D→E (7 gates) |
+| | `/ios` | [ios.md](docs/flows/ios.md) | A→B→C→C1→C2→D→E (7 gates) |
+| **Cross-platform** | `/flutter` | [flutter.md](docs/flows/flutter.md) | A→B→C→C1→C2→D→E (7 gates) |
+| | `/expo` | [expo.md](docs/flows/expo.md) | A→B→C→C1→C2→D→E (7 gates) |
+| | `/taro` | [taro.md](docs/flows/taro.md) | A→B→C→C1→C2→D→E (7 gates) |
+| **Test/Fix** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | Write cases → execute → fix-retest loop |
+| | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | Reproduce → root cause → fix → verify 7-step loop |
+| **Review** | `/review` | [review.md](docs/flows/review.md) | Read-only review |
+| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | Audit → plan → execute → verify → re-review |
+| **Architecture** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | Collect questions → spawn architect → present |
+| | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | Collect questions → spawn architect → present |
+| | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | Collect questions → spawn expert → present |
+| **Test Suite** | `/test-unit` | [test-unit.md](docs/flows/test-unit.md) | Detect framework → analyze code → Red → Green → Refactor |
+| | `/test-integration` | [test-integration.md](docs/flows/test-integration.md) | Identify contract → start env → generate → run → cleanup |
+| | `/test-e2e` | [test-e2e.md](docs/flows/test-e2e.md) | User stories → pick tool → write → run → report |
+| | `/test-perf` | [test-perf.md](docs/flows/test-perf.md) | Define targets → pick tool → baseline → load test → find bottleneck |
+| | `/test-security` | [test-security.md](docs/flows/test-security.md) | Authorize → spider → active scan → fix → report |
+| **Engineering** | `/refactor` | [refactor.md](docs/flows/refactor.md) | R1 boundary → R2 baseline → R3 refactor → R4 drift detect → R5 report (5 gates) |
+| | `/hotfix` | [hotfix.md](docs/flows/hotfix.md) | H0 declare → H1 fix → H2 verify → H3 audit (4 gates) |
+| | `/migrate` | [migrate.md](docs/flows/migrate.md) | M1 rules → M2 migrate → M3 compile → M4 lint (4 gates) |
+| | `/evaluate` | [evaluate.md](docs/flows/evaluate.md) | E0 criteria → E1 prototype → E2 metrics → E3 report (4 gates) |
+| | `/debug` | [debug.md](docs/flows/debug.md) | D0 collect → D1 reproduce → D2 debug → D3 diagnose → D4 report (5 gates) |
 
-> All flowcharts use `flowchart TD` unified style. Read under `.jarvis/flows/` directory for Mermaid rendering.
+> All flowcharts use `flowchart TD` unified style. Read under `docs/flows/` directory for Mermaid rendering.
 
 ## License
 

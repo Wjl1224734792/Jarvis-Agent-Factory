@@ -24,9 +24,9 @@
 
 - **AGENTS.md**（本文件）— Agent 列表、技能列表、统计数字、关键约束
 - **README.md** — 版本号、特性列表、Web 面板页面、统计数据
-- **.jarvis/README.md** — 流水线产物目录结构
+- **docs/README.md** — 项目文档目录结构
 
-> 提交前自问：我改了什么？AGENTS.md / README.md / .jarvis/README.md 需要同步更新吗？
+> 提交前自问：我改了什么？AGENTS.md / README.md / docs/README.md 需要同步更新吗？
 
 ### 各层概要
 
@@ -313,7 +313,7 @@ test-doc-writer → test-executor → remediation-expert
 
 ### 2. 维护文档
 
-每次提交同步：AGENTS.md · README.md · .jarvis/README.md · .gitignore
+每次提交同步：AGENTS.md · README.md · docs/README.md · .gitignore
 
 ### 3. 提交并打 Tag
 
