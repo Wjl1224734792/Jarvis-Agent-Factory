@@ -45,7 +45,7 @@ Skill("test-driven-development")
    ```
 4. 定义成功标准：性能指标、代码行数减少、圈复杂度降低等
 
-5. 输出 `docs/YYYY-MM-DD/refactoring/refactor-boundary.md`
+5. 输出 `.jarvis/YYYY-MM-DD/refactoring/refactor-boundary.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "R2" })`
 
@@ -69,7 +69,7 @@ Skill("test-driven-development")
    - 测试通过数：__
    - 测试失败数：0（强制）
 
-3. 保存基线覆盖率报告到 `docs/YYYY-MM-DD/refactoring/baseline-coverage.json`
+3. 保存基线覆盖率报告到 `.jarvis/YYYY-MM-DD/refactoring/baseline-coverage.json`
 
 4. **（可选）Spawn 测试 Agent 补充基线测试**——若现有测试覆盖率不足以作为重构安全网，可 spawn 测试 Agent 补充基线测试用例，提高覆盖率：
    - 前端代码 → spawn `frontend-test-expert`
@@ -198,7 +198,7 @@ Skill("test-driven-development")
    - 行覆盖率：__%
    - 分支覆盖率：__%
    - 测试通过数：__
-   - 基线报告路径：docs/YYYY-MM-DD/refactoring/baseline-coverage.json
+   - 基线报告路径：.jarvis/YYYY-MM-DD/refactoring/baseline-coverage.json
 
    ## 任务
    1. 运行完整测试套件（含 R2 阶段补充的基线测试）：
@@ -236,7 +236,7 @@ Skill("test-driven-development")
    - 用相同输入调用重构前后版本
    - 验证输出完全相同
 
-5. 输出 `docs/YYYY-MM-DD/refactoring/behavior-drift-report.md`
+5. 输出 `.jarvis/YYYY-MM-DD/refactoring/behavior-drift-report.md`
 
 **通过标准**：覆盖率不下降 + 测试全部通过 + 行为漂移检测通过
 
@@ -249,7 +249,7 @@ Skill("test-driven-development")
 **Gate 检查条件**：重构报告已产出，含变更摘要+覆盖率对比+行为漂移结论
 
 ### 步骤
-输出 `docs/YYYY-MM-DD/refactoring/refactor-summary.md`：
+输出 `.jarvis/YYYY-MM-DD/refactoring/refactor-summary.md`：
 ```markdown
 # 重构报告
 ## 重构目标

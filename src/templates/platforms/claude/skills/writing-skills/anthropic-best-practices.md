@@ -1030,7 +1030,7 @@ Claude 的视觉能力有助于理解布局和结构。
 * **描述性文件命名**：使用表明内容的名称：`form_validation_rules.md`，而非 `doc2.md`
 * **为发现而组织**：按领域或功能组织目录结构
   * 好的：`reference/finance.md`、`reference/sales.md`
-  * 差的：`docs/file1.md`、`docs/file2.md`
+  * 差的：`.jarvis/file1.md`、`.jarvis/file2.md`
 * **捆绑全面的资源**：包含完整的 API 文档、大量示例、大型数据集；在访问之前没有上下文惩罚
 * **确定性操作优先使用脚本**：编写 `validate_form.py` 而非让 Claude 生成验证代码
 * **明确执行意图**：

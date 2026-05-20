@@ -460,7 +460,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 每次提交必须同步更新：
 - `AGENTS.md` — Agent 列表、技能列表、统计数字
 - `README.md` — 版本号、特性列表、统计数据
-- `docs/README.md` — 流水线产物目录结构
+- `.jarvis/README.md` — 流水线产物目录结构
 
 ---
 
@@ -473,8 +473,8 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 3. **同 Batch 并行** — 无依赖任务批量发起
 4. **修改完必须测试** — lint + typecheck + test + build
 5. **修改完必须发布** — 测试通过后推送 GitHub
-6. **提交必须同步文档** — AGENTS.md / README.md / docs/README.md
-7. **临时文件统一存放** — `docs/tmp/`，禁止散落根目录
-8. **产物目录规范** — `docs/YYYY-MM-DD/{subdir}/`
+6. **提交必须同步文档** — AGENTS.md / README.md / .jarvis/README.md
+7. **临时文件统一存放** — `.jarvis/tmp/`，禁止散落根目录
+8. **产物目录规范** — `.jarvis/YYYY-MM-DD/{subdir}/`
 9. **Agent Team + SubAgent 混合编排** — 根据 Gate team_strategy 选择
 10. **Agent Team 模块隔离** — 每个成员独占模块/文件区域

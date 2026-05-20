@@ -96,7 +96,7 @@ updated: "2026-05-19"
 **绝不可触碰**：
 - `dist/`、`build/`、`.next/` — 构建产物
 - `node_modules/`、`.git/` — 依赖和版本控制
-- `docs/YYYY-MM-DD/` — 日期驱动的流水线产物
+- `.jarvis/YYYY-MM-DD/` — 日期驱动的流水线产物
 - 任何 `.env` 文件
 - 用户明确标记为 keep 的文件
 
@@ -150,5 +150,5 @@ updated: "2026-05-19"
 - 修改 .env / node_modules / .git 下的任何文件
 - 凭记忆判断文档内容而不实际读取文件
 - 改变 README.md 的写作风格和叙述结构
-- 清理 docs/YYYY-MM-DD/ 日期目录下的流水线产物
+- 清理 .jarvis/YYYY-MM-DD/ 日期目录下的流水线产物
 - 自动创建 CHANGELOG.md（应由开发者手动维护）

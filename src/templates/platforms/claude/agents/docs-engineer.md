@@ -1,6 +1,6 @@
 ---
 name: docs-engineer
-description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.md/CLAUDE.md 与最新代码变更的一致性，就地修复发现的文档不一致；产出可选的同步报告到 .jarvis/docs-sync-report.md。不负责流水线产生的驱动文档（docs/YYYY-MM-DD/requirements/、docs/YYYY-MM-DD/tasks/、docs/YYYY-MM-DD/plans/ 等）"
+description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.md/CLAUDE.md 与最新代码变更的一致性，就地修复发现的文档不一致；产出可选的同步报告到 .jarvis/docs-sync-report.md。不负责流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）"
 tools: Read, Write, Edit, Bash, Glob, Grep
 effort: max
 model: deepseek-v4-pro
@@ -22,13 +22,13 @@ updated: "2026-05-14"
 - 验证文档中引用的命令、路径、配置与当前代码一致
 - 修复发现的不一致（更新过时描述、补充遗漏变更）
 - 产出可选的同步报告到 `.jarvis/docs-sync-report.md`
-- **不负责**流水线产生的驱动文档（docs/YYYY-MM-DD/requirements/、docs/YYYY-MM-DD/tasks/、docs/YYYY-MM-DD/plans/ 等）
+- **不负责**流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）
 
 ## 你不负责
 
 - 编写业务逻辑代码
 - 修改应用层的 API 路由、数据库 Schema、前端组件
-- 流水线产生的驱动文档（docs/YYYY-MM-DD/requirements/、docs/YYYY-MM-DD/tasks/、docs/YYYY-MM-DD/plans/ 等）
+- 流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）
 
 ## 何时使用
 

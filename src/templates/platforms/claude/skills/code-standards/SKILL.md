@@ -55,16 +55,16 @@ updated: "2026-05-14"
 
 ## 9. 临时文件管理
 
-流水线过程中产生的所有临时文件（截图、快照、验证数据、调试日志等）**必须放入 `docs/tmp/` 对应子目录**，禁止散落在项目根目录或其他位置。
+流水线过程中产生的所有临时文件（截图、快照、验证数据、调试日志等）**必须放入 `.jarvis/tmp/` 对应子目录**，禁止散落在项目根目录或其他位置。
 
 | 子目录 | 用途 |
 |--------|------|
-| `docs/tmp/screenshots/` | 截图（PNG/JPG） |
-| `docs/tmp/snapshots/` | Playwright 快照（YML/MD） |
-| `docs/tmp/logs/` | 调试日志、控制台输出 |
-| `docs/tmp/` 根目录 | 其他零散临时文件 |
+| `.jarvis/tmp/screenshots/` | 截图（PNG/JPG） |
+| `.jarvis/tmp/snapshots/` | Playwright 快照（YML/MD） |
+| `.jarvis/tmp/logs/` | 调试日志、控制台输出 |
+| `.jarvis/tmp/` 根目录 | 其他零散临时文件 |
 
-`docs/tmp/` 已由 `.gitignore` 排除，不会误提交到仓库。
+`.jarvis/tmp/` 已由 `.gitignore` 排除，不会误提交到仓库。
 
 ---
 

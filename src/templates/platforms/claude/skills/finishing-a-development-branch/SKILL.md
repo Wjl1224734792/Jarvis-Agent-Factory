@@ -148,7 +148,7 @@ git push origin --delete <feature-branch>
 - [ ] Gate C1 + Gate C2 全部通过
 - [ ] 已合并到目标分支
 - [ ] 功能分支已删除（本地 + 远程）
-- [ ] 实现文档已输出到 `docs/YYYY-MM-DD/implementation/`
+- [ ] 实现文档已输出到 `.jarvis/YYYY-MM-DD/implementation/`
 - [ ] 相关文档已更新（API 文档 / CHANGELOG）
 
 ## 常见错误

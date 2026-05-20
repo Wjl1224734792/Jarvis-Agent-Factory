@@ -98,7 +98,7 @@ Skill(skill="source-driven-development")
 
 ## 输出文件
 
-路径：`docs/database/YYYY-MM-DD-<topic>-database.md`
+路径：`.jarvis/database/YYYY-MM-DD-<topic>-database.md`
 
 文档必须包含：
 1. 背景与目标

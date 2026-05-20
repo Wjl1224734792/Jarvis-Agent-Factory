@@ -122,27 +122,27 @@ export const GATE_DIRS = {
   'Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing',
   'Gate D':'review','Gate E':'shipping',
   // TASK-001: 5 条新流水线产物目录映射
-  // /refactor → docs/refactoring/
+  // /refactor → .jarvis/refactoring/
   'R1':'refactoring','R2':'refactoring','R3':'refactoring','R4':'refactoring','R5':'refactoring',
-  // /hotfix → docs/hotfix/
+  // /hotfix → .jarvis/hotfix/
   'H0':'hotfix','H1':'hotfix','H2':'hotfix','H3':'hotfix',
-  // /migrate → docs/migration/
+  // /migrate → .jarvis/migration/
   'M1':'migration','M2':'migration','M3':'migration','M4':'migration',
-  // /evaluate → docs/evaluation/
+  // /evaluate → .jarvis/evaluation/
   'E0':'evaluation','E1':'evaluation','E2':'evaluation','E3':'evaluation',
-  // /debug → docs/debug/
+  // /debug → .jarvis/debug/
   'D0':'debug','D1':'debug','D2':'debug','D3':'debug','D4':'debug',
-  // /research → docs/research/
+  // /research → .jarvis/research/
   'RS0':'research','RS1':'research','RS2':'research','RS3':'research','RS4':'research',
-  // /release → docs/shipping/
+  // /release → .jarvis/shipping/
   'RL0':'shipping','RL1':'shipping','RL2':'shipping','RL3':'shipping','RL4':'shipping',
-  // /ask → docs/requirements/
+  // /ask → .jarvis/requirements/
   'K0':'requirements','K1':'requirements','K2':'requirements','K3':'requirements',
-  // /simplify → docs/simplification/
+  // /simplify → .jarvis/simplification/
   'S0':'simplification','S1':'simplification','S2':'simplification','S3':'simplification',
-  // /trace → docs/trace/
+  // /trace → .jarvis/trace/
   'T0':'trace','T1':'trace','T2':'trace','T3':'trace','T4':'trace',
-  // /improve → docs/improvement/
+  // /improve → .jarvis/improvement/
   'IM0':'improvement','IM1':'improvement','IM2':'improvement','IM3':'improvement','IM4':'improvement',
 };
 
@@ -336,7 +336,7 @@ export const GATE_AGENT_GUIDE = {
   'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert', 'android-dev-expert', 'android-ui-expert', 'android-state-expert', 'ios-dev-expert', 'ios-ui-expert', 'ios-state-expert', 'flutter-dev-expert', 'flutter-ui-expert', 'flutter-state-expert', 'taro-dev-expert', 'taro-ui-expert', 'taro-state-expert', 'react-native-dev-expert', 'react-native-ui-expert', 'react-native-state-expert', 'expo-dev-expert', 'expo-ui-expert', 'expo-state-expert', 'remediation-expert', 'remediation-planner'], note: '批量实现——推荐 Agent Team(TeamCreate) 并行调度实现Agent(Team模式),轻量任务用subagent(Agent工具)；平台Agent(android/ios/flutter/taro/react-native/expo)按需选择；修复回退时spawn remediation-expert或remediation-planner', team_strategy: 'prefer_team', team_rules: '每个Team成员必须独占模块/文件区域,禁止多成员共享同一文件或模块。前端按组件/页面拆分,后端按服务/路由模块拆分,移动端按平台+页面拆分,共享区域由唯一责任人处理'  },
   'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
   'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
-  'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'android-test-expert', 'ios-test-expert', 'flutter-test-expert', 'taro-test-expert', 'expo-test-expert', 'react-native-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——推荐 Agent Team 并行跑测试(TeamCreate→各tester并行执行),轻量检查用subagent。平台测试Agent(android/ios/flutter/taro/react-native/expo)按需选择。步骤1(Team并行):spawn test-doc-writer+各平台test-expert → 步骤2:spawn test-executor → 步骤3(失败时):spawn remediation-expert(≤2轮) → 步骤4:spawn e2e-test-expert → 步骤5:汇总至docs/testing/', team_strategy: 'prefer_team', team_rules: '各tester按测试类型独占(单元/集成/E2E/性能/安全),test-doc-writer写文档后tester按文档独立执行,互不干扰。平台测试按平台隔离,互不交叉'  },
+  'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'android-test-expert', 'ios-test-expert', 'flutter-test-expert', 'taro-test-expert', 'expo-test-expert', 'react-native-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——推荐 Agent Team 并行跑测试(TeamCreate→各tester并行执行),轻量检查用subagent。平台测试Agent(android/ios/flutter/taro/react-native/expo)按需选择。步骤1(Team并行):spawn test-doc-writer+各平台test-expert → 步骤2:spawn test-executor → 步骤3(失败时):spawn remediation-expert(≤2轮) → 步骤4:spawn e2e-test-expert → 步骤5:汇总至.jarvis/testing/', team_strategy: 'prefer_team', team_rules: '各tester按测试类型独占(单元/集成/E2E/性能/安全),test-doc-writer写文档后tester按文档独立执行,互不干扰。平台测试按平台隔离,互不交叉'  },
   'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'android-review-expert', 'ios-review-expert', 'flutter-review-expert', 'taro-review-expert', 'expo-review-expert', 'react-native-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert', 'change-review-expert', 'diff-review-expert', 'project-review-expert', 'review-fix-optimize', 'review-only'], note: '评审阶段——推荐 Agent Team 并行审查(TeamCreate→各reviewer并行),qa-review-expert用subagent综合签核。平台审查Agent(android/ios/flutter/taro/react-native/expo)按需选择', team_strategy: 'prefer_team', team_rules: '各reviewer按领域独占(前端/后端/移动端/安全/性能),只读审查不修改文件。qa-review-expert为唯一签核者,汇总各领域findings后综合判定。平台审查按平台隔离,互不交叉'  },
   'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert', 'docs-engineer'], note: '发布阶段——安全审计+文档生成+上线检查+版本管理+归档' },
   // TASK-001: /refactor 流水线 Agent 生成指引
@@ -359,13 +359,13 @@ export const GATE_AGENT_GUIDE = {
   'E0': { can_spawn: ['code-explore-expert','external-resource-expert'], note: '定义评估标准+用例' },
   'E1': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '生成快速原型（沙箱）' },
   'E2': { can_spawn: ['frontend-test-expert','backend-test-expert','perf-test-expert'], note: '运行用例+收集指标' },
-  'E3': { can_spawn: [], note: '汇总评估报告到 docs/evaluation/' },
+  'E3': { can_spawn: [], note: '汇总评估报告到 .jarvis/evaluation/' },
   // TASK-001: /debug 流水线 Agent 生成指引
   'D0': { can_spawn: ['code-explore-expert'], note: '异常描述+日志收集' },
   'D1': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '生成最小复现用例' },
   'D2': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '启动调试会话' },
   'D3': { can_spawn: ['frontend-dev-expert','backend-dev-expert'], note: '交互式诊断' },
-  'D4': { can_spawn: [], note: '输出诊断报告到 docs/debug/' },
+  'D4': { can_spawn: [], note: '输出诊断报告到 .jarvis/debug/' },
   // /research 流水线 Agent 生成指引
   'RS0': { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '课题定义——探索代码库+外部资源，明确研究范围和方法论', team_strategy: 'subagent_only' },
   'RS1': { can_spawn: ['code-explore-expert', 'external-resource-expert', 'docs-research-expert'], note: '信息收集——推荐 Agent Team 并行收集代码库/文档/网络资源', team_strategy: 'prefer_team', team_rules: '各信息源独占，代码探索与网络搜索分开并行，互不干扰' },
@@ -550,22 +550,22 @@ export const AVAILABLE_MODELS = [
 ];
 
 /**
- * 扫描 Gate 产物文档（返回相对 docs/ 的完整路径）。
- * 仅从日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，旧扁平结构不再兼容。
- * @param {string} docsDir 文档根目录
+ * 扫描 Gate 产物文档（返回相对 .jarvis/ 的完整路径）。
+ * 仅从日期目录 .jarvis/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，旧扁平结构不再兼容。
+ * @param {string} artifactsDir 文档根目录
  * @param {string} gate Gate 名称
  * @returns {string[]} 相对路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
  */
-export function findGateArtifacts(docsDir, gate) {
+export function findGateArtifacts(artifactsDir, gate) {
   const subdir = GATE_DIRS[gate]; if (!subdir) return [];
 
   // 新结构：迭代所有日期目录
-  if (existsSync(docsDir)) {
-    const dateDirs = readdirSync(docsDir, { withFileTypes: true })
+  if (existsSync(artifactsDir)) {
+    const dateDirs = readdirSync(artifactsDir, { withFileTypes: true })
       .filter(d => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name));
     const files: string[] = [];
     for (const dd of dateDirs) {
-      const dir = join(docsDir, dd.name, subdir);
+      const dir = join(artifactsDir, dd.name, subdir);
       if (existsSync(dir)) {
         const mdFiles = readdirSync(dir).filter(f => f.endsWith('.md'));
         for (const f of mdFiles) {
@@ -583,14 +583,14 @@ export function findGateArtifacts(docsDir, gate) {
 /**
  * 按会话过滤 Gate 产物文档——仅查 artifacts 表，杜绝跨会话污染。
  * 无 artifacts 记录时回退当日日期目录扫描（当前 Gate 实时可见，无需等到 Gate 通过）。
- * @param docsDir 文档根目录
+ * @param artifactsDir 文档根目录
  * @param gate Gate 名称
  * @param sessionId 会话 ID
  * @param db 数据库实例
  * @param runId 可选 run ID；传入时优先从 artifacts 表精确查询
- * @returns 相对于 docsDir 的文档路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
+ * @returns 相对于 artifactsDir 的文档路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
  */
-export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
+export function findSessionGateArtifacts(artifactsDir, gate, sessionId, db, runId?) {
   const subdir = GATE_DIRS[gate];
   if (!subdir) return [];
 
@@ -602,7 +602,7 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
 
   // 无 runId 时使用当日日期目录扫描（兼容旧调用）
   const today = new Date().toISOString().slice(0, 10);
-  const todayDir = join(docsDir, today, subdir);
+  const todayDir = join(artifactsDir, today, subdir);
   if (existsSync(todayDir)) {
     const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
     if (mdFiles.length > 0) {

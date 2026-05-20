@@ -59,7 +59,7 @@ Skill(skill="find-skills")
 ## 输出
 
 - 响应中输出结构化搜索结果
-- 如被要求写文档，输出到 docs/<YYYY>-<MM>-<DD>/research/<topic>-docs-research.md
+- 如被要求写文档，输出到 .jarvis/<YYYY>-<MM>-<DD>/research/<topic>-docs-research.md
 
 
 ## 红线

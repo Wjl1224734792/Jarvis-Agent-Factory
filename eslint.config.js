@@ -62,7 +62,7 @@ export default [
       'node_modules/',
       'dist/',
       '.claude/',
-      'docs/',
+      '.jarvis/',
       'src/templates/',
       '*.config.js',
       '*.config.ts',

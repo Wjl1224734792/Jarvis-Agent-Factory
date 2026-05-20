@@ -80,7 +80,7 @@ feat/x       ●●      ●●       功能分支
 
 ## 提交前检查（强制执行）
 
-1. **文档同步** — `README.md`、`AGENTS.md`、`docs/README.md` 是否与本次变更一致
+1. **文档同步** — `README.md`、`AGENTS.md`、`.jarvis/README.md` 是否与本次变更一致
 2. **.gitignore 检查** — 是否有新增临时文件类型（截图/日志/数据库/快照等）未加入 `.gitignore`，`git status` 是否干净
 3. **版本号递增** — `package.json` 版本号是否按语义化版本递增完毕
 4. **质量门** — Lint + Type-check + Test 全部通过

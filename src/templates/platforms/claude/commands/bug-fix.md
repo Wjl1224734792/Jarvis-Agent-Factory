@@ -119,7 +119,7 @@ agent-browser screenshot fix-verify.png  # 修复后截图
 **通过 → 进入步骤 7；失败 → 回到步骤 3 重新分析（最多 2 轮回退）**
 
 ## 步骤 7：关闭 Bug
-输出 `docs/bug-fix/YYYY-MM-DD-<bug-title>-bug-fix-report.md`：
+输出 `.jarvis/bug-fix/YYYY-MM-DD-<bug-title>-bug-fix-report.md`：
 ```markdown
 # Bug 修复报告
 ## Bug 信息

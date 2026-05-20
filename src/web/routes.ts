@@ -283,7 +283,7 @@ export function setupApiRoutes(app, db, root) {
         return {
           gate: g,
           passed: cp !== null,
-          artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db, run?.id),
+          artifacts: findSessionGateArtifacts(getArtifactsDir(root), g, s.id, db, run?.id),
           entered_at: enteredAt,
           duration_seconds: cp?.duration_seconds ?? null,
           duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
@@ -309,7 +309,7 @@ export function setupApiRoutes(app, db, root) {
     const gate = c.req.param('gate').replace(/_/g, ' ');
     const sid = c.req.query('session_id');
     const run = getActiveRun(db, sid);
-    const artifacts = sid ? findSessionGateArtifacts(getDocsDir(root), gate, sid, db, run?.id) : [];
+    const artifacts = sid ? findSessionGateArtifacts(getArtifactsDir(root), gate, sid, db, run?.id) : [];
     if (!sid) return c.json({ error: 'session_id query parameter required' }, 400);
     const checkpoints = getCheckpoints(db, gate, sid);
     const allowed = artifacts.length > 0 || checkpoints.length > 0;
@@ -338,7 +338,7 @@ export function setupApiRoutes(app, db, root) {
     }
     const targetGate = gateList[targetIdx];
     const run = getActiveRun(db, sid);
-    const artifacts = findSessionGateArtifacts(getDocsDir(root), currentGate, sid, db, run?.id);
+    const artifacts = findSessionGateArtifacts(getArtifactsDir(root), currentGate, sid, db, run?.id);
     const checkpoints = getCheckpoints(db, currentGate, sid);
     if (artifacts.length === 0 && checkpoints.length === 0) {
       return c.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
@@ -365,9 +365,9 @@ export function setupApiRoutes(app, db, root) {
         const gateSubdir = GATE_DIRS[currentGate];
         if (gateSubdir) {
           const dateDir = run.started_at?.slice(0, 10) || null;
-          // 优先扫描日期目录 docs/{dateDir}/{gateSubdir}/
+          // 优先扫描日期目录 .jarvis/{dateDir}/{gateSubdir}/
           if (dateDir) {
-            const dateArtifactDir = join(getDocsDir(root), dateDir, gateSubdir);
+            const dateArtifactDir = join(getArtifactsDir(root), dateDir, gateSubdir);
             if (existsSync(dateArtifactDir)) {
               const mdFiles = readdirSync(dateArtifactDir).filter(f => f.endsWith('.md'));
               for (const f of mdFiles) {
@@ -375,8 +375,8 @@ export function setupApiRoutes(app, db, root) {
               }
             }
           }
-          // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
-          const flatDir = join(getDocsDir(root), gateSubdir);
+          // 向后兼容：同时扫描旧扁平结构 .jarvis/{gateSubdir}/
+          const flatDir = join(getArtifactsDir(root), gateSubdir);
           if (existsSync(flatDir)) {
             const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
             for (const f of mdFiles) {
@@ -673,8 +673,8 @@ export function setupApiRoutes(app, db, root) {
     return c.json({ platforms: summary, supported: platforms, total_agents: getAgentList(true).length });
   });
 
-  // ---- Docs 读取 ----
-  app.get('/api/docs/:filepath{.*}', (c) => {
+  // ---- Jarvis 产物读取 ----
+  app.get('/api/jarvis/:filepath{.*}', (c) => {
     const filepath = decodeURIComponent(c.req.param('filepath'));
 
     // 拒绝空路径
@@ -683,7 +683,7 @@ export function setupApiRoutes(app, db, root) {
     }
 
     // 路径遍历防护（优先级高于文件扩展名检查）
-    const docsDir = resolve(root, 'docs');
+    const docsDir = resolve(root, '.jarvis');
     const resolvedPath = resolve(docsDir, filepath);
     if (!resolvedPath.startsWith(docsDir)) {
       return c.json({ error: 'Path traversal not allowed' }, 400);
@@ -696,7 +696,7 @@ export function setupApiRoutes(app, db, root) {
 
     // 文件存在性检查
     if (!existsSync(resolvedPath)) {
-      console.warn(`[docs-api] 404: ${resolvedPath} (filepath: ${filepath})`);
+      console.warn(`[jarvis-api] 404: ${resolvedPath} (filepath: ${filepath})`);
       return c.json({ error: 'File not found' }, 404);
     }
 
@@ -787,7 +787,7 @@ export function setupApiRoutes(app, db, root) {
   _sseTimer = setInterval(() => { broadcastSSE(); }, 8000);
 }
 
-function getDocsDir(root) { return resolve(root, 'docs'); }
+function getArtifactsDir(root) { return resolve(root, '.jarvis'); }
 
 /**
  * 将秒数格式化为人类可读的中文持续时间字符串

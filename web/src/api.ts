@@ -146,7 +146,7 @@ export const api = {
 
   docContent: async (filepath: string): Promise<string> => {
     const safePath = (filepath ?? '').split('/').map(encodeURIComponent).join('/');
-    const r = await fetch(BASE + `/api/docs/${safePath}`);
+    const r = await fetch(BASE + `/api/jarvis/${safePath}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },

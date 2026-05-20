@@ -106,7 +106,7 @@ npx playwright show-report
 
 ## 步骤 5：生成测试报告
 
-输出 `docs/YYYY-MM-DD/testing/e2e-test-report.md`：
+输出 `.jarvis/YYYY-MM-DD/testing/e2e-test-report.md`：
 ```markdown
 # E2E 测试报告
 ## 测试范围

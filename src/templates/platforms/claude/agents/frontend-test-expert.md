@@ -99,7 +99,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-路径：docs/YYYY-MM-DD/testing/<topic>-frontend-test.md
+路径：.jarvis/YYYY-MM-DD/testing/<topic>-frontend-test.md
 
 文档必须包含：
 1. 测试目标

@@ -65,7 +65,7 @@ updated: "2026-05-14"
 ### 第四层：交付物完整
 
 - [ ] **代码已提交**：变更已通过 `git` 提交（如果适用）
-- [ ] **实现文档已输出**：如果有要求，`docs/YYYY-MM-DD/implementation/` 下的文档已写入
+- [ ] **实现文档已输出**：如果有要求，`.jarvis/YYYY-MM-DD/implementation/` 下的文档已写入
 - [ ] **测试证据保留**：关键测试运行输出已留档
 - [ ] **变更范围可控**：未超出 Execution Packet 的 `allowed_paths`
 - [ ] **无遗留调试代码**：console.log、临时注释、硬编码的测试数据已清理

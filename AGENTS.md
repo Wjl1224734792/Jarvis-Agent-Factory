@@ -24,9 +24,9 @@
 
 - **AGENTS.md**（本文件）— Agent 列表、技能列表、统计数字、关键约束
 - **README.md** — 版本号、特性列表、Web 面板页面、统计数据
-- **docs/README.md** — 流水线产物目录结构
+- **.jarvis/README.md** — 流水线产物目录结构
 
-> 提交前自问：我改了什么？AGENTS.md / README.md / docs/README.md 需要同步更新吗？
+> 提交前自问：我改了什么？AGENTS.md / README.md / .jarvis/README.md 需要同步更新吗？
 
 ### 各层概要
 
@@ -62,20 +62,20 @@
 13. **评审修复后必须重新质量验证（硬约束）** — Gate D 修复后必须 Lint + Type-check + Build + Deps Audit + 测试套件。最多 2 轮，仍失败标记 ABORT。
 14. **修改完必须发布** — 测试通过后按 [L8 发布流程](#l8-发布流程) 推送 GitHub，CI 自动发布 npm
 15. **提交必须同步文档** — 见 [L1 文档同步约束](#文档同步约束)
-16. **临时文件统一存放** — 所有流水线过程产物放入 `docs/tmp/`，禁止散落在项目根目录
+16. **临时文件统一存放** — 所有流水线过程产物放入 `.jarvis/tmp/`，禁止散落在项目根目录
 17. **Command（指令）与 Agent（智能体）边界清晰**：
     - Command（`/jarvis`, `/frontend`, `/backend-architect` 等）是用户交互入口
     - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
     - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
 18. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步
-19. **产物目录规范（硬约束）** — 正式产出**必须**存入 `docs/YYYY-MM-DD/{subdir}/`。**禁止**旧扁平格式。
+19. **产物目录规范（硬约束）** — 正式产出**必须**存入 `.jarvis/YYYY-MM-DD/{subdir}/`。**禁止**旧扁平格式。
 20. **多模态回退** — 模型不支持多模态时，使用 `visual-primitives-mcp` 工具代替
 21. **Web 面板路径解析——dev/main 隔离**：必须通过 `getWebDistDir()` 处理，禁止硬编码路径
 22. **存储分层架构（硬约束）**：
     - 项目级 `<project>/.jarvis/`：跨会话记忆（engine.db、quality-gates.yml）
     - 用户级 `~/.jarvis/`：仅 agent 模型偏好，禁止存跨项目数据
     - 项目配置 `<project>/.claude/`：settings.json、agents/、commands/、skills/
-    - Docs `<project>/docs/YYYY-MM-DD/`：日期隔离的流水线产物
+    - Docs `<project>/.jarvis/YYYY-MM-DD/`：日期隔离的流水线产物
 23. **Agent Team 模块隔离（硬约束）** — Team 模式每个成员独占模块/文件区域，禁止共享。前端按组件拆分，后端按服务模块拆分
 24. **Agent Team + SubAgent 混合编排** — 根据 Gate 的 `team_strategy` 选择：
     - `prefer_team`（C-impl/C2/D）→ TeamCreate + Agent(team_name)
@@ -262,10 +262,10 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 ### 产物目录规范
 
-所有正式产物**必须**存入 `docs/YYYY-MM-DD/` 日期目录：
+所有正式产物**必须**存入 `.jarvis/YYYY-MM-DD/` 日期目录：
 
 ```
-docs/YYYY-MM-DD/
+.jarvis/YYYY-MM-DD/
 ├── requirements/     ← Gate A、/ask K0-K3、/research RS0
 ├── tasks/            ← Gate B-DDD/B-BDD/B-TDD
 ├── architecture/     ← Gate B1
@@ -290,11 +290,11 @@ docs/YYYY-MM-DD/
 
 | Agent 类别 | 产出要求 | 存放路径 |
 |-----------|---------|---------|
-| 实现类 | `<TASK-ID>-completion.md` 自查报告 | `docs/YYYY-MM-DD/implementation/` |
-| 审查类 | 审查报告（findings + 严重度分级） | `docs/YYYY-MM-DD/review/` |
-| 测试类 | 测试报告（通过/失败清单 + 覆盖率） | `docs/YYYY-MM-DD/testing/` |
+| 实现类 | `<TASK-ID>-completion.md` 自查报告 | `.jarvis/YYYY-MM-DD/implementation/` |
+| 审查类 | 审查报告（findings + 严重度分级） | `.jarvis/YYYY-MM-DD/review/` |
+| 测试类 | 测试报告（通过/失败清单 + 覆盖率） | `.jarvis/YYYY-MM-DD/testing/` |
 | 规划/任务 | 正式文档即为完成文档 | 对应阶段目录 |
-| 特殊 | docs-engineer → `.jarvis/docs-sync-report.md` | browser-use-expert → `docs/.../browser-use/report.md` |
+| 特殊 | docs-engineer → `.jarvis/docs-sync-report.md` | browser-use-expert → `.jarvis/.../browser-use/report.md` |
 
 ### 浏览器测试文档驱动工作流
 
@@ -313,7 +313,7 @@ test-doc-writer → test-executor → remediation-expert
 
 ### 2. 维护文档
 
-每次提交同步：AGENTS.md · README.md · docs/README.md · .gitignore
+每次提交同步：AGENTS.md · README.md · .jarvis/README.md · .gitignore
 
 ### 3. 提交并打 Tag
 

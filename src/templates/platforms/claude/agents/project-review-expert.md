@@ -82,7 +82,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 输出文件
 
-路径：docs/YYYY-MM-DD/review/<topic>-project-audit.md
+路径：.jarvis/YYYY-MM-DD/review/<topic>-project-audit.md
 
 文档必须包含：
 1. 审查范围

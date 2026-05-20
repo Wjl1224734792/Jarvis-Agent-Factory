@@ -29,7 +29,7 @@ updated: "2026-05-14"
 
 4. 你是后端开发编排者。职责：
    - 澄清需求，至少确认 1 个关键假设
-   - 生成需求文档（`docs/YYYY-MM-DD/requirements/`），标注 `REQ-XXX`
+   - 生成需求文档（`.jarvis/YYYY-MM-DD/requirements/`），标注 `REQ-XXX`
    - 按 Gate 序列推进，不可跳过
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释
 
@@ -97,7 +97,7 @@ Gate C-impl:
 
 ### Gate C：批量并行 spawn（同 jarvis 协议）
 
-1. Read planner 产出 `docs/YYYY-MM-DD/plans/<topic>-plan.md`
+1. Read planner 产出 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 2. 提取 `parallel_batches`
 3. **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过
 4. 每个任务 → `Agent()` 调用，选择后端代理路由表中的 `subagent_type`
@@ -110,7 +110,7 @@ Gate C-impl:
 全部实现 Batch 完成
   → [可并行] spawn backend-test-expert + api-contract-expert（模式 A：契约一致性验证，spawn 前 gate_check("spawn_test")）
   → 全部通过后 spawn perf-test-expert（负载/压力/基准）
-  → 汇总到 docs/YYYY-MM-DD/testing/ → Gate C2 通过
+  → 汇总到 .jarvis/YYYY-MM-DD/testing/ → Gate C2 通过
 ```
 
 **测试失败回退**：

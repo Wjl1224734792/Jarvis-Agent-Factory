@@ -84,7 +84,7 @@ updated: "2026-05-14"
 
 ### 职责
 
-- 读取测试失败清单（从 `docs/YYYY-MM-DD/testing/` 目录）
+- 读取测试失败清单（从 `.jarvis/YYYY-MM-DD/testing/` 目录）
 - 分析每个失败用例的根因
 - 定位需要修复的代码文件
 - 执行修复，不通过 Agent 工具调度其他实现 Agent
@@ -107,7 +107,7 @@ updated: "2026-05-14"
 
 ### 输入
 
-1. 测试报告：`docs/YYYY-MM-DD/testing/<topic>-test-results.md`
+1. 测试报告：`.jarvis/YYYY-MM-DD/testing/<topic>-test-results.md`
 2. 失败用例清单（源自测试报告）
 
 ### 输出
@@ -172,8 +172,8 @@ Skill(skill="code-standards")
 
 | 模式 | 输出路径 |
 |------|---------|
-| 规划模式 | `docs/YYYY-MM-DD/plans/<topic>-remediation-plan.md` |
-| 执行模式 | `docs/YYYY-MM-DD/implementation/<topic>-remediation.md` |
+| 规划模式 | `.jarvis/YYYY-MM-DD/plans/<topic>-remediation-plan.md` |
+| 执行模式 | `.jarvis/YYYY-MM-DD/implementation/<topic>-remediation.md` |
 | 重测模式 | 在测试报告所在目录追加修复重测结果 |
 
 文档必须包含：

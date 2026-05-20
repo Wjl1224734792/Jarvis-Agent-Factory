@@ -41,7 +41,7 @@ Skill("spec-driven-development")
 | K2 | `requirements-spec.md` | `direct-plan.md` | `consensus-plan.md` | `optimization-proposal.md` |
 | K3 | `requirements-spec.md`（定稿） | `direct-plan.md`（定稿） | `consensus-plan.md`（定稿） | `optimization-proposal.md`（定稿） |
 
-> 所有产物存放于 `docs/YYYY-MM-DD/requirements/`。
+> 所有产物存放于 `.jarvis/YYYY-MM-DD/requirements/`。
 
 ---
 
@@ -79,10 +79,10 @@ Skill("spec-driven-development")
    **Review**——加载待优化的指令/流程编排，确认优化目标
 
 4. **产出 K0 文档**（必须写入，作为 Gate 检查依据）：
-   - Interview → `docs/YYYY-MM-DD/requirements/problem-space.md`
-   - Direct → `docs/YYYY-MM-DD/requirements/requirement-intake.md`
-   - Consensus → `docs/YYYY-MM-DD/requirements/plan-loadout.md`
-   - Review → `docs/YYYY-MM-DD/requirements/process-loadout.md`
+   - Interview → `.jarvis/YYYY-MM-DD/requirements/problem-space.md`
+   - Direct → `.jarvis/YYYY-MM-DD/requirements/requirement-intake.md`
+   - Consensus → `.jarvis/YYYY-MM-DD/requirements/plan-loadout.md`
+   - Review → `.jarvis/YYYY-MM-DD/requirements/process-loadout.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "K1" })`
 
@@ -104,7 +104,7 @@ Skill("spec-driven-development")
 
 3. 两个 subagent 可并行 spawn（同一消息中并发 Agent 调用）
 
-4. 产出 `docs/YYYY-MM-DD/requirements/exploration-report.md`
+4. 产出 `.jarvis/YYYY-MM-DD/requirements/exploration-report.md`
 
 ### Direct 模式——快速上下文确认
 
@@ -113,7 +113,7 @@ Skill("spec-driven-development")
    - 技术可行性初步判断
    - 若目标模块不存在 → 记录为"需新建模块"，不中断流程
 
-2. 产出 `docs/YYYY-MM-DD/requirements/context-check.md`
+2. 产出 `.jarvis/YYYY-MM-DD/requirements/context-check.md`
 
 ### Consensus 模式——计划覆盖范围分析
 
@@ -123,7 +123,7 @@ Skill("spec-driven-development")
    - 计划假设是否与代码现状一致？
    - 是否有遗漏的关键模块？
 
-2. 产出 `docs/YYYY-MM-DD/requirements/plan-analysis.md`
+2. 产出 `.jarvis/YYYY-MM-DD/requirements/plan-analysis.md`
 
 ### Review 模式——流程结构评估
 
@@ -133,7 +133,7 @@ Skill("spec-driven-development")
    - 检查 Agent Team/Subagent 调度是否合理
    - 检查文档驱动是否完整（每个 Gate 是否有对应产出）
 
-2. 产出 `docs/YYYY-MM-DD/requirements/process-assessment.md`
+2. 产出 `.jarvis/YYYY-MM-DD/requirements/process-assessment.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "K2" })`
 
@@ -153,7 +153,7 @@ Skill("spec-driven-development")
 
 2. spawn `code-explore-expert` 验证技术细节（按需，subagent，只读）
 
-3. 产出 `docs/YYYY-MM-DD/requirements/requirements-spec.md`
+3. 产出 `.jarvis/YYYY-MM-DD/requirements/requirements-spec.md`
 
 ### Direct 模式——快速分析直接产出
 
@@ -165,7 +165,7 @@ Skill("spec-driven-development")
    - 验收标准（BDD 格式：Given/When/Then）
    - 实现建议
 
-3. 产出 `docs/YYYY-MM-DD/requirements/direct-plan.md`
+3. 产出 `.jarvis/YYYY-MM-DD/requirements/direct-plan.md`
 
 ### Consensus 模式——多角色审查循环（参考 OMC ralplan）
 
@@ -202,7 +202,7 @@ Skill("spec-driven-development")
    - Disagree → 编排者修订计划 → 回到步骤 2（新一轮审查）
    - 第 5 轮仍未达成共识 → 记录所有分歧点，编排者做最终裁决（附分歧说明）
 
-6. 产出 `docs/YYYY-MM-DD/requirements/consensus-plan.md`（含审查轮次记录和分歧说明）
+6. 产出 `.jarvis/YYYY-MM-DD/requirements/consensus-plan.md`（含审查轮次记录和分歧说明）
 
 ### Review 模式——Critic 评估与优化
 
@@ -219,7 +219,7 @@ Skill("spec-driven-development")
    - 改进后的流程编排方案
    - 预期收益（效率提升/质量改善/冲突减少）
 
-3. 产出 `docs/YYYY-MM-DD/requirements/optimization-proposal.md`
+3. 产出 `.jarvis/YYYY-MM-DD/requirements/optimization-proposal.md`
 
 ---
 

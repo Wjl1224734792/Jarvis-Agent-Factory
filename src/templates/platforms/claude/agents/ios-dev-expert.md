@@ -51,7 +51,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-`docs/YYYY-MM-DD/implementation/<topic>-ios-implementation.md`
+`.jarvis/YYYY-MM-DD/implementation/<topic>-ios-implementation.md`
 
 
 ## 红线

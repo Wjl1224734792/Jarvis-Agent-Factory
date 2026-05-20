@@ -32,7 +32,7 @@ Skill("test-data-factory")
 
 1. **OpenAPI 契约文件**：`openapi.json`、`swagger.json`、`openapi.yaml`
 2. **路由定义文件**：Express/Next 路由文件、FastAPI router、Gin handler
-3. **契约文档**：`docs/api/`、`docs/contracts/`
+3. **契约文档**：`.jarvis/api/`、`.jarvis/contracts/`
 
 提取关键信息：
 - HTTP 方法（GET/POST/PUT/PATCH/DELETE）

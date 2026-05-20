@@ -57,7 +57,7 @@ Skill("refactoring")
    - 迭代上限：最多 N 轮迭代（建议 5）
    - 平台期：连续 M 轮改善 < 阈值（建议 3 轮 < 5%）
 
-4. 产出 `docs/YYYY-MM-DD/improvement/goal-definition.md`
+4. 产出 `.jarvis/YYYY-MM-DD/improvement/goal-definition.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "IM1" })`
 
@@ -83,7 +83,7 @@ Skill("refactoring")
    | OPP-02 | ... | +8% | 中 | P1 |
    | OPP-03 | ... | +3% | 低 | P2 |
 
-4. 产出 `docs/YYYY-MM-DD/improvement/research-analysis.md`
+4. 产出 `.jarvis/YYYY-MM-DD/improvement/research-analysis.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "IM2" })`
 
@@ -106,7 +106,7 @@ Skill("refactoring")
    - 影响范围可控（不涉及密封文件/共享契约）
    - 回滚方案可行
 
-3. 产出 `docs/YYYY-MM-DD/improvement/improvement-plan.md`
+3. 产出 `.jarvis/YYYY-MM-DD/improvement/improvement-plan.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "IM3" })`
 
@@ -131,7 +131,7 @@ Skill("refactoring")
 
 4. **验证**——Lint + Type-check + Build + Test 全跑
 
-5. 产出 `docs/YYYY-MM-DD/improvement/execution-result.md`
+5. 产出 `.jarvis/YYYY-MM-DD/improvement/execution-result.md`
 
 > **若验证失败**：修复 → 重新跑基准（最多 3 轮修正）
 
@@ -157,7 +157,7 @@ Skill("refactoring")
    - ✅ 进入平台期 → **停止**，记录收敛点
    - ❌ 未满足任何停止条件 → **继续**，`mcp__jarvis-engine__gate_jump({ gate: "IM1" })` 跳过 IM0 重新研究
 
-3. **总结报告**——产出 `docs/YYYY-MM-DD/improvement/summary-report.md`：
+3. **总结报告**——产出 `.jarvis/YYYY-MM-DD/improvement/summary-report.md`：
    - 每轮迭代的假设+结果+指标变化
    - 最佳指标值和对应变更
    - 经验教训和后续建议

@@ -66,7 +66,7 @@ jarvis web                       # 启动 Web 面板（按需）
 流水线各阶段智能产出物按 Gate 存入对应子目录，临时文件统一管理：
 
 ```
-docs/
+.jarvis/
 ├── tmp/                    # 临时产物（截图、快照、导出的验证数据等，已 .gitignore 排除）
 ├── YYYY-MM-DD/             # ★ 日期分类目录（唯一合法格式）
 │   ├── requirements/       # Gate A — 需求文档
@@ -81,15 +81,15 @@ docs/
 
 | 目录 | 对应 Gate | 说明 |
 |------|----------|------|
-| `docs/tmp/` | 全部 | 过程临时产物，不入版本库 |
-| `docs/YYYY-MM-DD/requirements/` | Gate A | 需求澄清文档 |
-| `docs/YYYY-MM-DD/tasks/` | Gate B | 任务分解文档 |
-| `docs/YYYY-MM-DD/architecture/` | Gate B1 | 架构评审报告 |
-| `docs/YYYY-MM-DD/plans/` | Gate C | 执行计划 |
-| `docs/YYYY-MM-DD/implementation/` | Gate C-impl | 实现说明文档 |
-| `docs/YYYY-MM-DD/testing/` | Gate C2 | 测试用例与报告 |
-| `docs/YYYY-MM-DD/review/` | Gate D | 代码评审报告 |
-| `docs/YYYY-MM-DD/shipping/` | Gate E | 发布记录与版本日志 |
+| `.jarvis/tmp/` | 全部 | 过程临时产物，不入版本库 |
+| `.jarvis/YYYY-MM-DD/requirements/` | Gate A | 需求澄清文档 |
+| `.jarvis/YYYY-MM-DD/tasks/` | Gate B | 任务分解文档 |
+| `.jarvis/YYYY-MM-DD/architecture/` | Gate B1 | 架构评审报告 |
+| `.jarvis/YYYY-MM-DD/plans/` | Gate C | 执行计划 |
+| `.jarvis/YYYY-MM-DD/implementation/` | Gate C-impl | 实现说明文档 |
+| `.jarvis/YYYY-MM-DD/testing/` | Gate C2 | 测试用例与报告 |
+| `.jarvis/YYYY-MM-DD/review/` | Gate D | 代码评审报告 |
+| `.jarvis/YYYY-MM-DD/shipping/` | Gate E | 发布记录与版本日志 |
 
 ## 架构
 
@@ -358,7 +358,7 @@ test-doc-writer → test-executor → remediation-expert
    - 测试套件全部通过（`npm test`）
    - 失败 → 修复 → 重跑全部，最多 2 轮
 2. 更新 `package.json` 版本号（语义化版本）
-3. **同步更新 AGENTS.md / README.md / docs/README.md**
+3. **同步更新 AGENTS.md / README.md / .jarvis/README.md**
 4. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
 5. 推送 GitHub **含 Tag**：`git push origin main && git push origin v<version>`
 6. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release + 单 HTML 面板 → npm publish）
@@ -372,48 +372,48 @@ test-doc-writer → test-executor → remediation-expert
 
 | 分类 | 命令 | 流程图 | Gate 序列 |
 |------|------|--------|----------|
-| **核心编排** | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10门) |
-| | `/auto` | [auto.md](docs/flows/auto.md) | 自动检测任务→路由最优流水线→跳过无关Gate→分配Agent |
-| **前端** | `/frontend` | [frontend.md](docs/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| **后端** | `/backend` | [backend.md](docs/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (跳过C1.5) |
-| **移动端** | `/android` | [android.md](docs/flows/android.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| | `/ios` | [ios.md](docs/flows/ios.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| **跨端** | `/flutter` | [flutter.md](docs/flows/flutter.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| | `/expo` | [expo.md](docs/flows/expo.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| | `/taro` | [taro.md](docs/flows/taro.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| | `/react-native` | [react-native.md](docs/flows/react-native.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
-| **测试/修复** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | 用例编写→执行→修复重测闭环 |
-| | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 复现→根因→修复→验证 7步闭环 |
-| **审查** | `/review` | [review.md](docs/flows/review.md) | 只读审查，不修改文件 |
-| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | 初审→规划→执行→验证→复审 |
-| **架构/专家** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | 问题收集→spawn架构师→呈现输出 |
-| | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | 问题收集→spawn架构师→呈现输出 |
-| | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | 问题收集→spawn算法专家→呈现输出 |
-| **测试体系** | `/test-unit` | [test-unit.md](docs/flows/test-unit.md) | 检测框架→分析代码→生成(Red)→运行(Green)→重构 |
-| | `/test-integration` | [test-integration.md](docs/flows/test-integration.md) | 识别契约→启动环境→生成→运行→清理 |
-| | `/test-e2e` | [test-e2e.md](docs/flows/test-e2e.md) | 用户故事→选工具→编写→运行→报告 |
-| | `/test-perf` | [test-perf.md](docs/flows/test-perf.md) | 定义目标→选择工具→建立基线→负载测试→定位瓶颈 |
-| | `/test-security` | [test-security.md](docs/flows/test-security.md) | 确认授权→爬取→主动扫描→修复→报告 |
-| **工程** | `/refactor` | [refactor.md](docs/flows/refactor.md) | R1边界→R2基线→R3重构→R4漂移检测→R5报告 (5门) |
-| | `/hotfix` | [hotfix.md](docs/flows/hotfix.md) | H0声明→H1修复→H2验证→H3审计 (4门) |
-| | `/migrate` | [migrate.md](docs/flows/migrate.md) | M1规则→M2迁移→M3编译→M4 Lint (4门) |
-| | `/evaluate` | [evaluate.md](docs/flows/evaluate.md) | E0标准→E1原型→E2指标→E3报告 (4门) |
-| | `/debug` | [debug.md](docs/flows/debug.md) | D0收集→D1复现→D2调试→D3诊断→D4报告 (5门) |
+| **核心编排** | `/jarvis` | [jarvis.md](.jarvis/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10门) |
+| | `/auto` | [auto.md](.jarvis/flows/auto.md) | 自动检测任务→路由最优流水线→跳过无关Gate→分配Agent |
+| **前端** | `/frontend` | [frontend.md](.jarvis/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| **后端** | `/backend` | [backend.md](.jarvis/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (跳过C1.5) |
+| **移动端** | `/android` | [android.md](.jarvis/flows/android.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/ios` | [ios.md](.jarvis/flows/ios.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| **跨端** | `/flutter` | [flutter.md](.jarvis/flows/flutter.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/expo` | [expo.md](.jarvis/flows/expo.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/taro` | [taro.md](.jarvis/flows/taro.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| | `/react-native` | [react-native.md](.jarvis/flows/react-native.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| **测试/修复** | `/browser-test` | [browser-test.md](.jarvis/flows/browser-test.md) | 用例编写→执行→修复重测闭环 |
+| | `/bug-fix` | [bug-fix.md](.jarvis/flows/bug-fix.md) | 复现→根因→修复→验证 7步闭环 |
+| **审查** | `/review` | [review.md](.jarvis/flows/review.md) | 只读审查，不修改文件 |
+| | `/review-fix` | [review-fix.md](.jarvis/flows/review-fix.md) | 初审→规划→执行→验证→复审 |
+| **架构/专家** | `/frontend-architect` | [frontend-architect.md](.jarvis/flows/frontend-architect.md) | 问题收集→spawn架构师→呈现输出 |
+| | `/backend-architect` | [backend-architect.md](.jarvis/flows/backend-architect.md) | 问题收集→spawn架构师→呈现输出 |
+| | `/algorithm-expert` | [algorithm-expert.md](.jarvis/flows/algorithm-expert.md) | 问题收集→spawn算法专家→呈现输出 |
+| **测试体系** | `/test-unit` | [test-unit.md](.jarvis/flows/test-unit.md) | 检测框架→分析代码→生成(Red)→运行(Green)→重构 |
+| | `/test-integration` | [test-integration.md](.jarvis/flows/test-integration.md) | 识别契约→启动环境→生成→运行→清理 |
+| | `/test-e2e` | [test-e2e.md](.jarvis/flows/test-e2e.md) | 用户故事→选工具→编写→运行→报告 |
+| | `/test-perf` | [test-perf.md](.jarvis/flows/test-perf.md) | 定义目标→选择工具→建立基线→负载测试→定位瓶颈 |
+| | `/test-security` | [test-security.md](.jarvis/flows/test-security.md) | 确认授权→爬取→主动扫描→修复→报告 |
+| **工程** | `/refactor` | [refactor.md](.jarvis/flows/refactor.md) | R1边界→R2基线→R3重构→R4漂移检测→R5报告 (5门) |
+| | `/hotfix` | [hotfix.md](.jarvis/flows/hotfix.md) | H0声明→H1修复→H2验证→H3审计 (4门) |
+| | `/migrate` | [migrate.md](.jarvis/flows/migrate.md) | M1规则→M2迁移→M3编译→M4 Lint (4门) |
+| | `/evaluate` | [evaluate.md](.jarvis/flows/evaluate.md) | E0标准→E1原型→E2指标→E3报告 (4门) |
+| | `/debug` | [debug.md](.jarvis/flows/debug.md) | D0收集→D1复现→D2调试→D3诊断→D4报告 (5门) |
 
-| **研究** | `/research` | [research.md](docs/flows/research.md) | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 (5门) |
-| **发布** | `/release` | [release.md](docs/flows/release.md) | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 (5门) |
-| **探询** | `/ask` | [ask.md](docs/flows/ask.md) | K0摄入→K1收集→K2分析→K3产出 (4门,4模式自适应) |
-| **简化** | `/simplify` | [simplify.md](docs/flows/simplify.md) | S0分析→S1简化→S2验证→S3报告 (4门) |
-| **追踪** | `/trace` | [trace.md](docs/flows/trace.md) | T0框架→T1假设→T2证据→T3分析→T4方案 (5门) |
-| **改进** | `/improve` | [improve.md](docs/flows/improve.md) | IM0目标→IM1研究→IM2计划→IM3执行→IM4评估 (5门,迭代循环) |
-| **核心编排** | `/publish` | [publish.md](docs/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
-| | `/sync` | [sync.md](docs/flows/sync.md) | 检查并同步核心文档与代码一致性 |
-| | `/skill-flow` | [skill-flow.md](docs/flows/skill-flow.md) | 会话流程导出为Skill模板(export/save/list/apply) |
-| | `/browser-explore` | [browser-explore.md](docs/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |
-| | `/task-bdd` | [task-bdd.md](docs/flows/task-bdd.md) | BDD行为驱动：Gherkin场景编写 |
-| | `/task-ddd` | [task-ddd.md](docs/flows/task-ddd.md) | DDD领域驱动：聚合/实体/值对象分析 |
-| | `/task-tdd` | [task-tdd.md](docs/flows/task-tdd.md) | TDD测试驱动：测试骨架+任务包生成 |
-> 所有流程图使用 `flowchart TD` 统一风格。读取 `docs/flows/` 目录下的 `.md` 文件可在支持 Mermaid 的 Markdown 渲染器中查看。
+| **研究** | `/research` | [research.md](.jarvis/flows/research.md) | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 (5门) |
+| **发布** | `/release` | [release.md](.jarvis/flows/release.md) | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 (5门) |
+| **探询** | `/ask` | [ask.md](.jarvis/flows/ask.md) | K0摄入→K1收集→K2分析→K3产出 (4门,4模式自适应) |
+| **简化** | `/simplify` | [simplify.md](.jarvis/flows/simplify.md) | S0分析→S1简化→S2验证→S3报告 (4门) |
+| **追踪** | `/trace` | [trace.md](.jarvis/flows/trace.md) | T0框架→T1假设→T2证据→T3分析→T4方案 (5门) |
+| **改进** | `/improve` | [improve.md](.jarvis/flows/improve.md) | IM0目标→IM1研究→IM2计划→IM3执行→IM4评估 (5门,迭代循环) |
+| **核心编排** | `/publish` | [publish.md](.jarvis/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
+| | `/sync` | [sync.md](.jarvis/flows/sync.md) | 检查并同步核心文档与代码一致性 |
+| | `/skill-flow` | [skill-flow.md](.jarvis/flows/skill-flow.md) | 会话流程导出为Skill模板(export/save/list/apply) |
+| | `/browser-explore` | [browser-explore.md](.jarvis/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |
+| | `/task-bdd` | [task-bdd.md](.jarvis/flows/task-bdd.md) | BDD行为驱动：Gherkin场景编写 |
+| | `/task-ddd` | [task-ddd.md](.jarvis/flows/task-ddd.md) | DDD领域驱动：聚合/实体/值对象分析 |
+| | `/task-tdd` | [task-tdd.md](.jarvis/flows/task-tdd.md) | TDD测试驱动：测试骨架+任务包生成 |
+> 所有流程图使用 `flowchart TD` 统一风格。读取 `.jarvis/flows/` 目录下的 `.md` 文件可在支持 Mermaid 的 Markdown 渲染器中查看。
 
 ## License
 

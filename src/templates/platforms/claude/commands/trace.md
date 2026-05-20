@@ -53,7 +53,7 @@ Skill("debugging-and-error-recovery")
    | 环境 | 哪些环境复现 | 环境差异 |
    | 数据 | 特定数据触发？ | 数据模式 |
 
-4. 产出 `docs/YYYY-MM-DD/trace/problem-frame.md`
+4. 产出 `.jarvis/YYYY-MM-DD/trace/problem-frame.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "T1" })`
 
@@ -79,7 +79,7 @@ Skill("debugging-and-error-recovery")
    | H4 | ... | 15% | ... | ... |
    | H5 | ... | 10% | ... | ... |
 
-3. 产出 `docs/YYYY-MM-DD/trace/hypotheses.md`
+3. 产出 `.jarvis/YYYY-MM-DD/trace/hypotheses.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "T2" })`
 
@@ -105,7 +105,7 @@ Skill("debugging-and-error-recovery")
    | H2 | 弱关联 | 关键证据缺失 | 低 | ↓ 10% |
    | H3 | ... | ... | 中 | → 20% |
 
-4. 产出 `docs/YYYY-MM-DD/trace/evidence-matrix.md`
+4. 产出 `.jarvis/YYYY-MM-DD/trace/evidence-matrix.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "T3" })`
 
@@ -130,7 +130,7 @@ Skill("debugging-and-error-recovery")
    - 概率 < 40% → **排除**，聚焦剩余假设
    - 所有假设 < 40% → 可能需要生成新假设（回到 T1）
 
-4. 产出 `docs/YYYY-MM-DD/trace/causal-analysis.md`
+4. 产出 `.jarvis/YYYY-MM-DD/trace/causal-analysis.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "T4" })`
 
@@ -156,7 +156,7 @@ Skill("debugging-and-error-recovery")
    - 是否需要添加监控/告警？
    - 是否需要更新文档/规范？
 
-4. 产出 `docs/YYYY-MM-DD/trace/resolution.md`
+4. 产出 `.jarvis/YYYY-MM-DD/trace/resolution.md`
 
 ---
 

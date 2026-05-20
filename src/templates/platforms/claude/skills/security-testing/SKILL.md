@@ -227,5 +227,5 @@ curl -H "Authorization: Bearer <user_A_token>" \
 - [ ] 蜘蛛爬取覆盖了所有页面和 API 端点
 - [ ] Critical/High 告警均已手动验证
 - [ ] 已验证的漏洞有明确修复方案
-- [ ] 安全报告已输出到 docs/YYYY-MM-DD/testing/
+- [ ] 安全报告已输出到 .jarvis/YYYY-MM-DD/testing/
 - [ ] 测试数据已清理

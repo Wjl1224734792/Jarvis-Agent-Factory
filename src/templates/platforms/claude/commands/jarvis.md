@@ -27,7 +27,7 @@ updated: "2026-05-14"
 1. 🔴 **创建任务会话（必须第一步执行，不可跳过）**：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
    - **不传 task_name**——此时需求未明确，会话默认显示"未命名"
-   - 此调用会创建独立会话+新 run，自动生成 `docs/<YYYY>-<MM>-<DD>/` 日期产物目录
+   - 此调用会创建独立会话+新 run，自动生成 `.jarvis/<YYYY>-<MM>-<DD>/` 日期产物目录
    - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
    - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
    - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({ gate: "<下一Gate>" })` 推进
@@ -45,7 +45,7 @@ updated: "2026-05-14"
 
 4. 你是本项目唯一的编排中枢。职责：
    - 与用户澄清需求，至少确认 1 个关键假设；模糊时加载 `idea-refine`
-   - 生成需求文档到 `docs/YYYY-MM-DD/requirements/<topic>.md`，标注 `REQ-XXX`
+   - 生成需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`，标注 `REQ-XXX`
    - 按 Gate 序列推进，不可跳过
    - 在 Gate C-impl 按 `parallel_batches` 批量 spawn 实现 Agent
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释
@@ -75,7 +75,7 @@ updated: "2026-05-14"
 **流程**：
 1. 与用户对话澄清需求，确认关键假设
 2. 模糊时加载 `Skill("idea-refine")` 结构化提问
-3. 写需求文档到 `docs/YYYY-MM-DD/requirements/<topic>.md`，每条需求标注 `REQ-XXX`
+3. 写需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`，每条需求标注 `REQ-XXX`
 
 Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 **引擎验证**：spawn 前 `gate_check({ operation: "read" })` 确认允许读取探索
@@ -102,7 +102,7 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 
 **流程**：
 1. `spawn task-design` Agent（DDD 模式），传入需求文档路径
-2. 产出：`docs/YYYY-MM-DD/tasks/<topic>-ddd.md`
+2. 产出：`.jarvis/YYYY-MM-DD/tasks/<topic>-ddd.md`
 3. 验证：所有聚合行为有路由建议（→BDD 或 →TDD）
 
 **引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B-BDD" })`
@@ -113,7 +113,7 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 
 **流程**：
 1. `spawn task-design` Agent（BDD 模式），传入 DDD 文档 + 高价值聚合行为列表
-2. 产出：`docs/YYYY-MM-DD/tasks/<topic>-bdd.md`
+2. 产出：`.jarvis/YYYY-MM-DD/tasks/<topic>-bdd.md`
 3. 验证：每个聚合行为至少 1 个 Happy Path + 1 个异常场景
 
 **引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B-TDD" })`
@@ -124,7 +124,7 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 
 **流程**：
 1. `spawn task-design` Agent（TDD 模式），传入 BDD 场景 或 纯技术需求
-2. 产出：`docs/YYYY-MM-DD/tasks/<topic>-tasks.md`
+2. 产出：`.jarvis/YYYY-MM-DD/tasks/<topic>-tasks.md`
 3. 验证：所有 TASK 有 REQ 映射、DDD/TDD 分类完整、无水平切片
 
 **引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B1" })`
@@ -149,7 +149,7 @@ spawn database-architect（数据库架构评审）
 
 **流程**：
 1. `spawn planner` Agent，传入需求文档 + 任务文档路径
-2. 产出：`docs/YYYY-MM-DD/plans/<topic>-plan.md`
+2. 产出：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 3. 验证：含 parallel_batches、Execution Packet 完整、共享区域有唯一责任方
 
 ``` [可并行]
@@ -166,7 +166,7 @@ planner 执行期间可并行准备：
 **致命错误**：planner 返回后，你自己去写代码而没有 spawn 任何 Agent。
 
 ### 步骤 1：读取计划文档
-Read 打开 `docs/YYYY-MM-DD/plans/<topic>-plan.md`
+Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 ### 步骤 2：提取并行批次
 从 plan 文档提取 `parallel_batches`（每 Batch 内任务无共享文件冲突，可并行）
@@ -287,7 +287,7 @@ Read 打开 `docs/YYYY-MM-DD/plans/<topic>-plan.md`
 └── spawn e2e-test-expert（端到端测试，需完整集成环境）
 ```
 
-**步骤 4**：汇总测试结果到 `docs/YYYY-MM-DD/testing/<topic>-test-summary.md`
+**步骤 4**：汇总测试结果到 `.jarvis/YYYY-MM-DD/testing/<topic>-test-summary.md`
 
 通过后：`advance_gate({ gate: "Gate D" })`
 

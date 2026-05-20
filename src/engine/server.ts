@@ -585,7 +585,7 @@ export function registerMcpTools(server, db, root) {
       const p = getPipeline(db, sid);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const gateList = getPipelineGates(pt);
-      const docs = join(root, 'docs');
+      const docs = join(root, '.jarvis');
       const runId = run_id || getActiveRun(db, sid)?.id;
       const gates = gateList.map(g => {
         const cp = getCheckpoints(db, g, sid);
@@ -618,14 +618,14 @@ export function registerMcpTools(server, db, root) {
       const runId = run_id || getActiveRun(db, sid)?.id;
       const gateList = sessionGates(db, sid);
       const target = gate || getPipeline(db, sid)?.current_gate || gateList[0];
-      const artifacts = findSessionGateArtifacts(join(root, 'docs'), target, sid, db, runId);
+      const artifacts = findSessionGateArtifacts(join(root, '.jarvis'), target, sid, db, runId);
       const checkpoints = getCheckpoints(db, target, sid);
       const allowed = artifacts.length > 0 || checkpoints.length > 0;
       return resp(allowed
         ? { gate: target, allowed: true, session_id: sid, run_id: runId, message: `${target} — proceed.` }
         : {
             gate: target, allowed: false, session_id: sid, run_id: runId,
-            blocked_reasons: [artifacts.length ? '' : `No artifacts in docs/${GATE_DIRS[target] || '?'}/`].filter(Boolean),
+            blocked_reasons: [artifacts.length ? '' : `No artifacts in .jarvis/${GATE_DIRS[target] || '?'}/`].filter(Boolean),
             action_required: GATE_CHECKS[target]?.check || '',
           });
     });
@@ -646,7 +646,7 @@ export function registerMcpTools(server, db, root) {
       if (ti === -1) return resp({ allowed: false, error: `Unknown gate: ${gate}. Valid gates for this pipeline: ${gateList.join(', ')}` });
       if (ti <= ci) return resp({ allowed: false, error: `FSM blocked: Cannot move backward. Current: ${cur}` });
       if (ti > ci + 1) return resp({ allowed: false, error: `FSM blocked: Cannot skip gates. Next: ${gateList[ci + 1]}` });
-      const artifacts = findSessionGateArtifacts(join(root, 'docs'), cur, sid, db, runId);
+      const artifacts = findSessionGateArtifacts(join(root, '.jarvis'), cur, sid, db, runId);
       const cps = getCheckpoints(db, cur, sid);
       if (artifacts.length === 0 && cps.length === 0) return resp({ allowed: false, error: `${cur} conditions NOT met.` });
       // 扫描当前 Gate 产物目录，写入 artifacts 表（失败不阻塞推进）
@@ -658,9 +658,9 @@ export function registerMcpTools(server, db, root) {
             const run = db.prepare('SELECT started_at FROM pipeline_runs WHERE id=?').get(runId);
             const dateDir = run?.started_at?.slice(0, 10) || null;
 
-            // 优先扫描日期目录 docs/{dateDir}/{gateSubdir}/
+            // 优先扫描日期目录 .jarvis/{dateDir}/{gateSubdir}/
             if (dateDir) {
-              const artifactDir = join(root, 'docs', dateDir, gateSubdir);
+              const artifactDir = join(root, '.jarvis', dateDir, gateSubdir);
               if (existsSync(artifactDir)) {
                 const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
                 for (const f of mdFiles) {
@@ -669,8 +669,8 @@ export function registerMcpTools(server, db, root) {
               }
             }
 
-            // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
-            const flatDir = join(root, 'docs', gateSubdir);
+            // 向后兼容：同时扫描旧扁平结构 .jarvis/{gateSubdir}/
+            const flatDir = join(root, '.jarvis', gateSubdir);
             if (existsSync(flatDir)) {
               const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
               for (const f of mdFiles) {
@@ -761,7 +761,7 @@ export function registerMcpTools(server, db, root) {
       const gateList = sessionGates(db, sid);
       const gates = gateList.map(g => ({
         gate: g, passed: getCheckpoints(db, g, sid).length > 0,
-        artifacts: findSessionGateArtifacts(join(root, 'docs'), g, sid, db, runId),
+        artifacts: findSessionGateArtifacts(join(root, '.jarvis'), g, sid, db, runId),
       }));
       const completed = gates.filter(g => g.passed).length;
       return resp({
@@ -883,7 +883,7 @@ export function registerMcpTools(server, db, root) {
       const cps = gateList.map(g => ({
         gate: g,
         passed: getCheckpoints(db, g, sid).length > 0,
-        artifacts: findSessionGateArtifacts(join(root, 'docs'), g, sid, db, runId),
+        artifacts: findSessionGateArtifacts(join(root, '.jarvis'), g, sid, db, runId),
       }));
       const events = db.prepare('SELECT * FROM session_events WHERE session_id=? ORDER BY created_at ASC').all(sid);
       const artifacts = runId ? db.prepare('SELECT * FROM artifacts WHERE run_id=? ORDER BY gate, created_at').all(runId) : [];

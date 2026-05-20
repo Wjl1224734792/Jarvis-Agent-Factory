@@ -337,7 +337,7 @@ if featureFlag.isEnabled('new-checkout'):  # 服务挂了直接炸
 上线完成后，生成上线报告：
 
 ```
-文件路径：docs/YYYY-MM-DD/shipping/<topic>-launch.md
+文件路径：.jarvis/YYYY-MM-DD/shipping/<topic>-launch.md
 ```
 
 **报告模板：**
@@ -471,7 +471,7 @@ if featureFlag.isEnabled('new-checkout'):  # 服务挂了直接炸
 - [ ] P99 延迟未恶化
 - [ ] 核心业务流程正常
 - [ ] 24 小时内每小时检查一次指标
-- [ ] 上线报告已归档到 `docs/YYYY-MM-DD/shipping/<topic>-launch.md`
+- [ ] 上线报告已归档到 `.jarvis/YYYY-MM-DD/shipping/<topic>-launch.md`
 - [ ] 后续行动已记录（开关清理、旧代码移除）
 - [ ] 团队已获知上线结果
 

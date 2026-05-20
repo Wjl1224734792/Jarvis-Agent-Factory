@@ -92,7 +92,7 @@ Skill(skill="code-review-and-quality")
 
 ## 必需输出文件
 
-路径：`docs/YYYY-MM-DD/review/<topic>-react-native-review.md`
+路径：`.jarvis/YYYY-MM-DD/review/<topic>-react-native-review.md`
 
 输出必须包含：
 1. 审查结论（通过 / 有条件通过 / 不通过）

@@ -95,7 +95,7 @@ mcp__jarvis-engine__session_join({
 **🔴 设计类任务硬约束**：路由到 `full` 流水线 Gate A 入口的任务（新功能/中大型改动），**必须先与用户确认需求再产出文档**。使用 `AskUserQuestion` 或对话确认关键假设。跳过确认直接写需求文档 → 违反红线。
 
 1. 与用户澄清需求，至少确认 1 个关键假设；模糊时加载 `Skill("idea-refine")`
-2. 产出需求文档到 `docs/YYYY-MM-DD/requirements/<topic>.md`
+2. 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`
 3. **跳过条件**：Bug修复（已明确知道修什么）/小修改（<3文件，无新增功能）/审查/调试 → 跳过 Gate A
 
 ### Gate B-DDD/B-BDD/B-TDD：任务分解（新功能/大改动时执行）

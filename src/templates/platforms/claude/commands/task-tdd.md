@@ -51,4 +51,4 @@ updated: "2026-05-14"
 - 遵守 behavioral-guidelines
 - 一个测试验证一个行为
 - 测试命名：`{方法名}_{场景}_{预期结果}`
-- 文档保存到 `docs/YYYY-MM-DD/tasks/` 目录
+- 文档保存到 `.jarvis/YYYY-MM-DD/tasks/` 目录

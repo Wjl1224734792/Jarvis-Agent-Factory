@@ -91,8 +91,8 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-- `docs/YYYY-MM-DD/testing/<topic>-e2e-test-<suite>.spec.ts`
-- `docs/YYYY-MM-DD/testing/<topic>-e2e-test-report.md`
+- `.jarvis/YYYY-MM-DD/testing/<topic>-e2e-test-<suite>.spec.ts`
+- `.jarvis/YYYY-MM-DD/testing/<topic>-e2e-test-report.md`
 
 ## 红线
 

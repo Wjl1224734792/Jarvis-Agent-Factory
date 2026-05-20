@@ -17,7 +17,7 @@ updated: "2026-05-14"
 
 ## 测试用例格式
 
-每条用例输出到 `docs/YYYY-MM-DD/testing/<topic>-browser-test-cases.md`：
+每条用例输出到 `.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-cases.md`：
 
 ```markdown
 ### TC-001: <用例名称>
@@ -162,7 +162,7 @@ agent-browser screenshot desktop.png
 
 ## 报告模板
 
-`docs/YYYY-MM-DD/testing/<topic>-browser-test-report.md`：
+`.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-report.md`：
 
 ```markdown
 # 浏览器自动化测试报告
@@ -211,13 +211,13 @@ agent-browser screenshot desktop.png
 ## 职责分工
 
 ### 测试文档编写 vs 测试执行
-- **test-doc-writer Agent**：负责在测试执行前根据需求文档和前端变更编写结构化测试用例文档，输出到 `docs/YYYY-MM-DD/testing/<topic>-test-cases.md`
-- **browser-test Worker Agent**（browser-test-expert / browser-test-worker）：负责读取已有测试文档中的用例并逐条执行，输出测试报告到 `docs/YYYY-MM-DD/testing/<topic>-browser-test-report.md`
+- **test-doc-writer Agent**：负责在测试执行前根据需求文档和前端变更编写结构化测试用例文档，输出到 `.jarvis/YYYY-MM-DD/testing/<topic>-test-cases.md`
+- **browser-test Worker Agent**（browser-test-expert / browser-test-worker）：负责读取已有测试文档中的用例并逐条执行，输出测试报告到 `.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-report.md`
 - **职责边界**：测试执行 Agent 不得自行编写或修改测试用例文档，测试文档编写 Agent 不得执行浏览器测试。测试用例必须在测试执行前由 test-doc-writer 编写完成。
 
 ## 测试报告模板
 
-执行完成后按以下模板输出测试报告（输出到 `docs/YYYY-MM-DD/testing/<topic>-browser-test-report.md`）：
+执行完成后按以下模板输出测试报告（输出到 `.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-report.md`）：
 
 ### 汇总
 

@@ -58,7 +58,7 @@ Skill("code-standards")
    | AI 痕迹 | 无意义注释/明显的AI命名模式 | 🟢 安全 |
    | 复杂度 | 嵌套 > 4 层/函数 > 50 行 | 🔴 高风险 |
 
-3. 产出 `docs/YYYY-MM-DD/simplification/code-analysis.md`
+3. 产出 `.jarvis/YYYY-MM-DD/simplification/code-analysis.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "S1" })`
 
@@ -122,7 +122,7 @@ Skill("code-standards")
 
 **Gate 检查条件**：简化报告已产出，含before/after对比+简化统计+变更清单
 
-### 输出 `docs/YYYY-MM-DD/simplification/simplification-report.md`：
+### 输出 `.jarvis/YYYY-MM-DD/simplification/simplification-report.md`：
 
 ```markdown
 # 代码简化报告：<目标模块>

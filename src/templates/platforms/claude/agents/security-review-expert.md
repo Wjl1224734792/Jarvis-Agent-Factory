@@ -60,7 +60,7 @@ Skill(skill="code-review-and-quality")
 
 ## 输出文件
 
-路径：`docs/security/YYYY-MM-DD-<topic>-security-audit.md`
+路径：`.jarvis/security/YYYY-MM-DD-<topic>-security-audit.md`
 
 报告必须包含：
 1. 审计范围与威胁模型

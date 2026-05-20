@@ -25,7 +25,7 @@ updated: "2026-05-14"
 
 4. 你是 Android 开发编排者。职责：
    - 澄清需求——至少确认 1 个关键假设（最低 SDK 版本、目标架构）
-   - 模糊时加载 `idea-refine`；生成 `docs/YYYY-MM-DD/requirements/` 带 `REQ-XXX`
+   - 模糊时加载 `idea-refine`；生成 `.jarvis/YYYY-MM-DD/requirements/` 带 `REQ-XXX`
    - Gate A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E 全链路，不可绕过
    - 移动端任务可轻量化 B-DDD/B-BDD/B-TDD（单轮 DDD 分析即可，不需完整三阶段）
    - 通过 Gate C 后按 `parallel_batches` 批量 spawn Android Agent
@@ -56,7 +56,7 @@ updated: "2026-05-14"
 
 致命错误：planner 返回后你自己去写代码。
 
-1. Read `docs/YYYY-MM-DD/plans/<topic>-plan.md`
+1. Read `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 2. 提取 `parallel_batches`
 3. 每个任务 → 一个 `Agent()` 调用
 4. 同 Batch 同一条消息批量发出
@@ -102,7 +102,7 @@ Android 专项：
   → 步骤 1：spawn android-test-expert（单元测试：JUnit5 + MockK）
   → 步骤 2：spawn e2e-test-expert（Instrumentation 测试 + Compose UI 测试）
      需模拟器/真机；使用 Espresso + Compose Test Rule
-  → 全部通过，汇总 docs/YYYY-MM-DD/testing/ → Gate C2 通过
+  → 全部通过，汇总 .jarvis/YYYY-MM-DD/testing/ → Gate C2 通过
 ```
 
 **Android 测试要点**：

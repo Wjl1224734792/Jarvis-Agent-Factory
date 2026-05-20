@@ -99,7 +99,7 @@ preview_start({ name: "<server-name>" })
 
 ### 步骤 2：编写验证清单
 
-输出到 `docs/YYYY-MM-DD/testing/<topic>-browser-test-cases.md`。
+输出到 `.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-cases.md`。
 
 ### 步骤 3：逐条执行
 
@@ -143,7 +143,7 @@ preview_resize({ preset: "desktop" })  → preview_screenshot
 
 ### 步骤 6：汇总报告
 
-输出到 `docs/YYYY-MM-DD/testing/<topic>-browser-test-report.md`。
+输出到 `.jarvis/YYYY-MM-DD/testing/<topic>-browser-test-report.md`。
 
 ## 修复闭环
 

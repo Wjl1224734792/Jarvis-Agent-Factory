@@ -38,7 +38,7 @@ Skill(skill="code-standards")
 | 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 输出
-`docs/YYYY-MM-DD/implementation/<topic>-taro-ui.md`
+`.jarvis/YYYY-MM-DD/implementation/<topic>-taro-ui.md`
 
 
 ## 红线

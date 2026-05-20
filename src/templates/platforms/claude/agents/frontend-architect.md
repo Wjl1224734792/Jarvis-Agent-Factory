@@ -118,7 +118,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 输出文件
 
-路径：`docs/YYYY-MM-DD/architecture/<topic>-frontend-architecture.md`
+路径：`.jarvis/YYYY-MM-DD/architecture/<topic>-frontend-architecture.md`
 
 文档必须包含：
 1. 架构目标与约束

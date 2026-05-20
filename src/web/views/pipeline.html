@@ -845,7 +845,7 @@ function toggleRunsPanel() {
 
 /**
  * 打开文档抽屉，通过 API 加载 Markdown 文件并用 marked.js 渲染
- * @param {string} filepath - docs/ 下的相对文件路径
+ * @param {string} filepath - .jarvis/ 下的相对文件路径
  * @param {string} filename - 显示用的文件名
  */
 function openDocDrawer(filepath, filename) {
@@ -863,7 +863,7 @@ function openDocDrawer(filepath, filename) {
   if (drawer) drawer.classList.remove('translate-x-full');
 
   // 获取文件内容
-  fetch('/api/docs/' + encodeURIComponent(filepath))
+  fetch('/api/jarvis/' + encodeURIComponent(filepath))
     .then(function(r) {
       if (!r.ok) throw new Error('文件加载失败 (' + r.status + ')');
       return r.text();

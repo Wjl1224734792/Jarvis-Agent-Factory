@@ -79,7 +79,7 @@ agent-browser skills get core
 
 ## 步骤 3：汇总探索报告
 
-`browser-use-expert` 返回后，将其发现汇总到 `docs/YYYY-MM-DD/testing/<topic>-exploration-report.md`：
+`browser-use-expert` 返回后，将其发现汇总到 `.jarvis/YYYY-MM-DD/testing/<topic>-exploration-report.md`：
 
 ```markdown
 # 浏览器自由探索报告

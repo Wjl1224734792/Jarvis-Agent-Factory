@@ -52,7 +52,7 @@ digraph spec_driven {
 
     "上游：需求澄清完成" [shape=ellipse style=filled fillcolor=lightblue];
     "确定 6 大核心区域内容" [shape=box];
-    "编写 PRD 文档\n→ docs/YYYY-MM-DD/requirements/<topic>-requirements.md" [shape=box];
+    "编写 PRD 文档\n→ .jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md" [shape=box];
     "分配 REQ-XXX 编号\n每个需求带优先级和验收标准" [shape=box];
     "规格自检\n占位符 / 一致性 / 范围 / 模糊性" [shape=box];
     "自检通过?" [shape=diamond];
@@ -64,8 +64,8 @@ digraph spec_driven {
     "下游：task-design" [shape=ellipse style=filled fillcolor=lightblue];
 
     "上游：需求澄清完成" -> "确定 6 大核心区域内容";
-    "确定 6 大核心区域内容" -> "编写 PRD 文档\n→ docs/YYYY-MM-DD/requirements/<topic>-requirements.md";
-    "编写 PRD 文档\n→ docs/YYYY-MM-DD/requirements/<topic>-requirements.md" -> "分配 REQ-XXX 编号\n每个需求带优先级和验收标准";
+    "确定 6 大核心区域内容" -> "编写 PRD 文档\n→ .jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md";
+    "编写 PRD 文档\n→ .jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md" -> "分配 REQ-XXX 编号\n每个需求带优先级和验收标准";
     "分配 REQ-XXX 编号\n每个需求带优先级和验收标准" -> "规格自检\n占位符 / 一致性 / 范围 / 模糊性";
     "规格自检\n占位符 / 一致性 / 范围 / 模糊性" -> "自检通过?";
     "自检通过?" -> "内联修复" [label="否"];
@@ -101,7 +101,7 @@ digraph spec_driven {
 将 6 大核心区域的内容写入文档，保存到：
 
 ```
-docs/YYYY-MM-DD/requirements/<topic>-requirements.md
+.jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md
 ```
 
 > 文档写作应遵循 `chinese-documentation` 技能中的排版规范（中英文空格、全角标点、术语处理等）。
@@ -131,7 +131,7 @@ docs/YYYY-MM-DD/requirements/<topic>-requirements.md
 
 规格自检完成后，请用户审查：
 
-> "需求文档已落盘到 `docs/YYYY-MM-DD/requirements/<topic>-requirements.md`，包含 N 条 REQ。请审查一下，在进入任务分解前如有修改请告知。"
+> "需求文档已落盘到 `.jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md`，包含 N 条 REQ。请审查一下，在进入任务分解前如有修改请告知。"
 
 等待用户回复。修改后重新执行规格自检。只有在用户确认后，才视为 **Gate A 通过**。
 
@@ -206,7 +206,7 @@ PRD 不是写完就锁死的合同。在开发过程中，遇到以下情形时*
 ### 排版
 
 - [ ] 遵循 `chinese-documentation` 排版规范（中英空格、全角标点等）
-- [ ] 文档落盘到 `docs/YYYY-MM-DD/requirements/<topic>-requirements.md`
+- [ ] 文档落盘到 `.jarvis/YYYY-MM-DD/requirements/<topic>-requirements.md`
 - [ ] 变更日志已初始化
 
 ### 流程

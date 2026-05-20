@@ -63,7 +63,7 @@ Skill("documentation-and-adrs")
    - 提供了哪些可执行的建议？
    - 遗留了哪些待进一步研究的问题？
 
-5. 输出 `docs/YYYY-MM-DD/research/research-scope.md`
+5. 输出 `.jarvis/YYYY-MM-DD/research/research-scope.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RS1" })`
 
@@ -89,7 +89,7 @@ Skill("documentation-and-adrs")
    - 收集性能基准数据
    - 对比不同技术方案
 
-4. 汇总信息收集清单到 `docs/YYYY-MM-DD/research/information-inventory.md`：
+4. 汇总信息收集清单到 `.jarvis/YYYY-MM-DD/research/information-inventory.md`：
    ```markdown
    # 信息收集清单
    ## 代码库发现
@@ -136,7 +136,7 @@ Skill("documentation-and-adrs")
    | **加权总分** | __ | __ | __ |
    ```
 
-4. 输出 `docs/YYYY-MM-DD/research/deep-analysis.md`
+4. 输出 `.jarvis/YYYY-MM-DD/research/deep-analysis.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RS3" })`
 
@@ -161,7 +161,7 @@ Skill("documentation-and-adrs")
    | H3  | 代码审查 | 复杂度高但可行 | ⚠️ 条件成立 |
    ```
 
-3. 输出 `docs/YYYY-MM-DD/research/hypothesis-validation.md`
+3. 输出 `.jarvis/YYYY-MM-DD/research/hypothesis-validation.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RS4" })`
 
@@ -172,7 +172,7 @@ Skill("documentation-and-adrs")
 **Gate 检查条件**：研究报告已产出，含结论+建议+后续行动
 
 ### 步骤
-输出 `docs/YYYY-MM-DD/research/research-report.md`：
+输出 `.jarvis/YYYY-MM-DD/research/research-report.md`：
 ```markdown
 # 研究报告：<研究课题>
 
