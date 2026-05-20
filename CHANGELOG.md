@@ -4,6 +4,15 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.8] - 2026-05-20
+
+### Changed
+- 迁移文档产物目录 `docs/` → `.jarvis/`，统一流水线文档到 `.jarvis/*` 便于集中管理
+  - **引擎核心**：GATE_DIRS 路径引用、产物扫描逻辑、API 路由 `/api/docs`→`/api/jarvis`、`getDocsDir`→`getArtifactsDir`
+  - **Web 层**：前端 api.ts、pipeline.html 视图适配新端点
+  - **模板批量更新**：Agent（50+）、Command（30+）、Skill（39）全部更新为 `.jarvis/` 路径
+  - **配置文件**：`.gitignore` 合并两处 `docs/` 块，修复目录级忽略冲突；`.npmignore`、`eslint.config.js` 同步
+
 ## [4.3.7] - 2026-05-20
 
 ### Changed
