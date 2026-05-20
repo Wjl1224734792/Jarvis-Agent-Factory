@@ -4,6 +4,16 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.9] - 2026-05-20
+
+### Added
+- **DeepInit 分层文档生成系统**：`jarvis deepinit` 命令递归扫描项目树，为每层目录生成 AGENTS.md + CLAUDE.md 文档骨架，集成到 `jarvis init` 自动触发
+
+### Fixed
+- 补齐 19 个命令缺失的 `name`/`model` frontmatter 字段
+- 补齐 3 个 Agent 缺失的 `tools` 字段
+- 修复 2 个 Skill 版本号落后（4.3.6→4.3.8）
+
 ## [4.3.8] - 2026-05-20
 
 ### Changed
