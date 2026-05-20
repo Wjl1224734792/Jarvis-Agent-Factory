@@ -175,7 +175,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 流水线看板 | `#/dashboard` | 会话列表（任务名/指令标签/Gate状态）· MCP 平台接入状态 · 置顶/归档/删除 |
 | 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
 | 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
-| 项目介绍 | `/commands-reference.html` | 项目概览 · 40条指令流程详解 · 71个Agent目录 · 流水线架构 · 使用推荐 |
+| 项目介绍 | `/commands-reference.html` | 项目概览 · 30条指令流程详解 · 71个Agent目录 · 流水线架构 · 使用推荐 |
 
 侧边栏实时显示 Claude Code 的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
 
@@ -325,7 +325,7 @@ test-doc-writer → test-executor → remediation-expert
 | | Claude Code |
 |---|:--:|
 | Agents | 71 |
-| Commands | 40 |
+| Commands | 30 |
 | Skills | 35 |
 | Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |
 | 钩子 | settings.json |

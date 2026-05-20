@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 71 Agent · 40 Command · 35 Skill · 15 Pipeline · v4.3.8
+> Jarvis Agent Factory · 71 Agent · 30 Command · 35 Skill · 15 Pipeline · v4.3.8
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -66,7 +66,7 @@
 17. **Command（指令）与 Agent（智能体）边界清晰**：
     - Command（`/jarvis`, `/frontend`, `/backend-architect` 等）是用户交互入口
     - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
-    - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
+    - `/consult` 仅用于方案讨论，不进入流水线
 18. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步
 19. **产物目录规范（硬约束）** — 正式产出**必须**存入 `.jarvis/YYYY-MM-DD/{subdir}/`。**禁止**旧扁平格式。
 20. **多模态回退** — 模型不支持多模态时，使用 `visual-primitives-mcp` 工具代替
@@ -158,15 +158,14 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 | 指令 | 平台 |
 |------|------|
 | `/frontend` `/backend` | Web 全栈 |
-| `/android` `/ios` | 原生移动端 |
-| `/flutter` `/expo` `/taro` `/react-native` | 跨端移动端 |
+| `/mobile --platform=android\|ios\|flutter\|expo\|react-native\|taro` | 移动端（原生+跨端统一入口） |
 
 ### 需求与设计
 
 | 指令 | 说明 |
 |------|------|
 | `/ask` | 需求探询（Interview/Direct/Consensus/Review 4模式） |
-| `/task-ddd` `/task-bdd` `/task-tdd` | 任务分解（领域/行为/测试驱动） |
+| `/task-design --mode=ddd\|bdd\|tdd` | 任务分解（领域/行为/测试驱动） |
 | `/research` | 深度研究（RS0-RS4） |
 
 ### 工程操作
@@ -185,12 +184,12 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 | 类别 | 指令 |
 |------|------|
 | 审查 | `/review` `/review-fix` |
-| 测试 | `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/browser-test` |
-| 架构 | `/frontend-architect` `/backend-architect` `/algorithm-expert` |
+| 测试 | `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/browser` |
+| 架构 | `/consult --expert=frontend-architect\|backend-architect\|algorithm-expert` |
 
 ### 专用工具
 
-`/bug-fix` `/browser-explore`
+`/bug-fix` `/browser`
 
 ### 流程管理
 
