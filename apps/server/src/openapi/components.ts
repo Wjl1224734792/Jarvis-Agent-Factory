@@ -50,6 +50,11 @@ import {
   appLoginRequestSchema,
   appLoginResponseSchema,
   appRefreshRequestSchema,
+  aiFeaturesResponseSchema,
+  aiFormatRequestSchema,
+  aiFormatResponseSchema,
+  aiSettingsSchema,
+  aiSettingsResponseSchema,
   aircraftCategorySchema,
   createModelCommentInputSchema,
   createModelCommentResponseSchema,
@@ -94,6 +99,9 @@ import {
   initUploadResponseSchema,
   modelDetailResponseSchema,
   modelCommentsResponseSchema,
+  modelCompareQuerySchema,
+  modelCompareItemSchema,
+  modelCompareResponseSchema,
   modelInteractionResponseSchema,
   modelListResponseSchema,
   modelReviewsResponseSchema,
@@ -241,12 +249,30 @@ export const componentSchemas = {
   AdminContentCategoryResponse: toOpenApiSchema(
     adminContentCategoryResponseSchema
   ),
+  AiFormatRequest: toOpenApiSchema(aiFormatRequestSchema),
+  AiFormatResponse: toOpenApiSchema(aiFormatResponseSchema),
+  AiFeaturesResponse: toOpenApiSchema(aiFeaturesResponseSchema),
+  AiSettingsResponse: toOpenApiSchema(aiSettingsResponseSchema),
+  UpdateAiSettingsRequest: toOpenApiSchema(aiSettingsSchema),
+  ModelCompareResponse: toOpenApiSchema(modelCompareResponseSchema),
   AircraftCategoryListResponse: toOpenApiSchema(z.array(aircraftCategorySchema)),
   AdminCategoryRequest: toOpenApiSchema(adminCategoryInputSchema),
   AdminCategoryResponse: toOpenApiSchema(adminCategoryResponseSchema),
   BrandListResponse: toOpenApiSchema(z.array(brandSchema)),
   AdminBrandRequest: toOpenApiSchema(adminBrandInputSchema),
   AdminBrandResponse: toOpenApiSchema(adminBrandResponseSchema),
+  AdminRolesResponse: toOpenApiSchema(z.object({
+    roles: z.array(z.object({
+      name: z.string(),
+      label: z.string(),
+      permissions: z.array(z.string()),
+      description: z.string().nullable(),
+      createdAt: z.string().nullable()
+    }))
+  })),
+  UpdateRolePermissionsRequest: toOpenApiSchema(z.object({
+    permissions: z.array(z.string())
+  })),
   SiteSettingsResponse: toOpenApiSchema(siteSettingsResponseSchema),
   UpdateSiteSettingsRequest: mergeSchema(
     toOpenApiSchema(updateSiteSettingsInputSchema),
