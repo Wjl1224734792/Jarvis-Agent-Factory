@@ -4,7 +4,7 @@ description: "Expo 跨端移动开发工作者：负责 Expo（React Native）iO
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
-version: "4.2.0"
+version: "4.3.7"
 updated: "2026-05-19"
 ---
 

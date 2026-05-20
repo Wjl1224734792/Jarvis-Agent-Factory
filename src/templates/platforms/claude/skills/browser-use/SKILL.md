@@ -2,7 +2,7 @@
 name: browser-use
 description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, or extract information from web pages.
 allowed-tools: Bash(browser-use:*)
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

@@ -4,7 +4,7 @@ description: Expo 代码审查专家：审查 Expo/React Native 组件架构、U
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "3.47.11"
+version: "4.3.7"
 updated: "2026-05-18"
 ---
 

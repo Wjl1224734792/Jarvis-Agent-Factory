@@ -4,7 +4,7 @@ description: "安全审计专家：负责安全威胁建模、依赖扫描、SAS
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 effort: max
 model: deepseek-v4-pro
-version: "4.3.6"
+version: "4.3.7"
 updated: "2026-05-20"
 ---
 

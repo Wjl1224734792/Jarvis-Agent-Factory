@@ -1,7 +1,7 @@
 ---
 name: source-driven-development
 description: "源码驱动开发——在修改任何文件之前，先充分阅读和理解现有代码、契约和约束。用于避免凭记忆或假设来写代码，确保改动与现有架构一致。"
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

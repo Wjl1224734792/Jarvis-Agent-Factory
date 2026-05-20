@@ -4,7 +4,7 @@ description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.m
 tools: Read, Write, Edit, Bash, Glob, Grep
 effort: max
 model: deepseek-v4-pro
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

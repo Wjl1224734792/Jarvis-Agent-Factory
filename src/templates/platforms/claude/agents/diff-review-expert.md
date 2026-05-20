@@ -4,7 +4,7 @@ description: "代码差异只读审查代理：审查 git diff、PR 或指定文
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 effort: max
 model: deepseek-v4-pro
-version: "4.3.6"
+version: "4.3.7"
 updated: "2026-05-20"
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: perf-testing
 description: "性能测试方法论——k6/Artillery 脚本编写、基线对比、瓶颈定位、性能回归检测。用于性能测试、负载测试和容量规划。"
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

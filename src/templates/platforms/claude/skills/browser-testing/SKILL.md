@@ -1,7 +1,7 @@
 ---
 name: browser-testing
 description: "浏览器自动化测试方法论——测试用例编写规范、agent-browser 操作流程、报告模板、修复闭环。用于 /browser-test 和 /bug-fix 命令的执行。依赖 agent-browser CLI 工具。"
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

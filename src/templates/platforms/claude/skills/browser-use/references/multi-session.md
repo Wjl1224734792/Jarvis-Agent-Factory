@@ -1,5 +1,5 @@
 ---
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 # Multiple Browser Sessions

@@ -4,7 +4,7 @@ description: "数据库专项专家：在 Gate B1 架构评审阶段由编排者
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

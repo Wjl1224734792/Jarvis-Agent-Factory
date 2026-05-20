@@ -4,7 +4,7 @@ description: "算法专家：在规划阶段或 Gate B1 架构评审时由编排
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, WebFetch, WebSearch
 effort: max
 model: deepseek-v4-pro
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

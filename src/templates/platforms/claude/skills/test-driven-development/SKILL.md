@@ -1,7 +1,7 @@
 ---
 name: test-driven-development
 description: "测试驱动开发——Red→Green→Refactor 循环，先写失败测试再写最小实现。用于 TDD 策略的任务，确保每一行生产代码都有对应的测试防护。"
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

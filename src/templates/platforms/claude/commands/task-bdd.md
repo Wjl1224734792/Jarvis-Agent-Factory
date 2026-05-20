@@ -4,7 +4,7 @@ description: BDD行为驱动——为高业务价值的聚合行为编写Gherkin
 argument-hint: "[聚合行为描述]"
 model: deepseek-v4-pro
 effort: max
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

@@ -4,7 +4,7 @@ description: 综合质量审查专家：汇聚前/后端审查报告，验证 RE
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

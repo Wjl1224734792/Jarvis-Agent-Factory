@@ -4,7 +4,7 @@ description: "API 文档专项工作者：负责 API 契约一致性验证（Gat
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

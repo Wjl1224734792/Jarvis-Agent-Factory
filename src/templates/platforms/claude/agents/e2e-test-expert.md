@@ -4,7 +4,7 @@ description: "端到端测试工作者：基于 Playwright MCP 编写代码级�
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__playwright__browser_close, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_select_option, mcp__playwright__browser_hover, mcp__playwright__browser_drag, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_evaluate, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_tabs, mcp__playwright__browser_file_upload, mcp__playwright__browser_handle_dialog, mcp__playwright__browser_resize, mcp__playwright__browser_navigate_back, mcp__playwright__browser_install, mcp__playwright__browser_uninstall, mcp__playwright__browser_run_code, mcp__playwright__browser_generate_locator, mcp__playwright__browser_pdf_save, mcp__playwright__browser_tabs_list, mcp__playwright__browser_tabs_select, mcp__playwright__browser_tabs_close
 effort: max
 model: deepseek-v4-pro
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

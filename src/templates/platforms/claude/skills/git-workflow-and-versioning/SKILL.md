@@ -1,7 +1,7 @@
 ---
 name: git-workflow-and-versioning
 description: "Git 工作流与版本管理——Gitee/Coding/极狐 GitLab/GitHub 四平台适配。分支策略、提交规范、合并与变基、标签与发布、回滚与修复。"
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

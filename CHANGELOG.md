@@ -4,6 +4,15 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.7] - 2026-05-20
+
+### Changed
+- 生产就绪审计与修复（UltraQA）：
+  - **版本一致性**：144 个模版文件（35 Skill + 71 Agent + 40 Command）版本号统一为 4.3.6，修复 2 个缺失版本字段
+  - **CI 强化**：check 作业新增 `npm audit` 步骤；release 作业新增 lint/typecheck/test/audit 四重质量门（此前仅 rebuild）
+  - **HTML 面板**：修复 2 处过时版本号（v4.3.5→v4.3.7, v4.3.0→v4.3.7）及技能数量（34→35）
+  - **tsconfig**：记录 `noImplicitAny`/`noUncheckedIndexedAccess` 技术债务（启用后各暴露 50+ 类型错误，需专项修复）
+
 ## [4.3.6] - 2026-05-20
 
 ### Changed

@@ -4,7 +4,7 @@ description: "后端 API 专项工作者：在编排者 分配明确子任务后
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

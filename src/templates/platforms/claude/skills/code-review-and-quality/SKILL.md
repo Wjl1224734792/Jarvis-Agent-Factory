@@ -1,7 +1,7 @@
 ---
 name: code-review-and-quality
 description: "代码审查与质量——五轴审查框架、严重度+置信度双维度分级、发现/过滤分离、自查校验协议、多视角审查、变更规模标准、依赖审查与死代码处理。参考 OMC code-reviewer+critic 最佳实践。"
-version: "4.3.6"
+version: "4.3.7"
 updated: "2026-05-20"
 ---
 

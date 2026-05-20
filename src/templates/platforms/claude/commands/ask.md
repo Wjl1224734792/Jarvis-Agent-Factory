@@ -4,7 +4,7 @@ description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K
 model: deepseek-v4-pro
 argument-hint: [需求/想法/计划/指令]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
-version: "4.1.0"
+version: "4.3.7"
 updated: "2026-05-19"
 ---
 

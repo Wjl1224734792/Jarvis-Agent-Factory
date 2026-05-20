@@ -4,7 +4,7 @@ description: "在编排者 已完成需求澄清、需求文档已通过 Gate A 
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 

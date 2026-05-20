@@ -1,7 +1,7 @@
 ---
 description: 前端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路
 argument-hint: [前端需求描述]
-version: "3.45.8"
+version: "4.3.7"
 updated: "2026-05-14"
 ---
 
