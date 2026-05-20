@@ -249,3 +249,16 @@ RL4: 发布验证（tag存在 + CI触发 + Registry更新）
 - Tag 已存在时直接覆盖（需用户确认）
 - 只推送 tag 不推送代码（tag 和 commit 分离）
 - 跳过 RL4 验证（发布后必须确认成功）
+
+---
+## Agent 编排参考
+
+| Gate | 推荐 Agent | 操作类型 | 说明 |
+|------|-----------|---------|------|
+| RL0 | — | read | 编排者检查工作区干净 + 分支正确 |
+| RL1 | — | build/lint/test | 编排者执行质量门全项检查 |
+| RL2 | — | write | 编排者版本递增 + CHANGELOG |
+| RL3 | infra-deploy-expert | deploy | git commit+tag+push → CI 发布 |
+| RL4 | — | read | 编排者验证 npm view + GitHub Release |
+
+> Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

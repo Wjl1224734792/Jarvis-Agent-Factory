@@ -424,6 +424,50 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 - 不同 TDD 任务的同阶段步骤可按路径边界并行
 
 ---
+## Team 编排增强（大任务优化）
+
+当任务涉及 >10 个文件或跨模块变更时，优先使用 Team 模式：
+
+### Gate C-impl: Team 并行实现
+```
+1. 调用 TeamCreate({ team_name: "{task}-impl" })
+2. 按 parallel_batches 分组，每组 spawn Agent(team_name="...", name="...", subagent_type="...")
+3. 每个 Team 成员分配独占文件/模块，无重叠
+4. 全部完成后 → Agent 子任务自动 resolved
+```
+
+### Gate C2: Team 并行测试
+```
+1. 调用 TeamCreate({ team_name: "{task}-test" })
+2. 按测试类型并行：单元测试 Agent + 集成测试 Agent + E2E 测试 Agent
+3. 每个 Agent 负责独立测试文件，无重叠
+4. 全部通过后 → qa-review-expert 综合签核
+```
+
+### Gate D: Team 并行审查
+```
+1. 调用 TeamCreate({ team_name: "{task}-review" })
+2. 按审查领域并行：安全 + 性能 + 平台审查 + QA
+3. 每个审查者独立评审，产出分级报告
+4. 全部通过后 → 调用 TeamDelete() 清理 Team
+```
+
+### Team 关闭协议
+```
+每个 Team Gate 完成后：
+1. 确认所有 Team 成员已完成（TaskList 全部 resolved）
+2. 调用 SendMessage({ type: "shutdown_request" }) 优雅关闭成员
+3. 调用 TeamDelete() 清理 team/task 资源
+4. 标记 Gate checkpoint 后再 advance_gate
+```
+
+### 降级策略
+- 当 Claude Code 不支持 TeamCreate（缺少环境变量）时，回退到并行 subagent 模式
+- 小任务（<5 文件）直接用 subagent 模式，无需 Team
+- 中任务（5-10 文件）可选 Team 或并行 subagent
+
+
+---
 
 ## 红线
 - Gate 不可跳跃——严格遵守 A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序

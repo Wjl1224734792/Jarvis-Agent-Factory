@@ -162,3 +162,15 @@ Skill("debugging-and-error-recovery")
 - 修复后不补回归测试（同一个故障允许发生两次）
 - 跳过事后审计（不分析根因 = 下次还会发生）
 - 在生产环境调试（调试流量影响真实用户）
+
+---
+## Agent 编排参考
+
+| Gate | 推荐 Agent | 操作类型 | 说明 |
+|------|-----------|---------|------|
+| H0 | — | read | 编排者评估影响范围和紧急程度 |
+| H1 | remediation-expert | write_code | 最小化修复，只改根因 |
+| H2 | test-expert (对应平台) | test | 核心流程回归 + 回滚预案验证 |
+| H3 | security-review-expert | review | 事后审计：根因分析 + 预防措施 |
+
+> Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

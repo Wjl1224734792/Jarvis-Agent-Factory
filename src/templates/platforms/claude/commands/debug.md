@@ -261,3 +261,16 @@ Skill("debugging-deep")
 - 诊断过程中修改无关代码（调试是调查，不是修复）
 - 不记录诊断过程（下次类似问题又要从头查）
 - 不清除调试代码（残留的 console.log 污染日志/性能）
+
+---
+## Agent 编排参考
+
+| Gate | 推荐 Agent | 操作类型 | 说明 |
+|------|-----------|---------|------|
+| D0 | code-explore-expert, external-resource-expert | read | 收集错误日志、堆栈、环境信息 |
+| D1 | remediation-expert | read/write_code | 构造最小复现用例 |
+| D2 | code-explore-expert | read | 断点/日志追踪，定位根因 |
+| D3 | remediation-expert | write_code | 交互式诊断修复，验证假设 |
+| D4 | — | write_doc | 编排者汇总修复报告 |
+
+> Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

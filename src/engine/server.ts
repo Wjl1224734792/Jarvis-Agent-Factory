@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent, saveFlowSkill, getFlowSkills, getFlowSkill } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, completeRun, logSessionEvent, saveFlowSkill, getFlowSkills, getFlowSkill, saveResumeData, getResumeData, updateSessionMetadata } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -451,8 +451,30 @@ export function registerMcpTools(server, db, root) {
       if (existing) {
         touchSession(db, sid);
         const p = getPipeline(db, sid);
-        // 自动归档旧活跃 run（同一会话新任务 → 旧任务进历史）
+        // 检查是否有活跃 run 及其恢复数据
         const activeRun = getActiveRun(db, sid);
+        const resumeData = activeRun ? getResumeData(db, activeRun.id) : null;
+        // 如有恢复数据，保留旧 run 继续使用（不自动归档）
+        if (resumeData && activeRun) {
+          emitEvent('session:changed', { sessionId: sid, action: 'rejoin' });
+          logSessionEvent(db, sid, 'session_join', { runId: activeRun.id, detail: 'rejoined (resume data available)' });
+          const gateList = sessionGates(db, sid);
+          return resp({
+            session_id: sid, platform: existing.platform,
+            gate: p?.current_gate || 'Gate A',
+            pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
+            project: p?.project || root,
+            run_id: activeRun.id,
+            resumed: true,
+            can_resume: true,
+            resume_task_name: resumeData.taskName || null,
+            resume_gate: resumeData.gate || p?.current_gate,
+            resume_checkpoints: resumeData.checkpoints || [],
+            gate_sequence: gateList,
+            message: `\u{1F504} 欢迎回来！检测到未完成任务「${resumeData.taskName || '(未知)'}」— 当前 Gate: ${resumeData.gate || p?.current_gate}。调用 pipeline_resume 继续，或 start_fresh=true 开始新任务。`,
+          });
+        }
+        // 无恢复数据：自动归档旧 run 并开始新任务
         if (activeRun) {
           db.prepare("UPDATE pipeline_runs SET archived=1, status='completed', completed_at=datetime('now') WHERE id=?")
             .run(activeRun.id);
@@ -693,6 +715,22 @@ export function registerMcpTools(server, db, root) {
       }
       addCheckpoint(db, cur, gate, sid, durationSeconds ?? undefined);
       updatePipelineGate(db, sid, gate);
+      // 持久化恢复数据：每次 Gate 推进时保存当前状态，支持会话中断后继续
+      if (runId) {
+        const allCheckpoints = getCheckpoints(db, undefined, sid);
+        saveResumeData(db, runId, {
+          gate,
+          gateList,
+          taskName: task_name || null,
+          checkpoints: allCheckpoints.map(c => ({ gate: c.gate, passedAt: c.passed_at, duration: c.duration_seconds })),
+          savedAt: new Date().toISOString(),
+        });
+        updateSessionMetadata(db, sid, {
+          lastGate: gate,
+          lastRunId: runId,
+          lastActive: new Date().toISOString(),
+        });
+      }
       // Session Model B: 同步更新 pipeline_runs 中的 current_gate 和新 Gate 进入时间
       if (runId) {
         updateRunGate(db, runId, gate);
@@ -717,6 +755,34 @@ export function registerMcpTools(server, db, root) {
         next: gateList[ti + 1] || 'Complete',
         message: gateList[ti + 1] ? `Next: ${gateList[ti + 1]}` : 'Complete!',
         duration_seconds: durationSeconds ?? null,
+      });
+    });
+
+  server.tool('pipeline_resume',
+    '【会话恢复】加载指定 run 的恢复数据，支持跨会话继续任务。返回上次保存的 Gate 位置、checkpoint 历史、任务名称等信息。',
+    { run_id: z.string().describe('要恢复的 pipeline run ID') },
+    async ({ run_id }, extra) => {
+      const sid = resolveSid(extra);
+      if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
+      const data = getResumeData(db, run_id);
+      if (!data) return resp({ ok: false, error: `No resume data found for run: ${run_id}`, resumed: false });
+      // 恢复 pipeline current_gate 到保存的 Gate
+      if (data.gate) {
+        updatePipelineGate(db, sid, data.gate as string);
+      }
+      const p = getPipeline(db, sid);
+      const gateList = sessionGates(db, sid);
+      return resp({
+        ok: true,
+        resumed: true,
+        run_id,
+        gate: p?.current_gate || data.gate || 'Gate A',
+        task_name: data.taskName || null,
+        checkpoints: data.checkpoints || [],
+        saved_at: data.savedAt || null,
+        pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
+        gate_sequence: gateList,
+        message: `\u{1F504} 已恢复任务「${data.taskName || '(未知)'}」— 当前 Gate: ${data.gate || 'Gate A'}，已完成 ${(data.checkpoints as unknown[] || []).length} 个 checkpoint。`,
       });
     });
 

@@ -154,3 +154,15 @@ Skill("source-driven-development")
 - 新旧框架长期共存（技术债务快速累积）
 - 不清理旧依赖（增加安全攻击面和构建体积）
 - 迁移和功能开发混在一个分支（无法回滚迁移）
+
+---
+## Agent 编排参考
+
+| Gate | 推荐 Agent | 操作类型 | 说明 |
+|------|-----------|---------|------|
+| M1 | code-explore-expert | read | 分析现有代码，定义迁移规则 |
+| M2 | remediation-expert (对应平台) | write_code | 批量替换 API，更新依赖 |
+| M3 | — | build | 编排者验证编译通过 |
+| M4 | — | lint | 编排者运行 Lint --fix，最多 2 轮 |
+
+> Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

@@ -177,3 +177,15 @@ Skill("source-driven-development")
 - 忽略非功能维度（性能不是唯一标准）
 - 评估中修改评估标准（标准在 E0 确定后不可变）
 - 不清除原型残留（原型用完即弃，不混入主项目）
+
+---
+## Agent 编排参考
+
+| Gate | 推荐 Agent | 操作类型 | 说明 |
+|------|-----------|---------|------|
+| E0 | code-explore-expert | read | 调研候选技术方案 |
+| E1 | planner, code-explore-expert | write_code | 生成概念验证原型 |
+| E2 | perf-test-expert | read/build | 收集基准测试指标 |
+| E3 | — | write_doc | 编排者汇总多维评估报告 |
+
+> Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

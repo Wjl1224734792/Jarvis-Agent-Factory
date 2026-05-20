@@ -1,5 +1,5 @@
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import type { DirEntry } from './scanner.js';
 
 /** 简单的 mustache 风格模板渲染 */
@@ -100,7 +100,7 @@ export function generateClaudeMd(entry: DirEntry, hasParentAgents: boolean, ctx:
 }
 
 /**
- * 生成整个目录树的文档文件。
+ * 生成整个目录树的文档文件（顺序模式，保证层级兼容）。
  */
 export function generateAll(flatEntries: DirEntry[], rootDir: string): { dir: string; agents: string; claude: string | null }[] {
   const now = new Date().toISOString();
@@ -108,14 +108,74 @@ export function generateAll(flatEntries: DirEntry[], rootDir: string): { dir: st
   const results: { dir: string; agents: string; claude: string | null }[] = [];
 
   for (const entry of flatEntries) {
-    // 计算父级 AGENTS.md 相对路径
     const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
-
     const agentsContent = generateAgentsMd(entry, parentRel, ctx);
     const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
     const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
-
     results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
+  }
+
+  return results;
+}
+
+/**
+ * 按深度分组，同级目录可并行生成。
+ * 深度必须按层串行（子目录引用父级 AGENTS.md），但同层目录完全独立。
+ */
+function groupByDepth(entries: DirEntry[]): Map<number, DirEntry[]> {
+  const groups = new Map<number, DirEntry[]>();
+  for (const e of entries) {
+    const list = groups.get(e.depth);
+    if (list) list.push(e);
+    else groups.set(e.depth, [e]);
+  }
+  return groups;
+}
+
+/**
+ * 并行生成整个目录树的文档文件。
+ * 按深度分层：同层目录并行处理，层间串行保证父子引用正确。
+ */
+export function generateAllParallel(
+  flatEntries: DirEntry[],
+  rootDir: string,
+  concurrency: number = 0,
+): { dir: string; agents: string; claude: string | null }[] {
+  const now = new Date().toISOString();
+  const ctx: GenContext = { entry: flatEntries[0], rootDir, now };
+  const groups = groupByDepth(flatEntries);
+  const results: { dir: string; agents: string; claude: string | null }[] = [];
+  const maxDepth = Math.max(...groups.keys());
+
+  // 同步逐层处理（同层内并行）
+  for (let depth = 0; depth <= maxDepth; depth++) {
+    const batch = groups.get(depth);
+    if (!batch || batch.length === 0) continue;
+
+    // 小批量或并发度为 1 时保持顺序
+    if (batch.length === 1 || concurrency === 1) {
+      for (const entry of batch) {
+        const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+        const agentsContent = generateAgentsMd(entry, parentRel, ctx);
+        const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+        const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+        results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
+      }
+    } else {
+      // 同层并行
+      const chunkSize = concurrency > 0 ? concurrency : batch.length;
+      for (let i = 0; i < batch.length; i += chunkSize) {
+        const chunk = batch.slice(i, i + chunkSize);
+        const chunkResults = chunk.map(entry => {
+          const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+          const agentsContent = generateAgentsMd(entry, parentRel, ctx);
+          const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+          const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+          return { dir: entry.absPath, agents: agentsContent, claude: claudeContent };
+        });
+        results.push(...chunkResults);
+      }
+    }
   }
 
   return results;
@@ -187,6 +247,55 @@ export function generateIncremental(
 }
 
 /**
+ * 并行增量生成：按深度分层，同层并行处理变更目录。
+ */
+export function generateIncrementalParallel(
+  flatEntries: DirEntry[],
+  changedRelPaths: Set<string>,
+  rootDir: string,
+  concurrency: number = 0,
+): { dir: string; agents: string; claude: string | null }[] {
+  const changedEntries = flatEntries.filter(e => changedRelPaths.has(e.relPath));
+  if (changedEntries.length === 0) return [];
+
+  const now = new Date().toISOString();
+  const ctx: GenContext = { entry: flatEntries[0], rootDir, now };
+  const groups = groupByDepth(changedEntries);
+  const results: { dir: string; agents: string; claude: string | null }[] = [];
+  const maxDepth = Math.max(...groups.keys());
+
+  for (let depth = 0; depth <= maxDepth; depth++) {
+    const batch = groups.get(depth);
+    if (!batch || batch.length === 0) continue;
+
+    if (batch.length === 1 || concurrency === 1) {
+      for (const entry of batch) {
+        const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+        const agentsContent = generateAgentsMd(entry, parentRel, ctx);
+        const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+        const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+        results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
+      }
+    } else {
+      const chunkSize = concurrency > 0 ? concurrency : batch.length;
+      for (let i = 0; i < batch.length; i += chunkSize) {
+        const chunk = batch.slice(i, i + chunkSize);
+        const chunkResults = chunk.map(entry => {
+          const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+          const agentsContent = generateAgentsMd(entry, parentRel, ctx);
+          const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+          const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+          return { dir: entry.absPath, agents: agentsContent, claude: claudeContent };
+        });
+        results.push(...chunkResults);
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * 验证生成的 AGENTS.md 层级完整性。
  * 检查：父级引用可解析、无孤儿文件、目录覆盖完整。
  */
@@ -219,6 +328,213 @@ export function validateHierarchy(
   }
 
   return { valid: issues.length === 0, issues };
+}
+
+// ---- smart dispatch ----
+
+interface SmartContext {
+  /** 项目类型检测结果 */
+  projectType: 'node' | 'frontend' | 'fullstack' | 'library' | 'unknown';
+  /** 检测到的框架 */
+  frameworks: string[];
+  /** 文件分析缓存: relPath → 分析结果 */
+  fileAnalysis: Map<string, FileAnalysis>;
+}
+
+interface FileAnalysis {
+  exports: string[];
+  imports: string[];
+  summary: string;
+}
+
+/**
+ * Agent 智能分派模式：深度读取文件内容，检测项目类型，生成更精准的文档。
+ * 对应 OMC 的 explore agent（目录扫描）+ architect agent（文件分析）+ writer agent（内容生成）三层分派。
+ */
+export function generateAllSmart(
+  flatEntries: DirEntry[],
+  rootDir: string,
+): { dir: string; agents: string; claude: string | null }[] {
+  const now = new Date().toISOString();
+  const ctx: GenContext = { entry: flatEntries[0], rootDir, now };
+  const smartCtx = buildSmartContext(flatEntries);
+  const results: { dir: string; agents: string; claude: string | null }[] = [];
+  const groups = groupByDepth(flatEntries);
+  const maxDepth = Math.max(...groups.keys());
+
+  for (let depth = 0; depth <= maxDepth; depth++) {
+    const batch = groups.get(depth);
+    if (!batch || batch.length === 0) continue;
+
+    for (const entry of batch) {
+      const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+      const agentsContent = generateAgentsMdSmart(entry, parentRel, ctx, smartCtx);
+      const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+      const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+      results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
+    }
+  }
+
+  return results;
+}
+
+function buildSmartContext(flatEntries: DirEntry[]): SmartContext {
+  const frameworks: string[] = [];
+  const fileAnalysis = new Map<string, FileAnalysis>();
+  const allFiles = flatEntries.flatMap(e => e.files.map(f => join(e.absPath, f)));
+
+  // 检测框架
+  for (const f of allFiles) {
+    const base = basename(f);
+    if (base === 'package.json') {
+      try {
+        const pkg = JSON.parse(readFileSync(f, 'utf-8'));
+        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+        if (deps.react) frameworks.push('React');
+        if (deps.vue) frameworks.push('Vue');
+        if (deps.express) frameworks.push('Express');
+        if (deps.fastify) frameworks.push('Fastify');
+        if (deps.hono) frameworks.push('Hono');
+        if (deps.prisma) frameworks.push('Prisma');
+        if (deps.drizzle) frameworks.push('Drizzle');
+        if (deps.tailwindcss) frameworks.push('TailwindCSS');
+        if (deps.vitest || deps.jest) frameworks.push('Vitest/Jest');
+      } catch { /* ignore */ }
+    }
+    if (base === 'tsconfig.json') {
+      frameworks.push('TypeScript');
+    }
+  }
+
+  // 分析关键文件的导出和导入
+  for (const entry of flatEntries) {
+    for (const file of entry.files) {
+      const absPath = join(entry.absPath, file);
+      if (file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.js')) {
+        try {
+          const content = readFileSync(absPath, 'utf-8');
+          const exports = [...content.matchAll(/export\s+(?:default\s+)?(?:class|function|const|let|var|interface|type|enum)\s+(\w+)/g)].map(m => m[1]);
+          const imports = [...content.matchAll(/import\s+\{?\s*(\w+)/g)].map(m => m[1]);
+          fileAnalysis.set(join(entry.relPath, file), {
+            exports: exports.slice(0, 10),
+            imports: imports.slice(0, 10),
+            summary: exports.length > 0 ? `Exports: ${exports.slice(0, 5).join(', ')}` : 'No exports',
+          });
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  let projectType: SmartContext['projectType'] = 'unknown';
+  if (frameworks.includes('React') || frameworks.includes('Vue')) {
+    projectType = frameworks.includes('Express') || frameworks.includes('Fastify') || frameworks.includes('Hono')
+      ? 'fullstack' : 'frontend';
+  } else if (frameworks.includes('Express') || frameworks.includes('Fastify') || frameworks.includes('Hono')) {
+    projectType = 'node';
+  } else if (frameworks.includes('TypeScript') || frameworks.includes('Vitest/Jest')) {
+    projectType = 'library';
+  }
+
+  return { projectType, frameworks, fileAnalysis };
+}
+
+function generateAgentsMdSmart(
+  entry: DirEntry,
+  parentRel: string | null,
+  ctx: GenContext,
+  smartCtx: SmartContext,
+): string {
+  const templatePath = resolve(ctx.rootDir, 'src', 'templates', 'deepinit', 'AGENTS.md.tmpl');
+  let tmpl: string;
+  try {
+    tmpl = readFileSync(templatePath, 'utf-8');
+  } catch {
+    tmpl = FALLBACK_AGENTS_TMPL;
+  }
+
+  // Smart: 按文件内容分析生成更精准的描述
+  const keyFiles = entry.files.slice(0, 30).map(f => {
+    const analysisPath = join(entry.relPath, f);
+    const analysis = smartCtx.fileAnalysis.get(analysisPath);
+    return {
+      name: f,
+      desc: analysis ? `${describeFile(f, entry)} — ${analysis.summary}` : describeFile(f, entry),
+    };
+  });
+
+  const subdirs = entry.subdirs.map(s => ({
+    name: s.name,
+    desc: describeDirSmart(s.name, smartCtx),
+  }));
+
+  const aiInstructions = generateAiInstructionsSmart(entry, smartCtx);
+
+  return render(tmpl, {
+    generated: ctx.now,
+    updated: ctx.now,
+    parent: parentRel || '(root)',
+    dirname: entry.name,
+    purpose: describeDirSmart(entry.name, smartCtx),
+    purpose_desc: generatePurposeDesc(entry, smartCtx),
+    key_files: keyFiles,
+    subdirs,
+    ai_instructions: aiInstructions,
+    internal_deps: inferInternalDepsSmart(entry, smartCtx),
+    external_deps: inferExternalDeps(entry),
+  });
+}
+
+function describeDirSmart(name: string, smartCtx: SmartContext): string {
+  if (name === 'src' && smartCtx.projectType === 'frontend') return 'Frontend source code (React/Vue components)';
+  if (name === 'src' && smartCtx.projectType === 'node') return 'Server-side source code (API routes, services)';
+  if (name === 'src' && smartCtx.projectType === 'fullstack') return 'Full-stack source code (client + server)';
+  return describeDir(name);
+}
+
+function generatePurposeDesc(entry: DirEntry, smartCtx: SmartContext): string {
+  if (entry.depth === 0) {
+    const typeLabels: Record<string, string> = {
+      frontend: 'Frontend application',
+      node: 'Node.js backend service',
+      fullstack: 'Full-stack application',
+      library: 'TypeScript/JavaScript library',
+      unknown: 'Project',
+    };
+    const label = typeLabels[smartCtx.projectType] || 'Project';
+    const fw = smartCtx.frameworks.length > 0 ? ` (${smartCtx.frameworks.slice(0, 4).join(', ')})` : '';
+    return `${label}${fw}. This is the project root directory.`;
+  }
+  return `This directory contains the ${entry.name} module of the project.`;
+}
+
+function generateAiInstructionsSmart(entry: DirEntry, smartCtx: SmartContext): string[] {
+  const instructions: string[] = [];
+  if (entry.depth === 0) {
+    instructions.push('This is the project root. All agents must read this file on startup.');
+    instructions.push(`Project type: ${smartCtx.projectType}${smartCtx.frameworks.length > 0 ? ` using ${smartCtx.frameworks.join(', ')}` : ''}.`);
+    instructions.push('Run `npm test` to execute the test suite.');
+    instructions.push('Run `npm run build` to compile the project.');
+  }
+  if (entry.files.some(f => f.endsWith('.test.ts') || f.endsWith('.spec.ts'))) {
+    instructions.push('Test files are present in this directory. Run tests before modifying.');
+  }
+  if (entry.name === 'src' && smartCtx.projectType === 'frontend') {
+    instructions.push('Frontend source directory. Follow component patterns and existing style conventions.');
+  }
+  if (entry.name === 'src' && smartCtx.projectType === 'node') {
+    instructions.push('Backend source directory. Maintain API contracts and service boundaries.');
+  }
+  return instructions;
+}
+
+function inferInternalDepsSmart(entry: DirEntry, smartCtx: SmartContext): string {
+  if (entry.depth === 0) {
+    return smartCtx.projectType === 'fullstack'
+      ? 'Client and server subdirectories; see src/ for details'
+      : 'All subdirectories under src/, tests/, scripts/';
+  }
+  if (entry.subdirs.length > 0) return entry.subdirs.map(s => s.name + '/').join(', ');
+  return 'None';
 }
 
 // ---- helpers ----
