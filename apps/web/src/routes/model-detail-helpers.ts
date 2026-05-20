@@ -11,10 +11,10 @@ export function formatModelPriceRange(priceMin: number | null, priceMax: number 
   }
 
   if (priceMin === priceMax) {
-    return `\u00A5${priceMin.toLocaleString("zh-CN")}`;
+    return `¥${priceMin.toLocaleString("zh-CN")}`;
   }
 
-  return `\u00A5${priceMin.toLocaleString("zh-CN")} - \u00A5${priceMax.toLocaleString("zh-CN")}`;
+  return `¥${priceMin.toLocaleString("zh-CN")} - ¥${priceMax.toLocaleString("zh-CN")}`;
 }
 
 export function getHotModelsSidebarQueryKey(categorySlug?: string | null) {

@@ -58,7 +58,7 @@ export function getTopNavSearchSlots({
 }
 
 export function getTopNavUserProfileLabel() {
-  return "\u81ea\u5df1";
+  return "自己";
 }
 
 export function getTopNavUserProfileRoute() {
