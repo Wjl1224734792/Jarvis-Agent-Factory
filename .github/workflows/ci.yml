@@ -169,7 +169,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          echo "Authenticated as: $(npm whoami)"
+          echo "Token length: ${#NPM_TOKEN}"
+          echo "Token prefix: ${NPM_TOKEN:0:4}"
+          echo "Authenticated as: $(npm whoami 2>&1)"
           echo "Registry: $(npm config get registry)"
           npm ping
 
