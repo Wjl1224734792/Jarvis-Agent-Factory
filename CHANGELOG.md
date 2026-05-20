@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.3] - 2026-05-20
+
+### Security
+- 彻底移除 antV 依赖残留：清理 `docs/tmp/screenshots/x6-*` 8 张旧 X6 引擎截图
+- 安全审计确认：package.json / web/package.json / package-lock.json / bun.lock / node_modules / src/ / web/src/ / dist/ 均无 @antv 依赖或代码引用
+- antV (@antv/x6, @antv/g6, @antv/x6-plugin-*) 已在 v3.53.0 的 X6→SVG 重写中移除，本次确保零残留
+
 ## [4.3.2] - 2026-05-19
 
 ### Fixed
