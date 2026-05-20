@@ -4,6 +4,14 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.4] - 2026-05-20
+
+### Security
+- 预推送钩子增加 `npm audit --audit-level=moderate`，阻断中等及以上严重度漏洞进入仓库
+
+### Fixed
+- README.md 版本徽章同步 v4.3.1→v4.3.3
+
 ## [4.3.3] - 2026-05-20
 
 ### Security
