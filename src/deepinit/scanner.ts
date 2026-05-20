@@ -1,5 +1,5 @@
-import { readdirSync, statSync, existsSync, readFileSync } from 'node:fs';
-import { relative, join, basename } from 'node:path';
+import { readdirSync, statSync, existsSync, readFileSync, realpathSync } from 'node:fs';
+import { relative, join, basename, sep } from 'node:path';
 
 export interface DirEntry {
   /** 相对于项目根的路径 */
@@ -41,11 +41,27 @@ export function scanDirectory(
   root: string,
   current: string = root,
   depth: number = 0,
+  visitedInodes?: Set<number>,
 ): DirEntry | null {
   const name = basename(current);
 
   // 排除隐藏目录和黑名单
   if (depth > 0 && isExcluded(name)) return null;
+
+  // Symlink loop protection via inode tracking (OMC parity)
+  if (!visitedInodes) visitedInodes = new Set();
+  try {
+    const s = statSync(current);
+    if (visitedInodes.has(s.ino)) return null;
+    visitedInodes.add(s.ino);
+  } catch { return null; }
+
+  // Symlink containment check
+  try {
+    const realPath = realpathSync(current);
+    const realRoot = realpathSync(root);
+    if (realPath !== realRoot && !realPath.startsWith(realRoot + sep)) return null;
+  } catch { /* allow if realpath fails */ }
 
   let entries: ReturnType<typeof readdirSyncWithTypes>;
   try {
@@ -61,7 +77,7 @@ export function scanDirectory(
     if (e.isDir) {
       if (isExcluded(e.name)) continue;
       const childPath = join(current, e.name);
-      const child = scanDirectory(root, childPath, depth + 1);
+      const child = scanDirectory(root, childPath, depth + 1, visitedInodes);
       if (child) subdirs.push(child);
     } else if (e.isFile) {
       files.push(e.name);

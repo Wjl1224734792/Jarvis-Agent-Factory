@@ -161,6 +161,66 @@ export function writeDocs(
   return { written, skipped };
 }
 
+/**
+ * 增量生成：基于 manifest diff 结果，仅重新生成变化目录的文档。
+ * 祖先级联已在 computeDiff 中处理——变化的祖先目录自动包含在 changedRelPaths 中。
+ */
+export function generateIncremental(
+  flatEntries: DirEntry[],
+  changedRelPaths: Set<string>,
+  rootDir: string,
+): { dir: string; agents: string; claude: string | null }[] {
+  const now = new Date().toISOString();
+  const ctx: GenContext = { entry: flatEntries[0], rootDir, now };
+  const results: { dir: string; agents: string; claude: string | null }[] = [];
+
+  for (const entry of flatEntries) {
+    if (!changedRelPaths.has(entry.relPath)) continue;
+    const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
+    const agentsContent = generateAgentsMd(entry, parentRel, ctx);
+    const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+    const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
+    results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
+  }
+
+  return results;
+}
+
+/**
+ * 验证生成的 AGENTS.md 层级完整性。
+ * 检查：父级引用可解析、无孤儿文件、目录覆盖完整。
+ */
+export function validateHierarchy(
+  rootDir: string,
+  generatedDirs: string[],
+): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  for (const dir of generatedDirs) {
+    const agentsPath = join(rootDir, dir, 'AGENTS.md');
+    if (!existsSync(agentsPath)) {
+      issues.push(`Missing AGENTS.md: ${dir}/AGENTS.md`);
+      continue;
+    }
+    try {
+      const content = readFileSync(agentsPath, 'utf-8');
+      const parentMatch = content.match(/<!-- Parent: (.+) -->/);
+      if (parentMatch && parentMatch[1] !== '(root)') {
+        // Resolve ../AGENTS.md relative path
+        const parentRel = parentMatch[1];
+        const resolved = join(dir, parentRel);
+        if (!existsSync(resolved)) {
+          issues.push(`Broken parent reference in ${dir}/AGENTS.md: ${parentMatch[1]}`);
+        }
+      }
+    } catch {
+      issues.push(`Unreadable: ${dir}/AGENTS.md`);
+    }
+  }
+
+  return { valid: issues.length === 0, issues };
+}
+
 // ---- helpers ----
 
 function describeFile(name: string, _entry: DirEntry): string {

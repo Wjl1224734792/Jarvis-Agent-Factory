@@ -1,6 +1,10 @@
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { scanDirectory, flattenTree, generateAll, writeDocs } from '../../deepinit/index.js';
+import {
+  scanDirectory, flattenTree, generateAll, writeDocs,
+  generateIncremental, validateHierarchy,
+  scanDirectories, loadManifest, saveManifest, computeDiff, changedPaths,
+} from '../../deepinit/index.js';
 import type { CliOpts } from '../utils/args.js';
 
 export async function execute(opts: CliOpts, positional: string[]): Promise<void> {
@@ -12,27 +16,63 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
     process.exit(1);
   }
 
-  console.log(`\n🔍 Scanning project tree: ${target}\n`);
+  const manifestPath = join(target, '.omc', 'deepinit-manifest.json');
+  const prevManifest = loadManifest(manifestPath);
+  const isFirstRun = !prevManifest;
 
-  // 1. Scan
+  console.log(`\n🔍 Scanning project tree: ${target}`);
+  if (isFirstRun) {
+    console.log('   (first run — full generation)\n');
+  } else {
+    console.log(`   (incremental — manifest from ${prevManifest!.generatedAt})\n`);
+  }
+
+  // 1. Scan directory tree
   const root = scanDirectory(target);
   if (!root) {
     console.error('❌  No files found in target directory.');
     process.exit(1);
   }
-
-  // 2. Flatten
   const flat = flattenTree(root);
-  console.log(`   Found ${flat.length} directories to document.\n`);
 
-  // 3. Generate
-  const results = generateAll(flat, target);
+  // 2. Scan manifest-structured directories for diff
+  const dirs = scanDirectories(target);
+  const diff = computeDiff(prevManifest?.directories ?? null, dirs);
+  const changed = new Set(changedPaths(diff));
+
+  // 3. Generate (full or incremental)
+  const results = isFirstRun || force
+    ? generateAll(flat, target)
+    : generateIncremental(flat, changed, target);
+
+  if (results.length === 0 && !isFirstRun) {
+    console.log('   No directories changed since last run.');
+    console.log(`\n✅ DeepInit complete (nothing to update).\n`);
+    return;
+  }
+
+  // 4. Write
   const stats = writeDocs(results, { force });
 
-  // 4. Report
-  console.log(`   Generated: ${stats.written} AGENTS.md files`);
-  if (stats.skipped > 0) {
-    console.log(`   Skipped:   ${stats.skipped} (already exist, use --force to overwrite)`);
+  // 5. Validate
+  const allDirs = flat.map(e => e.absPath);
+  const validation = validateHierarchy(target, allDirs.map(d => {
+    // Convert absPath back to relative for validation
+    const rel = d.replace(target, '').replace(/^[/\\]/, '');
+    return rel || '.';
+  }));
+
+  // 6. Save manifest for next run
+  saveManifest(manifestPath, dirs);
+
+  // 7. Report
+  console.log(`   Written:  ${stats.written} AGENTS.md${stats.skipped > 0 ? ` (${stats.skipped} skipped)` : ''}`);
+  console.log(`   Manifest: ${Object.keys(dirs).length} directories tracked`);
+  if (!validation.valid) {
+    console.log(`   ⚠  Validation: ${validation.issues.length} issues found`);
+    for (const issue of validation.issues.slice(0, 5)) {
+      console.log(`     - ${issue}`);
+    }
   }
   console.log(`\n✅ DeepInit complete.\n`);
 }

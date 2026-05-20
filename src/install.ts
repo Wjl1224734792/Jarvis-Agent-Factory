@@ -215,13 +215,23 @@ function installMemory(target: string): void {
  */
 async function installDeepinit(target: string, _force: boolean) {
   try {
-    const { scanDirectory, flattenTree, generateAll, writeDocs } = await import('./deepinit/index.js');
+    const { scanDirectory, flattenTree, generateAll, writeDocs,
+            scanDirectories, saveManifest } = await import('./deepinit/index.js');
+    const { join } = await import('node:path');
+    const { mkdirSync } = await import('node:fs');
     const root = scanDirectory(target);
     if (!root) return;
     const flat = flattenTree(root);
     if (flat.length === 0) return;
     const results = generateAll(flat, target);
     const stats = writeDocs(results, { force: false });
+
+    // Save manifest for future incremental updates
+    const omcDir = join(target, '.omc');
+    try { mkdirSync(omcDir, { recursive: true }); } catch { /* ok */ }
+    const dirs = scanDirectories(target);
+    saveManifest(join(omcDir, 'deepinit-manifest.json'), dirs);
+
     if (stats.written > 0) {
       console.log(`  📄 deepinit → ${stats.written} AGENTS.md + CLAUDE.md files generated`);
     }
