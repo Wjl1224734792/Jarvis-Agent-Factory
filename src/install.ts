@@ -177,6 +177,8 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   // Initialize project memory system (.jarvis/memory/)
   if (platform === 'claude' && !isGlobal) {
     installMemory(target);
+    // Generate hierarchical AGENTS.md + CLAUDE.md via deepinit
+    installDeepinit(target, force);
   }
 
   const status = destExists ? 'updated' : 'installed';
@@ -205,6 +207,31 @@ function installMemory(target: string): void {
     }
     console.log('  📝 memory → .jarvis/memory/ (项目级跨会话记忆)');
   } catch { /* memory init 失败不阻塞主流程 */ }
+}
+
+/**
+ * 初始化分层 AGENTS.md + CLAUDE.md 文档骨架（deepinit）。
+ * 仅在项目级别安装时执行，扫描目标目录并生成层级文档。
+ */
+async function installDeepinit(target: string, _force: boolean) {
+  try {
+    const { scanDirectory, flattenTree, generateAll, writeDocs } = await import('./deepinit/index.js');
+    const root = scanDirectory(target);
+    if (!root) return;
+    const flat = flattenTree(root);
+    if (flat.length === 0) return;
+    const results = generateAll(flat, target);
+    const stats = writeDocs(results, { force: false });
+    if (stats.written > 0) {
+      console.log(`  📄 deepinit → ${stats.written} AGENTS.md + CLAUDE.md files generated`);
+    }
+    if (stats.skipped > 0) {
+      console.log(`  ⏭  deepinit → ${stats.skipped} AGENTS.md already exist (use --force to regenerate)`);
+    }
+  } catch (e) {
+    // deepinit 失败不阻塞主流程
+    console.warn(`  ⚠  deepinit skipped: ${String(e)}`);
+  }
 }
 
 function installHooks(platform: string, target: string, isGlobal: boolean, force: boolean) {

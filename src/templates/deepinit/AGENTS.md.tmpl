@@ -1,0 +1,33 @@
+<!-- Generated: {{generated}} | Updated: {{updated}} -->
+<!-- Parent: {{parent}} -->
+
+# {{dirname}} — {{purpose}}
+
+## Purpose
+{{purpose_desc}}
+
+## Key Files
+| File | Description |
+|------|-------------|
+{{#key_files}}
+| {{.name}} | {{.desc}} |
+{{/key_files}}
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+{{#subdirs}}
+| {{.name}}/ | {{.desc}} | [AGENTS.md]({{.name}}/AGENTS.md) |
+{{/subdirs}}
+
+## For AI Agents
+{{#ai_instructions}}
+- {{.}}
+{{/ai_instructions}}
+
+## Dependencies
+- **Internal:** {{internal_deps}}
+- **External:** {{external_deps}}
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->
