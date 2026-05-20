@@ -4,6 +4,17 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.6] - 2026-05-20
+
+### Changed
+- 审查体系深度优化，参考 OMC code-reviewer + critic 最佳实践：
+  - **置信度维度（P1）**：严重度分级新增 HIGH/MEDIUM/LOW 置信度标注，LOW 置信度严重发现不阻断 pipeline
+  - **多视角审查协议（P2）**：强制安全工程师/新人/运维工程师三视角切换审视，计划审查增加执行者/利益相关方/怀疑者三视角
+  - **自查与现实主义校验（P3）**：FLAW vs PREFERENCE 区分、真实最坏情况压力测试、严重度重新校准
+  - **发现/过滤分离（P4）**：发现阶段不预过滤所有发现，过滤由下游编排者执行
+  - **对抗升级模式（P5）**：CRITICAL 发现或 3+ MAJOR 时触发审查升级——主动搜寻隐藏问题、质疑每个决策、扩大审查范围
+- 修改文件：`code-review-and-quality` Skill（核心方法论）、`diff-review-expert` / `frontend-review-expert` / `backend-review-expert` / `security-review-expert` / `review-only` Agent
+
 ## [4.3.5] - 2026-05-20
 
 ### Added
