@@ -164,6 +164,14 @@ jobs:
             echo "⚠ dist/src/web/views/ not found, skipping views upload"
           fi
 
+      - name: Verify npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Authenticated as: $(npm whoami)"
+          echo "Registry: $(npm config get registry)"
+          npm ping
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
