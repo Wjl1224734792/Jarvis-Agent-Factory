@@ -386,21 +386,21 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 | `session_join` | 加入/创建会话，注册平台和流水线类型 |
 | `session_set_name` | 设置会话显示名称 |
 | `session_list` | 列出所有会话（支持筛选/排序/置顶） |
-| `session_archive` | 归档会话 |
-| `session_delete` | 删除会话及所有数据 |
-| `session_touch` | 更新会话活跃时间 |
+| `session_heartbeat` | 心跳保活——活动追踪模式下标记当前会话活跃 |
+| `session_leave` | 离开当前会话 |
 
 ### 流水线控制
 
 | 工具 | 说明 |
 |------|------|
 | `pipeline_init` | 初始化流水线运行 |
+| `pipeline_status` | 当前会话流水线状态查询 |
 | `pipeline_guide` | 获取当前 Gate 的调度建议（Agent/Team策略） |
 | `gate_check` | 检查当前 Gate 状态和通过条件 |
 | `gate_enforce` | 强制 Gate 权限约束 |
 | `advance_gate` | 推进到下一个 Gate |
-| `report_status` | 报告当前流水线状态 |
-| `sync_state` | 同步外部状态到引擎 |
+| `gate_jump` | 跳转到指定 Gate（仅限 allow_jump 流水线：lite/ask/improve） |
+| `report_status` | 报告当前流水线完整状态 |
 
 ### 流程 Skill
 
@@ -414,16 +414,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 
 | 工具 | 说明 |
 |------|------|
-| `agent_list` | 列出指定平台的所有 Agent |
-| `agent_config_get` | 获取 Agent 模型/思考等级配置 |
-| `agent_config_set` | 修改 Agent 配置（Web 面板同步） |
-
-### 报告
-
-| 工具 | 说明 |
-|------|------|
-| `archived_session_report` | 归档会话汇总报告 |
-| `archive_cleanup` | 清理过期归档 |
+| `agent_config` | Agent 模型/思考等级配置（读写合一：无参数=读取，传 agent_id+model=写入） |
 
 ### 平台
 
