@@ -4,7 +4,7 @@ description: "文档研究代理：通过 WebFetch/WebSearch 搜索库/框架/AP
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 model: deepseek-v4-flash
 effort: max
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

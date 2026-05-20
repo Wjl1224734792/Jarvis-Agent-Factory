@@ -1,7 +1,7 @@
 ---
 name: finishing-a-development-branch
 description: "完成开发分支——功能开发完成后的收尾流程：测试验证、代码审查、合并、清理与部署归档。适配 Gitee 和 GitHub 双平台。"
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: incremental-implementation
 description: "增量实现——将大的实现任务拆分为可独立验证的小步骤，每步增量可交付、可测试、可回滚。用于任何超过 50 行的实现任务，降低集成风险和评审难度。"
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

@@ -3,7 +3,7 @@ name: browser-use-expert
 description: 自主浏览器操作专家：利用 browser-use CLI 进行自主决策式浏览器操作——自动发现 UI bug、探索未知页面、执行探索性测试、收集页面证据、截图对比、数据提取。与 browser-test-expert（按测试用例执行验证）互补，各自独立运行
 allowed-tools: Bash(browser-use:*), Read, Write, Edit, Glob, Grep, Skill
 model: deepseek-v4-pro
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

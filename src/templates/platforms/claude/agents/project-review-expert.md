@@ -4,7 +4,7 @@ description: "项目只读审查代理：审查仓库结构、模块边界、依
 tools: Read, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

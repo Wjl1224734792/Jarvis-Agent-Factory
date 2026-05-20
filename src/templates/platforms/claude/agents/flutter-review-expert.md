@@ -4,7 +4,7 @@ description: Flutter 代码审查专家：审查 Flutter/Dart 组件架构、UI 
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-18"
 ---
 

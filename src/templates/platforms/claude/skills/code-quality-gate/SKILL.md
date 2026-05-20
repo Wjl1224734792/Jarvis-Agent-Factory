@@ -1,7 +1,7 @@
 ---
 name: code-quality-gate
 description: "代码质量门——Gate C1 的四项强制检查：Lint、Type-check、Build、依赖安全扫描。按项目类型自动选择对应工具链，失败回退修复，全部通过方可进入测试验证。"
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

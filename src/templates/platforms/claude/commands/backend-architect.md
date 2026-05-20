@@ -1,7 +1,7 @@
 ---
 description: 直接对话后端架构师——微服务拆分、数据库架构、分布式可靠性与数据一致性方案
 argument-hint: [你的后端架构问题]
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

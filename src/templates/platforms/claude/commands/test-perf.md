@@ -4,7 +4,7 @@ description: 性能测试指令——k6/Artillery 负载测试，对比基线，
 model: deepseek-v4-pro
 argument-hint: [测试目标端点或场景描述]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

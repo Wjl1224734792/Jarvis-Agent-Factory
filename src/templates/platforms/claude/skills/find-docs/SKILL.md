@@ -1,7 +1,7 @@
 ---
 name: find-docs
 description: "检索任何开发技术的最新文档、API 参考和代码示例。当用户询问特定库、框架、SDK、CLI 工具或云服务时使用——即使是你熟悉的如 React、Next.js、Prisma、Express、Tailwind、Django 或 Spring Boot。训练数据可能不反映最新的 API 变更或版本更新。始终用于：API 语法问题、配置选项、版本迁移问题、提及库名称的"如何做"问题、涉及库特定行为的调试、安装说明和 CLI 工具使用。即使你认为你知道答案也要使用——不要依赖训练数据获取 API 详细信息、签名或配置选项，因为它们经常过时。始终根据当前文档验证。"
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

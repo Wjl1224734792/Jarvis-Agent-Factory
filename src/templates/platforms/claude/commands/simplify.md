@@ -4,7 +4,7 @@ description: 代码简化与质量清理——S0代码分析→S1简化执行→
 model: deepseek-v4-pro
 argument-hint: [目标文件/目录/模块]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-19"
 ---
 

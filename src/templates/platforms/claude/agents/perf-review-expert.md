@@ -4,7 +4,7 @@ description: "性能只读审查代理：审查前端、后端、数据库、构
 tools: Read, Bash, Glob, Grep, Skill
 effort: max
 model: deepseek-v4-pro
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

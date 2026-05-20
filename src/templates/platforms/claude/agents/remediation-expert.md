@@ -10,7 +10,7 @@ skills:
   - verification-before-completion
   - debugging-and-error-recovery
   - code-standards
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

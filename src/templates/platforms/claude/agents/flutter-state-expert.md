@@ -4,7 +4,7 @@ description: "Flutter 状态与数据专项工作者：负责 Provider/Riverpod/
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

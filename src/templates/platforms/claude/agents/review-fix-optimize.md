@@ -4,7 +4,7 @@ description: "审查修复优化链路：串联审查→修复→复审的完整
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput
 effort: max
 model: deepseek-v4-pro
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

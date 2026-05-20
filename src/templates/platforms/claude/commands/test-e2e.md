@@ -4,7 +4,7 @@ description: 端到端测试指令——基于用户故事生成 Playwright/Cypr
 model: deepseek-v4-pro
 argument-hint: [用户故事描述或E2E测试范围]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

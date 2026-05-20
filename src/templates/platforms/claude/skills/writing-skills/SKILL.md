@@ -1,7 +1,7 @@
 ---
 name: writing-skills
 description: 当创建新技能、编辑现有技能或在部署前验证技能是否有效时使用
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

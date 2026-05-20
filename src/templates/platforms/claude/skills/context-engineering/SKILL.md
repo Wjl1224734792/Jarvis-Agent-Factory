@@ -1,7 +1,7 @@
 ---
 name: context-engineering
 description: "上下文工程——在正确时间向正确智能体提供正确信息。规则文件、上下文打包、混淆管理。用于开始会话、切换任务或输出质量下降时。"
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

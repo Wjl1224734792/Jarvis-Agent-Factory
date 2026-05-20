@@ -1,7 +1,7 @@
 ---
 description: 直接对话前端架构师——技术选型、组件架构、状态管理、构建工具链与性能架构方案
 argument-hint: [你的前端架构问题]
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 

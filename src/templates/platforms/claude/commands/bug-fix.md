@@ -2,7 +2,7 @@
 description: Bug 修复闭环——浏览器复现→定位根因→修复→浏览器验证，涉及前端/页面交互类 Bug 的完整闭环
 argument-hint: [Bug 描述、URL 或复现步骤]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
-version: "4.3.7"
+version: "4.3.8"
 updated: "2026-05-14"
 ---
 
