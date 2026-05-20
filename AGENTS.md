@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 71 Agent · 40 Command · 34 Skill · 15 Pipeline · v4.3.4
+> Jarvis Agent Factory · 71 Agent · 40 Command · 35 Skill · 15 Pipeline · v4.3.5
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -37,7 +37,7 @@
 | L3 | 流水线体系（15条管道+Gate说明） | 编排者 |
 | L4 | 工作模式与指令入口（40条命令） | 编排者 |
 | L5 | 智能体体系（71个Agent按6类分组） | 编排者 spawn 时查阅 |
-| L6 | 技能体系（34个Skill按12类分组） | 编排者、实现 Agent |
+| L6 | 技能体系（35个Skill按13类分组） | 编排者、实现 Agent |
 | L7 | 文档驱动体系（产物目录+文档规范） | 所有 Agent |
 | L8 | 发布流程 | 编排者 |
 
@@ -235,7 +235,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 ## L6 — 技能体系
 
-共 **34 个 Skill**，按 12 类分组：
+共 **35 个 Skill**，按 13 类分组：
 
 | 类别 | 技能 |
 |------|------|
@@ -252,6 +252,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 | **文档** | `chinese-documentation` `documentation-and-adrs` `writing-skills` |
 | **探索** | `find-docs` `find-skills` |
 | **工具** | `mcp-builder` |
+| **参考** | `jarvis-reference` |
 
 > 技能 Skill() 加载关系见各命令模板 `src/templates/platforms/claude/commands/*.md` 的步骤 0。
 

@@ -1,8 +1,8 @@
 ---
 name: using-agent-skills
 description: "使用智能体技能系统——元技能指南：了解技能体系的结构、如何加载技能、技能如何与 Agent 配合、何时加载哪些技能。用于指导用户和编排者正确使用本项目的技能系统。"
-version: "3.45.8"
-updated: "2026-05-14"
+version: "4.3.5"
+updated: "2026-05-20"
 ---
 
 # 使用智能体技能系统
@@ -87,6 +87,8 @@ Jarvis 按流程调度子 Agent
 | `debugging-and-error-recovery` | 系统化调试与根因追踪 | 所有 Agent（遇到 Bug 时） |
 | `code-simplification` | 降低复杂度、消除重复 | 所有实现 Agent（Refactor 阶段） |
 | `code-standards` | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） | 所有实现 Agent |
+| `frontend-design` | 前端 UI/UX 设计方法论与组件设计原则 | 前端实现 Agent |
+| `refactoring` | 安全重构流程（准备/执行/验证三阶段） | 所有实现 Agent |
 | `behavioral-guidelines` | 行为准则 | 所有 Agent |
 
 ### 阶段 6：审查
@@ -118,6 +120,12 @@ Jarvis 按流程调度子 Agent
 | `code-quality-gate` | Gate C1 四项检查（Lint/Type-check/Build/Deps Audit） | Jarvis（Gate C1 时） |
 | `mcp-builder` | MCP 服务器构建方法论 | 需要构建自定义 MCP 工具的 Agent |
 | `writing-skills` | 技能文件编写与验证 | 创建/编辑技能文件的 Agent |
+| `browser-use` | Python browser-use 框架集成（CDP/多会话） | browser-use-expert |
+| `debugging-deep` | 深度调试：内存泄漏/并发竞态/死锁/性能瓶颈 | 复杂 Bug 排查 Agent |
+| `perf-testing` | 性能测试方法论（基准测试/负载测试/剖析） | perf-test-expert |
+| `security-testing` | 安全测试方法论（OWASP Top 10/渗透测试/安全审计） | security-review-expert |
+| `test-data-factory` | 测试数据工厂（fixture/builder/mock/faker） | 测试 Agent |
+| `jarvis-reference` | Jarvis 统一能力索引——Agent/命令/Skill/流水线/工具参考 | 所有 Agent（启动时自动加载） |
 
 ---
 
@@ -193,3 +201,12 @@ Skill(skill="<技能名>")
 | 24 | `code-quality-gate` | 质量 | Gate C1 四项检查（Lint/Type-check/Build/Deps） |
 | 25 | `mcp-builder` | 基础设施 | MCP 服务器构建方法论 |
 | 26 | `writing-skills` | 元技能 | 技能文件编写与验证 |
+| 27 | `browser-use` | 浏览器 | Python browser-use 框架集成（CDP/多会话） |
+| 28 | `code-standards` | 实现 | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） |
+| 29 | `debugging-deep` | 调试 | 深度调试：内存泄漏/并发竞态/死锁/性能瓶颈 |
+| 30 | `frontend-design` | 实现 | 前端 UI/UX 设计方法论与组件设计原则 |
+| 31 | `perf-testing` | 测试 | 性能测试方法论（基准测试/负载测试/剖析） |
+| 32 | `refactoring` | 实现 | 安全重构流程与模式（准备/执行/验证三阶段） |
+| 33 | `security-testing` | 安全 | 安全测试方法论（OWASP Top 10/渗透测试/安全审计） |
+| 34 | `test-data-factory` | 测试 | 测试数据工厂（fixture/builder/mock/faker 策略） |
+| 35 | `jarvis-reference` | 参考 | Jarvis 统一能力索引（Agent/命令/Skill/流水线/工具） |

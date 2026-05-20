@@ -4,6 +4,16 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.3.5] - 2026-05-20
+
+### Added
+- `jarvis-reference` 统一参考技能：整合 Agent 目录（71个/6类）、命令目录（40条）、技能注册表（35个/13类）、流水线体系（15条/Gate操作权限）、MCP 工具参考（20+工具）、发布协议、核心约束。`user-invocable: false`，Agent 启动时自动加载。
+- 技能总数 34→35，分类 12→13（新增"参考"类）
+
+### Fixed
+- `using-agent-skills` 概览表补全缺失的 8 个技能：`browser-use`、`code-standards`、`debugging-deep`、`frontend-design`、`perf-testing`、`refactoring`、`security-testing`、`test-data-factory`（26→35 条目）
+- `using-agent-skills` 阶段 5（实现）补全 `frontend-design`、`refactoring`；特殊场景补全 6 个缺失技能
+
 ## [4.3.4] - 2026-05-20
 
 ### Security
