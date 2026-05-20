@@ -179,13 +179,11 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+          echo "Token length: ${#NPM_TOKEN}, prefix: ${NPM_TOKEN:0:4}"
+          npm whoami
           VERSION="${GITHUB_REF_NAME#v}"
-          PUBLISHED=$(npm view jarvis-agent-factory@"$VERSION" version 2>/dev/null || echo "")
-          if [ "$PUBLISHED" = "$VERSION" ]; then
-            echo "v$VERSION already published on npm, skipping."
-            exit 0
-          fi
           npm publish
 
       - name: Verify Publish
