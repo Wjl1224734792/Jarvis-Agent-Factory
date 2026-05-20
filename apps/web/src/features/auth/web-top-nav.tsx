@@ -127,8 +127,8 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="relative flex h-9 shrink-0 items-center justify-center px-2 xl:h-10">
-      <img alt={`${APP_NAME} logo`} className="h-7 w-auto object-contain xl:h-8" src={logoUrl} />
+    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg xl:h-10 xl:w-10 xl:rounded-xl">
+      <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
     </div>
   );
 }

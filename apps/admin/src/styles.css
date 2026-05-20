@@ -1768,9 +1768,7 @@ body {
   width: 64px;
   height: 64px;
   object-fit: cover;
-  border-radius: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.26);
+  border-radius: 10px;
 }
 
 .admin-shell__brand-copy {
@@ -2087,10 +2085,8 @@ body {
 .admin-shell__brand-logo {
   width: 52px;
   height: 52px;
-  border-radius: 16px;
+  border-radius: 10px;
   object-fit: cover;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 16px 28px -22px rgba(15, 23, 42, 0.24);
 }
 
 .admin-shell__brand-kicker {
