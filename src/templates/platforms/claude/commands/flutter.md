@@ -1,5 +1,7 @@
 ---
 description: Flutter 跨端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布
+name: flutter
+model: deepseek-v4-pro
 argument-hint: [Flutter 需求描述]
 version: "4.3.8"
 updated: "2026-05-14"

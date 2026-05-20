@@ -4,6 +4,7 @@ description: 自主浏览器操作专家：利用 browser-use CLI 进行自主�
 allowed-tools: Bash(browser-use:*), Read, Write, Edit, Glob, Grep, Skill
 model: deepseek-v4-pro
 version: "4.3.8"
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 updated: "2026-05-14"
 ---
 

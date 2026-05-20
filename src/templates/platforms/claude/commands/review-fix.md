@@ -1,5 +1,7 @@
 ---
 description: 进入审查修复优化闭环——初审→规划→执行→验证→复审完整链路
+name: review-fix
+model: deepseek-v4-pro
 argument-hint: [审查范围]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent, Edit, Write
 version: "4.3.8"

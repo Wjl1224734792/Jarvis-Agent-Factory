@@ -1,5 +1,7 @@
 ---
 description: 直接对话算法专家——算法选型、复杂度分析、数据结构设计与性能优化方案
+name: algorithm-expert
+model: deepseek-v4-pro
 argument-hint: [你的算法问题]
 version: "4.3.8"
 updated: "2026-05-14"

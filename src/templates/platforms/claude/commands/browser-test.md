@@ -1,5 +1,7 @@
 ---
 description: 浏览器探索测试——browser-use 自主探索 + 自动发现 UI bug + 出报告，与 browser-test-expert（结构化用例）互补
+name: browser-test
+model: deepseek-v4-pro
 argument-hint: [测试目标—URL 或功能描述]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 version: "4.3.8"
