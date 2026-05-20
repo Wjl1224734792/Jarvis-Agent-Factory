@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import faviconUrl from "../../../packages/shared/assets/logo/favicon.svg";
+import faviconUrl from "../../../packages/shared/assets/logo/logo.png";
 import { App } from "./app";
 import "./styles.css";
 

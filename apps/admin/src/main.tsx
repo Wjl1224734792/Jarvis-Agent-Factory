@@ -1,5 +1,5 @@
 import "antd/dist/reset.css";
-import faviconUrl from "../../../packages/shared/assets/logo/favicon.svg";
+import faviconUrl from "../../../packages/shared/assets/logo/logo.png";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ConfigProvider } from "antd";
