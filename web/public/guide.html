@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis Agent Factory — 操作指南</title>
+<style>
+  :root {
+    --bg: #f8f9fb; --card: #fff; --border: #e2e8f0; --text: #334155; --muted: #64748b;
+    --accent: #2563eb; --green: #16a34a; --orange: #ea580c; --red: #dc2626;
+    --purple: #7c3aed; --cyan: #0891b2; --pink: #db2777; --heading: #0f172a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { background:var(--bg); color:var(--text); font:15px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; max-width:1100px; margin:0 auto; padding:24px }
+
+  .hero { text-align:center; padding:56px 0 40px; border-bottom:1px solid var(--border); margin-bottom:36px }
+  .hero h1 { font-size:40px; color:var(--heading); margin-bottom:12px; letter-spacing:-0.5px }
+  .hero .tagline { font-size:18px; color:var(--muted); margin-bottom:24px; line-height:1.7 }
+  .hero .version { display:inline-block; background:var(--accent); color:#fff; border-radius:4px; padding:3px 14px; font-size:14px; font-weight:600 }
+
+  .stats { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin:28px 0 }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px 32px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.04) }
+  .stat .num { font-size:36px; font-weight:800; color:var(--heading); line-height:1.1 }
+  .stat .label { font-size:12px; color:var(--muted); margin-top:6px }
+  .stat.a .num { color:var(--accent) } .stat.g .num { color:var(--green) }
+  .stat.p .num { color:var(--purple) } .stat.o .num { color:var(--orange) }
+
+  .nav { position:sticky; top:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); padding:12px 0; border-bottom:1px solid var(--border); margin-bottom:32px; z-index:10; display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+  .nav a { color:var(--muted); text-decoration:none; font-size:13px; padding:5px 12px; border-radius:6px }
+  .nav a:hover { color:var(--accent); background:#eff6ff }
+
+  h2 { font-size:24px; color:var(--heading); margin:44px 0 18px; padding-bottom:10px; border-bottom:2px solid var(--border) }
+  h3 { font-size:18px; color:var(--accent); margin:28px 0 12px }
+  h4 { font-size:15px; color:var(--heading); margin:18px 0 8px }
+
+  p { margin:8px 0; color:var(--text); line-height:1.8 }
+  code { background:#eff6ff; color:var(--accent); padding:2px 6px; border-radius:3px; font-size:13px }
+  strong { color:var(--heading) }
+
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin:14px 0; box-shadow:0 1px 3px rgba(0,0,0,.04) }
+
+  .section-desc { color:var(--muted); font-size:14px; margin-bottom:12px }
+
+  /* Gate flow */
+  .gate-flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:16px 0; font-size:12px }
+  .gate-flow .gate { padding:6px 10px; border-radius:5px; font-family:monospace; font-weight:600; white-space:nowrap }
+  .gate-flow .arrow { color:var(--muted); font-size:16px; font-weight:700 }
+  .gate-req { background:#dcfce7; color:#166534; border:1px solid #bbf7d0 }
+  .gate-design { background:#fef3c7; color:#92400e; border:1px solid #fde68a }
+  .gate-plan { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe }
+  .gate-impl { background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe }
+  .gate-qa { background:#fee2e2; color:#991b1b; border:1px solid #fecaca }
+  .gate-review { background:#cffafe; color:#155e75; border:1px solid #a5f3fc }
+  .gate-ship { background:#fce7f3; color:#9d174d; border:1px solid #fbcfe8 }
+
+  .pipe-table { width:100%; border-collapse:collapse; margin:14px 0; font-size:13px }
+  .pipe-table th { text-align:left; color:var(--accent); padding:10px 12px; border-bottom:2px solid var(--border); font-weight:600; background:#f8fafc }
+  .pipe-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top }
+  .pipe-table tr:hover { background:#f8fafc }
+  .pipe-table .cmd { font-family:monospace; color:var(--green); white-space:nowrap; font-weight:600 }
+  .pipe-table .gates { font-family:monospace; font-size:12px; color:var(--text) }
+
+  .cmd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:10px; margin:12px 0 }
+  .cmd-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.03) }
+  .cmd-card .cmd-name { font-size:15px; font-weight:700; color:var(--accent); font-family:monospace }
+  .cmd-card .cmd-desc { color:var(--muted); font-size:13px; margin-top:4px; line-height:1.6 }
+  .cmd-card .cmd-pipe { font-size:11px; color:var(--purple); margin-top:4px }
+
+  .tag { display:inline-block; border-radius:4px; padding:1px 8px; font-size:11px; font-weight:500 }
+  .tag-blue { background:#dbeafe; color:#1e40af }
+  .tag-green { background:#dcfce7; color:#166534 }
+  .tag-orange { background:#fef3c7; color:#92400e }
+  .tag-purple { background:#ede9fe; color:#5b21b6 }
+  .tag-red { background:#fee2e2; color:#991b1b }
+  .tag-cyan { background:#cffafe; color:#155e75 }
+  .tag-pink { background:#fce7f3; color:#9d174d }
+
+  .arch-diagram { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:28px; margin:18px 0; text-align:center; line-height:2.2; box-shadow:0 1px 3px rgba(0,0,0,.04) }
+  .arch-layer { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
+  .arch-box { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px 16px; min-width:100px }
+  .arch-box.user { border-color:#bfdbfe; color:var(--accent) }
+  .arch-box.engine { border-color:#bbf7d0; color:var(--green) }
+  .arch-box.agent { border-color:#ddd6fe; color:var(--purple) }
+  .arch-box.skill { border-color:#fde68a; color:var(--orange) }
+  .arch-box.doc { border-color:#fecaca; color:var(--red) }
+
+  .callout { border-left:3px solid var(--accent); padding:14px 18px; margin:14px 0; border-radius:0 8px 8px 0; background:#eff6ff; font-size:14px; line-height:1.8 }
+  .callout.green { border-left-color:var(--green); background:#f0fdf4 }
+  .callout.orange { border-left-color:var(--orange); background:#fff7ed }
+
+  .scenario-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:10px; margin:12px 0 }
+  .scenario-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.03) }
+  .scenario-card h4 { margin:0 0 6px; font-size:14px }
+  .scenario-card p { font-size:13px; color:var(--muted); line-height:1.6 }
+  .scenario-card code { font-size:12px }
+
+  .footer { text-align:center; color:var(--muted); font-size:12px; margin:48px 0 24px; padding-top:28px; border-top:1px solid var(--border) }
+  .footer a { color:var(--accent); text-decoration:none }
+
+  @media (max-width:768px) {
+    .cmd-grid,.scenario-grid { grid-template-columns:1fr }
+    .hero h1 { font-size:28px }
+    .stats { gap:8px } .stat { padding:12px 16px } .stat .num { font-size:26px }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ HERO -->
+<div class="hero">
+  <h1>Jarvis Agent Factory</h1>
+  <div class="tagline">
+    多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
+    <strong>仅支持 Claude Code</strong> · 31 指令 · 71 智能体 · 35 技能 · 15 流水线
+  </div>
+  <span class="version">v4.4.0</span>
+</div>
+
+<div class="stats">
+  <div class="stat a"><div class="num">31</div><div class="label">指令 Commands</div></div>
+  <div class="stat g"><div class="num">71</div><div class="label">智能体 Agents</div></div>
+  <div class="stat p"><div class="num">35</div><div class="label">技能 Skills</div></div>
+  <div class="stat o"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
+  <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════ NAV -->
+<nav class="nav">
+  <a href="#what">这是什么</a>
+  <a href="#quickstart">快速开始</a>
+  <a href="#architecture">架构</a>
+  <a href="#orchestration">编排原理</a>
+  <a href="#pipelines">流水线</a>
+  <a href="#commands">全部指令</a>
+  <a href="#agents">智能体</a>
+  <a href="#scenarios">场景推荐</a>
+  <a href="#doc-driven">文档驱动</a>
+</nav>
+
+<!-- ═══════════════════════════════════════ 1. WHAT -->
+<h2 id="what">一、Jarvis 是什么</h2>
+
+<div class="card">
+  <p><strong>Jarvis Agent Factory</strong>（贾维斯智能体工厂）是一套面向 <strong>Claude Code</strong> 平台的多智能体配置工程。它不是业务应用代码，而是<strong>配置 + 引擎</strong>——安装后，Claude Code 获得一套完整的 FSM（有限状态机）编排系统，将软件开发从"手动编码"升级为"编排驱动"。</p>
+  <ul style="margin:8px 0 0 20px; color:var(--text); line-height:2">
+    <li><strong>指令 = 流水线入口</strong>：输入 <code>/jarvis 做一个用户登录</code>，自动启动 13-Gate 工程流水线</li>
+    <li><strong>闸门不可绕过</strong>：引擎强制执行 Gate 权限表——Gate A 不能写代码，Gate E 不能再改实现</li>
+    <li><strong>Agent 按需 spawn</strong>：71 个 Agent 覆盖前端/后端/移动端/测试/审查/架构</li>
+    <li><strong>文档驱动</strong>：每个 Gate 产出结构化文档存入 <code>.jarvis/YYYY-MM-DD/</code></li>
+    <li><strong>零手动启动</strong>：MCP stdio 随 Claude Code 自动拉起引擎</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════ 2. QUICK START -->
+<h2 id="quickstart">二、快速开始</h2>
+
+<div class="card">
+  <p><strong>3 步开始：</strong></p>
+  <p>1. <code>npm i -g jarvis-agent-factory</code> — 安装 CLI（零原生依赖，Node 22.5+ 内置 node:sqlite）</p>
+  <p>2. <code>jarvis init -y</code> — 一键部署配置 + MCP + 钩子到当前项目</p>
+  <p>3. 重启 Claude Code → 引擎自动拉起 → 输入 <code>/auto 你的任务</code> 开始使用</p>
+</div>
+
+<div class="callout green">
+  <strong>不确定用什么指令？直接用 <code>/auto</code></strong>——自动检测 12 种任务类型 → 路由最优流水线 → 跳过无关 Gate → 按复杂度分配 Agent。<strong>99% 的情况用它就够了。</strong>
+</div>
+
+<!-- ═══════════════════════════════════════ 3. ARCHITECTURE -->
+<h2 id="architecture">三、架构模型</h2>
+
+<div class="arch-diagram">
+  <div style="color:var(--muted);font-size:13px;margin-bottom:8px">用户 → 指令 → 引擎 → Agent → 产物</div>
+  <div class="arch-layer">
+    <div class="arch-box user"><strong>用户输入</strong><br><span style="font-size:12px;color:var(--muted)">/jarvis "需求"</span></div>
+    <span style="font-size:20px;color:var(--muted)">→</span>
+    <div class="arch-box user"><strong>指令模板</strong><br><span style="font-size:12px;color:var(--muted)">31 条命令</span></div>
+    <span style="font-size:20px;color:var(--muted)">→</span>
+    <div class="arch-box engine"><strong>编排引擎</strong><br><span style="font-size:12px;color:var(--muted)">FSM + SQLite</span></div>
+    <span style="font-size:20px;color:var(--muted)">→</span>
+    <div class="arch-box agent"><strong>71 个 Agent</strong><br><span style="font-size:12px;color:var(--muted)">专业 spawn</span></div>
+    <span style="font-size:20px;color:var(--muted)">→</span>
+    <div class="arch-box skill"><strong>35 个 Skill</strong><br><span style="font-size:12px;color:var(--muted)">行为规范</span></div>
+    <span style="font-size:20px;color:var(--muted)">→</span>
+    <div class="arch-box doc"><strong>文档产物</strong><br><span style="font-size:12px;color:var(--muted)">.jarvis/日期/</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <h4>引擎内部组件</h4>
+  <table class="pipe-table">
+    <tr><th style="width:140px">组件</th><th>职责</th></tr>
+    <tr><td><strong>MCP stdio 服务</strong></td><td>通过 MCP 协议与 Claude Code 通信，暴露 28 个编排工具</td></tr>
+    <tr><td><strong>FSM 闸门引擎</strong></td><td>强制执行 Gate 序列——跳过/回退一律拒绝</td></tr>
+    <tr><td><strong>SQLite WAL 数据库</strong></td><td>会话管理、流水线运行、SSE 事件日志、跨会话持久化</td></tr>
+    <tr><td><strong>REST API + Web 面板</strong></td><td>端口 3456，提供看板/Agent 配置/归档/指令列表</td></tr>
+    <tr><td><strong>SSE 实时推送</strong></td><td>Gate 进度、会话变更、运行状态实时推送到 Web 面板</td></tr>
+    <tr><td><strong>模板安装器 CLI</strong></td><td><code>jarvis init/upgrade</code> — Hash 对比增量更新，保护用户自定义</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════ 4. ORCHESTRATION -->
+<h2 id="orchestration">四、编排原理</h2>
+
+<div class="card">
+  <h4>核心概念</h4>
+  <p><strong>指令（Command）</strong>是用户交互入口。用户输入 <code>/jarvis</code> 并描述任务，编排者读取指令模板，按模板定义的步骤执行编排。</p>
+  <p><strong>流水线（Pipeline）</strong>是预定义的 Gate 序列。引擎通过 <code>PIPELINE_DEFS</code> 知道每条流水线有哪些 Gate、顺序、是否允许跳转。</p>
+  <p><strong>闸门（Gate）</strong>是 FSM 检查点。编排者调用 <code>gate_check</code> 验证操作权限，通过后 <code>gate_enforce</code> 记录检查点，然后 <code>advance_gate</code> 推进。</p>
+  <p><strong>Agent spawn</strong>在特定 Gate 发生——Gate B1 spawn 架构师，Gate C-impl spawn 实现 Agent。通过 <code>TeamCreate</code>（团队模式）或 <code>Agent</code> 工具（子智能体模式）调度。</p>
+  <p><strong>技能（Skill）</strong>是 Agent 的行为规范。每个 Agent 启动时调用 <code>Skill("behavioral-guidelines")</code> 加载行为准则。</p>
+
+  <div class="callout orange">
+    <strong>编排流程：</strong> 用户输入 → 指令模板加载 → <code>session_join</code> 注册 → <code>pipeline_guide</code> 获取指引 → <code>gate_check</code> 验证权限 → 执行工作 → <code>gate_enforce</code> 确认 → <code>advance_gate</code> 推进 → 重复直到最后 Gate
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ 5. PIPELINES -->
+<h2 id="pipelines">五、流水线体系</h2>
+
+<h3>5.1 标准流水线</h3>
+<p class="section-desc">full / frontend / backend / lite 共用此 Gate 序列。每个 Gate 有严格的<strong>操作权限表</strong>——引擎强制执行，不可绕过。</p>
+
+<div class="gate-flow" style="font-size:13px">
+  <span class="gate gate-req">Gate A<br><small>需求</small></span><span class="arrow">→</span>
+  <span class="gate gate-design">B-DDD<br><small>领域</small></span><span class="arrow">→</span>
+  <span class="gate gate-design">B-BDD<br><small>行为</small></span><span class="arrow">→</span>
+  <span class="gate gate-design">B-TDD<br><small>任务</small></span><span class="arrow">→</span>
+  <span class="gate gate-plan">B1<br><small>架构</small></span><span class="arrow">→</span>
+  <span class="gate gate-impl">Gate C<br><small>规划</small></span><span class="arrow">→</span>
+  <span class="gate gate-impl">C-impl<br><small>实现</small></span><span class="arrow">→</span>
+  <span class="gate gate-qa">C1<br><small>质量</small></span><span class="arrow">→</span>
+  <span class="gate gate-qa">C1.5<br><small>视觉</small></span><span class="arrow">→</span>
+  <span class="gate gate-review">C2<br><small>测试</small></span><span class="arrow">→</span>
+  <span class="gate gate-review">Gate D<br><small>评审</small></span><span class="arrow">→</span>
+  <span class="gate gate-ship">Gate E<br><small>发布</small></span>
+</div>
+
+<table class="pipe-table">
+  <tr><th style="width:100px">Gate</th><th style="width:80px">阶段</th><th>做什么</th><th>允许操作</th><th>禁止操作</th></tr>
+  <tr>
+    <td><strong>Gate A</strong></td><td><span class="tag tag-green">需求</span></td>
+    <td>需求澄清：产出 <strong>REQ-XXX 需求文档</strong>，5 维度评分。输出到 <code>.jarvis/YYYY-MM-DD/requirements/</code></td>
+    <td>read, write_doc</td><td>write_code, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>B-DDD</strong></td><td><span class="tag tag-orange">设计</span></td>
+    <td>领域驱动分析：识别聚合根/实体/值对象/领域服务</td>
+    <td>read, write_doc</td><td>write_code, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>B-BDD</strong></td><td><span class="tag tag-orange">设计</span></td>
+    <td>行为驱动场景：Gherkin Given/When/Then。纯技术逻辑可跳过</td>
+    <td>read, write_doc</td><td>write_code, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>B-TDD</strong></td><td><span class="tag tag-orange">设计</span></td>
+    <td>测试驱动任务分解：TASK-XXX 映射 REQ-XXX，指定测试策略</td>
+    <td>read, write_doc</td><td>write_code, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>Gate B1</strong></td><td><span class="tag tag-purple">架构</span></td>
+    <td>架构评审（条件性）：spawn 对应架构师，产出评审报告</td>
+    <td>read, write_doc, sweep_arch</td><td>write_code, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>Gate C</strong></td><td><span class="tag tag-blue">规划</span></td>
+    <td>planner 产出 <strong>parallel_batches</strong> 并行任务分组，决定 Team vs Subagent 调度</td>
+    <td>read, write_doc, spawn_impl</td><td>spawn_test, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>C-impl</strong></td><td><span class="tag tag-purple">实现</span></td>
+    <td><strong>Team 模式</strong> spawn 多个实现 Agent 并行编码，产出 <code>&lt;TASK-ID&gt;-completion.md</code></td>
+    <td>read, write_code, spawn_impl</td><td>spawn_test, build, deploy</td>
+  </tr>
+  <tr>
+    <td><strong>Gate C1</strong></td><td><span class="tag tag-red">质量</span></td>
+    <td><strong>Lint + Type-check + Build + Deps Audit</strong> 全部通过。不通过自动修复 ≤2 轮</td>
+    <td>read, lint, build, fix</td><td>spawn_impl, deploy, write_code</td>
+  </tr>
+  <tr>
+    <td><strong>C1.5</strong></td><td><span class="tag tag-red">视觉</span></td>
+    <td>视觉验证（条件性）：截图对比。纯后端/算法任务可跳过</td>
+    <td>read, preview, fix</td><td>spawn_impl, deploy, write_code</td>
+  </tr>
+  <tr>
+    <td><strong>Gate C2</strong></td><td><span class="tag tag-cyan">测试</span></td>
+    <td>Team 模式 spawn 测试 Agent，最多 5 次重试，产出测试报告</td>
+    <td>read, spawn_test, fix</td><td>spawn_impl, deploy, write_code</td>
+  </tr>
+  <tr>
+    <td><strong>Gate D</strong></td><td><span class="tag tag-cyan">评审</span></td>
+    <td>Team 模式 spawn 审查 Agent，分级审查报告。修复后重检 ≤2 轮</td>
+    <td>read, review, audit, fix</td><td>spawn_impl, deploy, write_code</td>
+  </tr>
+  <tr>
+    <td><strong>Gate E</strong></td><td><span class="tag tag-pink">发布</span></td>
+    <td>质量重检 → 版本递增 → CHANGELOG → commit+tag+push → CI 自动发布</td>
+    <td>read, deploy, write_doc</td><td>write_code, spawn_impl, lint</td>
+  </tr>
+</table>
+
+<div class="callout">
+  <strong>关键设计：</strong>Gate 操作权限表是<strong>硬约束</strong>——引擎在 <code>gate_check</code> 时比对操作与当前 Gate 的允许列表，不匹配直接拒绝。Gate A 阶段无法写代码，Gate E 阶段无法改实现。这就是"规范驱动、文档驱动的严格工程化流水线"的技术基础。
+</div>
+
+<h3>5.2 全部 15 条流水线</h3>
+
+<table class="pipe-table">
+  <tr><th>指令</th><th>流水线</th><th>Gate 序列</th><th style="width:50px">门数</th><th>适用场景</th></tr>
+  <tr><td class="cmd">/jarvis</td><td>full</td><td class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>13</td><td>中大型功能开发，全部 Gate 强制执行</td></tr>
+  <tr><td class="cmd">/frontend</td><td>frontend</td><td class="gates">同上，C1.5 视觉验证强制，前端专属 Agent</td><td>13</td><td>前端开发，React/Vue/Angular</td></tr>
+  <tr><td class="cmd">/backend</td><td>backend</td><td class="gates">跳过 C1.5，后端专属 Agent</td><td>11</td><td>后端开发，API/数据库/业务逻辑</td></tr>
+  <tr><td class="cmd">/auto</td><td>lite</td><td class="gates">支持 gate_jump 跳过无关 Gate，智能路由</td><td>13</td><td>日常默认入口，99% 情况用它</td></tr>
+  <tr><td class="cmd">/mobile</td><td>frontend</td><td class="gates">同上，平台感知 Agent 选择（6 平台）</td><td>13</td><td>移动端/跨端开发</td></tr>
+  <tr><td class="cmd">/refactor</td><td>refactor</td><td class="gates">R1(边界)→R2(基线)→R3(重构)→R4(漂移检测)→R5(报告)</td><td>5</td><td>代码重构，失败自动回滚</td></tr>
+  <tr><td class="cmd">/hotfix</td><td>hotfix</td><td class="gates">H0(声明+审批)→H1(最小修复)→H2(验证+回滚)→H3(审计)</td><td>4</td><td>紧急故障恢复</td></tr>
+  <tr><td class="cmd">/migrate</td><td>migrate</td><td class="gates">M1(规则)→M2(迁移)→M3(编译)→M4(Lint修复)</td><td>4</td><td>框架升级、依赖替换</td></tr>
+  <tr><td class="cmd">/evaluate</td><td>evaluate</td><td class="gates">E0(标准)→E1(原型)→E2(指标)→E3(报告)</td><td>4</td><td>技术选型、方案对比</td></tr>
+  <tr><td class="cmd">/debug</td><td>debug</td><td class="gates">D0(信息)→D1(复现)→D2(调试)→D3(诊断)→D4(报告)</td><td>5</td><td>异常排查、根因定位</td></tr>
+  <tr><td class="cmd">/research</td><td>research</td><td class="gates">RS0(课题)→RS1(收集)→RS2(分析)→RS3(验证)→RS4(报告)</td><td>5</td><td>技术调研、方案研究</td></tr>
+  <tr><td class="cmd">/release</td><td>release</td><td class="gates">RL0(环境)→RL1(质量)→RL2(版本)→RL3(发布)→RL4(验证)</td><td>5</td><td>快速发布</td></tr>
+  <tr><td class="cmd">/ask</td><td>ask</td><td class="gates">K0(模式)→K1(收集)→K2(分析)→K3(产出)</td><td>4</td><td>需求探询 4 模式自适应</td></tr>
+  <tr><td class="cmd">/simplify</td><td>simplify</td><td class="gates">S0(分析)→S1(简化)→S2(回归)→S3(报告)</td><td>4</td><td>代码质量清理</td></tr>
+  <tr><td class="cmd">/trace</td><td>trace</td><td class="gates">T0(框架)→T1(假设2-5)→T2(证据)→T3(贝叶斯>70%)→T4(方案)</td><td>5</td><td>复杂根因因果追踪</td></tr>
+  <tr><td class="cmd">/improve</td><td>improve</td><td class="gates">IM0(目标)→IM1(研究)→IM2(计划)→IM3(执行)→IM4(迭代)</td><td>5</td><td>度量驱动迭代改进</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════ 6. COMMANDS -->
+<h2 id="commands">六、全部 31 条指令</h2>
+
+<h3>编排入口（2 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card">
+    <div class="cmd-name">/jarvis</div>
+    <div class="cmd-desc"><strong>全流程严格模式</strong> — 13 Gate 全部强制执行。从需求到发布的完整生命周期，适合中大型功能开发。</div>
+    <div class="cmd-pipe">流水线：full（13 Gate）</div>
+  </div>
+  <div class="cmd-card">
+    <div class="cmd-name">/auto <span class="tag tag-green">日常默认</span></div>
+    <div class="cmd-desc"><strong>智能路由模式</strong> — 自动检测 12 种任务类型→路由最优流水线→跳过无关 Gate→按复杂度分配 Team/Subagent。</div>
+    <div class="cmd-pipe">流水线：lite（支持 gate_jump）</div>
+  </div>
+</div>
+
+<h3>平台开发（3 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/frontend</div><div class="cmd-desc">前端开发 — C1.5 视觉验证强制。使用 frontend 专属 Agent 组。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/backend</div><div class="cmd-desc">后端开发 — 跳过 C1.5。使用 backend + database-architect 专属 Agent 组。</div><div class="cmd-pipe">流水线：backend（11 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/mobile --platform=&lt;name&gt;</div><div class="cmd-desc">移动端/跨端统一入口 — 支持 android/ios/flutter/expo/react-native/taro。C1.5 强制。</div><div class="cmd-pipe">流水线：frontend 变体（平台感知）</div></div>
+</div>
+
+<h3>需求与设计（3 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/ask</div><div class="cmd-desc"><strong>需求探询</strong> — 4 模式：Interview/Direct/Consensus/Review。含 5 维度评分矩阵。</div><div class="cmd-pipe">流水线：ask（K0→K1→K2→K3，4 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/task-design --mode=ddd|bdd|tdd</div><div class="cmd-desc"><strong>任务分解（三合一）</strong> — 领域驱动/行为驱动/测试驱动。支持链式 ddd→bdd→tdd。</div><div class="cmd-pipe">对应：Gate B-DDD/B-BDD/B-TDD</div></div>
+  <div class="cmd-card"><div class="cmd-name">/research</div><div class="cmd-desc"><strong>深度研究</strong> — 5 阶段调研。证据矩阵+竞争假设评估。</div><div class="cmd-pipe">流水线：research（RS0→RS1→RS2→RS3→RS4，5 Gate）</div></div>
+</div>
+
+<h3>工程操作（8 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/refactor</div><div class="cmd-desc">代码重构安全网 — 定义边界→基线测试→执行重构→行为漂移检测→报告。失败自动回滚。</div><div class="cmd-pipe">refactor（R1→R2→R3→R4→R5，5 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/hotfix</div><div class="cmd-desc">紧急热修复 — 声明+审批→最小化修复→快速验证+回滚→事后审计。</div><div class="cmd-pipe">hotfix（H0→H1→H2→H3，4 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/migrate</div><div class="cmd-desc">框架迁移 — 定义规则→应用迁移→编译验证→自动修复 Lint ≤2 轮。</div><div class="cmd-pipe">migrate（M1→M2→M3→M4，4 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/debug</div><div class="cmd-desc">调试诊断 — 收集信息→复现用例→调试会话→交互诊断→输出报告。</div><div class="cmd-pipe">debug（D0→D1→D2→D3→D4，5 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/trace</div><div class="cmd-desc">贝叶斯因果追踪 — 问题框架→竞争假设(2-5)→证据收集→贝叶斯更新(>70%置信度)→方案。</div><div class="cmd-pipe">trace（T0→T1→T2→T3→T4，5 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/evaluate</div><div class="cmd-desc">技术评估 — 定义标准→生成原型→收集指标→生成报告。适合技术选型、方案对比。</div><div class="cmd-pipe">evaluate（E0→E1→E2→E3，4 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/simplify</div><div class="cmd-desc">代码简化 — 代码分析→简化执行→回归验证→报告产出。消除冗余和死代码。</div><div class="cmd-pipe">simplify（S0→S1→S2→S3，4 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/improve</div><div class="cmd-desc">迭代改进 — 目标定义→研究分析→计划制定→执行验证→评估迭代。度量驱动持续改进。</div><div class="cmd-pipe">improve（IM0→IM1→IM2→IM3→IM4，5 Gate）</div></div>
+</div>
+
+<h3>发布与同步（2 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/release</div><div class="cmd-desc">快速发布 — 环境检测→质量门→版本递增→发布执行→发布验证。tag→CI→npm→GitHub Release。</div><div class="cmd-pipe">release（RL0→RL1→RL2→RL3→RL4，5 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/publish</div><div class="cmd-desc">发布上线 — 轻量级发布入口，直接质量重检→版本递增→CHANGELOG→commit+tag+push。</div><div class="cmd-pipe">对应：Gate E 快速路径</div></div>
+</div>
+
+<h3>审查与测试（9 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/review</div><div class="cmd-desc">代码审查 — spawn 审查 Agent，产出分级审查报告（findings + 严重度）。</div><div class="cmd-pipe">对应：Gate D</div></div>
+  <div class="cmd-card"><div class="cmd-name">/review-fix</div><div class="cmd-desc">审查+修复 — 审查后自动修复，修复后重新质量验证 ≤2 轮。</div><div class="cmd-pipe">对应：Gate D + 自动修复循环</div></div>
+  <div class="cmd-card"><div class="cmd-name">/test-unit</div><div class="cmd-desc">单元测试 — 运行项目单元测试套件，覆盖率 ≥ 70%。</div><div class="cmd-pipe">对应：Gate C2</div></div>
+  <div class="cmd-card"><div class="cmd-name">/test-integration</div><div class="cmd-desc">集成测试 — 验证模块间协作和 API 契约。</div><div class="cmd-pipe">对应：Gate C2</div></div>
+  <div class="cmd-card"><div class="cmd-name">/test-e2e</div><div class="cmd-desc">端到端测试 — 模拟真实用户操作流程，浏览器自动化验证。</div><div class="cmd-pipe">对应：Gate C2</div></div>
+  <div class="cmd-card"><div class="cmd-name">/test-perf</div><div class="cmd-desc">性能测试 — 测量响应时间/吞吐量/资源消耗。</div><div class="cmd-pipe">对应：Gate C2</div></div>
+  <div class="cmd-card"><div class="cmd-name">/test-security</div><div class="cmd-desc">安全测试 — OWASP Top 10 漏洞检查、依赖安全审计。</div><div class="cmd-pipe">对应：Gate C2</div></div>
+  <div class="cmd-card"><div class="cmd-name">/browser</div><div class="cmd-desc">浏览器测试与探索 — Playwright 驱动。test-doc-writer→test-executor→remediation 文档驱动闭环。</div><div class="cmd-pipe">独立浏览器测试流程</div></div>
+  <div class="cmd-card"><div class="cmd-name">/consult --expert=&lt;name&gt;</div><div class="cmd-desc">架构专家讨论 — 仅方案讨论，不进入流水线。支持 frontend-architect/backend-architect/algorithm-expert。</div><div class="cmd-pipe">不进入流水线（纯讨论）</div></div>
+</div>
+
+<h3>专用工具 + 流程管理（4 条）</h3>
+<div class="cmd-grid">
+  <div class="cmd-card"><div class="cmd-name">/bug-fix</div><div class="cmd-desc">Bug 修复专用流程 — 分析根因→最小化修复→回归验证→修复报告。</div><div class="cmd-pipe">对应：full（轻量路径）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/sync</div><div class="cmd-desc">配置同步 — Hash 对比增量更新，保护用户自定义。将 Jarvis 配置同步到目标项目。</div><div class="cmd-pipe">不进入流水线（CLI 操作）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/skill-flow</div><div class="cmd-desc">会话流程导出 — 4 子命令：export/save/list/apply。一次执行、永久复用。</div><div class="cmd-pipe">不进入流水线（元操作）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/cancel [--leave | --force]</div><div class="cmd-desc">取消流水线运行 — 中止活跃 run→aborted。默认保留会话；--leave 离开；--force 紧急清除。</div><div class="cmd-pipe">不进入流水线（会话管理）</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════ 7. AGENTS -->
+<h2 id="agents">七、71 个智能体</h2>
+
+<div class="card">
+  <h4>实现类（25 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C-impl spawn</span></h4>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+    <span class="tag tag-purple">frontend-dev</span><span class="tag tag-purple">frontend-ui</span><span class="tag tag-purple">frontend-state</span>
+    <span class="tag tag-green">backend-dev</span><span class="tag tag-green">backend-api</span><span class="tag tag-green">backend-logic</span><span class="tag tag-green">backend-data</span>
+    <span class="tag tag-orange">android-dev/ui/state</span><span class="tag tag-blue">ios-dev/ui/state</span>
+    <span class="tag tag-cyan">flutter-dev/ui/state</span><span class="tag tag-red">expo-dev/ui/state</span>
+    <span class="tag tag-purple">react-native-dev/ui/state</span><span class="tag tag-green">taro-dev/ui/state</span>
+  </div>
+</div>
+<div class="card">
+  <h4>测试类（15 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C2 spawn</span></h4>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+    <span class="tag tag-red">frontend-test</span><span class="tag tag-red">backend-test</span>
+    <span class="tag tag-red">android/ios/flutter/taro/expo/react-native-test</span>
+    <span class="tag tag-red">browser-test</span><span class="tag tag-red">browser-use</span>
+    <span class="tag tag-red">e2e-test</span><span class="tag tag-red">perf-test</span><span class="tag tag-red">api-test</span>
+    <span class="tag tag-red">test-doc-writer</span><span class="tag tag-red">test-executor</span>
+  </div>
+</div>
+<div class="card">
+  <h4>审查类（16 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate D spawn</span></h4>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+    <span class="tag tag-cyan">frontend/backend-review</span>
+    <span class="tag tag-cyan">android/ios/flutter/taro/expo/react-native-review</span>
+    <span class="tag tag-cyan">diff-review</span><span class="tag tag-cyan">project-review</span><span class="tag tag-cyan">perf-review</span>
+    <span class="tag tag-cyan">security-review</span><span class="tag tag-cyan">qa-review</span><span class="tag tag-cyan">change-review</span>
+    <span class="tag tag-cyan">review-only</span><span class="tag tag-cyan">review-fix-optimize</span>
+  </div>
+</div>
+<div class="card">
+  <h4>规划/架构/支撑（15 个）</h4>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+    <span class="tag tag-blue">planner</span><span class="tag tag-blue">task-design</span><span class="tag tag-blue">skill-assignment</span><span class="tag tag-blue">remediation-planner</span>
+    <span class="tag tag-orange">frontend-architect</span><span class="tag tag-orange">backend-architect</span><span class="tag tag-orange">database-architect</span><span class="tag tag-orange">algorithm-expert</span>
+    <span class="tag tag-purple">code-explore</span><span class="tag tag-purple">external-resource</span><span class="tag tag-purple">api-contract</span><span class="tag tag-purple">docs-engineer</span>
+    <span class="tag tag-purple">infra-deploy</span><span class="tag tag-purple">remediation-expert</span><span class="tag tag-purple">docs-research</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ 8. SCENARIOS -->
+<h2 id="scenarios">八、场景推荐</h2>
+<p class="section-desc">不确定用什么指令？对照你的场景选择：</p>
+
+<div class="scenario-grid">
+  <div class="scenario-card"><h4>✨ 新功能开发</h4><p>日常用 <code>/auto</code>，中大型用 <code>/jarvis</code>（严格 13 Gate）。</p></div>
+  <div class="scenario-card"><h4>🖥️ 前端页面</h4><p><code>/frontend</code>，C1.5 视觉验证强制，spawn frontend-dev/ui/state-expert。</p></div>
+  <div class="scenario-card"><h4>🔧 后端 API</h4><p><code>/backend</code>，跳过 C1.5，spawn backend-dev/api/logic/data + database-architect。</p></div>
+  <div class="scenario-card"><h4>📱 移动端/跨端</h4><p><code>/mobile --platform=android|ios|flutter|expo|react-native|taro</code> 统一入口。</p></div>
+  <div class="scenario-card"><h4>🔨 代码重构</h4><p><code>/refactor</code>（5 Gate 安全网），失败自动回滚。</p></div>
+  <div class="scenario-card"><h4>🚨 紧急修复</h4><p><code>/hotfix</code>（H0-H3 紧急协议），需要审批确认。</p></div>
+  <div class="scenario-card"><h4>🧹 代码清理</h4><p><code>/simplify</code>，消除冗余/死代码/过度抽象，失败自动回滚。</p></div>
+  <div class="scenario-card"><h4>🔍 排查 Bug</h4><p>简单用 <code>/debug</code>（交互诊断），复杂用 <code>/trace</code>（贝叶斯因果推理）。</p></div>
+  <div class="scenario-card"><h4>⚡ 性能优化</h4><p><code>/improve</code>，度量驱动迭代。量化目标→研究→计划→执行→评估→迭代。</p></div>
+  <div class="scenario-card"><h4>📊 技术选型</h4><p>快速用 <code>/evaluate</code>（原型+指标），深度用 <code>/research</code>（5 阶段分析）。</p></div>
+  <div class="scenario-card"><h4>❓ 需求不清</h4><p><code>/ask</code> Interview 模式，Socratic 追问→5 维评分→分析报告+路由建议。</p></div>
+  <div class="scenario-card"><h4>📦 框架升级</h4><p><code>/migrate</code>，M1-M4 迁移流程。定义规则→应用→编译→Lint 修复。</p></div>
+  <div class="scenario-card"><h4>📝 代码审查</h4><p><code>/review</code>（只读审查）→ <code>/review-fix</code>（修复闭环），最多 2 轮。</p></div>
+  <div class="scenario-card"><h4>📤 发布上线</h4><p>个人用 <code>/release</code>（质量门→CI 自动发布），团队用 <code>/publish</code>（含 PR+审查）。</p></div>
+  <div class="scenario-card"><h4>🧪 测试补齐</h4><p><code>/test-unit</code> <code>/test-integration</code> <code>/test-e2e</code> <code>/test-perf</code> <code>/test-security</code> 按需选择。</p></div>
+  <div class="scenario-card"><h4>🛑 取消任务</h4><p><code>/cancel</code> 中止当前 run。默认保留会话；--leave 离开；--force 紧急清除。</p></div>
+</div>
+
+<!-- ═══════════════════════════════════════ 9. DOC-DRIVEN -->
+<h2 id="doc-driven">九、文档驱动体系</h2>
+
+<div class="card">
+  <p>Jarvis 的文档驱动有<strong>硬编码的目录规范</strong>和<strong>引擎强制的时间戳隔离</strong>。所有产物存入 <code>.jarvis/YYYY-MM-DD/{subdir}/</code>。</p>
+
+  <table class="pipe-table">
+    <tr><th>目录</th><th>对应 Gate</th><th>产出内容</th></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/requirements/</code></td><td>Gate A</td><td>需求澄清文档 REQ-XXX</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/tasks/</code></td><td>Gate B</td><td>DDD/BDD/TDD 任务分解文档</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/architecture/</code></td><td>Gate B1</td><td>架构评审报告</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/plans/</code></td><td>Gate C</td><td>执行计划（parallel_batches）</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/implementation/</code></td><td>Gate C-impl</td><td>Agent 实现说明 + 自查报告</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/testing/</code></td><td>Gate C2</td><td>测试用例 + 测试报告</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/review/</code></td><td>Gate D</td><td>分级审查报告</td></tr>
+    <tr><td><code>.jarvis/YYYY-MM-DD/shipping/</code></td><td>Gate E</td><td>发布记录 + 版本日志</td></tr>
+  </table>
+  <p style="margin-top:10px;color:var(--muted);font-size:13px">专业流水线也有对应子目录：<code>refactoring/</code> <code>hotfix/</code> <code>migration/</code> <code>evaluation/</code> <code>debug/</code> <code>research/</code> <code>simplification/</code> <code>trace/</code> <code>improvement/</code></p>
+</div>
+
+<div class="callout">
+  <strong>硬约束示例：</strong>在 Gate A 阶段调用 <code>gate_check({ operation: "write_code" })</code> → 引擎直接拒绝，因为 Gate A 的允许列表里没有 <code>write_code</code>。必须按顺序产出文档、通过 Gate、推进到 C-impl 阶段才能写代码。这就是"规范驱动、文档驱动的严格工程化流水线"。
+</div>
+
+<!-- ═══════════════════════════════════════ FOOTER -->
+<div class="footer">
+  <p>
+    <strong>Jarvis Agent Factory v4.4.0</strong> &nbsp;·&nbsp;
+    <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
+    <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
+    <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
+  </p>
+  <p style="margin-top:8px">31 Commands · 71 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+</div>
+
+</body>
+</html>

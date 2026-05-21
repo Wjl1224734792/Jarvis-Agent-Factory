@@ -176,6 +176,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
 | 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
 | 项目介绍 | `/commands-reference.html` | 项目概览 · 31条指令流程详解 · 71个Agent目录 · 流水线架构 · 使用推荐 |
+| 操作指南 | `/guide.html` | 完整使用指南：架构原理 · 编排机制 · 15条流水线 · 31条指令 · 71个Agent · 场景推荐 |
 
 侧边栏实时显示 Claude Code 的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
 
