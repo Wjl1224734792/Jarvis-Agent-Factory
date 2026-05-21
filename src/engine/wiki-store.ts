@@ -46,25 +46,11 @@ export function titleToSlug(title: string): string {
   return slug;
 }
 
+import { parseFrontmatter as parseFM } from '../shared/markdown-utils.js';
+
 function parseFrontmatter(raw: string): { meta: Partial<WikiPageMeta>; body: string } {
-  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  const meta: Partial<WikiPageMeta> = {};
-  if (!m) return { meta, body: raw };
-  const fm = m[1];
-  const body = m[2];
-  for (const line of fm.split('\n')) {
-    const kv = line.match(/^(\w+):\s*(.*)/);
-    if (!kv) continue;
-    const key = kv[1];
-    let val: any = kv[2].trim();
-    if (val.startsWith('[') && val.endsWith(']')) {
-      val = val.slice(1, -1).split(',').map((s: string) => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
-    } else {
-      val = val.replace(/^"|"$/g, '');
-    }
-    (meta as any)[key] = val;
-  }
-  return { meta, body };
+  const { meta, body } = parseFM(raw);
+  return { meta: meta as Partial<WikiPageMeta>, body };
 }
 
 function stringifyFrontmatter(meta: Partial<WikiPageMeta>): string {
@@ -84,9 +70,10 @@ function stringifyFrontmatter(meta: Partial<WikiPageMeta>): string {
 
 function lockPath(root: string) { return resolve(root, '.wiki-lock'); }
 
-function withWikiLock<T>(root: string, fn: () => T): T {
+async function withWikiLock<T>(root: string, fn: () => T): Promise<T> {
   const lp = lockPath(root);
   const start = Date.now();
+  let lastError: any;
   while (Date.now() - start < LOCK_TIMEOUT) {
     try {
       const fd = openSync(lp, 'wx');
@@ -96,20 +83,19 @@ function withWikiLock<T>(root: string, fn: () => T): T {
       }
     } catch (e: any) {
       if (e.code !== 'EEXIST') throw e;
-      const waited = Date.now() - start;
-      if (waited >= LOCK_TIMEOUT) throw new Error('Wiki lock timeout', { cause: e });
-      const now = Date.now();
-      while (Date.now() - now < LOCK_RETRY_MS) { /* spin */ }
+      lastError = e;
+      if (Date.now() - start + LOCK_RETRY_MS >= LOCK_TIMEOUT) break;
+      await new Promise(resolve => setTimeout(resolve, LOCK_RETRY_MS));
     }
   }
-  throw new Error('Wiki lock timeout');
+  throw new Error('Wiki lock timeout', { cause: lastError });
 }
 
-export function addWikiPage(root: string, title: string, content: string, tags?: string[], category?: string): { slug: string; created: boolean } {
+export async function addWikiPage(root: string, title: string, content: string, tags?: string[], category?: string): Promise<{ slug: string; created: boolean }> {
   const dir = ensureWikiDir(root);
   const slug = titleToSlug(title);
   const pagePath = resolve(dir, 'pages', `${slug}.md`);
-  return withWikiLock(root, () => {
+  return await withWikiLock(root, () => {
     if (existsSync(pagePath)) {
       return { slug, created: false };
     }
@@ -131,11 +117,11 @@ export function addWikiPage(root: string, title: string, content: string, tags?:
   });
 }
 
-export function ingestWikiPage(root: string, title: string, content: string, tags?: string[], category?: string, sources?: string[], confidence?: string): { slug: string; appended: boolean } {
+export async function ingestWikiPage(root: string, title: string, content: string, tags?: string[], category?: string, sources?: string[], confidence?: string): Promise<{ slug: string; appended: boolean }> {
   const dir = ensureWikiDir(root);
   const slug = titleToSlug(title);
   const pagePath = resolve(dir, 'pages', `${slug}.md`);
-  return withWikiLock(root, () => {
+  return await withWikiLock(root, () => {
     const now = new Date().toISOString();
     if (existsSync(pagePath)) {
       const existing = readFileSync(pagePath, 'utf-8');
@@ -200,13 +186,13 @@ export function readWikiPage(root: string, page: string): WikiPage | null {
   };
 }
 
-export function deleteWikiPage(root: string, page: string): boolean {
+export async function deleteWikiPage(root: string, page: string): Promise<boolean> {
   const dir = resolve(root, '.jarvis', 'wiki');
   const slug = safeSlug(page);
   const pagesDir = resolve(dir, 'pages');
   const pagePath = resolve(pagesDir, `${slug}.md`);
   if (!pagePath.startsWith(pagesDir)) return false;
-  return withWikiLock(root, () => {
+  return await withWikiLock(root, () => {
     if (!existsSync(pagePath)) return false;
     unlinkSync(pagePath);
     appendLog(dir, 'delete', slug, slug);

@@ -15,6 +15,7 @@ import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, format
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { addWikiPage, ingestWikiPage, readWikiPage, deleteWikiPage, listWikiPages, queryWikiPages, lintWikiPages } from './wiki-store.js';
 import { setupApiRoutes } from '../web/routes.js';
+import { readPackageVersion } from '../shared/package-version.js';
 import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
 import { emitEvent } from './pubsub.js';
 
@@ -212,6 +213,10 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   // TASK-004: 优雅退出端点（Windows PID kill 可能不支持，用 HTTP shutdown 兜底）
   app.post('/api/shutdown', async (c) => {
+    const token = process.env.JARVIS_SHUTDOWN_TOKEN;
+    if (token && c.req.header('x-shutdown-token') !== token) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
     stopGuardian();
     removePidFile(root);
     setTimeout(() => process.exit(0), 100);
@@ -418,7 +423,7 @@ export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
 }
 
 /** 注册所有 MCP 工具 */
-export function registerMcpTools(server, db, root) {
+export function registerMcpTools(server: McpServer, db: DatabaseSync, root: string): void {
   /** 解析 sessionId 并自动记录活动——每次工具调用即视为心跳 */
   const resolveSid = (extra) => {
     const sid = extra?.sessionId || _lastSessionId;
@@ -697,7 +702,7 @@ export function registerMcpTools(server, db, root) {
           const gateSubdir = GATE_DIRS[cur];
           if (gateSubdir) {
             // 从当前 run 的 started_at 提取日期目录名 YYYY-MM-DD
-            const run = db.prepare('SELECT started_at FROM pipeline_runs WHERE id=?').get(runId);
+            const run = db.prepare('SELECT started_at FROM pipeline_runs WHERE id=?').get(runId) as { started_at: string } | undefined;
             const dateDir = run?.started_at?.slice(0, 10) || null;
 
             // 优先扫描日期目录 .jarvis/{dateDir}/{gateSubdir}/
@@ -1073,7 +1078,7 @@ export function registerMcpTools(server, db, root) {
     },
     async ({ title, content, tags, category }) => {
       if (!title || !content) return resp({ error: 'title 和 content 为必填参数' });
-      const result = addWikiPage(root, title, content, tags, category);
+      const result = await addWikiPage(root, title, content, tags, category);
       if (!result.created) return resp({ error: `页面 "${result.slug}" 已存在。使用 repowiki_ingest 追加内容。`, slug: result.slug });
       return resp({ ok: true, slug: result.slug, created: true });
     });
@@ -1090,7 +1095,7 @@ export function registerMcpTools(server, db, root) {
     },
     async ({ title, content, tags, category, sources, confidence }) => {
       if (!title || !content) return resp({ error: 'title 和 content 为必填参数' });
-      const result = ingestWikiPage(root, title, content, tags, category, sources, confidence);
+      const result = await ingestWikiPage(root, title, content, tags, category, sources, confidence);
       return resp({
         ok: true, slug: result.slug,
         action: result.appended ? 'appended' : 'created',
@@ -1143,7 +1148,7 @@ export function registerMcpTools(server, db, root) {
     },
     async ({ page }) => {
       if (!page) return resp({ error: 'page 参数必填' });
-      const ok = deleteWikiPage(root, page);
+      const ok = await deleteWikiPage(root, page);
       if (!ok) return resp({ error: `页面 "${page}" 不存在` });
       return resp({ ok: true, deleted: page });
     });
@@ -1324,8 +1329,8 @@ export function engineStatus(projectRoot?: string) {
 }
 
 /** MCP 工具响应 */
-function resp(obj) {
-  return { content: [{ type: 'text', text: JSON.stringify(obj) }] };
+function resp(obj: unknown) {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(obj) }] };
 }
 
 /** 获取 web 面板 dist 目录：JARVIS_DEV=1 → 项目本地；否则 → 包安装目录 */
@@ -1337,10 +1342,4 @@ function getWebDistDir(root: string) {
   return resolve(import.meta.dirname, '..', '..', 'web');
 }
 
-function readPkgVersion() {
-  try {
-    return JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf-8')).version;
-  } catch {
-    return '?.?.?';
-  }
-}
+function readPkgVersion() { return readPackageVersion(import.meta.dirname); }

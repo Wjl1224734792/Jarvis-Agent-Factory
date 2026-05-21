@@ -39,7 +39,7 @@ function makeSid(): string {
  */
 type ToolHandler = (_params: Record<string, unknown>, _extra?: { sessionId?: string }) => Promise<{ content: Array<{ type: string; text?: string }> }>;
 
-function createMockMcpServer(): { server: Record<string, unknown>; tools: Record<string, ToolHandler> } {
+function createMockMcpServer(): { server: any; tools: Record<string, ToolHandler> } {
   const tools: Record<string, ToolHandler> = {} as Record<string, ToolHandler>;
   const server = {
     tool: (name: string, _desc: string, _schema: unknown, handler: ToolHandler) => {

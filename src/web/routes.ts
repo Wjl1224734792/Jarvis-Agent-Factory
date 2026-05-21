@@ -9,6 +9,8 @@ import { syncAgentFile } from '../engine/agent-fs.js';
 import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
 import type { PubSubEventType } from '../engine/pubsub.js';
 import { listWikiPages, readWikiPage } from '../engine/wiki-store.js';
+import { readPackageVersion } from '../shared/package-version.js';
+import { parseFrontmatter } from '../shared/markdown-utils.js';
 
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 
@@ -723,12 +725,12 @@ export function setupApiRoutes(app, db, root) {
       for (const file of files) {
         try {
           const content = readFileSync(join(dir, file), 'utf-8');
-          const fm = parseFrontmatter(content);
+          const { meta: fm } = parseFrontmatter(content);
           const name = file.slice(0, -3);
           results.push({
             name,
-            description: fm.description || '',
-            argumentHint: fm['argument-hint'] || '',
+            description: (fm.description as string) || '',
+            argumentHint: (fm['argument-hint'] as string) || '',
             pipelineType: inferPipelineType(content),
             category: inferCategory(name),
           });
@@ -829,35 +831,7 @@ function formatDuration(seconds) {
   return result;
 }
 
-/** 从 package.json 读取版本号 */
-function readVersion() {
-  try {
-    return JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf-8')).version;
-  } catch {
-    return '?.?.?';
-  }
-}
-
-/**
- * 解析 YAML frontmatter（简单 key: value 格式）
- * @param content 文件原始内容
- * @returns 解析后的键值对
- */
-function parseFrontmatter(content: string): Record<string, string> {
-  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!match) return {};
-  const yaml = match[1];
-  const result: Record<string, string> = {};
-  for (const line of yaml.split('\n')) {
-    const sep = line.indexOf(':');
-    if (sep > 0) {
-      const key = line.slice(0, sep).trim();
-      const value = line.slice(sep + 1).trim().replace(/^['"]|['"]$/g, '');
-      result[key] = value;
-    }
-  }
-  return result;
-}
+function readVersion() { return readPackageVersion(import.meta.dirname); }
 
 /**
  * 根据指令内容推断 pipeline 类型

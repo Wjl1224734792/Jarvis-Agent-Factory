@@ -49,31 +49,31 @@ describe('wiki-store', () => {
   });
 
   describe('addWikiPage', () => {
-    it('创建新页面返回 created=true', () => {
-      const result = addWikiPage(TEST_ROOT, 'Test Page', '# Hello', ['test'], 'reference');
+    it('创建新页面返回 created=true', async () => {
+      const result = await addWikiPage(TEST_ROOT, 'Test Page', '# Hello', ['test'], 'reference');
       expect(result.created).toBe(true);
       expect(result.slug).toBe('test-page');
       const pagePath = resolve(TEST_ROOT, '.jarvis', 'wiki', 'pages', 'test-page.md');
       expect(existsSync(pagePath)).toBe(true);
     });
 
-    it('重复创建返回 created=false', () => {
-      addWikiPage(TEST_ROOT, 'Test Page', '# Hello');
-      const result = addWikiPage(TEST_ROOT, 'Test Page', '# Another');
+    it('重复创建返回 created=false', async () => {
+      await addWikiPage(TEST_ROOT, 'Test Page', '# Hello');
+      const result = await addWikiPage(TEST_ROOT, 'Test Page', '# Another');
       expect(result.created).toBe(false);
     });
   });
 
   describe('ingestWikiPage', () => {
-    it('首次 ingest 创建页面', () => {
-      const result = ingestWikiPage(TEST_ROOT, 'Auth Design', '# JWT Auth', ['auth'], 'architecture');
+    it('首次 ingest 创建页面', async () => {
+      const result = await ingestWikiPage(TEST_ROOT, 'Auth Design', '# JWT Auth', ['auth'], 'architecture');
       expect(result.appended).toBe(false);
       expect(result.slug).toBe('auth-design');
     });
 
-    it('重复 ingest 追加内容', () => {
-      ingestWikiPage(TEST_ROOT, 'Auth Design', '# JWT Auth');
-      const result = ingestWikiPage(TEST_ROOT, 'Auth Design', '## Token Refresh');
+    it('重复 ingest 追加内容', async () => {
+      await ingestWikiPage(TEST_ROOT, 'Auth Design', '# JWT Auth');
+      const result = await ingestWikiPage(TEST_ROOT, 'Auth Design', '## Token Refresh');
       expect(result.appended).toBe(true);
       const page = readWikiPage(TEST_ROOT, 'auth-design');
       expect(page).not.toBeNull();
@@ -82,8 +82,8 @@ describe('wiki-store', () => {
   });
 
   describe('readWikiPage', () => {
-    it('读取存在的页面', () => {
-      addWikiPage(TEST_ROOT, 'Read Me', 'content here');
+    it('读取存在的页面', async () => {
+      await addWikiPage(TEST_ROOT, 'Read Me', 'content here');
       const page = readWikiPage(TEST_ROOT, 'read-me');
       expect(page).not.toBeNull();
       expect(page!.meta.title).toBe('Read Me');
@@ -96,14 +96,14 @@ describe('wiki-store', () => {
   });
 
   describe('deleteWikiPage', () => {
-    it('删除存在的页面返回 true', () => {
-      addWikiPage(TEST_ROOT, 'Delete Me', 'gone');
-      expect(deleteWikiPage(TEST_ROOT, 'delete-me')).toBe(true);
+    it('删除存在的页面返回 true', async () => {
+      await addWikiPage(TEST_ROOT, 'Delete Me', 'gone');
+      expect(await deleteWikiPage(TEST_ROOT, 'delete-me')).toBe(true);
       expect(readWikiPage(TEST_ROOT, 'delete-me')).toBeNull();
     });
 
-    it('删除不存在的页面返回 false', () => {
-      expect(deleteWikiPage(TEST_ROOT, 'nope')).toBe(false);
+    it('删除不存在的页面返回 false', async () => {
+      expect(await deleteWikiPage(TEST_ROOT, 'nope')).toBe(false);
     });
   });
 
@@ -112,18 +112,18 @@ describe('wiki-store', () => {
       expect(listWikiPages(TEST_ROOT)).toEqual([]);
     });
 
-    it('列出所有创建的页面', () => {
-      addWikiPage(TEST_ROOT, 'Page A', 'a');
-      addWikiPage(TEST_ROOT, 'Page B', 'b');
+    it('列出所有创建的页面', async () => {
+      await addWikiPage(TEST_ROOT, 'Page A', 'a');
+      await addWikiPage(TEST_ROOT, 'Page B', 'b');
       const pages = listWikiPages(TEST_ROOT);
       expect(pages.length).toBe(2);
     });
   });
 
   describe('queryWikiPages', () => {
-    it('按关键词匹配标题', () => {
-      addWikiPage(TEST_ROOT, 'Architecture Overview', 'some content about architecture', ['tech'], 'architecture');
-      addWikiPage(TEST_ROOT, 'Debug Guide', 'debugging tips', ['debug'], 'debugging');
+    it('按关键词匹配标题', async () => {
+      await addWikiPage(TEST_ROOT, 'Architecture Overview', 'some content about architecture', ['tech'], 'architecture');
+      await addWikiPage(TEST_ROOT, 'Debug Guide', 'debugging tips', ['debug'], 'debugging');
       const results = queryWikiPages(TEST_ROOT, 'architecture');
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].slug).toBe('architecture-overview');
@@ -142,8 +142,8 @@ describe('wiki-store', () => {
       expect(result.stalePages).toEqual([]);
     });
 
-    it('检测孤立页面（无入链的页面）', () => {
-      addWikiPage(TEST_ROOT, 'Orphan', 'no links here', [], 'reference');
+    it('检测孤立页面（无入链的页面）', async () => {
+      await addWikiPage(TEST_ROOT, 'Orphan', 'no links here', [], 'reference');
       const result = lintWikiPages(TEST_ROOT);
       // 单页无入链 → 孤立
       expect(result.orphanPages).toContain('orphan');

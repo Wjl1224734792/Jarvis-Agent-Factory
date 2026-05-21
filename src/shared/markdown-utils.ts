@@ -1,6 +1,34 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
+// ═══════════════════════════════════════════════════════════════════
+// Frontmatter 解析（统一实现，供 wiki-store / routes / agent-registry 使用）
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * 解析 YAML frontmatter 为键值对，支持数组值和引号去除。
+ * @returns meta 键值对（值可以是 string 或 string[]）和 body（frontmatter 之后的内容）
+ */
+export function parseFrontmatter(content: string): { meta: Record<string, string | string[]>; body: string } {
+  const m = content.match(/^---[\t ]*\r?\n([\s\S]*?)\r?\n---[\t ]*\r?\n?([\s\S]*)$/);
+  if (!m) return { meta: {}, body: content };
+  const fmText = m[1];
+  const body = m[2];
+  const meta: Record<string, string | string[]> = {};
+  for (const line of fmText.split(/\r?\n/)) {
+    const kv = line.match(/^(\w[\w-]*)\s*:\s*(.*)/);
+    if (!kv) continue;
+    const key = kv[1];
+    const rawVal = kv[2].trim();
+    if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
+      meta[key] = rawVal.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    } else {
+      meta[key] = rawVal.replace(/^["']|["']$/g, '');
+    }
+  }
+  return { meta, body };
+}
+
 /**
  * Frontmatter 搜索行数上限。
  * 统一 readFrontmatter 与 setFrontmatterFields 使用，避免行为不对称。

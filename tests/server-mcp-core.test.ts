@@ -27,7 +27,7 @@ function makeSid(): string {
   return `mcp_core_${++_counter}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createMockMcpServer(): { server: Record<string, unknown>; tools: Record<string, any> } {
+function createMockMcpServer(): { server: any; tools: Record<string, any> } {
   const tools: Record<string, any> = {};
   const server = {
     tool: (name: string, _desc: string, _schema: unknown, handler: any) => {

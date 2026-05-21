@@ -25,7 +25,7 @@ updated: "2026-05-14"
    - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
    - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
    - **Gate C1 时**加载 `Skill("code-quality-gate")`，Lint/Type-check/Build 前调用 `gate_check`
-   - **Gate C1.5 时**调用 `gate_check({ operation: "visual_verify" })` 验证视觉验证许可
+   - **Gate C1.5 时**调用 `gate_check({ operation: "preview" })` 验证视觉验证许可
    - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
    - **Gate E 时**加载 `Skill("shipping-and-launch")`、`Skill("git-workflow-and-versioning")`、`Skill("finishing-a-development-branch")`
 

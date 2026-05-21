@@ -133,17 +133,7 @@ function inferRole(fileName: string, desc: string) {
   return fileName.replace(/[-_]/g, ' ');
 }
 
-/** 解析 .md frontmatter → { model, effort, reasoningEffort, description } */
-function parseMdFrontmatter(content: string): Record<string, string> {
-  const m = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!m) return {};
-  const fm: Record<string, string> = {};
-  for (const line of m[1].split('\n')) {
-    const kv = line.match(/^(\w[\w-]*)\s*:\s*(.+)$/);
-    if (kv) fm[kv[1]] = kv[2].trim();
-  }
-  return fm;
-}
+import { parseFrontmatter as parseMdFrontmatter } from '../shared/markdown-utils.js';
 
 /** 扫描单个平台的所有 agent（模板目录）（TASK-009：仅 claude，移除 plugins 扫描） */
 function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string }, templatesDir: string): { agents: AgentItem[]; fileMap: AgentFileMap } {
@@ -207,11 +197,11 @@ function parseAgentFile(
   const content = readFileSync(filePath, 'utf-8');
 
   // TASK-009: 仅 claude 平台使用 .md 格式
-  const fm = parseMdFrontmatter(content);
-  const model = fm.model || '';
-  const effort = fm.effort || fm.reasoningEffort || '';
-  const name = fm.name || fileName;
-  const description = fm.description || '';
+  const { meta: fm } = parseMdFrontmatter(content);
+  const model = (fm.model as string) || '';
+  const effort = (fm.effort as string) || (fm.reasoningEffort as string) || '';
+  const name = (fm.name as string) || fileName;
+  const description = (fm.description as string) || '';
 
   const role = inferRole(fileName, description);
   const id = fileName;
@@ -357,8 +347,8 @@ export function getAgentModelValues(): string[] {
       if (!entry.endsWith(config.ext)) continue;
       try {
         const content = readFileSync(join(agentsDir, entry), 'utf-8');
-        const fm = parseMdFrontmatter(content);
-        if (fm.model) models.add(fm.model);
+        const { meta: fm } = parseMdFrontmatter(content);
+        if (fm.model) models.add(fm.model as string);
       } catch { /* 跳过不可读文件 */ }
     }
   }
