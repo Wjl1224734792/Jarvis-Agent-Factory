@@ -284,8 +284,8 @@ test-doc-writer → test-executor → remediation-expert
 | Expo | `/expo` |
 | Taro | `/taro` |
 | React Native | `/react-native` |
-| 审查 | `/review` |
-| 修复闭环 | `/review-fix` |
+| 审查 | `/audit` |
+| 修复闭环 | `/audit-fix` |
 | 浏览器测试 | `/browser-test` |
 | Bug 修复 | `/bug-fix` |
 | 算法专家 | `/algorithm-expert` |
@@ -385,8 +385,8 @@ test-doc-writer → test-executor → remediation-expert
 | | `/react-native` | [react-native.md](docs/flows/react-native.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
 | **测试/修复** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | 用例编写→执行→修复重测闭环 |
 | | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 复现→根因→修复→验证 7步闭环 |
-| **审查** | `/review` | [review.md](docs/flows/review.md) | 只读审查，不修改文件 |
-| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | 初审→规划→执行→验证→复审 |
+| **审查** | `/audit` | [audit.md](docs/flows/audit.md) | 只读审查，不修改文件 |
+| | `/audit-fix` | [audit-fix.md](docs/flows/audit-fix.md) | 初审→规划→执行→验证→复审 |
 | **架构/专家** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | 问题收集→spawn架构师→呈现输出 |
 | | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | 问题收集→spawn架构师→呈现输出 |
 | | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | 问题收集→spawn算法专家→呈现输出 |

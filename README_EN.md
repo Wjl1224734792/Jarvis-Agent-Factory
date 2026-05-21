@@ -259,8 +259,8 @@ Idea Refine → Requirements → Task Design → Architecture Review → Plannin
 | Flutter | `/flutter` |
 | Expo | `/expo` |
 | Taro | `/taro` |
-| Review | `/review` |
-| Review+Fix | `/review-fix` |
+| Review | `/audit` |
+| Review+Fix | `/audit-fix` |
 | Browser Test | `/browser-test` |
 | Bug Fix | `/bug-fix` |
 | Algorithm Expert | `/algorithm-expert` |
@@ -337,8 +337,8 @@ Complete Mermaid flowcharts for each Claude Code command, showing Gate sequences
 | | `/taro` | [taro.md](docs/flows/taro.md) | A→B→C→C1→C2→D→E (7 gates) |
 | **Test/Fix** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | Write cases → execute → fix-retest loop |
 | | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | Reproduce → root cause → fix → verify 7-step loop |
-| **Review** | `/review` | [review.md](docs/flows/review.md) | Read-only review |
-| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | Audit → plan → execute → verify → re-review |
+| **Review** | `/audit` | [audit.md](docs/flows/audit.md) | Read-only review |
+| | `/audit-fix` | [audit-fix.md](docs/flows/audit-fix.md) | Audit → plan → execute → verify → re-review |
 | **Architecture** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | Collect questions → spawn architect → present |
 | | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | Collect questions → spawn architect → present |
 | | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | Collect questions → spawn expert → present |

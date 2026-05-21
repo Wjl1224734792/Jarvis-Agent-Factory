@@ -183,7 +183,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 
 | 类别 | 指令 |
 |------|------|
-| 审查 | `/review` `/review-fix` |
+| 审查 | `/audit` `/audit-fix` |
 | 测试 | `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` `/browser` |
 | 架构 | `/consult --expert=frontend-architect\|backend-architect\|algorithm-expert` |
 
@@ -223,7 +223,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1 → Gate C → G
 `task-design` `planner` `skill-assignment-expert` `remediation-planner`
 
 ### 审查类（16）
-`frontend-review-expert` `backend-review-expert` `android-review-expert` `ios-review-expert` `flutter-review-expert` `taro-review-expert` `expo-review-expert` `react-native-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `review-only` `review-fix-optimize`
+`frontend-review-expert` `backend-review-expert` `android-review-expert` `ios-review-expert` `flutter-review-expert` `taro-review-expert` `expo-review-expert` `react-native-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `audit-only` `audit-fix-optimize`
 
 ### 架构/专家（4）
 `algorithm-expert` `frontend-architect` `backend-architect` `database-architect`

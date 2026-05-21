@@ -376,8 +376,8 @@
 
 <h3>审查与测试（9 条）</h3>
 <div class="cmd-grid">
-  <div class="cmd-card"><div class="cmd-name">/review</div><div class="cmd-desc">代码审查 — spawn 审查 Agent，产出分级审查报告（findings + 严重度）。</div><div class="cmd-pipe">对应：Gate D</div></div>
-  <div class="cmd-card"><div class="cmd-name">/review-fix</div><div class="cmd-desc">审查+修复 — 审查后自动修复，修复后重新质量验证 ≤2 轮。</div><div class="cmd-pipe">对应：Gate D + 自动修复循环</div></div>
+  <div class="cmd-card"><div class="cmd-name">/audit</div><div class="cmd-desc">代码审查 — spawn 审查 Agent，产出分级审查报告（findings + 严重度）。</div><div class="cmd-pipe">对应：Gate D</div></div>
+  <div class="cmd-card"><div class="cmd-name">/audit-fix</div><div class="cmd-desc">审查+修复 — 审查后自动修复，修复后重新质量验证 ≤2 轮。</div><div class="cmd-pipe">对应：Gate D + 自动修复循环</div></div>
   <div class="cmd-card"><div class="cmd-name">/test-unit</div><div class="cmd-desc">单元测试 — 运行项目单元测试套件，覆盖率 ≥ 70%。</div><div class="cmd-pipe">对应：Gate C2</div></div>
   <div class="cmd-card"><div class="cmd-name">/test-integration</div><div class="cmd-desc">集成测试 — 验证模块间协作和 API 契约。</div><div class="cmd-pipe">对应：Gate C2</div></div>
   <div class="cmd-card"><div class="cmd-name">/test-e2e</div><div class="cmd-desc">端到端测试 — 模拟真实用户操作流程，浏览器自动化验证。</div><div class="cmd-pipe">对应：Gate C2</div></div>
@@ -425,7 +425,7 @@
     <span class="tag tag-cyan">android/ios/flutter/taro/expo/react-native-review</span>
     <span class="tag tag-cyan">diff-review</span><span class="tag tag-cyan">project-review</span><span class="tag tag-cyan">perf-review</span>
     <span class="tag tag-cyan">security-review</span><span class="tag tag-cyan">qa-review</span><span class="tag tag-cyan">change-review</span>
-    <span class="tag tag-cyan">review-only</span><span class="tag tag-cyan">review-fix-optimize</span>
+    <span class="tag tag-cyan">audit-only</span><span class="tag tag-cyan">audit-fix-optimize</span>
   </div>
 </div>
 <div class="card">
@@ -455,7 +455,7 @@
   <div class="scenario-card"><h4>📊 技术选型</h4><p>快速用 <code>/evaluate</code>（原型+指标），深度用 <code>/research</code>（5 阶段分析）。</p></div>
   <div class="scenario-card"><h4>❓ 需求不清</h4><p><code>/ask</code> Interview 模式，Socratic 追问→5 维评分→分析报告+路由建议。</p></div>
   <div class="scenario-card"><h4>📦 框架升级</h4><p><code>/migrate</code>，M1-M4 迁移流程。定义规则→应用→编译→Lint 修复。</p></div>
-  <div class="scenario-card"><h4>📝 代码审查</h4><p><code>/review</code>（只读审查）→ <code>/review-fix</code>（修复闭环），最多 2 轮。</p></div>
+  <div class="scenario-card"><h4>📝 代码审查</h4><p><code>/audit</code>（只读审查）→ <code>/audit-fix</code>（修复闭环），最多 2 轮。</p></div>
   <div class="scenario-card"><h4>📤 发布上线</h4><p>个人用 <code>/release</code>（质量门→CI 自动发布），团队用 <code>/publish</code>（含 PR+审查）。</p></div>
   <div class="scenario-card"><h4>🧪 测试补齐</h4><p><code>/test-unit</code> <code>/test-integration</code> <code>/test-e2e</code> <code>/test-perf</code> <code>/test-security</code> 按需选择。</p></div>
   <div class="scenario-card"><h4>🛑 取消任务</h4><p><code>/cancel</code> 中止当前 run。默认保留会话；--leave 离开；--force 紧急清除。</p></div>

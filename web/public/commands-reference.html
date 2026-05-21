@@ -470,7 +470,7 @@
 
 <div class="cmd-grid">
 <div class="cmd-card">
-  <div class="cmd-name">/review</div>
+  <div class="cmd-name">/audit</div>
   <div class="cmd-desc"><strong>只读代码审查</strong> — 不修改文件。spawn 多个审查 Agent 并行收集 findings（每条含文件/行号/依据/严重度），产出审查报告+严重度分级。</div>
   <div class="cmd-flow">
     <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">范围确定：选定审查文件和关注维度</span></div>
@@ -482,16 +482,16 @@
 </div>
 
 <div class="cmd-card">
-  <div class="cmd-name">/review-fix</div>
+  <div class="cmd-name">/audit-fix</div>
   <div class="cmd-desc"><strong>审查修复优化闭环</strong> — ①初审(只读)→②修复规划→③执行修复→④验证(质量重检)→⑤复审。最多 2 轮闭环。</div>
   <div class="cmd-flow">
-    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">初审：spawn 审查 Agent 并行审查（同 /review）</span></div>
+    <div class="flow-step"><span class="step-tag green">Step 1</span><span class="step-desc">初审：spawn 审查 Agent 并行审查（同 /audit）</span></div>
     <div class="flow-step"><span class="step-tag orange">Step 2</span><span class="step-desc">修复规划：remediation-planner 制定修复方案，按严重度排序</span></div>
     <div class="flow-step"><span class="step-tag accent">Step 3</span><span class="step-desc">执行修复：spawn 对应实现 Agent 逐项修复</span></div>
     <div class="flow-step"><span class="step-tag red">Step 4</span><span class="step-desc">质量重检：Lint+Type-check+Build+测试 全部通过</span></div>
     <div class="flow-step"><span class="step-tag orange">Step 5</span><span class="step-desc">复审：重新审查，≤2轮。仍失败→ABORT</span></div>
   </div>
-  <div class="agents"><span>关键 Agent：</span>review-fix-optimize / remediation-planner / review-only / 实现类+审查类 Agent</div>
+  <div class="agents"><span>关键 Agent：</span>audit-fix-optimize / remediation-planner / audit-only / 实现类+审查类 Agent</div>
 </div>
 
 <div class="cmd-card">
@@ -791,8 +791,8 @@
     <span class="agent-tag">security-review-expert</span>
     <span class="agent-tag">qa-review-expert</span>
     <span class="agent-tag">change-review-expert</span>
-    <span class="agent-tag">review-only</span>
-    <span class="agent-tag">review-fix-optimize</span>
+    <span class="agent-tag">audit-only</span>
+    <span class="agent-tag">audit-fix-optimize</span>
   </div>
 </div>
 
@@ -978,8 +978,8 @@
 <div class="recommend">
   <strong>&#x1F4A1; 新手入门路径：</strong><br>
   <code>/auto 需求描述</code> → 自动路由 + 引导 →
-  <code>/review</code> 审查产出 →
-  <code>/review-fix</code> 修复问题 →
+  <code>/audit</code> 审查产出 →
+  <code>/audit-fix</code> 修复问题 →
   <code>/release</code> 发布<br>
   <strong>不需要记住所有指令，99% 的情况 /auto 就够了。</strong>
 </div>
@@ -1027,7 +1027,7 @@
   </div>
   <div class="scenario-card">
     <h4>&#x1F4DD; 代码审查</h4>
-    <p>使用 <code>/review</code>（只读审查）→ <code>/review-fix</code>（修复闭环）。先审查后修复再复审，最多2轮。</p>
+    <p>使用 <code>/audit</code>（只读审查）→ <code>/audit-fix</code>（修复闭环）。先审查后修复再复审，最多2轮。</p>
   </div>
   <div class="scenario-card">
     <h4>&#x1F4E4; 发布上线</h4>
