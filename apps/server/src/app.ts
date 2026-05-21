@@ -8,7 +8,7 @@ import { adminLogsRoute } from './modules/admin-logs/admin-logs.route';
 import { adminReportsRoute } from './modules/admin-reports/admin-reports.route';
 import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.route';
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
-import { circlesRoute } from './modules/circles/circles.route';
+import { adminCirclesRoute, circlesRoute } from './modules/circles/circles.route';
 import { linkPreviewRoute } from './modules/link-preview/link-preview.route';
 import { auditsRoute } from './modules/audits/audits.route';
 import { authRoute } from './modules/auth/auth.route';
@@ -28,6 +28,7 @@ import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
 import { usersRoute } from './modules/users/users.route';
 import { aiRoute } from './modules/ai/ai.route';
+import { isDevEnv, isTestEnv, isUnknownEnv } from './lib/env-mode';
 import { buildDefaultCorsOrigins, isAllowedDevCorsOrigin } from './lib/cors-origins';
 import { parseOptionalBooleanEnv } from './lib/env-flags';
 import { ensureServerEnvLoaded } from './lib/load-env';
@@ -47,6 +48,16 @@ import { healthRoute } from './routes/health';
 ensureServerEnvLoaded();
 resolveAuthCodeConfig();
 resolveSmsProviderConfig();
+
+// 启动时验证 NODE_ENV 是否为可识别值
+if (isUnknownEnv()) {
+  const rawValue = process.env.NODE_ENV ?? '<unset>';
+  console.warn(
+    `[env] NODE_ENV="${rawValue}" 不是可识别的值。` +
+    `期望值: development | test | production。` +
+    `已回退到生产安全默认值，所有开发功能已禁用。`
+  );
+}
 
 export const app = new Hono();
 
@@ -88,7 +99,7 @@ export function resolveCorsOrigin():
     }
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevEnv() || isTestEnv()) {
     return (origin: string) =>
       isAllowedDevCorsOrigin(origin) ? origin : undefined;
   }
@@ -108,7 +119,7 @@ function resolveOpenApiEnabled() {
     return configured;
   }
 
-  return process.env.NODE_ENV !== 'production';
+  return isDevEnv() || isTestEnv();
 }
 
 app.use(
@@ -225,6 +236,7 @@ app.route('/', searchRoute);
 app.route('/', adminAnalyticsRoute);
 app.route('/', adminLogsRoute);
 app.route('/', adminReportsRoute);
+app.route('/', adminCirclesRoute);
 app.route('/', rankingsRoute);
 app.route('/', aircraftModelsRoute);
 app.route('/', aircraftSubmissionsRoute);

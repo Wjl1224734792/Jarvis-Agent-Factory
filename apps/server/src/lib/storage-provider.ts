@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as qiniu from 'qiniu';
+import { getEnvMode, isDevEnv } from './env-mode';
 import {
   parseBooleanEnv,
   parseOptionalBooleanEnv
@@ -192,8 +193,7 @@ export function shouldUseSignedReadUrl(
     return false;
   }
 
-  const nonProduction = env.NODE_ENV !== 'production';
-  return nonProduction || parseBooleanEnv(env.STORAGE_PRESIGN_READ_URLS, false);
+  return isDevEnv() || parseBooleanEnv(env.STORAGE_PRESIGN_READ_URLS, false);
 }
 
 async function ensureBucketExists(
@@ -264,14 +264,22 @@ export function isStorageProviderExplicitlyConfigured(
 export function resolveStorageProviderConfig(
   env: EnvLike = process.env
 ): StorageProviderConfig {
-  const isTestEnv = env.NODE_ENV === 'test';
+  // 只有开发环境才默认使用 MinIO；测试/生产环境需显式配置存储
+  const dev = isDevEnv();
   const providerRaw = (
-    isTestEnv
-      ? (env.TEST_STORAGE_PROVIDER ?? env.STORAGE_PROVIDER ?? 'minio')
-      : (env.STORAGE_PROVIDER ?? 'minio')
+    env.STORAGE_PROVIDER
+      ? env.STORAGE_PROVIDER
+      : (env.TEST_STORAGE_PROVIDER ?? (dev ? 'minio' : undefined))
   )
-    .toLowerCase()
-    .trim() as StorageProviderEnvValue;
+    ?.toLowerCase()
+    .trim() as StorageProviderEnvValue | undefined;
+
+  if (!providerRaw) {
+    throw new Error(
+      'Missing STORAGE_PROVIDER. Non-development environments must set STORAGE_PROVIDER (minio|cos|oss|kodo|qiniu).'
+    );
+  }
+
   const normalizedProvider =
     providerRaw === 'qiniu' ? 'kodo' : providerRaw;
   if (!isStorageProvider(normalizedProvider)) {
@@ -280,38 +288,40 @@ export function resolveStorageProviderConfig(
     );
   }
 
-  const endpoint = (
-    isTestEnv
-      ? env.TEST_STORAGE_ENDPOINT?.trim() || env.STORAGE_ENDPOINT?.trim()
-      : env.STORAGE_ENDPOINT?.trim()
-  ) || (normalizedProvider === 'minio' ? 'http://localhost:9000' : undefined);
-  const bucket = (
-    isTestEnv
-      ? env.TEST_STORAGE_BUCKET?.trim() || env.STORAGE_BUCKET?.trim()
-      : env.STORAGE_BUCKET?.trim()
-  ) || (normalizedProvider === 'minio' ? 'feijia-media' : undefined);
-  const accessKeyId = (
-    isTestEnv
-      ? env.TEST_STORAGE_ACCESS_KEY_ID?.trim() || env.STORAGE_ACCESS_KEY_ID?.trim()
-      : env.STORAGE_ACCESS_KEY_ID?.trim()
-  ) || (normalizedProvider === 'minio' ? 'minioadmin' : undefined);
-  const secretAccessKey = (
-    isTestEnv
-      ? env.TEST_STORAGE_SECRET_ACCESS_KEY?.trim() || env.STORAGE_SECRET_ACCESS_KEY?.trim()
-      : env.STORAGE_SECRET_ACCESS_KEY?.trim()
-  ) || (normalizedProvider === 'minio' ? 'minioadmin123' : undefined);
+  const resolveString = (
+    key: string,
+    testKey: string | undefined,
+    minioDefault?: string
+  ) => {
+    const val = env[key]?.trim() || testKey?.trim();
+    if (val) return val;
+    if (normalizedProvider === 'minio' && dev) return minioDefault;
+    return undefined;
+  };
+
+  const endpoint = resolveString('STORAGE_ENDPOINT', env.TEST_STORAGE_ENDPOINT, 'http://localhost:9000');
+  const bucket = resolveString('STORAGE_BUCKET', env.TEST_STORAGE_BUCKET, 'feijia-media');
+  const accessKeyId = resolveString('STORAGE_ACCESS_KEY_ID', env.TEST_STORAGE_ACCESS_KEY_ID, 'minioadmin');
+  const secretAccessKey = resolveString('STORAGE_SECRET_ACCESS_KEY', env.TEST_STORAGE_SECRET_ACCESS_KEY, 'minioadmin123');
 
   if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      'Missing storage credentials. Required: STORAGE_ENDPOINT/STORAGE_BUCKET/STORAGE_ACCESS_KEY_ID/STORAGE_SECRET_ACCESS_KEY.'
+      'Missing storage credentials. Required: STORAGE_ENDPOINT / STORAGE_BUCKET / STORAGE_ACCESS_KEY_ID / STORAGE_SECRET_ACCESS_KEY.'
     );
   }
 
   const provider: StorageProvider = normalizedProvider;
+
+  // 非开发环境使用 MinIO 时发出警告
+  if (!dev && provider === 'minio') {
+    console.warn(
+      `[storage] NODE_ENV=${getEnvMode() || '<unset>'} but using MinIO. ` +
+      'Set STORAGE_PROVIDER=kodo and configure Kodo credentials for non-dev environments.'
+    );
+  }
+
   const forcePathStyle = parseBooleanEnv(
-    isTestEnv
-      ? (env.TEST_STORAGE_FORCE_PATH_STYLE ?? env.STORAGE_FORCE_PATH_STYLE)
-      : env.STORAGE_FORCE_PATH_STYLE,
+    env.STORAGE_FORCE_PATH_STYLE ?? env.TEST_STORAGE_FORCE_PATH_STYLE,
     provider === 'minio'
   );
   const publicBaseUrlIsExplicit = Boolean(
@@ -323,10 +333,9 @@ export function resolveStorageProviderConfig(
     endpoint,
     bucket,
     region:
-      (isTestEnv
-        ? (env.TEST_STORAGE_REGION ?? env.STORAGE_REGION)?.trim()
-        : env.STORAGE_REGION?.trim()
-      ) || 'us-east-1',
+      env.STORAGE_REGION?.trim() ||
+      env.TEST_STORAGE_REGION?.trim() ||
+      'us-east-1',
     accessKeyId,
     secretAccessKey,
     keyPrefix: normalizePrefix(env.STORAGE_KEY_PREFIX),
