@@ -213,7 +213,7 @@
 
 <div class="intro">
   <p>每条指令是一条完整的开发流水线入口。输入 <code>/指令名 任务描述</code> 即可启动。引擎自动推进 Gate 序列，在对应阶段 spawn 专业 Agent 执行任务。<strong>不确定用什么指令？直接用 <code>/auto</code>。</strong></p>
-  <p><strong>新增：</strong><code>/skill-flow</code> — 将当前会话的流水线流程导出为可复用 Skill 模板（export/save/list/apply），实现"一次执行、永久复用"。<br><strong>新增：</strong><code>/cancel</code> — 取消流水线运行，中止活跃 run（<code>--leave</code> 离开会话/<code>--force</code> 紧急清除），支持中断后恢复或重新开始。</p>
+  <p><strong>新增：</strong><code>/skill-flow</code> — 将当前会话的流水线流程导出为可复用 Skill 模板（export/save/list/apply），实现"一次执行、永久复用"。<br><strong>新增：</strong><code>/cancel</code> — 取消流水线运行，中止活跃 run（<code>--leave</code> 离开会话/<code>--force</code> 紧急清除），支持中断后恢复或重新开始。<br><strong>新增：</strong><code>/repowiki</code> — 项目知识库管理（add/ingest/query/list/read/delete/lint），Markdown+YAML frontmatter 持久化。</p>
 </div>
 
 <!-- 编排入口 -->
@@ -672,10 +672,10 @@
 </div>
 
 <!-- 流程管理 -->
-<h3>九、流程管理（2条）</h3>
+<h3>九、流程管理（3条）</h3>
 
 <div class="recommend tip">
-  <strong>流程控制：</strong><code>/skill-flow</code> 导出复用流程模板 &nbsp;|&nbsp; <code>/cancel</code> 取消运行（支持 <code>--leave</code> 离开/<code>--force</code> 强制清除）。参考 OMC 的 Skill 封装 + 会话取消模式。
+  <strong>流程控制：</strong><code>/skill-flow</code> 导出复用流程模板 &nbsp;|&nbsp; <code>/cancel</code> 取消运行（支持 <code>--leave</code> 离开/<code>--force</code> 强制清除）&nbsp;|&nbsp; <code>/repowiki</code> 项目知识库管理。参考 OMC 的 Skill 封装 + 会话取消 + Wiki 模式。
 </div>
 
 <div class="cmd-grid">
@@ -700,6 +700,17 @@
     <div class="flow-step"><span class="step-tag accent">确认</span><span class="step-desc">验证 run 已中止，无残留活跃 run，可开始新任务</span></div>
   </div>
   <div class="agents"><span>相关 MCP 工具：</span>pipeline_cancel / pipeline_status / session_leave</div>
+</div>
+
+<div class="cmd-card">
+  <div class="cmd-name">/repowiki</div>
+  <div class="cmd-desc"><strong>项目知识库管理</strong> — 7 子命令：add（新建页面）、ingest（智能追加）、query（关键字+标签搜索）、list（列出全部）、read（读取页面）、delete（删除页面）、lint（健康检查：孤立/过期/过大/断链）。Markdown + YAML frontmatter 持久化到 <code>.jarvis/wiki/pages/</code>。支持 8 种分类（architecture/decision/pattern/debugging/environment/session-log/reference/convention）。</div>
+  <div class="cmd-flow">
+    <div class="flow-step"><span class="step-tag green">写入</span><span class="step-desc">add/ingest → 解析 frontmatter → 文件锁 → 写入 .md → 更新索引</span></div>
+    <div class="flow-step"><span class="step-tag accent">查询</span><span class="step-desc">query/list/read → 读取索引/页面 → 返回结构化数据</span></div>
+    <div class="flow-step"><span class="step-tag orange">维护</span><span class="step-desc">delete/lint → 删除页面+索引 → 健康报告（孤立/过期/过大/断链）</span></div>
+  </div>
+  <div class="agents"><span>相关 MCP 工具：</span>repowiki_add / repowiki_ingest / repowiki_query / repowiki_list / repowiki_read / repowiki_delete / repowiki_lint</div>
 </div>
 </div>
 
@@ -1077,7 +1088,7 @@
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/README.md">README.md</a>
   </p>
-  <p style="margin-top:8px">31 Commands · 71 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">32 Commands · 71 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>
