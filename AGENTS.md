@@ -1,6 +1,6 @@
 # AGENTS.md — 项目级约束与知识库
 
-> Jarvis Agent Factory · 71 Agent · 31 Command · 35 Skill · 15 Pipeline · v4.4.0
+> Jarvis Agent Factory · 71 Agent · 31 Command · 35 Skill · 15 Pipeline · v4.5.0
 >
 > **所有智能体启动时必须读取此文件。** 入口指南见 [CLAUDE.md](./CLAUDE.md)。
 
@@ -16,7 +16,7 @@
 
 | Agents | Commands | Skills | Pipelines |
 |:------:|:--------:|:------:|:---------:|
-| 71 | 40 | 35 | 15 |
+| 71 | 31 | 35 | 15 |
 
 ### 文档同步约束
 

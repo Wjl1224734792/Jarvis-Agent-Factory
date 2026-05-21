@@ -79,8 +79,8 @@ updated: "2026-05-14"
 
 ## 两种模式
 
-- **模式 A（页面验证）**：写用例→逐条执行→截图→报告→失败→/review-fix
-- **模式 B（Bug 复现）**：接复现步骤→浏览器执行→异常截图→交 /review-fix
+- **模式 A（页面验证）**：写用例→逐条执行→截图→报告→失败→/audit-fix
+- **模式 B（Bug 复现）**：接复现步骤→浏览器执行→异常截图→交 /audit-fix
 
 ## 执行流程
 
@@ -148,7 +148,7 @@ preview_resize({ preset: "desktop" })  → preview_screenshot
 ## 修复闭环
 
 1. 全部通过 → 闭环完成
-2. 存在失败 → Browser Test Findings → `/review-fix` → 重测失败用例
+2. 存在失败 → Browser Test Findings → `/audit-fix` → 重测失败用例
 3. 最多 2 轮，第 3 轮仍失败标记 BLOCKED
 
 ## 红线

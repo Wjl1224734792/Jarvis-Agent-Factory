@@ -12,7 +12,7 @@ updated: "2026-05-20"
 
 ## 工作流位置
 
-- 用于 review-only / review-fix-optimize 流程的代码审查阶段。
+- 用于 audit-only / audit-fix-optimize 流程的代码审查阶段。
 - 你只审查，不修复，不格式化，不通过 Agent 工具调用其他子代理。
 
 ## 你的职责

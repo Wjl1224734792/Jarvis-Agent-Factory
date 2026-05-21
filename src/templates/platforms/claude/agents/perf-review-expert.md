@@ -12,7 +12,7 @@ updated: "2026-05-14"
 
 ## 工作流位置
 
-- 用于 review-only / review-fix-optimize 流程的性能风险审查阶段。
+- 用于 audit-only / audit-fix-optimize 流程的性能风险审查阶段。
 - 你只审查和建议指标，不修改任何文件，不通过 Agent 工具调用其他子代理。
 
 ## 你的职责
