@@ -4,6 +4,56 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.6.4] - 2026-05-21
+
+### Removed
+- 删除废弃的 `web/public/commands-reference.html`（已被 React SPA `/commands` 替代）
+
+## [4.6.3] - 2026-05-21
+
+### Changed
+- **首页重构为流水线统筹看板**：活跃/休眠会话卡片网格 + Gate 进度条
+- **新增会话详情页 `/session/:id`**：Gate 时间线 + 产物文档预览 + Markdown 阅读器
+- 点击侧边栏会话 → 导航到会话详情页
+- **产物文档强制日期目录**：移除旧扁平 `.jarvis/{gateSubdir}/` 兼容扫描，仅保留 `.jarvis/YYYY-MM-DD/{gate}/`
+- RunDetail 归档详情页支持文档点击预览
+
+### Added
+- Dashboard 对 LazyMarkdown/GATE 常量等组件公开 export
+
+## [4.6.2] - 2026-05-21
+
+### Added
+- **React Wiki 页面（`/wiki`）**：知识库浏览、搜索、分类筛选、Markdown 详情渲染
+- **React Guide 页面（`/guide`）**：快速开始、核心约束、指令参考、资源链接
+- `npm run dev:setup` 一键本地开发环境配置
+
+### Changed
+- `npm run build` 脚本包含 `build:web`，一次性产出完整 dist
+- dev 模式（JARVIS_DEV=1）SPA 缺失时自动触发构建
+- CI 移除冗余 `build:web` 调用
+
+### Fixed
+- `bin/jarvis.js` dist/ 缺失时 fallback 到 tsx 动态运行源码
+
+## [4.4.0] - 2026-05-20
+
+### Added
+- `src/engine/tools/` MCP 工具模块化：session/pipeline/gate/agent/flow/wiki 7 模块
+- 合并 6 张 Gate 表为统一的 `GATE_CONFIG`（62 gates）
+- `repowiki` 7 个 MCP 工具：add/ingest/query/list/read/delete/lint
+- Wiki 静态浏览页 `web/public/wiki.html` + REST API
+
+### Changed
+- server.ts 瘦身：MCP 注册逻辑提取到 `src/engine/tools/`（-19 imports, 43→5 warnings）
+- 支持 `pipeline_type=lite` 的 Gate 跳转
+- Web 面板 SSE 实时推送替代轮询
+
+### Fixed
+- 代码审查 Top 8 修复：类型安全、去重、安全加固
+- 补齐 `/repowiki` 在 web 面板 + 文档中的引用
+- 会话选择器 SSE stale closure 修复
+
 ## [4.3.9] - 2026-05-20
 
 ### Added

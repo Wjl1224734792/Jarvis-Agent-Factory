@@ -46,7 +46,7 @@ MCP tool registration modules extracted from `src/engine/server.ts`. Each module
 
 ### Internal
 
-- `src/engine/server.ts` — dispatches to all 6 modules via the thin `registerMcpTools()`
+- `src/engine/server.ts` — dispatches to all 7 modules via the thin `registerMcpTools()`
 - `src/engine/db.ts` — SQLite database operations
 - `src/engine/gates.ts` — unified `GATE_CONFIG` with 62 gate entries
 - `src/engine/agent-registry.ts` — agent listing and platform info
