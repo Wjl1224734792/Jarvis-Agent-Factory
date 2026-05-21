@@ -118,6 +118,7 @@ describe('hookCommand', () => {
       });
       await hookCommand(['gate-check']);
       expect(exitSpy).toHaveBeenCalledWith(0);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Gate A'));
     });
 
     it('9 | Gate C-impl：spawn_impl 允许 + enforce 通过 → exit(0)', async () => {
