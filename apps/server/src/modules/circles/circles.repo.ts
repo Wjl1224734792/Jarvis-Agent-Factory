@@ -1,8 +1,11 @@
 import {
   circleCategoryAssignmentsTable,
   circleMembersTable,
+  circlePostCommentLikesTable,
+  circlePostCommentReportsTable,
   circlePostCommentsTable,
   circlePostInteractionsTable,
+  circlePostReportsTable,
   circlePostsTable,
   circleUserCategoriesTable,
   circlesTable,
@@ -272,7 +275,7 @@ export const circlesRepo = {
   },
 
   async createPost(input: {
-    circleId?: string | null;
+    circleId: string;
     authorId: string;
     title: string;
     content: string | null;
@@ -282,19 +285,17 @@ export const circlesRepo = {
     const id = createId("cp");
     await db.insert(circlePostsTable).values({
       id,
-      circleId: input.circleId ?? null,
+      circleId: input.circleId,
       authorId: input.authorId,
       title: input.title,
       content: input.content,
       images: JSON.stringify(input.images),
       videos: JSON.stringify(input.videos),
     });
-    if (input.circleId) {
-      await db
-        .update(circlesTable)
-        .set({ postCount: sql`${circlesTable.postCount} + 1` })
-        .where(eq(circlesTable.id, input.circleId));
-    }
+    await db
+      .update(circlesTable)
+      .set({ postCount: sql`${circlesTable.postCount} + 1` })
+      .where(eq(circlesTable.id, input.circleId));
     return id;
   },
 
@@ -427,6 +428,25 @@ export const circlesRepo = {
   }) {
     const conditions: ReturnType<typeof eq>[] = [];
 
+    // "最新" Tab: 匿名用户返回空数组
+    if (filters.tab === "latest" && !filters.currentUserId) {
+      return [];
+    }
+
+    // "最新" Tab: 只显示已加入圈子的帖子（含无圈子归属的历史帖子）
+    if (filters.tab === "latest" && filters.currentUserId) {
+      conditions.push(
+        or(
+          sql`${circlePostsTable.circleId} IN (
+            SELECT ${circleMembersTable.circleId}
+            FROM ${circleMembersTable}
+            WHERE ${circleMembersTable.userId} = ${filters.currentUserId}
+          )`,
+          sql`${circlePostsTable.circleId} IS NULL`
+        )!
+      );
+    }
+
     // "关注" Tab: 只显示已关注作者的帖子
     if (filters.tab === "following" && filters.currentUserId) {
       conditions.push(
@@ -438,7 +458,7 @@ export const circlesRepo = {
       );
     }
 
-    const orderBy = filters.tab === "latest"
+    const orderBy = filters.tab === "latest" || filters.tab === "following"
       ? desc(circlePostsTable.createdAt)
       : desc(circlePostsTable.hotScore);
 
@@ -529,6 +549,15 @@ export const circlesRepo = {
       );
   },
 
+  async findCategoryById(id: string) {
+    const items = await db
+      .select()
+      .from(circleUserCategoriesTable)
+      .where(eq(circleUserCategoriesTable.id, id))
+      .limit(1);
+    return items[0] ?? null;
+  },
+
   async assignCircleToCategory(categoryId: string, circleId: string) {
     const existing = await db
       .select()
@@ -590,5 +619,358 @@ export const circlesRepo = {
     await db.delete(circleCategoryAssignmentsTable).where(eq(circleCategoryAssignmentsTable.circleId, id));
     await db.delete(circleMembersTable).where(eq(circleMembersTable.circleId, id));
     await db.delete(circlesTable).where(eq(circlesTable.id, id));
+  },
+
+  // ── 反垃圾：用户贡献统计 ──
+
+  // ── 帖子举报 ──
+
+  async createPostReport(input: {
+    postId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds?: string[];
+  }) {
+    const id = createId("cpr");
+    await db.insert(circlePostReportsTable).values({
+      id,
+      postId: input.postId,
+      reporterId: input.reporterId,
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageFileIds ?? []),
+    });
+    await db
+      .update(circlePostsTable)
+      .set({ reportCount: sql`${circlePostsTable.reportCount} + 1` })
+      .where(eq(circlePostsTable.id, input.postId));
+    return id;
+  },
+
+  async listPostReports(postId: string) {
+    return db
+      .select({
+        id: circlePostReportsTable.id,
+        postId: circlePostReportsTable.postId,
+        reporterId: circlePostReportsTable.reporterId,
+        reason: circlePostReportsTable.reason,
+        imageFileIds: circlePostReportsTable.imageFileIds,
+        createdAt: circlePostReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+        },
+      })
+      .from(circlePostReportsTable)
+      .innerJoin(usersTable, eq(circlePostReportsTable.reporterId, usersTable.id))
+      .where(eq(circlePostReportsTable.postId, postId))
+      .orderBy(desc(circlePostReportsTable.createdAt));
+  },
+
+  // ── 评论举报 ──
+
+  async createCommentReport(input: {
+    commentId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds?: string[];
+  }) {
+    const id = createId("ccr");
+    await db.insert(circlePostCommentReportsTable).values({
+      id,
+      commentId: input.commentId,
+      reporterId: input.reporterId,
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageFileIds ?? []),
+    });
+    await db
+      .update(circlePostCommentsTable)
+      .set({ reportCount: sql`${circlePostCommentsTable.reportCount} + 1` })
+      .where(eq(circlePostCommentsTable.id, input.commentId));
+    return id;
+  },
+
+  async listCommentReports(commentId: string) {
+    return db
+      .select({
+        id: circlePostCommentReportsTable.id,
+        commentId: circlePostCommentReportsTable.commentId,
+        reporterId: circlePostCommentReportsTable.reporterId,
+        reason: circlePostCommentReportsTable.reason,
+        imageFileIds: circlePostCommentReportsTable.imageFileIds,
+        createdAt: circlePostCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+        },
+      })
+      .from(circlePostCommentReportsTable)
+      .innerJoin(usersTable, eq(circlePostCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(circlePostCommentReportsTable.commentId, commentId))
+      .orderBy(desc(circlePostCommentReportsTable.createdAt));
+  },
+
+  // ── 评论点赞 toggle ──
+
+  async toggleCommentLike(commentId: string, userId: string) {
+    const existing = await db
+      .select()
+      .from(circlePostCommentLikesTable)
+      .where(
+        and(
+          eq(circlePostCommentLikesTable.commentId, commentId),
+          eq(circlePostCommentLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .delete(circlePostCommentLikesTable)
+        .where(eq(circlePostCommentLikesTable.id, existing[0].id));
+      await db
+        .update(circlePostCommentsTable)
+        .set({ likeCount: sql`GREATEST(0, ${circlePostCommentsTable.likeCount} - 1)` })
+        .where(eq(circlePostCommentsTable.id, commentId));
+      return false;
+    }
+
+    await db.insert(circlePostCommentLikesTable).values({
+      id: createId("ccl"),
+      commentId,
+      userId,
+    });
+    await db
+      .update(circlePostCommentsTable)
+      .set({ likeCount: sql`${circlePostCommentsTable.likeCount} + 1` })
+      .where(eq(circlePostCommentsTable.id, commentId));
+    return true;
+  },
+
+  async isCommentLikedByUser(commentId: string, userId: string) {
+    const rows = await db
+      .select()
+      .from(circlePostCommentLikesTable)
+      .where(
+        and(
+          eq(circlePostCommentLikesTable.commentId, commentId),
+          eq(circlePostCommentLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+    return rows.length > 0;
+  },
+
+  // ── 帖子编辑/删除 ──
+
+  async updatePost(postId: string, input: {
+    title?: string;
+    content?: string | null;
+    images?: string[];
+    videos?: string[];
+  }) {
+    const sets: Record<string, unknown> = { updatedAt: new Date() };
+    if (input.title !== undefined) sets.title = input.title;
+    if (input.content !== undefined) sets.content = input.content;
+    if (input.images !== undefined) sets.images = JSON.stringify(input.images);
+    if (input.videos !== undefined) sets.videos = JSON.stringify(input.videos);
+    await db.update(circlePostsTable).set(sets).where(eq(circlePostsTable.id, postId));
+    return this.findPostById(postId);
+  },
+
+  async deletePost(postId: string) {
+    await db.delete(circlePostCommentLikesTable).where(
+      sql`${circlePostCommentLikesTable.commentId} IN (
+        SELECT ${circlePostCommentsTable.id} FROM ${circlePostCommentsTable}
+        WHERE ${circlePostCommentsTable.postId} = ${postId}
+      )`
+    );
+    await db.delete(circlePostCommentReportsTable).where(
+      sql`${circlePostCommentReportsTable.commentId} IN (
+        SELECT ${circlePostCommentsTable.id} FROM ${circlePostCommentsTable}
+        WHERE ${circlePostCommentsTable.postId} = ${postId}
+      )`
+    );
+    await db.delete(circlePostCommentsTable).where(eq(circlePostCommentsTable.postId, postId));
+    await db.delete(circlePostReportsTable).where(eq(circlePostReportsTable.postId, postId));
+    await db.delete(circlePostInteractionsTable).where(eq(circlePostInteractionsTable.postId, postId));
+    await db.delete(circlePostsTable).where(eq(circlePostsTable.id, postId));
+  },
+
+  // ── 评论编辑/删除 ──
+
+  async updateComment(commentId: string, content: string) {
+    await db
+      .update(circlePostCommentsTable)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(circlePostCommentsTable.id, commentId));
+    return this.findCommentById(commentId);
+  },
+
+  async deleteComment(commentId: string) {
+    await db.delete(circlePostCommentLikesTable).where(eq(circlePostCommentLikesTable.commentId, commentId));
+    await db.delete(circlePostCommentReportsTable).where(eq(circlePostCommentReportsTable.commentId, commentId));
+    await db.delete(circlePostCommentsTable).where(eq(circlePostCommentsTable.id, commentId));
+  },
+
+  async findCommentById(commentId: string) {
+    const items = await db
+      .select({
+        id: circlePostCommentsTable.id,
+        postId: circlePostCommentsTable.postId,
+        authorId: circlePostCommentsTable.authorId,
+        content: circlePostCommentsTable.content,
+        parentCommentId: circlePostCommentsTable.parentCommentId,
+        replyToUserId: circlePostCommentsTable.replyToUserId,
+        status: circlePostCommentsTable.status,
+        likeCount: circlePostCommentsTable.likeCount,
+        reportCount: circlePostCommentsTable.reportCount,
+        createdAt: circlePostCommentsTable.createdAt,
+        updatedAt: circlePostCommentsTable.updatedAt,
+      })
+      .from(circlePostCommentsTable)
+      .where(eq(circlePostCommentsTable.id, commentId))
+      .limit(1);
+    return items[0] ?? null;
+  },
+
+  // ── Admin 查询 ──
+
+  async listAllPosts(filters: {
+    status?: string;
+    circleId?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (filters.status) {
+      conditions.push(eq(circlePostsTable.status, filters.status));
+    }
+    if (filters.circleId) {
+      conditions.push(eq(circlePostsTable.circleId, filters.circleId));
+    }
+    return db
+      .select({
+        id: circlePostsTable.id,
+        circleId: circlePostsTable.circleId,
+        title: circlePostsTable.title,
+        content: circlePostsTable.content,
+        images: circlePostsTable.images,
+        videos: circlePostsTable.videos,
+        status: circlePostsTable.status,
+        likeCount: circlePostsTable.likeCount,
+        commentCount: circlePostsTable.commentCount,
+        shareCount: circlePostsTable.shareCount,
+        reportCount: circlePostsTable.reportCount,
+        viewCount: circlePostsTable.viewCount,
+        hotScore: circlePostsTable.hotScore,
+        createdAt: circlePostsTable.createdAt,
+        updatedAt: circlePostsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+        },
+        circle: {
+          id: circlesTable.id,
+          slug: circlesTable.slug,
+          name: circlesTable.name,
+        },
+      })
+      .from(circlePostsTable)
+      .innerJoin(usersTable, eq(circlePostsTable.authorId, usersTable.id))
+      .leftJoin(circlesTable, eq(circlePostsTable.circleId, circlesTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(circlePostsTable.createdAt))
+      .limit(filters.limit ?? 20)
+      .offset(filters.offset ?? 0);
+  },
+
+  async listAllComments(filters: {
+    status?: string;
+    circleId?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (filters.status) {
+      conditions.push(eq(circlePostCommentsTable.status, filters.status));
+    }
+    if (filters.circleId) {
+      conditions.push(
+        sql`${circlePostCommentsTable.postId} IN (
+          SELECT ${circlePostsTable.id} FROM ${circlePostsTable}
+          WHERE ${circlePostsTable.circleId} = ${filters.circleId}
+        )`
+      );
+    }
+    return db
+      .select({
+        id: circlePostCommentsTable.id,
+        postId: circlePostCommentsTable.postId,
+        content: circlePostCommentsTable.content,
+        status: circlePostCommentsTable.status,
+        likeCount: circlePostCommentsTable.likeCount,
+        reportCount: circlePostCommentsTable.reportCount,
+        createdAt: circlePostCommentsTable.createdAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+        },
+        postTitle: circlePostsTable.title,
+      })
+      .from(circlePostCommentsTable)
+      .innerJoin(usersTable, eq(circlePostCommentsTable.authorId, usersTable.id))
+      .innerJoin(circlePostsTable, eq(circlePostCommentsTable.postId, circlePostsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(circlePostCommentsTable.createdAt))
+      .limit(filters.limit ?? 20)
+      .offset(filters.offset ?? 0);
+  },
+
+  async updatePostStatus(postId: string, status: string) {
+    const result = await db
+      .update(circlePostsTable)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(circlePostsTable.id, postId));
+    return result.rowCount !== null && result.rowCount > 0;
+  },
+
+  async updateCommentStatus(commentId: string, status: string) {
+    const result = await db
+      .update(circlePostCommentsTable)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(circlePostCommentsTable.id, commentId));
+    return result.rowCount !== null && result.rowCount > 0;
+  },
+
+  /** 单次合并查询：帖子数 + 评论数 + 互动数 + 24h 圈子创建数 + 账户年龄（小时） */
+  async getUserContributionStats(userId: string) {
+    const result = await db.execute(
+      sql<{
+        post_count: string;
+        comment_count: string;
+        interaction_count: string;
+        recent_circle_count: string;
+        account_age_hours: string | null;
+      }>`
+      SELECT
+        (SELECT COUNT(*) FROM ${circlePostsTable} WHERE ${circlePostsTable.authorId} = ${userId}) AS post_count,
+        (SELECT COUNT(*) FROM ${circlePostCommentsTable} WHERE ${circlePostCommentsTable.authorId} = ${userId}) AS comment_count,
+        (SELECT COUNT(*) FROM ${circlePostInteractionsTable} WHERE ${circlePostInteractionsTable.userId} = ${userId}) AS interaction_count,
+        (SELECT COUNT(*) FROM ${circlesTable} WHERE ${circlesTable.ownerId} = ${userId} AND ${circlesTable.createdAt} > NOW() - INTERVAL '24 hours') AS recent_circle_count,
+        (SELECT EXTRACT(EPOCH FROM (NOW() - ${usersTable.createdAt})) / 3600 FROM ${usersTable} WHERE ${usersTable.id} = ${userId}) AS account_age_hours
+    `
+    );
+    const row = result.rows[0];
+    return {
+      postCount: Number(row?.post_count ?? 0),
+      commentCount: Number(row?.comment_count ?? 0),
+      interactionCount: Number(row?.interaction_count ?? 0),
+      recentCircleCount: Number(row?.recent_circle_count ?? 0),
+      accountAgeHours: row?.account_age_hours != null ? Number(row.account_age_hours) : 0,
+    };
   },
 };

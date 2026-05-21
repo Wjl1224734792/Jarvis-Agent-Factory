@@ -276,12 +276,20 @@ export const circlesService = {
     await circlesRepo.deleteUserCategory(id, userId);
   },
 
-  async assignCircleToCategory(categoryId: string, circleId: string) {
+  async assignCircleToCategory(categoryId: string, circleId: string, userId: string) {
+    const category = await circlesRepo.findCategoryById(categoryId);
+    if (!category) return { kind: "not_found" as const };
+    if (category.userId !== userId) return { kind: "forbidden" as const };
     await circlesRepo.assignCircleToCategory(categoryId, circleId);
+    return { kind: "ok" as const };
   },
 
-  async removeCircleFromCategory(categoryId: string, circleId: string) {
+  async removeCircleFromCategory(categoryId: string, circleId: string, userId: string) {
+    const category = await circlesRepo.findCategoryById(categoryId);
+    if (!category) return { kind: "not_found" as const };
+    if (category.userId !== userId) return { kind: "forbidden" as const };
     await circlesRepo.removeCircleFromCategory(categoryId, circleId);
+    return { kind: "ok" as const };
   },
 
   // ── 圈子更新/删除 ──

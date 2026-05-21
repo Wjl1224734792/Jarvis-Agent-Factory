@@ -10,6 +10,8 @@ const {
     listFeed: vi.fn(),
     updateCircle: vi.fn(),
     deleteCircle: vi.fn(),
+    assignCircleToCategory: vi.fn(),
+    removeCircleFromCategory: vi.fn(),
   },
   mockCurrentUser: { id: "user_1", role: "user" },
 }));
@@ -82,6 +84,32 @@ function createAuthTestApp(userOverride?: { id: string; role: string }) {
       currentUser.role
     );
     if (result.kind === "not_found") return c.json({ code: "NOT_FOUND", message: "Circle not found." }, 404);
+    if (result.kind === "forbidden") return c.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+    return c.json({ success: true });
+  });
+
+  // Replicate: POST /api/v1/circles/user-categories/:categoryId/circles (requireAuth)
+  app.post(API_ROUTES.circles.categoryAssignments(":categoryId"), async (c) => {
+    const body = await c.req.json();
+    const result = await circlesServiceMock.assignCircleToCategory(
+      c.req.param("categoryId")!,
+      body.circleId,
+      currentUser.id
+    );
+    if (result.kind === "not_found") return c.json({ code: "NOT_FOUND", message: "Category not found." }, 404);
+    if (result.kind === "forbidden") return c.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+    return c.json({ success: true });
+  });
+
+  // Replicate: DELETE /api/v1/circles/user-categories/:categoryId/circles (requireAuth)
+  app.delete(API_ROUTES.circles.categoryAssignments(":categoryId"), async (c) => {
+    const body = await c.req.json();
+    const result = await circlesServiceMock.removeCircleFromCategory(
+      c.req.param("categoryId")!,
+      body.circleId,
+      currentUser.id
+    );
+    if (result.kind === "not_found") return c.json({ code: "NOT_FOUND", message: "Category not found." }, 404);
     if (result.kind === "forbidden") return c.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
     return c.json({ success: true });
   });
@@ -198,6 +226,91 @@ describe("circles route authorization — updateCircle / deleteCircle", () => {
     const response = await app.request(API_ROUTES.circles.update(circleId), {
       method: "DELETE",
     });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { success: boolean };
+    expect(body.success).toBe(true);
+  });
+});
+
+describe("circles route authorization — categoryAssignments", () => {
+  const categoryId = "cuc_1";
+  const circleId = "circle_1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ── POST /api/v1/circles/user-categories/:categoryId/circles ──
+
+  it("POST categoryAssignments returns 403 when non-owner", async () => {
+    circlesServiceMock.assignCircleToCategory.mockResolvedValue({ kind: "forbidden" });
+
+    const app = createAuthTestApp({ id: "user_2", role: "user" });
+    const response = await app.request(
+      API_ROUTES.circles.categoryAssignments(categoryId),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ circleId }),
+      }
+    );
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { code: string };
+    expect(body.code).toBe("FORBIDDEN");
+  });
+
+  it("POST categoryAssignments succeeds when owner", async () => {
+    circlesServiceMock.assignCircleToCategory.mockResolvedValue({ kind: "ok" });
+
+    const app = createAuthTestApp({ id: "user_1", role: "user" });
+    const response = await app.request(
+      API_ROUTES.circles.categoryAssignments(categoryId),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ circleId }),
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { success: boolean };
+    expect(body.success).toBe(true);
+  });
+
+  // ── DELETE /api/v1/circles/user-categories/:categoryId/circles ──
+
+  it("DELETE categoryAssignments returns 403 when non-owner", async () => {
+    circlesServiceMock.removeCircleFromCategory.mockResolvedValue({ kind: "forbidden" });
+
+    const app = createAuthTestApp({ id: "user_2", role: "user" });
+    const response = await app.request(
+      API_ROUTES.circles.categoryAssignments(categoryId),
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ circleId }),
+      }
+    );
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { code: string };
+    expect(body.code).toBe("FORBIDDEN");
+  });
+
+  it("DELETE categoryAssignments succeeds when owner", async () => {
+    circlesServiceMock.removeCircleFromCategory.mockResolvedValue({ kind: "ok" });
+
+    const app = createAuthTestApp({ id: "user_1", role: "user" });
+    const response = await app.request(
+      API_ROUTES.circles.categoryAssignments(categoryId),
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ circleId }),
+      }
+    );
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as { success: boolean };

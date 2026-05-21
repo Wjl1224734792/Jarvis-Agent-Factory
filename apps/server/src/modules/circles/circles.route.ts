@@ -224,14 +224,28 @@ circlesRoute.delete(API_ROUTES.circles.update(":id"), requireAuth, async (contex
 });
 
 circlesRoute.post(API_ROUTES.circles.categoryAssignments(":categoryId"), requireAuth, async (context) => {
+  const user = context.get("currentUser")!;
   const body = await context.req.json();
-  await circlesService.assignCircleToCategory(context.req.param("categoryId")!, body.circleId);
+  const result = await circlesService.assignCircleToCategory(
+    context.req.param("categoryId")!,
+    body.circleId,
+    user.id
+  );
+  if (result.kind === "not_found") return context.json({ code: "NOT_FOUND", message: "Category not found." }, 404);
+  if (result.kind === "forbidden") return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   return context.json({ success: true });
 });
 
 circlesRoute.delete(API_ROUTES.circles.categoryAssignments(":categoryId"), requireAuth, async (context) => {
+  const user = context.get("currentUser")!;
   const body = await context.req.json();
-  await circlesService.removeCircleFromCategory(context.req.param("categoryId")!, body.circleId);
+  const result = await circlesService.removeCircleFromCategory(
+    context.req.param("categoryId")!,
+    body.circleId,
+    user.id
+  );
+  if (result.kind === "not_found") return context.json({ code: "NOT_FOUND", message: "Category not found." }, 404);
+  if (result.kind === "forbidden") return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   return context.json({ success: true });
 });
 
