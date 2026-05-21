@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoWiki · Jarvis Agent Factory</title>
+<style>
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --tag-bg: #1f2937; --tag-text: #58a6ff; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:10; }
+  header a { color:var(--muted); text-decoration:none; font-size:14px; }
+  header a:hover { color:var(--accent); }
+  .container { max-width:1000px; margin:0 auto; padding:24px; }
+  h1 { font-size:24px; margin-bottom:8px; }
+  .subtitle { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  .page-list { display:flex; flex-direction:column; gap:8px; }
+  .page-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; cursor:pointer; transition:border-color .15s; }
+  .page-card:hover { border-color:var(--accent); }
+  .page-card h3 { font-size:16px; margin-bottom:4px; }
+  .page-card .meta { font-size:12px; color:var(--muted); display:flex; gap:12px; align-items:center; }
+  .tag { background:var(--tag-bg); color:var(--tag-text); padding:2px 8px; border-radius:12px; font-size:11px; }
+  .category { text-transform:uppercase; font-size:10px; letter-spacing:.5px; color:var(--accent); }
+  .empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty h2 { font-size:20px; margin-bottom:8px; color:var(--text); }
+  .page-detail { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; }
+  .page-detail h2 { font-size:22px; margin-bottom:12px; }
+  .page-detail .frontmatter { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:12px 16px; margin-bottom:20px; font-size:13px; }
+  .page-detail .frontmatter table { width:100%; border-collapse:collapse; }
+  .page-detail .frontmatter td { padding:4px 8px; vertical-align:top; }
+  .page-detail .frontmatter td:first-child { color:var(--muted); white-space:nowrap; width:1%; }
+  .page-detail .body { line-height:1.7; font-size:15px; }
+  .page-detail .body h1,.page-detail .body h2,.page-detail .body h3 { margin:16px 0 8px; }
+  .page-detail .body p { margin:8px 0; }
+  .page-detail .body code { background:var(--bg); padding:2px 6px; border-radius:4px; font-size:13px; }
+  .page-detail .body pre { background:var(--bg); padding:12px; border-radius:6px; overflow-x:auto; font-size:13px; margin:12px 0; }
+  .back-btn { display:inline-block; margin-bottom:16px; color:var(--accent); cursor:pointer; font-size:14px; }
+  .back-btn:hover { text-decoration:underline; }
+  .search-bar { margin-bottom:20px; }
+  .search-bar input { width:100%; padding:10px 16px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; outline:none; }
+  .search-bar input:focus { border-color:var(--accent); }
+  .filter-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .filter-row select { padding:6px 12px; background:var(--card); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; }
+  .count { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; }
+  .nav a { color:var(--muted); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:4px; }
+  .nav a:hover,.nav a.active { color:var(--accent); background:var(--tag-bg); }
+  .lint-report { margin-top:24px; }
+  .lint-report h3 { margin-bottom:12px; }
+  .lint-issue { background:var(--card); border-left:3px solid #d29922; padding:8px 16px; margin-bottom:6px; border-radius:0 6px 6px 0; font-size:13px; }
+  .lint-issue.warn { border-color:#d29922; }
+  .lint-issue.err { border-color:#f85149; }
+  .tabs { display:flex; gap:0; margin-bottom:24px; border-bottom:1px solid var(--border); }
+  .tabs button { padding:8px 20px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; border-bottom:2px solid transparent; }
+  .tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .loading { text-align:center; padding:40px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <strong>Jarvis</strong>
+  <nav class="nav">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/commands-reference.html">指令</a>
+    <a href="/guide.html">指南</a>
+    <a href="/wiki" class="active">Wiki</a>
+  </nav>
+</header>
+
+<div class="container" id="app"><div class="loading">加载中…</div></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+let state = { view: 'list', pages: [], currentSlug: null, filter: '', category: '' };
+
+async function init() {
+  try {
+    const r = await fetch('/api/wiki/pages');
+    const data = await r.json();
+    state.pages = data.pages || [];
+  } catch(e) {
+    state.pages = [];
+  }
+  renderList();
+}
+
+function renderList() {
+  let html = '<h1>RepoWiki</h1><p class="subtitle">项目知识库 · 持久化 Markdown Wiki</p>';
+
+  html += '<div class="search-bar"><input placeholder="搜索页面标题或内容…" oninput="onSearch(this.value)" id="searchInput"></div>';
+
+  html += `<div class="count">共 ${state.pages.length} 页</div>`;
+
+  if (state.pages.length === 0) {
+    html += '<div class="empty"><h2>知识库为空</h2><p>使用 <code>/repowiki add</code> 或 <code>/repowiki ingest</code> 添加知识页面。</p></div>';
+  } else {
+    html += '<div class="page-list">';
+    for (const p of state.pages) {
+      const tags = (p.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+      html += `<div class="page-card" onclick="viewPage('${esc(p.slug)}')">
+        <h3>${esc(p.title)}</h3>
+        <div class="meta">
+          <span class="category">${esc(p.category)}</span>
+          ${tags}
+          <span>${esc(p.updated?.slice(0,10) || '')}</span>
+          <span>${formatSize(p.size)}</span>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  $('#app').innerHTML = html;
+}
+
+async function viewPage(slug) {
+  $('#app').innerHTML = '<div class="loading">加载中…</div>';
+  try {
+    const r = await fetch('/api/wiki/page/' + slug);
+    const page = await r.json();
+    if (page.error) { alert(page.error); renderList(); return; }
+    state.currentSlug = slug;
+    state.view = 'detail';
+
+    let html = `<div class="back-btn" onclick="renderList()">← 返回列表</div>`;
+    html += '<div class="page-detail">';
+    html += `<h2>${esc(page.meta.title)}</h2>`;
+    html += '<div class="frontmatter"><table>';
+    html += `<tr><td>分类</td><td>${esc(page.meta.category)}</td></tr>`;
+    html += `<tr><td>标签</td><td>${(page.meta.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join(' ')}</td></tr>`;
+    html += `<tr><td>更新时间</td><td>${esc((page.meta.updated||'').slice(0,19))}</td></tr>`;
+    if (page.meta.confidence) html += `<tr><td>置信度</td><td>${esc(page.meta.confidence)}</td></tr>`;
+    html += `<tr><td>大小</td><td>${formatSize(page.size)}</td></tr>`;
+    html += '</table></div>';
+    html += '<div class="body">' + simpleMd(page.body) + '</div>';
+    html += '</div>';
+
+    $('#app').innerHTML = html;
+  } catch(e) {
+    alert('加载失败: ' + e.message);
+    renderList();
+  }
+}
+
+function onSearch(val) {
+  state.filter = val.toLowerCase();
+  // Server-side query would be better, but for simplicity filter client-side
+  if (!val) { renderList(); return; }
+  // Navigate to filtered view
+  const filtered = state.pages.filter(p =>
+    p.title.toLowerCase().includes(val) ||
+    (p.tags||[]).some(t => t.toLowerCase().includes(val))
+  );
+  let html = '<h1>RepoWiki</h1><p class="subtitle">搜索结果</p>';
+  html += `<div class="search-bar"><input value="${esc(val)}" oninput="onSearch(this.value)"></div>`;
+  html += `<div class="count">匹配 ${filtered.length}/${state.pages.length} 页</div>`;
+  if (filtered.length === 0) {
+    html += '<div class="empty"><h2>无匹配结果</h2><p>尝试其他关键词。</p></div>';
+  } else {
+    html += '<div class="page-list">';
+    for (const p of filtered) {
+      const tags = (p.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+      html += `<div class="page-card" onclick="viewPage('${esc(p.slug)}')">
+        <h3>${esc(p.title)}</h3>
+        <div class="meta"><span class="category">${esc(p.category)}</span>${tags}<span>${esc(p.updated?.slice(0,10)||'')}</span></div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  $('#app').innerHTML = html;
+}
+
+function simpleMd(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^- (.+)/gm,'<li>$1</li>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  return (bytes/1024).toFixed(1) + ' KB';
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+init();
+</script>
+</body>
+</html>

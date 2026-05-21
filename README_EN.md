@@ -1,7 +1,7 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.5.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.6.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>**Pure-text model (e.g. DeepSeek) users** → Pair with [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) for visual understanding
@@ -9,7 +9,7 @@
 
 An AI coding assistant configuration set + MCP orchestration engine. A complete **idea-to-delivery software development pipeline**. **Claude Code only**.
 
-> **v4.5.0** — /review→/audit to avoid conflict with Claude Code built-in command, auto.md adds /ask positioning distinction
+> **v4.6.0** — New /repowiki knowledge base command (add/ingest/query/list/read/delete/lint), persistent Markdown Wiki
 
 ## Quick Start
 

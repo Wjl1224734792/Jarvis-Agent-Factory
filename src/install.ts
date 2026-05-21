@@ -177,6 +177,7 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   // Initialize project memory system (.jarvis/memory/)
   if (platform === 'claude' && !isGlobal) {
     installMemory(target);
+    installWiki(target);
     // Generate hierarchical AGENTS.md + CLAUDE.md via deepinit
     installDeepinit(target, force);
   }
@@ -207,6 +208,26 @@ function installMemory(target: string): void {
     }
     console.log('  📝 memory → .jarvis/memory/ (项目级跨会话记忆)');
   } catch { /* memory init 失败不阻塞主流程 */ }
+}
+
+/**
+ * 初始化 Wiki 知识库目录：<project>/.jarvis/wiki/
+ * 创建 pages 子目录和 .gitignore 排除规则。
+ */
+function installWiki(target: string): void {
+  try {
+    const wikiRoot = resolve(target, '.jarvis', 'wiki');
+    const pagesDir = resolve(wikiRoot, 'pages');
+    if (!existsSync(pagesDir)) mkdirSync(pagesDir, { recursive: true });
+    // 确保 wiki/ 被 gitignore
+    const giPath = resolve(target, '.jarvis', '.gitignore');
+    let gi = '';
+    try { gi = readFileSync(giPath, 'utf-8'); } catch { /* ok */ }
+    if (!gi.includes('wiki/')) {
+      writeFileSync(giPath, (gi ? gi.trimEnd() + '\n' : '') + 'wiki/\n', 'utf-8');
+    }
+    console.log('  📚 wiki → .jarvis/wiki/ (项目知识库)');
+  } catch { /* wiki init 失败不阻塞主流程 */ }
 }
 
 /**

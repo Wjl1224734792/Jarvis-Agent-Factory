@@ -8,6 +8,7 @@ import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, ge
 import { syncAgentFile } from '../engine/agent-fs.js';
 import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
 import type { PubSubEventType } from '../engine/pubsub.js';
+import { listWikiPages, readWikiPage } from '../engine/wiki-store.js';
 
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 
@@ -785,6 +786,20 @@ export function setupApiRoutes(app, db, root) {
   // 启动 SSE 广播定时器（每 8 秒推送一次会话数据）
   if (_sseTimer) clearInterval(_sseTimer);
   _sseTimer = setInterval(() => { broadcastSSE(); }, 8000);
+
+  // ── RepoWiki API ─────────────────────────────
+
+  app.get('/api/wiki/pages', (c) => {
+    const pages = listWikiPages(root);
+    return c.json({ pages, count: pages.length });
+  });
+
+  app.get('/api/wiki/page/:slug', (c) => {
+    const slug = c.req.param('slug');
+    const page = readWikiPage(root, slug);
+    if (!page) return c.json({ error: `Page "${slug}" not found` }, 404);
+    return c.json(page);
+  });
 }
 
 function getArtifactsDir(root) { return resolve(root, '.jarvis'); }
