@@ -20,7 +20,7 @@ vi.mock('../src/engine/agent-registry.js', () => ({
 }));
 
 // resolvePlatformInfo 导入在 mock 之后，确保使用 mock 版本
-import { resolvePlatformInfo } from '../src/engine/server.js';
+import { resolvePlatformInfo } from '../src/engine/platform-info.js';
 
 /** 测试用的假 agent 数据 */
 function mockAgent(id: string, platform: string, model: string) {
