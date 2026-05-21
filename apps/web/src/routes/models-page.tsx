@@ -306,6 +306,14 @@ export function ModelsPage() {
   }, [filtersState.keyword]);
 
   useEffect(() => {
+    setPriceMin(filtersState.priceMin ?? "");
+  }, [filtersState.priceMin]);
+
+  useEffect(() => {
+    setPriceMax(filtersState.priceMax ?? "");
+  }, [filtersState.priceMax]);
+
+  useEffect(() => {
     if (isXlViewport) {
       setMobileFiltersOpen(false);
     }
@@ -314,6 +322,9 @@ export function ModelsPage() {
   const categoryQuery = categorySearch.trim().toLowerCase();
   const brandQuery = brandSearch.trim().toLowerCase();
 
+  const priceMinNum = filtersState.priceMin ? Number(filtersState.priceMin) : undefined;
+  const priceMaxNum = filtersState.priceMax ? Number(filtersState.priceMax) : undefined;
+
   const modelsQuery = useQuery({
     queryKey: [
       "models",
@@ -321,7 +332,9 @@ export function ModelsPage() {
       filtersState.categorySlugs,
       filtersState.brandSlugs,
       filtersState.powerTypes,
-      filtersState.keyword
+      filtersState.keyword,
+      filtersState.priceMin,
+      filtersState.priceMax
     ],
     placeholderData: keepPreviousData,
     queryFn: () =>
@@ -330,7 +343,9 @@ export function ModelsPage() {
         categorySlugs: filtersState.categorySlugs,
         brandSlugs: filtersState.brandSlugs,
         powerTypes: filtersState.powerTypes,
-        keyword: filtersState.keyword
+        keyword: filtersState.keyword,
+        priceMin: priceMinNum,
+        priceMax: priceMaxNum
       })
   });
 
@@ -437,54 +452,78 @@ export function ModelsPage() {
 
   const desktopFilterBar = (
     <div className="space-y-3">
-      {/* 分类横滑 Tab */}
-      <div className="flex items-center gap-2 overflow-x-auto">
+      {/* 分类：横滑分隔线 + 内联搜索 */}
+      <div className="flex items-center gap-0 overflow-x-auto whitespace-nowrap">
         <button
           className={cn(
-            "shrink-0 rounded-full px-3.5 py-1.5 text-sm transition",
+            "shrink-0 pr-3 text-sm transition",
             filtersState.categorySlugs.length === 0
-              ? "bg-primary text-white font-medium"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
+              ? "text-primary font-semibold"
+              : "text-muted-foreground hover:text-foreground"
           )}
           onClick={() => updateParams({ categorySlugs: [] })}
           type="button"
         >
           全部
         </button>
-        {categories.map((c) => {
+        {visibleCategories.map((c) => {
           const active = filtersState.categorySlugs.includes(c.slug);
           return (
-            <button
-              className={cn(
-                "shrink-0 rounded-full px-3.5 py-1.5 text-sm transition",
-                active
-                  ? "bg-primary text-white font-medium"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-              key={c.slug}
-              onClick={() => toggleGroupValue("categorySlugs", c.slug)}
-              type="button"
-            >
-              {c.name}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 品牌 Logo 墙 + 价格 + 更多筛选 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {brands.slice(0, 8).map((b) => {
-            const active = filtersState.brandSlugs.includes(b.slug);
-            return (
+            <span className="flex shrink-0 items-center gap-0" key={c.slug}>
+              <span className="mx-2 h-3.5 w-px bg-border/70" />
               <button
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition",
+                  "shrink-0 text-sm transition",
                   active
-                    ? "border-primary bg-primary/8 text-primary"
-                    : "border-border/60 text-muted-foreground hover:border-primary/40"
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
-                key={b.slug}
+                onClick={() => toggleGroupValue("categorySlugs", c.slug)}
+                type="button"
+              >
+                {c.name}
+              </button>
+            </span>
+          );
+        })}
+        <span className="mx-2 h-3.5 w-px bg-border/70" />
+        <span className="relative shrink-0">
+          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-7 w-28 pl-7 text-xs"
+            onChange={(event) => setCategorySearch(event.target.value)}
+            placeholder="搜索"
+            value={categorySearch}
+          />
+        </span>
+      </div>
+
+      {/* 品牌：横滑分隔线 + 内联搜索 */}
+      <div className="flex items-center gap-0 overflow-x-auto whitespace-nowrap">
+        <button
+          className={cn(
+            "shrink-0 pr-3 text-sm transition",
+            filtersState.brandSlugs.length === 0
+              ? "text-primary font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => updateParams({ brandSlugs: [] })}
+          type="button"
+        >
+          全部
+        </button>
+        {visibleBrands.map((b) => {
+          const active = filtersState.brandSlugs.includes(b.slug);
+          return (
+            <span className="flex shrink-0 items-center gap-0" key={b.slug}>
+              <span className="mx-2 h-3.5 w-px bg-border/70" />
+              <button
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 text-sm transition",
+                  active
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
                 onClick={() => toggleGroupValue("brandSlugs", b.slug)}
                 type="button"
               >
@@ -493,12 +532,23 @@ export function ModelsPage() {
                 ) : null}
                 {b.name}
               </button>
-            );
-          })}
-          {brands.length > 8 ? (
-            <span className="text-xs text-muted-foreground">+{brands.length - 8}</span>
-          ) : null}
-        </div>
+            </span>
+          );
+        })}
+        <span className="mx-2 h-3.5 w-px bg-border/70" />
+        <span className="relative shrink-0">
+          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-7 w-28 pl-7 text-xs"
+            onChange={(event) => setBrandSearch(event.target.value)}
+            placeholder="搜索"
+            value={brandSearch}
+          />
+        </span>
+      </div>
+
+      {/* 价格 + 更多筛选 */}
+      <div className="flex flex-wrap items-center gap-3">
 
         <div className="flex items-center gap-2 ml-auto">
           <div className="flex items-center gap-1.5 text-sm">
@@ -509,8 +559,8 @@ export function ModelsPage() {
                 if (e.key === "Enter") {
                   updateParams({
                     priceMin: priceMin || undefined,
-                    priceMax: priceMax || undefined,
-                  } as Record<string, unknown>);
+                    priceMax: priceMax || undefined
+                  });
                 }
               }}
               placeholder="最低价"
@@ -525,8 +575,8 @@ export function ModelsPage() {
                 if (e.key === "Enter") {
                   updateParams({
                     priceMin: priceMin || undefined,
-                    priceMax: priceMax || undefined,
-                  } as Record<string, unknown>);
+                    priceMax: priceMax || undefined
+                  });
                 }
               }}
               placeholder="最高价"

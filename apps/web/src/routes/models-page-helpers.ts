@@ -13,6 +13,8 @@ export type ModelFilterParams = {
   brandSlugs: string[];
   powerTypes: string[];
   keyword: string;
+  priceMin?: string;
+  priceMax?: string;
 };
 
 function uniqueValues(values: string[]) {
@@ -24,7 +26,9 @@ export function readModelFilterParams(searchParams: URLSearchParams): ModelFilte
     categorySlugs: uniqueValues(searchParams.getAll("categorySlug")),
     brandSlugs: uniqueValues(searchParams.getAll("brandSlug")),
     powerTypes: uniqueValues(searchParams.getAll("powerType")),
-    keyword: searchParams.get("keyword")?.trim() ?? ""
+    keyword: searchParams.get("keyword")?.trim() ?? "",
+    priceMin: searchParams.get("priceMin")?.trim() || undefined,
+    priceMax: searchParams.get("priceMax")?.trim() || undefined
   };
 }
 
@@ -63,6 +67,20 @@ export function buildModelFilterSearchParams(
     params.delete("keyword");
     if (next.keyword?.trim()) {
       params.set("keyword", next.keyword.trim());
+    }
+  }
+
+  if ("priceMin" in next) {
+    params.delete("priceMin");
+    if (next.priceMin?.trim()) {
+      params.set("priceMin", next.priceMin.trim());
+    }
+  }
+
+  if ("priceMax" in next) {
+    params.delete("priceMax");
+    if (next.priceMax?.trim()) {
+      params.set("priceMax", next.priceMax.trim());
     }
   }
 

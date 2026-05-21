@@ -395,7 +395,8 @@ export function CirclePageDetail({
                       <ReportActionSheet
                         description="请填写举报理由，并至少上传 1 张证据图。"
                         onSubmit={async (input) => {
-                          await apiClient.reportPost(selectedNote.id, input);
+                          const circleId = (selectedNote as Record<string, unknown>).circleId as string ?? "";
+                          await apiClient.reportCirclePost(circleId, selectedNote.id, input);
                         }}
                         title="举报内容"
                         trigger={

@@ -199,46 +199,59 @@ export function ModelGridSkeleton(props: { count?: number }) {
 
 export function ModelsPageSkeleton(props: { count?: number }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
-      <div className="hidden space-y-3 xl:order-2 xl:block xl:sticky xl:top-[5.5rem] xl:self-start">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div className="rounded-none bg-white p-3" key={index}>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <Skeleton className="h-5 w-16 rounded-none" />
-                <Skeleton className="h-3 w-10 rounded-none" />
-              </div>
-              <Skeleton className="h-10 rounded-none" />
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((__, innerIndex) => (
-                  <Skeleton className="h-10 rounded-none" key={innerIndex} />
-                ))}
-              </div>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="hidden space-y-3 xl:block">
+        {/* 分类/品牌过滤行骨架 */}
+        <div className="flex items-center gap-2 overflow-x-hidden">
+          <Skeleton className="h-5 w-10 rounded-none shrink-0" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <span className="flex shrink-0 items-center gap-2" key={`cat-${i}`}>
+              <Skeleton className="h-3.5 w-px rounded-none" />
+              <Skeleton className="h-5 w-12 rounded-none" />
+            </span>
+          ))}
+          <span className="flex shrink-0 items-center gap-2">
+            <Skeleton className="h-3.5 w-px rounded-none" />
+            <Skeleton className="h-7 w-20 rounded-none" />
+          </span>
+        </div>
+        <div className="flex items-center gap-2 overflow-x-hidden">
+          <Skeleton className="h-5 w-10 rounded-none shrink-0" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span className="flex shrink-0 items-center gap-2" key={`brand-${i}`}>
+              <Skeleton className="h-3.5 w-px rounded-none" />
+              <Skeleton className="h-5 w-14 rounded-none" />
+            </span>
+          ))}
+          <span className="flex shrink-0 items-center gap-2">
+            <Skeleton className="h-3.5 w-px rounded-none" />
+            <Skeleton className="h-7 w-20 rounded-none" />
+          </span>
+        </div>
+        {/* 价格 + 筛选骨架 */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-7 w-20 rounded-none" />
+          <Skeleton className="h-3 w-3 rounded-none" />
+          <Skeleton className="h-7 w-20 rounded-none" />
+          <Skeleton className="h-7 w-16 rounded-none ml-auto" />
+        </div>
+      </div>
+
+      {/* 搜索 + 清空骨架 */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <Skeleton className="h-10 rounded-none" />
+        <Skeleton className="h-10 w-24 rounded-none" />
+      </div>
+
+      {/* Tab 栏骨架 */}
+      <div className="flex gap-5 overflow-x-auto border-b border-border/60">
+        {Array.from({ length: 3 }).map((_, tabIndex) => (
+          <Skeleton className="h-8 w-12 rounded-none" key={tabIndex} />
         ))}
       </div>
-      <div className="space-y-4 xl:order-1">
-        <div className="space-y-3 bg-white px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0 flex-1 space-y-1">
-              <Skeleton className="h-5 w-24 rounded-none" />
-              <Skeleton className="h-3.5 w-48 rounded-none" />
-            </div>
-            <Skeleton className="h-8 shrink-0 rounded-none xl:hidden" />
-          </div>
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <Skeleton className="h-10 rounded-none" />
-            <Skeleton className="h-10 w-24 rounded-none" />
-          </div>
-          <div className="flex gap-5 overflow-x-auto border-b border-border/60">
-            {Array.from({ length: 3 }).map((_, tabIndex) => (
-              <Skeleton className="h-10 w-12 rounded-none" key={tabIndex} />
-            ))}
-          </div>
-        </div>
-        <ModelGridSkeleton count={props.count ?? 10} />
-      </div>
+
+      {/* 机型卡片网格骨架 */}
+      <ModelGridSkeleton count={props.count ?? 10} />
     </div>
   );
 }

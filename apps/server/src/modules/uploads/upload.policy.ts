@@ -66,6 +66,13 @@ const uploadPolicies = {
     visibility: "public",
     maxSize: 10 * MB,
     mimePrefixes: ["image/"]
+  },
+  "circle-cover-image": {
+    bizType: "circle-cover-image",
+    mediaKind: "image",
+    visibility: "public",
+    maxSize: 5 * MB,
+    mimePrefixes: ["image/"]
   }
 } satisfies Record<FileBizType, UploadPolicy>;
 
@@ -77,7 +84,8 @@ const uploadBizTypeEnvKeys = {
   "aircraft-video": "UPLOAD_MAX_AIRCRAFT_VIDEO_SIZE_MB",
   "ranking-cover-image": "UPLOAD_MAX_RANKING_COVER_IMAGE_SIZE_MB",
   "ranking-item-image": "UPLOAD_MAX_RANKING_ITEM_IMAGE_SIZE_MB",
-  "report-image": "UPLOAD_MAX_REPORT_IMAGE_SIZE_MB"
+  "report-image": "UPLOAD_MAX_REPORT_IMAGE_SIZE_MB",
+  "circle-cover-image": "UPLOAD_MAX_CIRCLE_COVER_IMAGE_SIZE_MB"
 } satisfies Record<FileBizType, string>;
 
 const uploadMediaEnvKeys = {

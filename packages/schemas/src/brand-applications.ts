@@ -10,7 +10,7 @@ export const brandApplicationStatusSchema = z.enum([
 export const brandApplicationSchema = z.object({
   id: z.string().min(1),
   status: brandApplicationStatusSchema,
-  slug: z.string().min(1),
+  slug: z.string().min(1).nullable().default(null),
   name: z.string().min(1),
   logoUrl: z.string().trim().min(1).nullable().default(null),
   description: z.string().nullable(),
@@ -22,7 +22,7 @@ export const brandApplicationSchema = z.object({
 });
 
 export const createBrandApplicationInputSchema = z.object({
-  slug: z.string().trim().min(1).max(80),
+  slug: z.string().trim().max(80).nullable().optional().default(null),
   name: z.string().trim().min(1).max(80),
   logoUrl: z.string().trim().min(1).nullable().optional().default(null),
   description: z.string().trim().max(500).nullable().optional().default(null)

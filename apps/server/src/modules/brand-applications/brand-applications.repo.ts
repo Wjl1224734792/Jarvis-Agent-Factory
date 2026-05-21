@@ -26,7 +26,7 @@ export const brandApplicationsRepo = {
   async create(input: {
     applicantId: string;
     status: string;
-    slug: string;
+    slug: string | null;
     name: string;
     logoUrl: string | null;
     description: string | null;
@@ -70,7 +70,7 @@ export const brandApplicationsRepo = {
     id: string,
     input: {
       status: string;
-      slug: string;
+      slug: string | null;
       name: string;
       logoUrl: string | null;
       description: string | null;

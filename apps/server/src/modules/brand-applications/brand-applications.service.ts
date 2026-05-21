@@ -51,12 +51,12 @@ async function serializeApplicationOrThrow(
 }
 
 async function createBrandFromApplication(input: {
-  slug: string;
+  slug: string | null;
   name: string;
   logoUrl: string | null;
 }) {
   const brands = await brandsService.listBrands();
-  const requestedSlug = slugify(input.slug) || slugify(input.name) || "brand";
+  const requestedSlug = slugify(input.slug ?? "") || slugify(input.name) || "brand";
   const usedSlugs = new Set(brands.map((item) => item.slug));
   let nextSlug = requestedSlug;
   let suffix = 2;
@@ -80,7 +80,7 @@ async function createBrandFromApplication(input: {
 export const brandApplicationsService = {
   async createApplication(input: {
     applicantId: string;
-    slug: string;
+    slug: string | null;
     name: string;
     logoUrl: string | null;
     description: string | null;
@@ -131,7 +131,7 @@ export const brandApplicationsService = {
     id: string,
     currentUser: { id: string; role: "user" | "admin" },
     input: {
-      slug: string;
+      slug: string | null;
       name: string;
       logoUrl: string | null;
       description: string | null;

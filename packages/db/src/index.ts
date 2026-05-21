@@ -53,7 +53,10 @@ export {
   circlePostInteractionsTable,
   circlePostCommentsTable,
   circleUserCategoriesTable,
-  circleCategoryAssignmentsTable
+  circleCategoryAssignmentsTable,
+  circlePostReportsTable,
+  circlePostCommentReportsTable,
+  circlePostCommentLikesTable
 } from "./schema.js";
 export {
   createId,

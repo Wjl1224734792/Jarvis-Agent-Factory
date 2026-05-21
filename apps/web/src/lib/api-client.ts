@@ -586,6 +586,8 @@ function buildModelListSearch(input?: {
   sort?: "hot" | "latest";
   tab?: "recommended" | "latest" | "following";
   limit?: number;
+  priceMin?: number;
+  priceMax?: number;
 }) {
   const search = new URLSearchParams();
 
@@ -617,6 +619,14 @@ function buildModelListSearch(input?: {
     search.set("limit", String(input.limit));
   }
 
+  if (typeof input?.priceMin === "number" && !Number.isNaN(input.priceMin)) {
+    search.set("priceMin", String(input.priceMin));
+  }
+
+  if (typeof input?.priceMax === "number" && !Number.isNaN(input.priceMax)) {
+    search.set("priceMax", String(input.priceMax));
+  }
+
   const query = search.toString();
   return query ? `?${query}` : "";
 }
@@ -643,6 +653,8 @@ const rawApiClient = {
     sort?: "hot" | "latest";
     tab?: "recommended" | "latest" | "following";
     limit?: number;
+        priceMin?: number;
+        priceMax?: number;
   }) {
     return getJson<WebModelListResponse>(
       `${API_ROUTES.models.list}${buildModelListSearch({
@@ -652,7 +664,9 @@ const rawApiClient = {
         keyword: input?.keyword ?? "",
         sort: input?.sort,
         tab: input?.tab,
-        limit: input?.limit
+        limit: input?.limit,
+        priceMin: input?.priceMin,
+        priceMax: input?.priceMax
       })}`
     );
   },

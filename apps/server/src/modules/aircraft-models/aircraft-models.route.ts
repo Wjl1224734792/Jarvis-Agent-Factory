@@ -53,7 +53,9 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
     tab: context.req.query("tab") || undefined,
     currentUserId: context.get("currentUser")?.id ?? undefined,
     limit: context.req.query("limit") || undefined,
-    page: context.req.query("page") || undefined
+    page: context.req.query("page") || undefined,
+      priceMin: context.req.query("priceMin") || undefined,
+      priceMax: context.req.query("priceMax") || undefined
   });
 
   const payload = await aircraftModelsService.listModels(query);

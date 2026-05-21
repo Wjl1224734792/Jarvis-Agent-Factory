@@ -83,10 +83,13 @@ import {
 } from "./seed.storage.js";
 import { hashVerificationCode } from "./helpers.js";
 import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function resolveRepoRoot(): string {
-  return resolve(import.meta.dirname, "..", "..", "..");
+  return resolve(__dirname, "..", "..", "..");
 }
 
 function loadSeedAsset(filename: string): Buffer {

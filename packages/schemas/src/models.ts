@@ -166,7 +166,9 @@ export const modelListQuerySchema = z
     limit: z.coerce.number().int().positive().max(20).optional(),
     page: z.coerce.number().int().positive().optional(),
     tab: z.enum(["recommended", "latest", "following"]).optional(),
-    currentUserId: z.string().min(1).optional()
+    currentUserId: z.string().min(1).optional(),
+    priceMin: z.coerce.number().int().nonnegative().optional(),
+    priceMax: z.coerce.number().int().nonnegative().optional()
   })
   .transform((input) => ({
     categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
@@ -177,7 +179,9 @@ export const modelListQuerySchema = z
     tab: input.tab,
     currentUserId: input.currentUserId,
     limit: input.limit,
-    page: input.page
+    page: input.page,
+    priceMin: input.priceMin,
+    priceMax: input.priceMax
   }));
 
 export const modelListResponseSchema = z.object({

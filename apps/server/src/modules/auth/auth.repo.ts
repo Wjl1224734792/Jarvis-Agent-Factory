@@ -36,6 +36,7 @@ svgCaptcha.options.ascender = loadedFont.ascender;
 svgCaptcha.options.descender = loadedFont.descender;
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
+import { isDevEnv } from "../../lib/env-mode";
 import { ensureRedisConnected, redis } from "./redis-client";
 
 export type SessionScope = "web" | "admin" | "app";
@@ -141,6 +142,8 @@ export function resolveAuthCodeConfig(env: NodeJS.ProcessEnv = process.env) {
       min: MIN_SMS_CODE_LENGTH,
       max: MAX_SMS_CODE_LENGTH
     }),
+    // DEV_AUTH_CODE_HASH_SECRET 仅作为 dev/test 环境回退值；
+    // 生产环境缺失 AUTH_CODE_HASH_SECRET 时已在上面抛出异常。
     hashSecret: hashSecret || DEV_AUTH_CODE_HASH_SECRET
   };
 }
@@ -332,7 +335,8 @@ export const authRepo = {
     };
   },
   async validateCaptcha(challengeId: string, code: string) {
-    if (process.env.NODE_ENV !== "production" && code.toUpperCase() === "0000") return true;
+    // 万能绕过码 0000 仅在显式开发环境下生效，测试和生产环境均走真实验证码校验
+    if (isDevEnv() && code.toUpperCase() === "0000") return true;
     await ensureRedisConnected();
     const config = resolveAuthCodeConfig();
     const key = `captcha:${challengeId}`;

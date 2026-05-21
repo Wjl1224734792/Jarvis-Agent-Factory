@@ -892,14 +892,19 @@ export function createApiClient(options: ApiClientOptions) {
       if (!response.ok) throw new Error(`Failed to get circle: ${response.status}`);
       return response.json() as Promise<{ item: Record<string, unknown> }>;
     },
-    async createCircle(input: { slug: string; name: string; description?: string; joinMode?: string }) {
+    async createCircle(input: { slug: string; name: string; description?: string; joinMode?: string; coverImageFileId?: string }) {
       const response = await fetch(`${baseUrl}${API_ROUTES.circles.create}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(input),
       });
-      if (!response.ok) throw new Error(`Failed to create circle: ${response.status}`);
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+        const error = new Error((body.message as string) || `Failed to create circle: ${response.status}`);
+        (error as unknown as Record<string, unknown>).code = body.code;
+        throw error;
+      }
       return response.json() as Promise<{ item: Record<string, unknown> }>;
     },
     async joinCircle(id: string) {
@@ -1001,6 +1006,137 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, circleFeedResponseSchema);
+    },
+    // ── 圈子帖子举报/编辑/删除 ──
+    async reportCirclePost(circleId: string, postId: string, input: { reason: string; imageFileIds?: string[] }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.report(circleId, postId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to report circle post: ${response.status}`);
+      return response.json() as Promise<{ id: string }>;
+    },
+    async updateCirclePost(circleId: string, postId: string, input: { title?: string; content?: string | null; images?: string[]; videos?: string[] }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.update(circleId, postId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to update circle post: ${response.status}`);
+      return response.json() as Promise<{ item: Record<string, unknown> }>;
+    },
+    async deleteCirclePost(circleId: string, postId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.delete(circleId, postId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to delete circle post: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    // ── 圈子评论举报/点赞/编辑/删除 ──
+    async reportCircleComment(circleId: string, postId: string, commentId: string, input: { reason: string; imageFileIds?: string[] }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.commentReport(circleId, postId, commentId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to report circle comment: ${response.status}`);
+      return response.json() as Promise<{ id: string }>;
+    },
+    async toggleCircleCommentLike(circleId: string, postId: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.commentLike(circleId, postId, commentId)}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to like circle comment: ${response.status}`);
+      return response.json() as Promise<{ liked: boolean; likeCount: number }>;
+    },
+    async updateCircleComment(circleId: string, postId: string, commentId: string, input: { content: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.commentUpdate(circleId, postId, commentId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to update circle comment: ${response.status}`);
+      return response.json() as Promise<{ item: Record<string, unknown> }>;
+    },
+    async deleteCircleComment(circleId: string, postId: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.commentDelete(circleId, postId, commentId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to delete circle comment: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    // ── Admin 圈子管理 ──
+    async listAdminCirclePosts(input?: { status?: string; circleId?: string; page?: number; limit?: number }) {
+      const params = new URLSearchParams();
+      if (input?.status) params.set("status", input.status);
+      if (input?.circleId) params.set("circleId", input.circleId);
+      if (input?.page) params.set("page", String(input.page));
+      if (input?.limit) params.set("limit", String(input.limit));
+      const qs = params.toString();
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.posts}${qs ? `?${qs}` : ""}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to list admin circle posts: ${response.status}`);
+      return response.json() as Promise<{ items: unknown[] }>;
+    },
+    async updateAdminCirclePostStatus(postId: string, input: { status: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.postStatus(postId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to update admin circle post status: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    async getAdminCirclePostReports(postId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.postReports(postId)}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to get admin circle post reports: ${response.status}`);
+      return response.json() as Promise<{ items: unknown[] }>;
+    },
+    async listAdminCircleComments(input?: { status?: string; circleId?: string; page?: number; limit?: number }) {
+      const params = new URLSearchParams();
+      if (input?.status) params.set("status", input.status);
+      if (input?.circleId) params.set("circleId", input.circleId);
+      if (input?.page) params.set("page", String(input.page));
+      if (input?.limit) params.set("limit", String(input.limit));
+      const qs = params.toString();
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.comments}${qs ? `?${qs}` : ""}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to list admin circle comments: ${response.status}`);
+      return response.json() as Promise<{ items: unknown[] }>;
+    },
+    async updateAdminCircleCommentStatus(commentId: string, input: { status: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.commentStatus(commentId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) throw new Error(`Failed to update admin circle comment status: ${response.status}`);
+      return response.json() as Promise<{ success: boolean }>;
+    },
+    async getAdminCircleCommentReports(commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.adminCircles.commentReports(commentId)}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to get admin circle comment reports: ${response.status}`);
+      return response.json() as Promise<{ items: unknown[] }>;
     },
     async createPost(input: CreatePostInput) {
       return postJson(API_ROUTES.posts.create, createPostResponseSchema, createPostInputSchema.parse(input));

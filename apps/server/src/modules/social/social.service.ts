@@ -159,7 +159,9 @@ type AdminMessageDomain =
   | "rating_targets"
   | "rating_target_comments"
   | "aircraft_submissions"
-  | "brand_applications";
+  | "brand_applications"
+  | "circle_posts"
+  | "circle_post_comments";
 
 type AdminMessageReadStatus = "all" | "read" | "unread";
 
@@ -174,7 +176,9 @@ const ADMIN_MESSAGE_DOMAIN_BY_TYPE: Partial<Record<NotificationType, AdminMessag
   ranking_audit_result: "rankings",
   rating_target_audit_result: "rating_targets",
   aircraft_submission_audit_result: "aircraft_submissions",
-  brand_application_audit_result: "brand_applications"
+  brand_application_audit_result: "brand_applications",
+  circle_post_audit_result: "circle_posts",
+  circle_comment_audit_result: "circle_post_comments"
 };
 
 const ADMIN_TODO_TITLES: Record<AdminMessageDomain, string> = {
@@ -188,7 +192,9 @@ const ADMIN_TODO_TITLES: Record<AdminMessageDomain, string> = {
   rating_targets: "榜单条目待审核",
   rating_target_comments: "榜单条目评论待审核",
   aircraft_submissions: "机型投稿待审核",
-  brand_applications: "品牌申请待审核"
+  brand_applications: "品牌申请待审核",
+  circle_posts: "圈子帖子待审核",
+  circle_post_comments: "圈子评论待审核"
 };
 
 const ADMIN_TODO_HREFS: Record<AdminMessageDomain, string> = {
@@ -202,7 +208,9 @@ const ADMIN_TODO_HREFS: Record<AdminMessageDomain, string> = {
   rating_targets: APP_ROUTES.adminRankings,
   rating_target_comments: APP_ROUTES.adminRatingTargetComments,
   aircraft_submissions: APP_ROUTES.adminAircraftSubmissions,
-  brand_applications: APP_ROUTES.adminBrandApplications
+  brand_applications: APP_ROUTES.adminBrandApplications,
+  circle_posts: APP_ROUTES.adminPosts,
+  circle_post_comments: APP_ROUTES.adminPostComments
 };
 
 const ADMIN_TODO_STATUS_FILTER: Record<AdminMessageDomain, string> = {
@@ -216,7 +224,9 @@ const ADMIN_TODO_STATUS_FILTER: Record<AdminMessageDomain, string> = {
   rating_targets: "pending",
   rating_target_comments: "pending",
   aircraft_submissions: "submitted",
-  brand_applications: "pending"
+  brand_applications: "pending",
+  circle_posts: "",
+  circle_post_comments: "pending"
 };
 
 /**
@@ -238,6 +248,12 @@ const ADMIN_MESSAGE_TYPES_BY_DOMAIN: Partial<Record<AdminMessageDomain, Notifica
   brand_applications: [
     "brand_application_audit_result",
     "brand_application_status_changed"
+  ],
+  circle_posts: [
+    "circle_post_audit_result"
+  ],
+  circle_post_comments: [
+    "circle_comment_audit_result"
   ]
 };
 
@@ -300,6 +316,9 @@ export const socialService = {
       | "post_shared"
       | "post_commented"
       | "comment_replied"
+      | "circle_post_liked"
+      | "circle_post_commented"
+      | "circle_comment_replied"
     >;
     postId?: string | null;
     commentId?: string | null;
@@ -320,10 +339,16 @@ export const socialService = {
     }
 
     const settings = await socialRepo.getResolvedUserSettings(input.userId);
-    if (input.type === "post_commented" && !settings.notifyComments) {
+    if (
+      (input.type === "post_commented" || input.type === "circle_post_commented") &&
+      !settings.notifyComments
+    ) {
       return;
     }
-    if (input.type === "comment_replied" && !settings.notifyMentions) {
+    if (
+      (input.type === "comment_replied" || input.type === "circle_comment_replied") &&
+      !settings.notifyMentions
+    ) {
       return;
     }
 
@@ -372,6 +397,18 @@ export const socialService = {
           title = "收到新的回复";
           summary = `${actor.displayName} 回复了你的评论`;
           break;
+        case "circle_post_liked":
+          title = "圈子帖子获赞";
+          summary = `${actor.displayName} 点赞了你在圈子中的帖子`;
+          break;
+        case "circle_post_commented":
+          title = "圈子帖子新评论";
+          summary = `${actor.displayName} 评论了你在圈子中的帖子`;
+          break;
+        case "circle_comment_replied":
+          title = "圈子评论新回复";
+          summary = `${actor.displayName} 回复了你在圈子中的评论`;
+          break;
       }
     }
 
@@ -412,6 +449,8 @@ export const socialService = {
       | "rating_target_audit_result"
       | "aircraft_submission_audit_result"
       | "brand_application_audit_result"
+      | "circle_post_audit_result"
+      | "circle_comment_audit_result"
     >;
     title: string;
     summary: string;
@@ -640,7 +679,9 @@ export const socialService = {
       rating_targets: counts.ratingTargets,
       rating_target_comments: counts.ratingTargetComments,
       aircraft_submissions: counts.aircraftSubmissions,
-      brand_applications: counts.brandApplications
+      brand_applications: counts.brandApplications,
+      circle_posts: counts.circlePosts,
+      circle_post_comments: counts.circlePostComments
     };
 
     const items = (Object.entries(domainCounts) as Array<[AdminMessageDomain, number]>).map(

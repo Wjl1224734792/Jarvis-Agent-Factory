@@ -2,11 +2,10 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
-import { Link } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusIcon, SendIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import {
@@ -17,7 +16,7 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { resolveFeedNextCursor } from "@/lib/feed-pagination";
 import { shouldRecordSessionView } from "@/lib/view-session";
-import { CirclePageFeed, type CircleFeedItem, type FeedTab } from "./circle-page-feed";
+import { CirclePageFeed, feedTabs, mapCirclePostToFeedItem, type CircleFeedItem, type FeedTab } from "./circle-page-feed";
 
 const CirclePageDetail = lazy(() =>
   import("./circle-page-detail").then((module) => ({
@@ -43,7 +42,10 @@ export function CirclePage() {
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
   const promptLogin = useLoginPrompt();
-  const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
+  const [activeTab, setActiveTab] = useState<FeedTab>(() => {
+    const tab = readTabFromURL();
+    return tab && feedTabs.some(t => t.id === tab) ? (tab as FeedTab) : "recommended";
+  });
   const [commentContent, setCommentContent] = useState("");
   const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,28 +55,38 @@ export function CirclePage() {
     return new URLSearchParams(window.location.search).get("note");
   }
 
-  function syncNoteIdToURL(noteId: string | null) {
+  function readTabFromURL(): string | null {
+    return new URLSearchParams(window.location.search).get("tab");
+  }
+
+  function syncURLParams(updates: { tab?: string | null; note?: string | null }) {
     const params = new URLSearchParams(window.location.search);
-    if (noteId) {
-      params.set("note", noteId);
-    } else {
-      params.delete("note");
+    if (updates.tab !== undefined) {
+      updates.tab ? params.set("tab", updates.tab) : params.delete("tab");
+    }
+    if (updates.note !== undefined) {
+      updates.note ? params.set("note", updates.note) : params.delete("note");
     }
     const search = params.toString();
     const url = search
       ? `${window.location.pathname}?${search}`
       : window.location.pathname;
-    window.history.replaceState(window.history.state, "", url);
+    window.history.replaceState(null, "", url);
   }
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
     readNoteIdFromURL()
   );
 
-  // 响应浏览器前进/后退时同步 selectedNoteId
+  // 响应浏览器前进/后退时同步 URL 状态
   useEffect(() => {
     function handlePopState() {
-      setSelectedNoteId(readNoteIdFromURL());
+      const tabFromURL = readTabFromURL();
+      if (tabFromURL && feedTabs.some(t => t.id === tabFromURL)) {
+        setActiveTab(tabFromURL as FeedTab);
+      }
+      const noteIdFromURL = readNoteIdFromURL();
+      setSelectedNoteId(noteIdFromURL ?? null);
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -83,35 +95,49 @@ export function CirclePage() {
     queryKey: ["circles-list"],
     queryFn: () => apiClient.listCircles({ sort: "hot" }),
   });
-  const circles = (circlesQuery.data?.items ?? []) as Array<{ id: string; slug: string; name: string; description?: string | null; memberCount: number; postCount: number }>;
+  const circles = (circlesQuery.data?.items ?? []) as Array<{ id: string; slug: string; name: string; description?: string | null; memberCount: number; postCount: number; coverImageUrl: string | null }>;
+
+  const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
+
+  const circlePostsQuery = useQuery({
+    queryKey: ["circle-posts", selectedCircleId],
+    queryFn: () => apiClient.listCirclePosts(selectedCircleId!, { tab: "latest" }),
+    enabled: Boolean(selectedCircleId),
+  });
 
   const [showCreate, setShowCreate] = useState(false);
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleSlug, setNewCircleSlug] = useState("");
   const [newCircleDesc, setNewCircleDesc] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
+  const [coverFileId, setCoverFileId] = useState<string | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
 
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPostTitle, setNewPostTitle] = useState("");
-  const [newPostContent, setNewPostContent] = useState("");
-  const [posting, setPosting] = useState(false);
-
-  async function handleCreatePost() {
-    if (!newPostTitle.trim() || posting) return;
-    setPosting(true);
+  async function handleCoverUpload(file: File) {
+    setIsCoverUploading(true);
+    setCreateError(null);
     try {
-      await (apiClient as any).createCircleFeedPost({
-        title: newPostTitle.trim(),
-        content: newPostContent.trim() || undefined,
+      const init = await apiClient.initUpload({
+        bizType: "circle-cover-image",
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type,
       });
-      setNewPostTitle("");
-      setNewPostContent("");
-      setShowCreatePost(false);
-      circleFeedQuery.refetch();
-    } catch {
-      // ignore
+      if (init.upload.mode === "presigned-put") {
+        await fetch(init.upload.url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+      }
+      const complete = await apiClient.completeUpload(init.fileId);
+      setCoverFileId(complete.item.id);
+      setCoverPreviewUrl(complete.item.url);
+    } catch (e: unknown) {
+      setCreateError(e instanceof Error ? e.message : "封面上传失败");
     } finally {
-      setPosting(false);
+      setIsCoverUploading(false);
     }
   }
 
@@ -121,27 +147,40 @@ export function CirclePage() {
       setCreateError("名称和Slug不能为空");
       return;
     }
+    if (!coverFileId) {
+      setCreateError("请上传圈子封面图");
+      return;
+    }
     try {
-      await apiClient.createCircle({ name: newCircleName.trim(), slug: newCircleSlug.trim(), description: newCircleDesc.trim() || undefined });
+      await apiClient.createCircle({ name: newCircleName.trim(), slug: newCircleSlug.trim(), description: newCircleDesc.trim() || undefined, coverImageFileId: coverFileId });
       setShowCreate(false);
       setNewCircleName("");
       setNewCircleSlug("");
       setNewCircleDesc("");
-      circlesQuery.refetch();
-    } catch (e: any) {
-      setCreateError(e?.message ?? "创建失败");
+      setCoverFileId(null);
+      setCoverPreviewUrl(null);
+      void circlesQuery.refetch();
+    } catch (e: unknown) {
+      const err = e as Record<string, unknown>;
+      if (err.code === "SPAM_BLOCKED") {
+        setCreateError((err.message as string) ?? "暂不满足创建条件");
+      } else {
+        setCreateError((err.message as string) ?? "创建失败");
+      }
     }
   }
 
+  const feedApiTab = activeTab === "circles" ? "recommended" : activeTab;
   const circleFeedQuery = useInfiniteQuery({
-    queryKey: ["circle-feed", activeTab],
+    queryKey: ["circle-feed", feedApiTab],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
-      apiClient.listCircleFeed(activeTab, {
+      apiClient.listCircleFeed(feedApiTab, {
         cursor: pageParam,
         limit: 20
       }),
-    getNextPageParam: (lastPage) => resolveFeedNextCursor(lastPage)
+    getNextPageParam: (lastPage) => resolveFeedNextCursor(lastPage),
+    enabled: true
   });
   const noteQuery = useQuery({
     queryKey: ["post-detail", selectedNoteId],
@@ -182,12 +221,12 @@ export function CirclePage() {
 
   function openNote(id: string) {
     setSelectedNoteId(id);
-    syncNoteIdToURL(id);
+    syncURLParams({ note: id });
   }
 
   function closeNote() {
     setSelectedNoteId(null);
-    syncNoteIdToURL(null);
+    syncURLParams({ note: null });
     setCommentContent("");
     setActionError(null);
   }
@@ -284,10 +323,6 @@ export function CirclePage() {
         <h2 className="text-lg font-bold text-foreground">飞友圈</h2>
         {authStatus === "authenticated" ? (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setShowCreatePost(!showCreatePost)}>
-              <SendIcon className="size-3.5 mr-1" />
-              发帖
-            </Button>
             <Button size="sm" variant="outline" onClick={() => setShowCreate(!showCreate)}>
               <PlusIcon className="size-3.5 mr-1" />
               创建圈子
@@ -295,27 +330,6 @@ export function CirclePage() {
           </div>
         ) : null}
       </div>
-
-      {showCreatePost ? (
-        <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">
-          <Input
-            onChange={(e) => setNewPostTitle(e.target.value)}
-            placeholder="帖子标题"
-            value={newPostTitle}
-          />
-          <Input
-            onChange={(e) => setNewPostContent(e.target.value)}
-            placeholder="帖子内容（选填）"
-            value={newPostContent}
-          />
-          <div className="flex gap-2">
-            <Button disabled={!newPostTitle.trim() || posting} size="sm" onClick={handleCreatePost}>
-              {posting ? "发布中..." : "发布"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowCreatePost(false); setNewPostTitle(""); setNewPostContent(""); }}>取消</Button>
-          </div>
-        </div>
-      ) : null}
 
       {showCreate ? (
         <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">
@@ -334,40 +348,53 @@ export function CirclePage() {
             placeholder="圈子简介（选填）"
             value={newCircleDesc}
           />
+          <div>
+            <label className="text-sm font-medium text-foreground">圈子封面图 *</label>
+            <div className="mt-1.5">
+              {coverPreviewUrl ? (
+                <div className="relative inline-block">
+                  <img
+                    alt="圈子封面预览"
+                    className="h-28 w-28 rounded-lg object-cover border border-border/60"
+                    src={coverPreviewUrl}
+                  />
+                  <button
+                    className="absolute -top-2 -right-2 size-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"
+                    disabled={isCoverUploading}
+                    onClick={() => { setCoverFileId(null); setCoverPreviewUrl(null); }}
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <input
+                  accept="image/*"
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
+                  disabled={isCoverUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleCoverUpload(file);
+                  }}
+                  type="file"
+                />
+              )}
+              {isCoverUploading ? (
+                <div className="mt-1 text-xs text-muted-foreground">上传中...</div>
+              ) : null}
+            </div>
+          </div>
           {createError ? <div className="text-xs text-red-500">{createError}</div> : null}
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleCreateCircle}>确认创建</Button>
-            <Button size="sm" variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-          </div>
-        </div>
-      ) : null}
-
-      {circles.length > 0 ? (
-        <div className="overflow-x-auto">
-          <div className="flex gap-3 pb-2">
-            {circles.map((circle) => (
-              <Link
-                className="shrink-0 w-36 rounded-xl border border-border/60 p-3 transition hover:border-primary/40 hover:bg-sky-50/30"
-                key={circle.id}
-                to={`/circles/${circle.slug}`}
-              >
-                <div className="text-sm font-semibold text-foreground line-clamp-1">{circle.name}</div>
-                <div className="mt-1 text-[0.68rem] text-muted-foreground line-clamp-2">
-                  {circle.description ?? ""}
-                </div>
-                <div className="mt-2 flex items-center gap-2 text-[0.65rem] text-muted-foreground">
-                  <span>{circle.memberCount} 成员</span>
-                  <span>{circle.postCount} 帖子</span>
-                </div>
-              </Link>
-            ))}
+            <Button disabled={isCoverUploading} size="sm" onClick={handleCreateCircle}>确认创建</Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowCreate(false); setCoverFileId(null); setCoverPreviewUrl(null); }}>取消</Button>
           </div>
         </div>
       ) : null}
 
       <CirclePageFeed
         activeTab={activeTab}
-        onChangeTab={(tab) => setActiveTab(tab)}
+        onChangeTab={(tab) => { setActiveTab(tab); syncURLParams({ tab }); }}
         posts={posts}
         openNote={openNote}
         selectedNoteId={selectedNoteId}
@@ -385,6 +412,17 @@ export function CirclePage() {
         formatCount={formatCount}
         authStatus={authStatus}
         onNavigateToLogin={handleNavigateToLogin}
+        circlesTabProps={{
+          circles: circles.map(c => ({ id: c.id, slug: c.slug, name: c.name, memberCount: c.memberCount, postCount: c.postCount, coverImageUrl: c.coverImageUrl })),
+          selectedCircleId,
+          onSelectCircle: setSelectedCircleId,
+          circlePosts: circlePostsQuery.data ? circlePostsQuery.data.items.map(mapCirclePostToFeedItem) : [],
+          isCirclePostsLoading: circlePostsQuery.isLoading,
+          circlePostsError: circlePostsQuery.error,
+          feedPosts: posts,
+          isFeedPostsLoading: isFeedLoading,
+          feedPostsError: circleFeedQuery.error instanceof Error ? circleFeedQuery.error : null,
+        }}
       />
 
       {selectedNoteId ? (

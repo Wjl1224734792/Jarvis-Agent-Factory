@@ -1,0 +1,1 @@
+ALTER TABLE "brand_applications" ALTER COLUMN "slug" DROP NOT NULL;

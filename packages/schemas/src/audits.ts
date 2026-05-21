@@ -8,7 +8,9 @@ export const adminAuditRecordDomainSchema = z.enum([
   "aircraft_submission",
   "ranking",
   "rating_target",
-  "comment"
+  "comment",
+  "circle_post",
+  "circle_comment"
 ]);
 
 export const adminAuditRecordContentTypeSchema = z.enum(["text", "image", "video", "mixed"]);

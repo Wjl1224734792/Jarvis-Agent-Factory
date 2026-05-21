@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { BellIcon, BellRingIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -32,12 +33,14 @@ import { ProfileMetaBar } from "./profile-meta-bar";
 import { ProfileStatusHint } from "./profile-status-hint";
 import { ProfileFilterBar } from "./profile-filter-bar";
 import { ProfilePagination } from "./profile-surface";
+import { ProfileCirclesTab } from "./profile-circles-tab";
 
-type ProfileTab = "activity" | "favorites";
+type ProfileTab = "activity" | "favorites" | "circles";
 
 const profileTabs: Array<{ value: ProfileTab; label: string }> = [
   { value: "activity", label: "内容" },
-  { value: "favorites", label: "收藏" }
+  { value: "favorites", label: "收藏" },
+  { value: "circles", label: "圈子" }
 ];
 
 const profileContentCategories: Array<{ value: ProfileContentCategory; label: string }> = [
@@ -109,6 +112,8 @@ export function ProfilePage() {
   const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
   const [activeContentCategory, setActiveContentCategory] = useState<ProfileContentCategory>("article");
   const [activeFavoriteCategory, setActiveFavoriteCategory] = useState<ProfileContentCategory>("article");
@@ -299,12 +304,36 @@ export function ProfilePage() {
         currentProfileQuery.refetch(),
         profileQuery.refetch()
       ]);
+      toast.success("封面图已更新");
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "封面图更新失败");
     } finally {
       setIsUpdatingCover(false);
       if (coverInputRef.current) {
         coverInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleAvatarChange(file: File) {
+    setIsUpdatingAvatar(true);
+    setActionError(null);
+    try {
+      const uploaded = await apiClient.uploadAvatarImage(file);
+      await apiClient.updateCurrentUserProfile({
+        avatarFileId: uploaded.item.id
+      });
+      await Promise.all([
+        currentProfileQuery.refetch(),
+        profileQuery.refetch()
+      ]);
+      toast.success("头像已更新");
+    } catch (reason: unknown) {
+      setActionError(reason instanceof Error ? reason.message : "头像更新失败");
+    } finally {
+      setIsUpdatingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
       }
     }
   }
@@ -370,12 +399,36 @@ export function ProfilePage() {
       </div>
       <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
         <div className="flex items-end gap-4">
-          <UserAvatar
-            className="!h-20 !w-20 md:!h-24 md:!w-24"
-            displayName={displayName}
-            size="lg"
-            src={avatarSrc}
-          />
+          <div className="relative group/avatar">
+            <UserAvatar
+              className="!h-20 !w-20 md:!h-24 md:!w-24"
+              displayName={displayName}
+              size="lg"
+              src={avatarSrc}
+            />
+            <button
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/40 opacity-0 transition group-hover/avatar:opacity-100"
+              disabled={isUpdatingAvatar}
+              onClick={() => avatarInputRef.current?.click()}
+              type="button"
+              aria-label="更换头像"
+            >
+              <CameraIcon className="size-5 text-white" />
+            </button>
+            <input
+              accept="image/*"
+              aria-label="上传头像图片"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleAvatarChange(file);
+                }
+              }}
+              ref={avatarInputRef}
+              type="file"
+            />
+          </div>
           <div className="space-y-1.5 pb-2">
             <div className="text-[1.5rem] font-semibold tracking-[-0.03em] text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)] md:text-[1.75rem]">
               {displayName}
@@ -439,7 +492,7 @@ export function ProfilePage() {
     </ProfileStatusHint>
   ) : null;
 
-  const filterBarNode = activeTab === "activity" ? (
+  const filterBarNode = activeTab === "circles" ? null : activeTab === "activity" ? (
     <>
       <ProfileFilterBar
         active={activeContentCategory}
@@ -468,7 +521,9 @@ export function ProfilePage() {
     />
   );
 
-  const contentNode = activeTab === "activity" ? (
+  const contentNode = activeTab === "circles" ? (
+    <ProfileCirclesTab userId={userId} />
+  ) : activeTab === "activity" ? (
     activityItems.length === 0 ? (
       <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
         当前分类下还没有内容。

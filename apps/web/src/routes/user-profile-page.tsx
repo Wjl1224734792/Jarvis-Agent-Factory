@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowRightIcon, EyeOffIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
 import { UserProfilePageRouteSkeleton } from "@/components/route-skeletons";
@@ -16,14 +16,28 @@ import { apiClient } from "../lib/api-client";
 import { resolveUserAvatarSrc } from "../lib/avatar-url";
 import { getProfileBanner } from "../lib/aviation-media";
 import { ContentFeedListRow } from "../features/auth/profile-content-card";
-import { isFavoriteItem } from "../features/auth/profile-content-filters";
+import {
+  filterProfileItems,
+  isFavoriteItem,
+  type ProfileContentCategory
+} from "../features/auth/profile-content-filters";
 import { getVisitorProfileRelationshipSummary } from "../features/auth/profile-overview";
 import { ProfileLayoutShell } from "../features/auth/profile-layout-shell";
 import { ProfileMetaBar } from "../features/auth/profile-meta-bar";
 import { ProfileStatusHint } from "../features/auth/profile-status-hint";
 import { ProfilePagination } from "../features/auth/profile-surface";
+import { ProfileFilterBar } from "../features/auth/profile-filter-bar";
+import { ProfileCirclesTab } from "../features/auth/profile-circles-tab";
 
 const VISITOR_PROFILE_PAGE_SIZE = 9;
+
+const visitorContentCategories: Array<{ value: ProfileContentCategory; label: string }> = [
+  { value: "article", label: "文章" },
+  { value: "moment", label: "动态" },
+  { value: "ranking", label: "榜单" },
+  { value: "brand", label: "品牌" },
+  { value: "aircraft", label: "飞行器" }
+];
 
 export function UserProfilePage() {
   const params = useParams<{ id: string }>();
@@ -36,6 +50,7 @@ export function UserProfilePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [visitorPage, setVisitorPage] = useState(1);
   const [activeTab, setActiveTab] = useState("content");
+  const [activeContentCategory, setActiveContentCategory] = useState<ProfileContentCategory>("article");
   const profileQuery = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: () => apiClient.getUserProfile(userId),
@@ -51,30 +66,46 @@ export function UserProfilePage() {
     () => contentQuery.data?.items ?? [],
     [contentQuery.data?.items]
   );
-  const circlesQuery = useQuery({
-    queryKey: ["user-circles", userId],
-    queryFn: () => (apiClient as any).listUserCircles(userId),
-    enabled: Boolean(userId),
-  });
-  const userCircles = useMemo(
-    () => (circlesQuery.data?.items ?? []) as Array<Record<string, unknown>>,
-    [circlesQuery.data?.items]
-  );
-  const visitorContentItems = useMemo(
+  const nonFavoriteItems = useMemo(
     () => rawContentItems.filter((item) => !isFavoriteItem(item)),
     [rawContentItems]
   );
 
-  const visitorTotalPages = Math.max(1, Math.ceil(visitorContentItems.length / VISITOR_PROFILE_PAGE_SIZE));
+  const contentCategoryCounts = useMemo(
+    () =>
+      new Map(
+        visitorContentCategories.map((category) => [
+          category.value,
+          filterProfileItems(nonFavoriteItems, {
+            primaryTab: "content",
+            category: category.value,
+            lifecycle: "all"
+          }).length
+        ])
+      ),
+    [nonFavoriteItems]
+  );
+
+  const filteredVisitorItems = useMemo(
+    () =>
+      filterProfileItems(nonFavoriteItems, {
+        primaryTab: "content",
+        category: activeContentCategory,
+        lifecycle: "all"
+      }),
+    [activeContentCategory, nonFavoriteItems]
+  );
+
+  const visitorTotalPages = Math.max(1, Math.ceil(filteredVisitorItems.length / VISITOR_PROFILE_PAGE_SIZE));
 
   const paginatedVisitorItems = useMemo(() => {
     const start = (visitorPage - 1) * VISITOR_PROFILE_PAGE_SIZE;
-    return visitorContentItems.slice(start, start + VISITOR_PROFILE_PAGE_SIZE);
-  }, [visitorContentItems, visitorPage]);
+    return filteredVisitorItems.slice(start, start + VISITOR_PROFILE_PAGE_SIZE);
+  }, [filteredVisitorItems, visitorPage]);
 
   useEffect(() => {
     setVisitorPage(1);
-  }, [userId]);
+  }, [userId, activeContentCategory]);
 
   useEffect(() => {
     setVisitorPage((page) => Math.min(page, visitorTotalPages));
@@ -241,40 +272,19 @@ export function UserProfilePage() {
     />
   );
 
-  const circlesNode = circlesQuery.isLoading ? (
-    <div className="py-8 text-center text-sm text-muted-foreground">加载中...</div>
-  ) : userCircles.length === 0 ? (
-    <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
-      这位飞友还没有加入任何圈子。
-    </div>
-  ) : (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {userCircles.map((c: any) => (
-        <Link
-          className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-4 transition hover:border-primary/30 hover:bg-sky-50/20"
-          key={c.id as string}
-          to={`/circles/${c.slug}`}
-        >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-600">
-            <UsersIcon className="size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-foreground line-clamp-1">
-              {c.name as string}
-            </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {c.memberCount as number} 成员
-              {c.role ? (
-                <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[0.65rem]">
-                  {c.role === "owner" ? "圈主" : c.role === "admin" ? "管理员" : "成员"}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
+  const filterBarNode = activeTab === "content" ? (
+    <ProfileFilterBar
+      active={activeContentCategory}
+      onChange={(v) => setActiveContentCategory(v as ProfileContentCategory)}
+      options={visitorContentCategories.map((c) => ({
+        value: c.value,
+        label: c.label,
+        count: contentCategoryCounts.get(c.value) ?? 0
+      }))}
+    />
+  ) : null;
+
+  const circlesNode = <ProfileCirclesTab userId={profileUserId} />;
 
   const contentNode = isContentLoading ? (
     <div className="divide-y divide-border/60 border border-border/60 bg-white">
@@ -290,8 +300,13 @@ export function UserProfilePage() {
         </div>
       ))}
     </div>
+  ) : activeTab === "favorites" ? (
+    <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
+      <EyeOffIcon className="mx-auto mb-2 size-5 opacity-40" />
+      无法查看其他飞友的收藏列表。
+    </div>
   ) : profile.viewer.canViewContent ? (
-    visitorContentItems.length === 0 ? (
+    filteredVisitorItems.length === 0 ? (
       <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
         这位飞友暂时还没有对你开放的内容。
       </div>
@@ -329,13 +344,14 @@ export function UserProfilePage() {
       alert={alertNode}
       activeTab={activeTab}
       banner={bannerNode}
+      filterBar={filterBarNode}
       metaBar={metaBarNode}
       onTabChange={(tab) => setActiveTab(tab)}
       statusHint={statusHintNode}
       tabs={[
         { value: "content", label: "内容" },
         { value: "circles", label: "圈子" },
-        { value: "favorites", label: "收藏", disabled: true, title: "无法查看其他飞友的收藏列表" }
+        { value: "favorites", label: "收藏" }
       ]}
     >
       {activeTab === "circles" ? circlesNode : contentNode}

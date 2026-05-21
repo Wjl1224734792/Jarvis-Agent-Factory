@@ -15,6 +15,8 @@ export const ADMIN_ROUTE_PATHS = {
   moderationRankings: "/admin/moderation/rankings",
   moderationRatingTargets: "/admin/moderation/rating-targets",
   moderationFiles: "/admin/moderation/files",
+  moderationCirclePosts: "/admin/moderation/circle-posts",
+  moderationCircleComments: "/admin/moderation/circle-comments",
   operations: "/admin/operations",
   operationsArticles: "/admin/operations/articles",
   operationsAircraft: "/admin/operations/aircraft",

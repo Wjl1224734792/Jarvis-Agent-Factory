@@ -20,6 +20,11 @@ export const messageTypeSchema = z.enum([
   "post_shared",
   "post_commented",
   "comment_replied",
+  "circle_post_liked",
+  "circle_post_commented",
+  "circle_comment_replied",
+  "circle_post_audit_result",
+  "circle_comment_audit_result",
   "post_status_changed",
   "ranking_status_changed",
   "rating_target_status_changed",
@@ -97,7 +102,9 @@ export const adminMessageDomainSchema = z.enum([
   "rating_targets",
   "rating_target_comments",
   "aircraft_submissions",
-  "brand_applications"
+  "brand_applications",
+  "circle_posts",
+  "circle_post_comments"
 ]);
 
 export const adminMessageReadStatusSchema = z.enum(["all", "read", "unread"]);
@@ -129,6 +136,12 @@ export const adminMessageListQuerySchema = z.object({
     brand_applications: [
       "brand_application_audit_result",
       "brand_application_status_changed"
+    ],
+    circle_posts: [
+      "circle_post_audit_result"
+    ],
+    circle_post_comments: [
+      "circle_comment_audit_result"
     ]
   };
 

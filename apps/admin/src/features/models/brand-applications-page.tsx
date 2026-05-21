@@ -110,7 +110,7 @@ export function BrandApplicationsPage() {
     }
 
     return items.filter((item) =>
-      [item.name, item.slug, item.applicant.displayName, item.description ?? ""]
+      [item.name, item.slug ?? "", item.applicant.displayName, item.description ?? ""]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [applicationsQuery.data?.items, searchText, status]);
@@ -284,7 +284,7 @@ export function BrandApplicationsPage() {
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.name}</div>
                   <div className="admin-table-subtitle">
-                    {record.slug} / {record.applicant.displayName}
+                    {record.slug ?? "(自动生成)"} / {record.applicant.displayName}
                   </div>
                 </div>
               )

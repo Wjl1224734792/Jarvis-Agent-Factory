@@ -5,6 +5,7 @@ import { postsService } from "../posts/posts.service";
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { reviewsService } from "../reviews/reviews.service";
 import { rankingsService } from "../rankings/rankings.service";
+import { circlesService } from "../circles/circles.service";
 
 function parseJsonRecord<T>(value: string | null | undefined, fallback: T): T {
   if (!value) {
@@ -67,7 +68,7 @@ function serializeAuditRecord(item: Awaited<ReturnType<typeof auditsRepo.getById
 // Manual decisions must update the business entity first so status, counters and notifications
 // stay aligned with the audit record across files, submissions, applications and comment threads.
 async function applyManualDecisionToEntity(input: {
-  domain: "file" | "brand_application" | "aircraft_submission" | "comment";
+  domain: "file" | "brand_application" | "aircraft_submission" | "comment" | "circle_post" | "circle_comment";
   entityId: string;
   status: "manual_passed" | "manual_rejected";
   reviewNote?: string | null;
@@ -92,6 +93,22 @@ async function applyManualDecisionToEntity(input: {
       input.status === "manual_rejected" ? (input.reviewNote ?? null) : null
     );
     return updated !== null;
+  }
+
+  if (input.domain === "circle_post") {
+    const updated = await circlesService.updatePostStatus(
+      input.entityId,
+      input.status === "manual_passed" ? "published" : "hidden"
+    );
+    return updated;
+  }
+
+  if (input.domain === "circle_comment") {
+    const updated = await circlesService.updateCommentStatus(
+      input.entityId,
+      input.status === "manual_passed" ? "visible" : "hidden"
+    );
+    return updated;
   }
 
   const nextCommentStatus = input.status === "manual_passed" ? "visible" : "hidden";
@@ -123,7 +140,9 @@ export const auditsService = {
       | "aircraft_submission"
       | "ranking"
       | "rating_target"
-      | "comment";
+      | "comment"
+      | "circle_post"
+      | "circle_comment";
     entityId?: string;
     limit?: number;
   }) {
@@ -149,12 +168,16 @@ export const auditsService = {
       | "file"
       | "brand_application"
       | "aircraft_submission"
-      | "comment";
+      | "comment"
+      | "circle_post"
+      | "circle_comment";
     const supportedDomains = new Set([
       "file",
       "brand_application",
       "aircraft_submission",
-      "comment"
+      "comment",
+      "circle_post",
+      "circle_comment"
     ]);
     const manualReviewPendingStatuses = new Set(["queued", "needs_manual_review"]);
     const existing = await auditsRepo.getById(input.auditId);

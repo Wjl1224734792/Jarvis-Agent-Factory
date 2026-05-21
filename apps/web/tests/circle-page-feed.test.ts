@@ -127,4 +127,126 @@ describe("circle page feed", () => {
     expect(markup).toContain("飞友圈加载失败");
     expect(markup).toContain("请求失败");
   });
+
+  it("renders circles tab when active", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CirclePageFeed, {
+        activeTab: "circles",
+        onChangeTab: vi.fn(),
+        posts: [],
+        openNote: vi.fn(),
+        selectedNoteId: null,
+        isLoading: false,
+        isRefetching: false,
+        isFetchingNextPage: false,
+        isError: false,
+        hasMore: false,
+        onLoadMore: vi.fn(),
+        formatCount: (value: number) => String(value),
+        authStatus: "authenticated",
+        onNavigateToLogin: vi.fn(),
+        circlesTabProps: {
+          circles: [
+            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
+          ],
+          selectedCircleId: null,
+          onSelectCircle: vi.fn(),
+          circlePosts: [],
+          isCirclePostsLoading: false,
+        },
+      })
+    );
+
+    expect(markup).toContain("航拍交流");
+    expect(markup).toContain("圈子");
+  });
+
+  it("shows guidance prompt when no circle is selected", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CirclePageFeed, {
+        activeTab: "circles",
+        onChangeTab: vi.fn(),
+        posts: [],
+        openNote: vi.fn(),
+        selectedNoteId: null,
+        isLoading: false,
+        isRefetching: false,
+        isFetchingNextPage: false,
+        isError: false,
+        hasMore: false,
+        onLoadMore: vi.fn(),
+        formatCount: (value: number) => String(value),
+        authStatus: "authenticated",
+        onNavigateToLogin: vi.fn(),
+        circlesTabProps: {
+          circles: [
+            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
+          ],
+          selectedCircleId: null,
+          onSelectCircle: vi.fn(),
+          circlePosts: [],
+          isCirclePostsLoading: false,
+        },
+      })
+    );
+
+    expect(markup).toContain("选择一个圈子查看帖子");
+  });
+
+  it("renders circle posts when a circle is selected", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CirclePageFeed, {
+        activeTab: "circles",
+        onChangeTab: vi.fn(),
+        posts: [],
+        openNote: vi.fn(),
+        selectedNoteId: null,
+        isLoading: false,
+        isRefetching: false,
+        isFetchingNextPage: false,
+        isError: false,
+        hasMore: false,
+        onLoadMore: vi.fn(),
+        formatCount: (value: number) => String(value),
+        authStatus: "authenticated",
+        onNavigateToLogin: vi.fn(),
+        circlesTabProps: {
+          circles: [
+            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
+          ],
+          selectedCircleId: "c1",
+          onSelectCircle: vi.fn(),
+          circlePosts: [createPost("circle-post-1")],
+          isCirclePostsLoading: false,
+        },
+      })
+    );
+
+    expect(markup).toContain("post-circle-post-1");
+    expect(markup).not.toContain("选择一个圈子查看帖子");
+  });
+
+  it("shows login prompt for anonymous user on latest tab", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CirclePageFeed, {
+        activeTab: "latest",
+        onChangeTab: vi.fn(),
+        posts: [],
+        openNote: vi.fn(),
+        selectedNoteId: null,
+        isLoading: false,
+        isRefetching: false,
+        isFetchingNextPage: false,
+        isError: false,
+        hasMore: false,
+        onLoadMore: vi.fn(),
+        formatCount: (value: number) => String(value),
+        authStatus: "anonymous",
+        onNavigateToLogin: vi.fn(),
+      })
+    );
+
+    expect(markup).toContain("登录后浏览最新动态");
+    expect(markup).toContain("去登录");
+  });
 });

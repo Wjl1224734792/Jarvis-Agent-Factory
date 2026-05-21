@@ -4,6 +4,8 @@ import {
   aircraftModelsTable,
   aircraftReviewsTable,
   brandApplicationsTable,
+  circlePostCommentsTable,
+  circlePostsTable,
   createId,
   db,
   notificationsTable,
@@ -27,6 +29,11 @@ type NotificationType =
   | "post_shared"
   | "post_commented"
   | "comment_replied"
+  | "circle_post_liked"
+  | "circle_post_commented"
+  | "circle_comment_replied"
+  | "circle_post_audit_result"
+  | "circle_comment_audit_result"
   | "post_status_changed"
   | "ranking_status_changed"
   | "rating_target_status_changed"
@@ -871,7 +878,9 @@ export const socialRepo = {
       ratingTargetRows,
       ratingTargetCommentRows,
       submissionRows,
-      brandApplicationRows
+      brandApplicationRows,
+      circlePostRows,
+      circleCommentRows
     ] = await Promise.all([
       db
         .select({ count: sql<number>`count(*)` })
@@ -916,7 +925,15 @@ export const socialRepo = {
       db
         .select({ count: sql<number>`count(*)` })
         .from(brandApplicationsTable)
-        .where(eq(brandApplicationsTable.status, "pending"))
+        .where(eq(brandApplicationsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(circlePostsTable)
+        .where(sql`${circlePostsTable.reportCount} > 0`),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(circlePostCommentsTable)
+        .where(eq(circlePostCommentsTable.status, "pending"))
     ]);
 
     return {
@@ -930,7 +947,9 @@ export const socialRepo = {
       ratingTargets: Number(ratingTargetRows[0]?.count ?? 0),
       ratingTargetComments: Number(ratingTargetCommentRows[0]?.count ?? 0),
       aircraftSubmissions: Number(submissionRows[0]?.count ?? 0),
-      brandApplications: Number(brandApplicationRows[0]?.count ?? 0)
+      brandApplications: Number(brandApplicationRows[0]?.count ?? 0),
+      circlePosts: Number(circlePostRows[0]?.count ?? 0),
+      circlePostComments: Number(circleCommentRows[0]?.count ?? 0)
     };
   },
   async listPostsByIds(ids: string[]) {

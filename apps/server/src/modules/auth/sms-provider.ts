@@ -4,6 +4,7 @@ import * as $OpenApi from "@alicloud/openapi-client";
 import { sms } from "tencentcloud-sdk-nodejs";
 import type { ClientConfig } from "tencentcloud-sdk-nodejs/tencentcloud/common/interface";
 import { parseBooleanEnv } from "../../lib/env-flags";
+import { isNonProductionEnv } from "../../lib/env-mode";
 
 export type SmsProvider = "mock" | "aliyun" | "tencent";
 
@@ -297,7 +298,7 @@ export function resolveSmsProviderConfig(env: EnvLike = process.env): SmsProvide
 
   return {
     provider,
-    exposeMockCode: !isProduction && parseBooleanEnv(env.SMS_EXPOSE_MOCK_CODE, true),
+    exposeMockCode: isNonProductionEnv() && parseBooleanEnv(env.SMS_EXPOSE_MOCK_CODE, true),
     aliyun: {
       accessKeyId: env.ALIYUN_SMS_ACCESS_KEY_ID?.trim(),
       accessKeySecret: env.ALIYUN_SMS_ACCESS_KEY_SECRET?.trim(),

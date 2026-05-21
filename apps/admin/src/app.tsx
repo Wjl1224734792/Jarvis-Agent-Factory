@@ -173,6 +173,16 @@ const CirclesAdminPage = lazy(() =>
     default: module.CirclesPage
   }))
 );
+const CirclePostsAdminPage = lazy(() =>
+  import("./features/circles/circle-posts-page").then((module) => ({
+    default: module.CirclePostsAdminPage
+  }))
+);
+const CircleCommentsAdminPage = lazy(() =>
+  import("./features/circles/circle-comments-page").then((module) => ({
+    default: module.CircleCommentsAdminPage
+  }))
+);
 const ContentCategoriesPage = lazy(() =>
   import("./features/posts/content-categories-page").then((module) => ({
     default: module.ContentCategoriesPage
@@ -459,6 +469,14 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationMoments),
         element: withAdminRouteFallback(<PostsPage contentType="moment" />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationCirclePosts),
+        element: withAdminRouteFallback(<CirclePostsAdminPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationCircleComments),
+        element: withAdminRouteFallback(<CircleCommentsAdminPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationComments),

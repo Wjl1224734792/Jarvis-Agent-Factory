@@ -1,21 +1,17 @@
 ﻿import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
-import { EyeIcon, Flame, HeartIcon, LockKeyholeIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
+import { EyeIcon, HeartIcon, LockKeyholeIcon, MessageCircleIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BrandIdentity } from "@/components/brand-identity";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
-import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 
 
-import { SiteGrid, SitePage, SiteRail } from "@/components/site-shell";
-import { SidebarSection } from "@/components/sidebar-section";
+import { SiteGrid, SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VirtualFeed } from "@/components/virtual-feed";
-import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { getEditorialImage } from "../lib/aviation-media";
 import {
@@ -176,35 +172,9 @@ export function HomePage() {
     queryFn: () => apiClient.listContentCategories()
   });
 
-  const modelsQuery = useQuery({
-    queryKey: ["home-shell-models"],
-    staleTime: 120_000,
-    placeholderData: keepPreviousData,
-    queryFn: () =>
-      apiClient.listModels({
-        sort: "hot",
-        limit: 3
-      })
-  });
-
-  const rankingsQuery = useQuery({
-    queryKey: ["home-shell-rankings"],
-    staleTime: 120_000,
-    placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listRankings({ sort: "hot", limit: 3 })
-  });
-
   const feedItems = homeFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [];
   const feedContentCategories = homeFeedQuery.data?.pages[0]?.categories ?? [];
   const contentCategories = contentCategoriesQuery.data?.items ?? feedContentCategories;
-  const hotModels = modelsQuery.data?.items ?? [];
-  const rankingCards = useMemo(
-    () => {
-      if (!rankingsQuery.data) return [];
-      return [...rankingsQuery.data.official, ...rankingsQuery.data.community].slice(0, 2);
-    },
-    [rankingsQuery.data]
-  );
 
   const allTabs = useMemo(
     () => [
@@ -247,12 +217,9 @@ export function HomePage() {
     (item: HomeFeedItem, index: number) => <HomeFeedCard index={index} item={item} />,
     []
   );
-  const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
-  const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
-  const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
   return (
     <SitePage>
-      <SiteGrid className="items-start gap-4" variant="sidebar">
+      <SiteGrid className="items-start gap-4" variant="default">
         <div className="mx-auto w-full max-w-[920px] min-w-0">
           <div className="border-b border-border px-1">
             <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
@@ -310,7 +277,7 @@ export function HomePage() {
               <>
                 {isFeedError ? (
                   <Alert variant="destructive">
-                    <AlertTitle>首页内容加载失败</AlertTitle>
+                    <AlertTitle>文章内容加载失败</AlertTitle>
                     <AlertDescription>
                       {getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)}
                     </AlertDescription>
@@ -337,7 +304,7 @@ export function HomePage() {
                             <AlertTitle>
                               {feedTab === "following"
                                 ? "没有关注的创作者发布的内容"
-                                : "首页还没有公开内容"}
+                                : "还没有文章内容"}
                             </AlertTitle>
                             <AlertDescription>
                               {feedTab === "following"
@@ -370,76 +337,6 @@ export function HomePage() {
           </section>
         </div>
 
-        {isXlViewport ? (
-          <SiteRail className="space-y-2">
-            <SidebarSection
-              icon={<TrophyIcon className="size-4.5 text-amber-600 dark:text-amber-400" />}
-              isLoading={isRankingsLoading}
-              items={rankingCards}
-              maxItems={2}
-              renderItem={(ranking) => (
-                <Link
-                  className="block border-b border-border pb-2.5 last:border-b-0"
-                  key={ranking.id}
-                  {...DETAIL_PAGE_LINK_PROPS}
-                  to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
-                >
-                  <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {ranking.items.slice(0, 2).map((item) => item.title).join(" / ")}
-                  </div>
-                </Link>
-              )}
-              skeletonCount={2}
-              title="热门榜单"
-            />
-            <SidebarSection
-              icon={<Flame className="size-4.5 text-orange-600 dark:text-orange-400" />}
-              isLoading={isModelsLoading}
-              items={hotModels}
-              maxItems={3}
-              renderItem={(model, index) => (
-                <Link
-                  className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
-                  key={model.id}
-                  {...DETAIL_PAGE_LINK_PROPS}
-                  to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
-                >
-                  <ModelThumbCover
-                    alt={model.name}
-                    className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]"
-                    coverImageUrl={model.coverImageUrl ?? null}
-                    coverVideoUrl={model.coverVideoUrl ?? null}
-                    index={index}
-                    slug={model.slug}
-                    powerType={model.powerType}
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
-                    <BrandIdentity
-                      className="min-w-0 text-[0.72rem] text-muted-foreground"
-                      imageClassName="size-3.5 shrink-0"
-                      logoUrl={model.brand.logoUrl}
-                      name={model.brand.name}
-                    />
-                    <div className="flex items-center gap-3 text-[0.72rem] text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <HeartIcon className="size-3.5" />
-                        {formatCount(model.favoriteCount)}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MessageCircleIcon className="size-3.5" />
-                        {formatCount(model.commentCount)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              )}
-              skeletonCount={3}
-              title="热门机型"
-            />
-          </SiteRail>
-        ) : null}
       </SiteGrid>
     </SitePage>
   );

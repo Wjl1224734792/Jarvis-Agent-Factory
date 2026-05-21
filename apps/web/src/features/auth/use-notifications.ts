@@ -7,7 +7,8 @@ export function useNotifications(userId?: string | null, enabled = true) {
   return useQuery({
     queryKey: getNotificationsQueryKey(userId),
     queryFn: () => apiClient.listNotifications(),
-    enabled
+    enabled,
+    refetchInterval: 30_000
   });
 }
 

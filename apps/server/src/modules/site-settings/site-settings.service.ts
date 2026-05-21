@@ -15,7 +15,9 @@ const defaultModerationModes: ModerationModes = {
   brand: "ai",
   model: "ai",
   ranking: "manual",
-  ratingTarget: "ai"
+  ratingTarget: "ai",
+  circlePost: "ai",
+  circleComment: "ai"
 };
 
 function parseModerationModes(raw: string | null | undefined) {
@@ -33,7 +35,9 @@ function parseModerationModes(raw: string | null | undefined) {
       brand: parsed.brand ?? defaultModerationModes.brand,
       model: parsed.model ?? defaultModerationModes.model,
       ranking: parsed.ranking ?? defaultModerationModes.ranking,
-      ratingTarget: parsed.ratingTarget ?? defaultModerationModes.ratingTarget
+      ratingTarget: parsed.ratingTarget ?? defaultModerationModes.ratingTarget,
+      circlePost: parsed.circlePost ?? defaultModerationModes.circlePost,
+      circleComment: parsed.circleComment ?? defaultModerationModes.circleComment
     } satisfies ModerationModes;
   } catch {
     return defaultModerationModes;
@@ -103,7 +107,9 @@ function mergeModerationModes(
       (fromLegacy.ratingTarget !== undefined
         ? (fromLegacy.ratingTarget ? "ai" : "manual")
         : undefined) ??
-      current.ratingTarget
+      current.ratingTarget,
+    circlePost: patch.circlePost ?? current.circlePost,
+    circleComment: patch.circleComment ?? current.circleComment
   } satisfies ModerationModes;
 }
 
@@ -209,6 +215,12 @@ export const siteSettingsService = {
   },
   async getRankingModerationMode() {
     return (await this.getResolvedSettings()).moderationModes.ranking;
+  },
+  async getCirclePostModerationMode() {
+    return (await this.getResolvedSettings()).moderationModes.circlePost;
+  },
+  async getCircleCommentModerationMode() {
+    return (await this.getResolvedSettings()).moderationModes.circleComment;
   },
   async isAiReviewEnabledForPost(type: "article" | "moment") {
     return (await this.getPostModerationMode(type)) === "ai";

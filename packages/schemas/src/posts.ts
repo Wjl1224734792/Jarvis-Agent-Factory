@@ -346,6 +346,64 @@ export const circleFeedResponseSchema = z.object({
   nextCursor: feedCursorSchema
 });
 
+// ── 圈子帖子举报 ──
+
+export const reportCirclePostInputSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+  imageFileIds: z.array(z.string().min(1)).max(3).default([])
+});
+
+export const reportCirclePostCommentInputSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+  imageFileIds: z.array(z.string().min(1)).max(3).default([])
+});
+
+// ── 圈子评论点赞 ──
+
+export const toggleCircleCommentLikeResponseSchema = z.object({
+  liked: z.boolean(),
+  likeCount: z.number().int()
+});
+
+// ── 圈子帖子编辑/删除 ──
+
+export const updateCirclePostInputSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  content: z.string().trim().max(10000).nullable().optional(),
+  images: z.array(z.string().min(1)).max(9).optional(),
+  videos: z.array(z.string().min(1)).max(3).optional()
+}).refine(input => Object.keys(input).length > 0, {
+  message: "At least one field is required."
+});
+
+export const updateCircleCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(2000)
+});
+
+// ── Admin 圈子帖子/评论查询 ──
+
+export const adminCirclePostsQuerySchema = z.object({
+  status: z.enum(["published", "hidden", "deleted"]).optional(),
+  circleId: z.string().min(1).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20)
+});
+
+export const adminCircleCommentsQuerySchema = z.object({
+  status: z.enum(["visible", "hidden"]).optional(),
+  circleId: z.string().min(1).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20)
+});
+
+export const adminCirclePostStatusInputSchema = z.object({
+  status: z.enum(["published", "hidden", "deleted"])
+});
+
+export const adminCircleCommentStatusInputSchema = z.object({
+  status: z.enum(["visible", "hidden"])
+});
+
 export const createPostResponseSchema = z.object({
   item: postDetailSchema
 });

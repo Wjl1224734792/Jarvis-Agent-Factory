@@ -3,6 +3,7 @@ import { isChinaMainlandMobilePhone, strongPasswordSchema } from "@feijia/schema
 import { APP_ROUTES } from "@feijia/shared";
 import {
   CameraIcon,
+  ImageIcon,
   KeyRoundIcon,
   LogOutIcon,
   PencilLineIcon,
@@ -28,8 +29,19 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { apiClient } from "@/lib/api-client";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getProfileBanner } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import {
@@ -159,6 +171,9 @@ export function SettingsPage() {
   const setError = useAuthStore((state) => state.setError);
   const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [draft, setDraft] = useState<SettingsDraft>(() =>
     createSettingsDraft({
       displayName: "",
@@ -354,6 +369,46 @@ export function SettingsPage() {
       }
     }
   }
+
+  async function uploadCover(file: File) {
+    setIsUpdatingCover(true);
+    try {
+      const uploaded = await apiClient.uploadPostImage(file);
+      const nextDraft = {
+        ...draft,
+        coverImageUrl: uploaded.item.url,
+        coverImageFileId: uploaded.item.id,
+        hasPendingChanges: true
+      };
+      setDraft(nextDraft);
+
+      const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
+      applyProfileSnapshot(payload.item);
+      setStatusMessage("封面图已更新");
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "封面图上传失败");
+    } finally {
+      setIsUpdatingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    }
+  }
+
+  function getPasswordStrength(password: string) {
+    if (!password) return { level: "none" as const, label: "", width: 0 };
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+    if (score <= 1) return { level: "weak" as const, label: "弱", width: 25 };
+    if (score <= 2) return { level: "medium" as const, label: "中", width: 50 };
+    if (score <= 3) return { level: "medium" as const, label: "中", width: 75 };
+    return { level: "strong" as const, label: "强", width: 100 };
+  }
+
+  const passwordStrength = getPasswordStrength(passwordForm.newPassword);
 
   function closePhoneDialog() {
     setIsPhoneDialogOpen(false);
@@ -610,12 +665,23 @@ export function SettingsPage() {
                 {profileLoading ? (
                   <Skeleton className="h-28 w-28 shrink-0 rounded-full md:h-32 md:w-32" />
                 ) : (
-                  <UserAvatar
-                    className="!h-28 !w-28 shrink-0 md:!h-32 md:!w-32"
-                    displayName={displayName}
-                    size="lg"
-                    src={resolvedAvatarSrc}
-                  />
+                  <div className="group/avatar relative shrink-0">
+                    <UserAvatar
+                      className="!h-28 !w-28 md:!h-32 md:!w-32"
+                      displayName={displayName}
+                      size="lg"
+                      src={resolvedAvatarSrc}
+                    />
+                    <button
+                      className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/40 opacity-0 transition group-hover/avatar:opacity-100"
+                      disabled={savingField === "avatar" || profileQuery.isFetching}
+                      onClick={() => avatarInputRef.current?.click()}
+                      type="button"
+                      aria-label="更换头像"
+                    >
+                      <CameraIcon className="size-6 text-white" />
+                    </button>
+                  </div>
                 )}
                 <div className="min-w-0 text-sm leading-6 text-muted-foreground">
                   建议使用清晰的方形头像。选择图片后会自动保存到账号资料。
@@ -631,6 +697,53 @@ export function SettingsPage() {
                     }
                   }}
                   ref={avatarInputRef}
+                  type="file"
+                />
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
+              action={
+                <Button
+                  className="rounded-full"
+                  disabled={isUpdatingCover || profileQuery.isFetching}
+                  onClick={() => coverInputRef.current?.click()}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ImageIcon data-icon="inline-start" />
+                  {isUpdatingCover ? "保存中..." : "更换"}
+                </Button>
+              }
+              label="个人主页封面"
+            >
+              <div className="flex items-center gap-3">
+                {profileLoading ? (
+                  <Skeleton className="h-16 w-28 shrink-0 rounded-md" />
+                ) : (
+                  <div className="h-16 w-28 shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted/30">
+                    <img
+                      alt="封面预览"
+                      className="h-full w-full object-cover"
+                      src={draft.coverImageUrl || getProfileBanner(displayName)}
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 text-sm leading-6 text-muted-foreground">
+                  建议使用 1200×400 的横幅图片，展示在个人主页顶部。
+                </div>
+                <input
+                  accept="image/*"
+                  aria-label="上传封面图片"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadCover(file);
+                    }
+                  }}
+                  ref={coverInputRef}
                   type="file"
                 />
               </div>
@@ -898,17 +1011,7 @@ export function SettingsPage() {
       <div className="flex flex-wrap items-center gap-3 pt-2">
         <Button
           className="rounded-full"
-          onClick={() => {
-            void apiClient
-              .logout()
-              .catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "退出登录失败");
-              })
-              .finally(() => {
-                setAnonymous();
-                void navigate(APP_ROUTES.feedHome);
-              });
-          }}
+          onClick={() => setIsLogoutDialogOpen(true)}
           size="sm"
           type="button"
           variant="destructive"
@@ -917,6 +1020,35 @@ export function SettingsPage() {
           退出登录
         </Button>
       </div>
+
+      <AlertDialog onOpenChange={setIsLogoutDialogOpen} open={isLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认退出登录</AlertDialogTitle>
+            <AlertDialogDescription>
+              退出后需要重新通过短信或密码登录才能继续使用。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void apiClient
+                  .logout()
+                  .catch((reason: unknown) => {
+                    setError(reason instanceof Error ? reason.message : "退出登录失败");
+                  })
+                  .finally(() => {
+                    setAnonymous();
+                    void navigate(APP_ROUTES.feedHome);
+                  });
+              }}
+            >
+              确认退出
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isPhoneDialogOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm">
@@ -1138,6 +1270,25 @@ export function SettingsPage() {
                   <AlertTitle>获取验证码失败</AlertTitle>
                   <AlertDescription>{passwordActionError}</AlertDescription>
                 </Alert>
+              ) : null}
+
+              {passwordForm.newPassword ? (
+                <div className="space-y-1.5">
+                  <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "transition-all duration-300",
+                        passwordStrength.level === "weak" && "bg-red-500",
+                        passwordStrength.level === "medium" && "bg-amber-500",
+                        passwordStrength.level === "strong" && "bg-emerald-500"
+                      )}
+                      style={{ width: `${passwordStrength.width}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    密码强度：{passwordStrength.label}
+                  </div>
+                </div>
               ) : null}
 
               <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">

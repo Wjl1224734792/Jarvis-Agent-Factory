@@ -29,6 +29,20 @@
       "when": 1779198476330,
       "tag": "0003_brave_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779247855211,
+      "tag": "0004_zippy_true_believers",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779312000000,
+      "tag": "0005_circle_reports_likes",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,7 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { buildIlikeAnyCondition, buildSearchPatterns } from "../../lib/search";
 
 type ListFilters = {
@@ -23,6 +23,8 @@ type ListFilters = {
   powerTypes?: string[];
   keyword?: string;
   followingUserId?: string;
+  priceMin?: number;
+  priceMax?: number;
 };
 
 export const aircraftModelsRepo = {
@@ -66,6 +68,14 @@ export const aircraftModelsRepo = {
             .where(eq(userFollowsTable.followerId, filters.followingUserId))
         )
       );
+    }
+
+    if (filters.priceMin !== undefined) {
+      conditions.push(gte(aircraftModelsTable.priceMin, filters.priceMin));
+    }
+
+    if (filters.priceMax !== undefined) {
+      conditions.push(lte(aircraftModelsTable.priceMax, filters.priceMax));
     }
 
     const favoriteCounts = db

@@ -16,7 +16,9 @@ export const DEFAULT_MODERATION_MODES = {
   brand: "ai",
   model: "ai",
   ranking: "manual",
-  ratingTarget: "ai"
+  ratingTarget: "ai",
+  circlePost: "ai",
+  circleComment: "ai"
 } satisfies SiteSettings["moderationModes"];
 
 function resolveLegacyModerationEnabled(
@@ -95,7 +97,9 @@ export function resolveSiteModerationModes(settings: SiteSettingsLike) {
     brand: resolveSiteModerationMode(settings, "brand"),
     model: resolveSiteModerationMode(settings, "model"),
     ranking: resolveSiteModerationMode(settings, "ranking"),
-    ratingTarget: resolveSiteModerationMode(settings, "ratingTarget")
+    ratingTarget: resolveSiteModerationMode(settings, "ratingTarget"),
+    circlePost: resolveSiteModerationMode(settings, "circlePost"),
+    circleComment: resolveSiteModerationMode(settings, "circleComment")
   } satisfies SiteSettings["moderationModes"];
 }
 
@@ -167,7 +171,9 @@ function mergeModerationModes(
       current.ratingTarget,
       patch.moderationModes?.ratingTarget,
       fromLegacy.ratingTarget
-    )
+    ),
+    circlePost: patch.moderationModes?.circlePost ?? current.circlePost,
+    circleComment: patch.moderationModes?.circleComment ?? current.circleComment
   } satisfies SiteSettings["moderationModes"];
 }
 

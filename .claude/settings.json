@@ -16,28 +16,5 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(echo \"EXIT:$?\")"
     ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jarvis hook gate-check"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jarvis hook status"
-          }
-        ]
-      }
-    ]
   }
 }

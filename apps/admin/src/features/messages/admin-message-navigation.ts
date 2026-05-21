@@ -19,7 +19,9 @@ export const adminMessageDomainOptions: Array<{ label: string; value: AdminMessa
   { label: "评分对象", value: "rating_targets" },
   { label: "评分对象评论", value: "rating_target_comments" },
   { label: "机型投稿", value: "aircraft_submissions" },
-  { label: "品牌申请", value: "brand_applications" }
+  { label: "品牌申请", value: "brand_applications" },
+  { label: "圈子帖子", value: "circle_posts" },
+  { label: "圈子评论", value: "circle_post_comments" }
 ];
 
 export const adminMessageTypeOptions: Array<{ label: string; value: NotificationType }> = [
@@ -135,6 +137,10 @@ function getCanonicalPathname(domain: AdminMessageDomain) {
       return APP_ROUTES.adminAircraftSubmissions;
     case "brand_applications":
       return APP_ROUTES.adminBrandApplications;
+    case "circle_posts":
+      return ADMIN_ROUTE_PATHS.moderationCirclePosts;
+    case "circle_post_comments":
+      return ADMIN_ROUTE_PATHS.moderationCircleComments;
   }
 }
 

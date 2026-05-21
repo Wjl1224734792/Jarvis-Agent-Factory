@@ -28,7 +28,9 @@ function createSiteSettings(
       brand: "ai",
       model: "ai",
       ranking: "manual",
-      ratingTarget: "ai"
+      ratingTarget: "ai",
+      circlePost: "ai",
+      circleComment: "ai"
     },
     ...overrides
   };
@@ -68,7 +70,9 @@ describe("site settings moderation helpers", () => {
         brand: "automatic",
         model: "ai",
         ranking: "manual",
-        ratingTarget: "automatic"
+        ratingTarget: "automatic",
+        circlePost: "ai",
+        circleComment: "ai"
       }
     });
 
@@ -80,7 +84,9 @@ describe("site settings moderation helpers", () => {
       brand: "automatic",
       model: "ai",
       ranking: "manual",
-      ratingTarget: "automatic"
+      ratingTarget: "automatic",
+      circlePost: "ai",
+      circleComment: "ai"
     });
   });
 
@@ -101,7 +107,9 @@ describe("site settings moderation helpers", () => {
       brand: "ai",
       model: "manual",
       ranking: "manual",
-      ratingTarget: "ai"
+      ratingTarget: "ai",
+      circlePost: "ai",
+      circleComment: "ai"
     });
     expect(update.articleModerationEnabled).toBe(true);
     expect(update.commentModerationEnabled).toBe(true);

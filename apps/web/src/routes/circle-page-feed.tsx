@@ -15,13 +15,16 @@ import {
   CIRCLE_CARD_COLUMN_GAP,
   CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
   getCircleCardMediaAspectClass,
-  partitionCircleFeedShortestColumn
+  partitionCircleFeedShortestColumn,
+  type CircleFeedColumnCell
 } from "./circle-page-helpers";
+import { CircleTabSelector } from "./circle-tab-selector";
 
-const feedTabs = [
+export const feedTabs = [
   { id: "recommended", label: "推荐" },
   { id: "latest", label: "最新" },
-  { id: "following", label: "关注" }
+  { id: "following", label: "关注" },
+  { id: "circles", label: "圈子" }
 ] as const;
 
 export type FeedTab = (typeof feedTabs)[number]["id"];
@@ -65,6 +68,24 @@ type CirclePageFeedProps = {
   formatCount: (value: number) => string;
   authStatus: "idle" | "loading" | "authenticated" | "anonymous";
   onNavigateToLogin: () => void;
+  circlesTabProps?: {
+    circles: Array<{
+      id: string;
+      slug: string;
+      name: string;
+      memberCount: number;
+      postCount: number;
+      coverImageUrl: string | null;
+    }>;
+    selectedCircleId: string | null;
+    onSelectCircle: (circleId: string) => void;
+    circlePosts: CircleFeedItem[];
+    isCirclePostsLoading: boolean;
+    circlePostsError?: Error | null;
+    feedPosts: CircleFeedItem[];
+    isFeedPostsLoading: boolean;
+    feedPostsError?: Error | null;
+  };
 };
 
 const CircleFeedCard = memo(function CircleFeedCard(props: {
@@ -170,6 +191,29 @@ const CircleFeedCard = memo(function CircleFeedCard(props: {
 
 CircleFeedCard.displayName = "CircleFeedCard";
 
+function mapCirclePostToFeedItem(post: Record<string, unknown>): CircleFeedItem {
+  const parseJsonArray = (value: unknown): unknown[] => {
+    if (typeof value === "string") {
+      try { return JSON.parse(value) as unknown[]; } catch { return []; }
+    }
+    return Array.isArray(value) ? value : [];
+  };
+  const images = parseJsonArray(post.images);
+  const videos = parseJsonArray(post.videos);
+  const circleSlug = typeof post.circleSlug === "string" ? post.circleSlug : undefined;
+  const circleName = typeof post.circleName === "string" ? post.circleName : "";
+  return {
+    ...post,
+    images,
+    videos,
+    source: circleSlug
+      ? { label: circleName, url: `/circles/${circleSlug}` }
+      : undefined,
+  } as CircleFeedItem;
+}
+
+export { mapCirclePostToFeedItem };
+
 export function CirclePageFeed({
   activeTab,
   onChangeTab,
@@ -187,13 +231,26 @@ export function CirclePageFeed({
   onLoadMore,
   formatCount,
   authStatus,
-  onNavigateToLogin
+  onNavigateToLogin,
+  circlesTabProps
 }: CirclePageFeedProps) {
   const feedMeasureRef = useRef<HTMLDivElement>(null);
   const columnCount = useCircleColumnCount(undefined, { widthElementRef: feedMeasureRef });
   const columns = useMemo(
     () => partitionCircleFeedShortestColumn(posts, columnCount),
     [posts, columnCount]
+  );
+  const circleColumns = useMemo(
+    () => {
+      if (!circlesTabProps || circlesTabProps.circlePosts.length === 0) {
+        return [] as CircleFeedColumnCell<CircleFeedItem>[][];
+      }
+      return partitionCircleFeedShortestColumn(
+        circlesTabProps.circlePosts,
+        columnCount
+      );
+    },
+    [circlesTabProps?.circlePosts, columnCount]
   );
   const showFooter = isLoadMoreError || isFetchingNextPage || (isRefetching && !isFetchingNextPage);
 
@@ -235,16 +292,100 @@ export function CirclePageFeed({
         </div>
       </div>
 
-      {activeTab === "following" && authStatus === "anonymous" ? (
+      {activeTab === "circles" && circlesTabProps ? (
+        <>
+          <CircleTabSelector
+            circles={circlesTabProps.circles}
+            selectedCircleId={circlesTabProps.selectedCircleId}
+            onSelect={circlesTabProps.onSelectCircle}
+            isLoading={circlesTabProps.circles.length === 0}
+          />
+          {circlesTabProps.selectedCircleId ? (
+            circlesTabProps.isCirclePostsLoading ? (
+              <MasonryFeedSkeleton
+                className="mt-4"
+                columnCount={columnCount}
+                count={10}
+              />
+            ) : circlesTabProps.circlePostsError ? (
+              <Alert className="rounded-none border-0" variant="destructive">
+                <AlertTitle>圈子帖子加载失败</AlertTitle>
+                <AlertDescription>
+                  {circlesTabProps.circlePostsError.message ??
+                    "网络开小差了，请稍后重试。"}
+                </AlertDescription>
+              </Alert>
+            ) : circlesTabProps.circlePosts.length === 0 ? (
+              <Alert className="rounded-none border-0">
+                <AlertTitle>该圈子暂无帖子</AlertTitle>
+                <AlertDescription>
+                  快来发布第一条帖子吧。
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="site-tab-panel mt-4 w-full space-y-0">
+                <VirtualMasonryColumns
+                  className="w-full"
+                  columns={circleColumns}
+                  gap={CIRCLE_CARD_COLUMN_GAP}
+                  itemKey={masonryItemKey}
+                  renderItem={masonryRenderItem}
+                />
+              </div>
+            )
+          ) : circlesTabProps.isFeedPostsLoading ? (
+            <MasonryFeedSkeleton
+              className="mt-4"
+              columnCount={columnCount}
+              count={10}
+            />
+          ) : circlesTabProps.feedPostsError ? (
+            <Alert className="rounded-none border-0" variant="destructive">
+              <AlertTitle>推荐帖子加载失败</AlertTitle>
+              <AlertDescription>
+                {circlesTabProps.feedPostsError.message ?? "网络开小差了，请稍后重试。"}
+              </AlertDescription>
+            </Alert>
+          ) : (circlesTabProps.feedPosts?.length ?? 0) > 0 ? (
+            <div className="site-tab-panel mt-4 w-full space-y-0">
+              <div className="mb-3 text-xs text-muted-foreground">各圈子精选推荐</div>
+              <VirtualMasonryColumns
+                className="w-full"
+                columns={partitionCircleFeedShortestColumn(
+                  circlesTabProps.feedPosts ?? [],
+                  columnCount
+                )}
+                gap={CIRCLE_CARD_COLUMN_GAP}
+                itemKey={masonryItemKey}
+                renderItem={masonryRenderItem}
+              />
+            </div>
+          ) : (
+            <div className="px-5 py-12 text-center">
+              <div className="text-base font-semibold text-foreground">
+                选择一个圈子查看帖子
+              </div>
+              <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                从上方选择一个你感兴趣的圈子，查看圈子内的帖子动态。
+              </div>
+            </div>
+          )}
+        </>
+      ) : (activeTab === "following" || activeTab === "latest") &&
+        authStatus === "anonymous" ? (
         <div className="bg-white px-5 py-12 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
             <LockKeyholeIcon className="size-5 text-muted-foreground" />
           </div>
           <div className="mt-4 text-base font-semibold text-foreground">
-            登录后查看你关注的创作者
+            {activeTab === "following"
+              ? "登录后查看你关注的创作者"
+              : "登录后浏览最新动态"}
           </div>
           <div className="mt-2 text-sm leading-6 text-muted-foreground">
-            登录后即可查看你关注的创作者发布的动态。
+            {activeTab === "following"
+              ? "登录后即可查看你关注的创作者发布的动态。"
+              : "登录后即可浏览飞友圈的最新动态。"}
           </div>
           <Button className="mt-5" onClick={onNavigateToLogin} size="sm" type="button" variant="hero">
             去登录

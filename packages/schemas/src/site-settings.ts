@@ -10,7 +10,9 @@ export const moderationModesSchema = z.object({
   brand: moderationModeSchema,
   model: moderationModeSchema,
   ranking: moderationModeSchema,
-  ratingTarget: moderationModeSchema
+  ratingTarget: moderationModeSchema,
+  circlePost: moderationModeSchema,
+  circleComment: moderationModeSchema
 });
 
 export const siteSettingsSchema = z.object({

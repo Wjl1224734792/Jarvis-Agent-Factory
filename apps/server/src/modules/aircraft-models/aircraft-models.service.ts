@@ -26,6 +26,8 @@ type ListFilters = {
   currentUserId?: string;
   limit?: number;
   page?: number;
+  priceMin?: number;
+  priceMax?: number;
 };
 const DEFAULT_MODELS_PAGE = 1;
 const DEFAULT_MODELS_LIMIT = 20;
@@ -251,7 +253,9 @@ export const aircraftModelsService = {
       brandSlugs: filters.brandSlugs,
       powerTypes: filters.powerTypes,
       keyword: filters.keyword,
-      followingUserId: tab === "following" ? filters.currentUserId : undefined
+      followingUserId: tab === "following" ? filters.currentUserId : undefined,
+      priceMin: filters.priceMin,
+      priceMax: filters.priceMax
     };
 
     const [rows, categories, brands, powerTypes] = await Promise.all([

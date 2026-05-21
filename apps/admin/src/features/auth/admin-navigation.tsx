@@ -125,7 +125,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     group: "审核",
     to: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions,
     label: "机型投稿",
-    hint: "飞行器资料与机型投稿审核",
+    hint: "机型资料与投稿审核",
     icon: CloudUploadOutlined,
     end: false
   },
@@ -164,8 +164,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     group: "运营",
     to: ADMIN_ROUTE_PATHS.operationsAircraft,
-    label: "创建飞行器",
-    hint: "飞行器建档与机型投稿入口",
+    label: "创建机型",
+    hint: "机型建档与投稿入口",
     icon: GatewayOutlined,
     end: false
   },
@@ -221,7 +221,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     group: "管理",
     to: ADMIN_ROUTE_PATHS.managementPowerTypes,
     label: "动力分类",
-    hint: "飞行器动力类型配置",
+    hint: "机型动力类型配置",
     icon: ApartmentOutlined,
     end: false
   },
@@ -466,6 +466,8 @@ export const ADMIN_MENU_ITEMS: MenuProps["items"] = [
       { key: ADMIN_ROUTE_PATHS.messageTodos, icon: <ScheduleOutlined />, label: "审核待办", roles: ["super_admin", "admin", "moderator"] },
       { key: ADMIN_ROUTE_PATHS.moderationArticles, icon: <FlagOutlined />, label: "文章审核", roles: ["super_admin", "admin", "moderator"] },
       { key: ADMIN_ROUTE_PATHS.moderationMoments, icon: <NotificationOutlined />, label: "飞友圈动态", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationCirclePosts, icon: <FlagOutlined />, label: "圈子帖子审核", roles: ["super_admin", "admin", "moderator"] },
+      { key: ADMIN_ROUTE_PATHS.moderationCircleComments, icon: <CommentOutlined />, label: "圈子评论审核", roles: ["super_admin", "admin", "moderator"] },
       { key: ADMIN_ROUTE_PATHS.moderationComments, icon: <CommentOutlined />, label: "评论审核", roles: ["super_admin", "admin", "moderator"] },
       { key: ADMIN_ROUTE_PATHS.moderationReports, icon: <FileSearchOutlined />, label: "举报内容", roles: ["super_admin", "admin", "moderator"] },
       { key: ADMIN_ROUTE_PATHS.moderationBrandApplications, icon: <InboxOutlined />, label: "品牌申请", roles: ["super_admin", "admin", "moderator"] },
@@ -482,7 +484,7 @@ export const ADMIN_MENU_ITEMS: MenuProps["items"] = [
     roles: ["super_admin", "admin", "operator"],
     children: [
       { key: ADMIN_ROUTE_PATHS.operationsArticles, icon: <ReadOutlined />, label: "创建文章", roles: ["super_admin", "admin", "operator"] },
-      { key: ADMIN_ROUTE_PATHS.operationsAircraft, icon: <GatewayOutlined />, label: "创建飞行器", roles: ["super_admin", "admin", "operator"] },
+      { key: ADMIN_ROUTE_PATHS.operationsAircraft, icon: <GatewayOutlined />, label: "创建机型", roles: ["super_admin", "admin", "operator"] },
       { key: ADMIN_ROUTE_PATHS.operationsBrands, icon: <AppstoreOutlined />, label: "创建品牌", roles: ["super_admin", "admin", "operator"] },
       { key: ADMIN_ROUTE_PATHS.operationsRankings, icon: <TrophyOutlined />, label: "创建榜单", roles: ["super_admin", "admin", "operator"] }
     ]

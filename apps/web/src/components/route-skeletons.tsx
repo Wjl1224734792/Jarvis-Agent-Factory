@@ -6,7 +6,7 @@ import {
   RailCardSkeleton,
   RankingCardGridSkeleton
 } from "@/components/page-skeletons";
-import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
+import { SiteGrid, SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** 路由懒加载 fallback 独立模块：避免主应用入口顶层引入所有大骨架。 */
@@ -42,6 +42,7 @@ export function CirclePageRouteSkeleton() {
           <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
           <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
           <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
+          <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
         </div>
       </div>
       <MasonryFeedSkeleton className="mt-4" count={10} />
@@ -52,7 +53,7 @@ export function CirclePageRouteSkeleton() {
 export function HomePageRouteSkeleton() {
   return (
     <SitePage>
-      <SiteGrid className="items-start gap-4" variant="sidebar">
+      <SiteGrid className="items-start gap-4" variant="default">
         <div className="mx-auto w-full max-w-[920px] min-w-0">
           <div className="border-b border-border px-1">
             <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
@@ -67,39 +68,6 @@ export function HomePageRouteSkeleton() {
             </div>
           </section>
         </div>
-        <SiteRail className="hidden space-y-2 xl:flex">
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-2.5">
-              <Skeleton className="h-5 w-24 rounded-none" />
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 2 }).map((_, index) => (
-                  <div className="space-y-2" key={index}>
-                    <Skeleton className="h-4 w-4/5 rounded-none" />
-                    <Skeleton className="h-3.5 w-3/5 rounded-none" />
-                  </div>
-                ))}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-2.5">
-              <Skeleton className="h-5 w-24 rounded-none" />
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
-                    <Skeleton className="h-[58px] w-full rounded-none" />
-                    <div className="space-y-1.5">
-                      <Skeleton className="h-3.5 w-20 rounded-none" />
-                      <Skeleton className="h-3 w-14 rounded-none" />
-                      <Skeleton className="h-3 w-12 rounded-none" />
-                    </div>
-                    <Skeleton className="h-5 w-8 rounded-none" />
-                  </div>
-                ))}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-        </SiteRail>
       </SiteGrid>
     </SitePage>
   );

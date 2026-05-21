@@ -247,7 +247,7 @@ export const brandApplicationsTable = pgTable("brand_applications", {
   applicantId: text("applicant_id")
     .notNull(),
   status: text("status").default("pending").notNull(),
-  slug: text("slug").notNull(),
+  slug: text("slug"),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
   description: text("description"),
@@ -1274,6 +1274,43 @@ export const circleUserCategoriesTable = pgTable("circle_user_categories", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   userIdIdx: index("circle_user_categories_user_id_idx").on(table.userId),
+}));
+
+/** 圈子帖子举报表 */
+export const circlePostReportsTable = pgTable("circle_post_reports", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").notNull(),
+  reporterId: text("reporter_id").notNull(),
+  reason: text("reason").notNull(),
+  imageFileIds: text("image_file_ids").default("[]").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  postReporterUnique: uniqueIndex("circle_post_reports_post_reporter_unique").on(table.postId, table.reporterId),
+  postIdIdx: index("circle_post_reports_post_id_idx").on(table.postId),
+}));
+
+/** 圈子评论举报表 */
+export const circlePostCommentReportsTable = pgTable("circle_post_comment_reports", {
+  id: text("id").primaryKey(),
+  commentId: text("comment_id").notNull(),
+  reporterId: text("reporter_id").notNull(),
+  reason: text("reason").notNull(),
+  imageFileIds: text("image_file_ids").default("[]").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  commentReporterUnique: uniqueIndex("circle_post_comment_reports_cmt_reporter_unique").on(table.commentId, table.reporterId),
+  commentIdIdx: index("circle_post_comment_reports_comment_id_idx").on(table.commentId),
+}));
+
+/** 圈子评论点赞表 */
+export const circlePostCommentLikesTable = pgTable("circle_post_comment_likes", {
+  id: text("id").primaryKey(),
+  commentId: text("comment_id").notNull(),
+  userId: text("user_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  commentUserUnique: uniqueIndex("circle_post_comment_likes_cmt_user_unique").on(table.commentId, table.userId),
+  commentIdIdx: index("circle_post_comment_likes_comment_id_idx").on(table.commentId),
 }));
 
 /** 圈子分类关联表 */

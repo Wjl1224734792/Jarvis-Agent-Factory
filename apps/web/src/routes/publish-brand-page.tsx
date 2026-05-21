@@ -98,7 +98,7 @@ function BrandApplicationSuccessState(props: {
                 </div>
                 <div className="rounded-[0.8rem] border border-border bg-surface-1 px-3 py-3">
                   <div className="text-[0.72rem] uppercase tracking-[0.14em] text-muted-foreground">品牌标识</div>
-                  <div className="mt-1 text-sm font-medium text-foreground">{props.application.slug}</div>
+                  <div className="mt-1 text-sm font-medium text-foreground">{props.application.slug ?? "自动生成"}</div>
                 </div>
               </div>
 
@@ -196,7 +196,7 @@ export function PublishBrandPage() {
 
     const item = detailQuery.data.item;
     setName(item.name);
-    setSlug(item.slug);
+    setSlug(item.slug ?? "");
     setDescription(item.description ?? "");
     setLogo(item.logoUrl ? { id: item.id, url: item.logoUrl } : null);
   }, [detailQuery.data?.item, submittedApplication, submittedId]);
@@ -335,11 +335,14 @@ export function PublishBrandPage() {
                     onChange={(event) =>
                       setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 48))
                     }
-                    placeholder="请输入英文 slug"
+                    placeholder="英文标识（选填，留空自动生成）"
                     value={slug}
                   />
                   {!slugValid && slug.trim().length > 0 ? (
-                    <div className="text-xs text-destructive">slug 仅支持小写英文字母、数字和连字符</div>
+                    <div className="text-xs text-destructive">标识仅支持小写英文字母、数字和连字符</div>
+                  ) : null}
+                  {!slug.trim() ? (
+                    <div className="text-xs text-muted-foreground">留空将根据品牌名称自动生成唯一标识</div>
                   ) : null}
                 </div>
               </div>
@@ -367,8 +370,7 @@ export function PublishBrandPage() {
               <Button
                 disabled={
                   !name.trim() ||
-                  !slug.trim() ||
-                  !slugValid ||
+                  (slug.trim().length > 0 && !slugValid) ||
                   !description.trim() ||
                   !logo ||
                   isUploading ||
@@ -397,7 +399,7 @@ export function PublishBrandPage() {
                       logoUrl = uploaded.item.url;
                     }
                     const payload = {
-                      slug: slug.trim(),
+                      slug: slug.trim() || null,
                       name: name.trim(),
                       logoUrl,
                       description: description.trim()
