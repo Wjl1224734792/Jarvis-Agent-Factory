@@ -133,13 +133,6 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
                 }
               }
             }
-            const flatDir = join(root, '.jarvis', gateSubdir);
-            if (existsSync(flatDir)) {
-              const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
-              for (const f of mdFiles) {
-                insertArtifact(db, runId, cur, `${gateSubdir}/${f}`);
-              }
-            }
           }
         } catch (e) {
           console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, String(e));

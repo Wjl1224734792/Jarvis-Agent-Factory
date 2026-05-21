@@ -378,7 +378,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSessionSelect = useCallback((id: string) => {
     setSelectedSession(id);
-    navigate('/');
+    navigate(`/session/${encodeURIComponent(id)}`);
   }, [navigate]);
 
   const { sortedSessions, activeCount } = useMemo(() => {

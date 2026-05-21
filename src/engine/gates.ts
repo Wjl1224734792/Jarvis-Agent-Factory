@@ -320,16 +320,6 @@ export function findSessionGateArtifacts(artifactsDir, gate, sessionId, db, runI
     return rows.map(r => r.filepath).slice(0, 5);
   }
 
-  // 无 runId 时使用当日日期目录扫描（兼容旧调用）
-  const today = new Date().toISOString().slice(0, 10);
-  const todayDir = join(artifactsDir, today, subdir);
-  if (existsSync(todayDir)) {
-    const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
-    if (mdFiles.length > 0) {
-      return mdFiles.map(f => `${today}/${subdir}/${f}`).slice(0, 5);
-    }
-  }
-
   return [];
 }
 

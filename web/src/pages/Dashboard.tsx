@@ -18,11 +18,11 @@ import ErrorBoundary from '../components/ErrorBoundary';
 // 常量
 // ============================================================
 
-function shortGate(gate: string): string {
+export function shortGate(gate: string): string {
   return gate.startsWith('Gate ') ? gate.slice(5) : gate;
 }
 
-const GATE_COLORS: Record<string, string> = {
+export const GATE_COLORS: Record<string, string> = {
   A: 'var(--ant-color-primary)', B: 'var(--ant-color-primary)', C: 'var(--ant-color-primary)',
   C1: 'var(--ant-color-success)', 'C1.5': 'var(--ant-color-text)', C2: 'var(--ant-color-error)',
   D: 'var(--ant-color-primary)', E: 'var(--ant-color-primary)',
@@ -33,7 +33,7 @@ const GATE_COLORS: Record<string, string> = {
   'D0': '#d46b08', 'D1': '#d46b08', 'D2': '#d46b08', 'D3': '#d46b08', 'D4': '#d46b08',
 };
 
-const GATE_LABELS: Record<string, string> = {
+export const GATE_LABELS: Record<string, string> = {
   A: '需求澄清', 'B-DDD': '领域分析', 'B-BDD': '行为驱动', 'B-TDD': '测试任务',
   B1: '架构评审', C: '执行规划',
   'C-impl': '并行实现', C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
@@ -45,7 +45,7 @@ const GATE_LABELS: Record<string, string> = {
   'D0': '收集信息', 'D1': '复现用例', 'D2': '调试会话', 'D3': '交互诊断', 'D4': '输出报告',
 };
 
-const GATE_DESCRIPTIONS: Record<string, string> = {
+export const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate A': '至少1个需求文档，含REQ-XXX编号',
   'Gate B-DDD': 'DDD领域分析：聚合/实体/值对象/领域服务',
   'Gate B-BDD': 'BDD行为场景：Gherkin Given/When/Then',
@@ -70,7 +70,7 @@ const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate D2': '调试会话已启动', 'Gate D3': '根因已定位', 'Gate D4': '诊断报告已产出',
 };
 
-const MARKDOWN_CSS = `
+export const MARKDOWN_CSS = `
 .markdown-body { font-size: 14px; line-height: 1.7; color: var(--ant-color-text); }
 .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: var(--ant-color-text); font-weight: 700; border-bottom: 2px solid var(--ant-color-primary-bg); padding-bottom: 6px; }
 .markdown-body h1 { font-size: 1.6em; }
@@ -94,7 +94,7 @@ const MARKDOWN_CSS = `
 // 懒加载 Markdown
 // ============================================================
 
-const LazyMarkdown = React.lazy(async () => {
+export const LazyMarkdown = React.lazy(async () => {
   const [md, gfm, syntaxModule, styleModule] = await Promise.all([
     import('react-markdown'),
     import('remark-gfm'),

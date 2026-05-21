@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Timeline, Table, Spin, Button, Breadcrumb } from 'antd';
-import { ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Tag, Timeline, Table, Spin, Button, Breadcrumb, message, Modal } from 'antd';
+import { ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { MARKDOWN_CSS, LazyMarkdown } from './Dashboard';
 
 interface RunDetail {
   run: {
@@ -27,6 +29,19 @@ export default function RunDetail() {
   const [data, setData] = useState<RunDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [mdPreview, setMdPreview] = useState<{ open: boolean; content: string; title: string }>({
+    open: false, content: '', title: '',
+  });
+
+  useEffect(() => {
+    const id = 'markdown-custom-style';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.textContent = MARKDOWN_CSS;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   useEffect(() => {
     fetch(`/api/pipeline-runs/${encodeURIComponent(runId || '')}/detail`)
@@ -35,6 +50,16 @@ export default function RunDetail() {
       .catch(e => { setError(e.message); setLoading(false); });
   }, [runId]);
 
+  const openMdPreview = async (filepath: string) => {
+    try {
+      const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
+      const r = await fetch(`/api/jarvis/${encodeURIComponent(sanitized)}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const content = await r.text();
+      setMdPreview({ open: true, content, title: filepath });
+    } catch { message.error('文档加载失败'); }
+  };
+
   if (loading) return <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>;
   if (error) return <div style={{ textAlign: 'center', padding: 80, color: '#ff4d4f' }}>加载失败: {error}</div>;
   if (!data) return null;
@@ -42,10 +67,10 @@ export default function RunDetail() {
   const { run, gates, documents, events, pipeline_name } = data;
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-      <Breadcrumb style={{ marginBottom: 16 }}
+    <div style={{ height: '100%', overflow: 'auto', padding: '0 4px' }}>
+      <Breadcrumb style={{ marginBottom: 12 }}
         items={[
-          { title: <a onClick={() => navigate('/dashboard')}>看板</a> },
+          { title: <a onClick={() => navigate('/')}>首页</a> },
           { title: <a onClick={() => navigate('/archive')}>归档</a> },
           { title: run.task_name || run.id },
         ]}
@@ -53,7 +78,7 @@ export default function RunDetail() {
 
       <Card title={<span><CheckCircleOutlined style={{ color: run.status === 'completed' ? '#52c41a' : '#faad14' }} /> {run.task_name || '未命名任务'}</span>}
         extra={<Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/archive')}>返回</Button>}
-        style={{ marginBottom: 16 }}>
+        style={{ marginBottom: 12 }}>
         <Descriptions size="small" column={3}>
           <Descriptions.Item label="流水线">{pipeline_name}</Descriptions.Item>
           <Descriptions.Item label="状态"><Tag color={run.status === 'completed' ? 'green' : 'orange'}>{run.status}</Tag></Descriptions.Item>
@@ -64,7 +89,7 @@ export default function RunDetail() {
         </Descriptions>
       </Card>
 
-      <Card title="Gate 流水线" style={{ marginBottom: 16 }}>
+      <Card title="Gate 流水线" style={{ marginBottom: 12 }}>
         <Timeline items={gates.map(g => ({
           color: g.passed ? 'green' : 'gray',
           children: (
@@ -75,7 +100,8 @@ export default function RunDetail() {
               {g.artifacts.length > 0 && (
                 <div style={{ marginTop: 4 }}>
                   {g.artifacts.map(a => (
-                    <Tag key={a.filepath} color="blue" style={{ marginBottom: 4 }}>
+                    <Tag key={a.filepath} color="blue" style={{ marginBottom: 4, cursor: 'pointer' }}
+                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); openMdPreview(a.filepath); }}>
                       {a.filepath.split('/').pop()}
                     </Tag>
                   ))}
@@ -86,11 +112,15 @@ export default function RunDetail() {
         }))} />
       </Card>
 
-      <Card title="产物文档" style={{ marginBottom: 16 }}>
+      <Card title={<span><FileTextOutlined style={{ marginRight: 6 }} />产物文档</span>} style={{ marginBottom: 12 }}>
         {documents.length === 0 ? <span style={{ color: '#999' }}>暂无产物文档</span> : (
           <Table dataSource={documents} pagination={false} size="small" rowKey="filepath"
+            onRow={(record) => ({
+              onClick: () => openMdPreview(record.filepath),
+              style: { cursor: 'pointer' },
+            })}
             columns={[
-              { title: '文档路径', dataIndex: 'filepath', key: 'filepath' },
+              { title: '文档路径', dataIndex: 'filepath', key: 'filepath', render: (t: string) => <a>{t}</a> },
               { title: 'Gate', dataIndex: 'gate', key: 'gate', render: (t: string) => <Tag>{t}</Tag> },
               { title: '创建时间', dataIndex: 'created_at', key: 'created_at',
                 render: (t: string) => t ? new Date(t).toLocaleString() : '-' },
@@ -109,6 +139,18 @@ export default function RunDetail() {
             ]} />
         </Card>
       )}
+
+      {/* Markdown 预览浮层 */}
+      <Modal title={mdPreview.title} open={mdPreview.open} onCancel={() => setMdPreview({ open: false, content: '', title: '' })}
+        footer={null} width={800} destroyOnClose>
+        <div className="markdown-body" style={{ maxHeight: '70vh', overflow: 'auto' }}>
+          <ErrorBoundary>
+            <React.Suspense fallback={<Spin />}>
+              <LazyMarkdown content={mdPreview.content} />
+            </React.Suspense>
+          </ErrorBoundary>
+        </div>
+      </Modal>
     </div>
   );
 }

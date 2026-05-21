@@ -536,7 +536,7 @@ describe('findSessionGateArtifacts', () => {
 
   // --- Green 阶段：findSessionGateArtifacts 测试（已移除 checkpoint 回退 + 扁平回退） ---
 
-  it('1. 无 runId 时使用当日日期目录扫描（dateDir/subdir/filename.md）', () => {
+  it('1. 无 runId 时不扫描日期目录，返回空数组', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-10T12:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-10', isDir: true }]);
@@ -545,10 +545,7 @@ describe('findSessionGateArtifacts', () => {
 
     const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
 
-    expect(result).toEqual([
-      '2026-05-10/requirements/REQ-001.md',
-      '2026-05-10/requirements/REQ-002.md',
-    ]);
+    expect(result).toEqual([]);
     vi.useRealTimers();
   });
 
@@ -575,7 +572,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('4. 无 runId 时使用模拟的当前日期扫描', () => {
+  it('4. 无 runId 时不扫描日期目录，返回空数组', () => {
     mockFs.setEntries(DOCS, [{ name: '2026-05-12', isDir: true }]);
     mockFs.setExists(join(DOCS, '2026-05-12', 'requirements'), true);
     mockFs.setEntries(join(DOCS, '2026-05-12', 'requirements'), ['REQ-005.md']);
@@ -584,7 +581,7 @@ describe('findSessionGateArtifacts', () => {
     vi.setSystemTime(new Date('2026-05-12T10:00:00Z'));
 
     const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
-    expect(result).toEqual(['2026-05-12/requirements/REQ-005.md']);
+    expect(result).toEqual([]);
     vi.useRealTimers();
   });
 

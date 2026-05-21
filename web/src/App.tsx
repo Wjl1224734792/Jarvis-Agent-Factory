@@ -5,7 +5,7 @@ import defaultTheme from './theme';
 import AppLayout from './components/Layout';
 
 const DashboardHome = lazy(() => import('./pages/DashboardHome'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SessionDetail = lazy(() => import('./pages/SessionDetail'));
 const Agents = lazy(() => import('./pages/Agents'));
 const Commands = lazy(() => import('./pages/Commands'));
 const Archive = lazy(() => import('./pages/Archive'));
@@ -29,7 +29,7 @@ export default function App() {
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/" element={<DashboardHome />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/session/:sessionId" element={<SessionDetail />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/commands" element={<Commands />} />
               <Route path="/archive" element={<Archive />} />
