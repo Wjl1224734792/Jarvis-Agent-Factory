@@ -511,6 +511,15 @@ export const authRepo = {
 
     return rows[0] ? toUserRecord(rows[0]) : null;
   },
+  async findUserByAccount(account: string) {
+    const rows = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.account, account))
+      .limit(1);
+
+    return rows[0] ? toUserRecord(rows[0]) : null;
+  },
   async findUserById(id: string) {
     const rows = await db
       .select()
@@ -719,6 +728,14 @@ export const authRepo = {
   },
   async findUserByPhoneAndPassword(phone: string, password: string): Promise<UserRecord | null> {
     const user = await this.findUserByPhone(phone);
+    if (!user?.password) {
+      return null;
+    }
+
+    return (await verifyPassword(password, user.password)) ? user : null;
+  },
+  async findUserByAccountAndPassword(account: string, password: string): Promise<UserRecord | null> {
+    const user = await this.findUserByAccount(account);
     if (!user?.password) {
       return null;
     }

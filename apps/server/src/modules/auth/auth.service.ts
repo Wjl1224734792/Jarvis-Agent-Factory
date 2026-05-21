@@ -275,13 +275,20 @@ export const authService = {
         throw new AuthError("RATE_LIMITED", "密码错误次数过多，请稍后再试");
       }
 
-      const user = await authRepo.findUserByPhoneAndPassword(
+      let user = await authRepo.findUserByPhoneAndPassword(
         input.phone,
         input.password
       );
+      // 回退到 account 登录（admin 等无手机号的管理员账号）
+      if (!user) {
+        user = await authRepo.findUserByAccountAndPassword(
+          input.phone,
+          input.password
+        );
+      }
       if (!user) {
         await authRepo.recordWebPasswordLoginFailure(input.phone, clientIp);
-        throw new AuthError("INVALID_CREDENTIALS", "手机号或密码错误");
+        throw new AuthError("INVALID_CREDENTIALS", "账号或密码错误");
       }
       ensureUserCanAuthenticate(user);
       await authRepo.clearWebPasswordLoginFailures(input.phone, clientIp);

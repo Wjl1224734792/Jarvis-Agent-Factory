@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { APP_ROUTES } from "@feijia/shared";
 import { Clock3Icon, Link2Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -212,11 +213,18 @@ export function PublishArticlePage() {
   const handleImportHtml = useCallback((html: string) => {
     const editor = editorRef.current;
     if (!editor) {
+      toast.error("编辑器尚未就绪，请先点击正文编辑区");
       return;
     }
 
     const currentHtml = editor.getHtml();
-    if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
+    // 空编辑器检测：Slate 空段落包含零宽字符和 data-slate 属性，不简单等于 <p><br></p>
+    const isEmptyEditor =
+      !currentHtml.trim() ||
+      currentHtml === '<p><br></p>' ||
+      currentHtml.replace(/<[^>]*>/g, '').replace(/[\s​-‏⁠﻿]/g, '') === '';
+
+    if (!isEmptyEditor) {
       editor.dangerouslyInsertHtml(html);
     } else {
       // 通过 DOM 设置内容保留列表结构，
@@ -228,6 +236,7 @@ export function PublishArticlePage() {
       }
     }
     editor.focus();
+    toast.success("文件导入成功");
   }, []);
 
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);

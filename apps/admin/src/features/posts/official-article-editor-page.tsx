@@ -1,6 +1,6 @@
 import type { IDomEditor } from '@wangeditor/editor';
 import { useQuery } from "@tanstack/react-query";
-import { Button, Form, Input, Select, Space } from "antd";
+import { Button, Form, Input, Select, Space, message } from "antd";
 import {
   Suspense,
   lazy,
@@ -181,11 +181,18 @@ export function OfficialArticleEditorPage() {
   const handleImportHtml = useCallback((html: string) => {
     const editor = editorInstance;
     if (!editor) {
+      message.error("编辑器尚未就绪，请先点击正文编辑区");
       return;
     }
 
     const currentHtml = editor.getHtml();
-    if (currentHtml.trim() && currentHtml !== '<p><br></p>') {
+    // 空编辑器检测：Slate 空段落包含零宽字符和 data-slate 属性，不简单等于 <p><br></p>
+    const isEmptyEditor =
+      !currentHtml.trim() ||
+      currentHtml === '<p><br></p>' ||
+      currentHtml.replace(/<[^>]*>/g, '').replace(/[\s​-‏⁠﻿]/g, '') === '';
+
+    if (!isEmptyEditor) {
       editor.dangerouslyInsertHtml(html);
     } else {
       // 通过 DOM 设置内容保留列表结构，
@@ -197,6 +204,7 @@ export function OfficialArticleEditorPage() {
       }
     }
     editor.focus();
+    message.success("文件导入成功");
   }, [editorInstance]);
 
   const categoriesQuery = useQuery({

@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 const { Text } = Typography;
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const VALID_EXTENSIONS = ['.md', '.markdown'];
+const VALID_EXTENSIONS = ['.md', '.markdown', '.docx', '.txt'];
 
 interface ImportFileButtonProps {
   /** 导入回调，接收净化后的 HTML 字符串 */
@@ -14,22 +14,60 @@ interface ImportFileButtonProps {
   disabled?: boolean;
 }
 
-/** 将 .md 文件解析为 HTML */
+/** HTML 实体转义 */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** 校验文件扩展名 */
+function isValidImportFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return VALID_EXTENSIONS.some(ext => name.endsWith(ext));
+}
+
+/** 解析 .md / .markdown → HTML */
 async function parseMarkdownFile(file: File): Promise<string> {
   const { marked } = await import('marked');
   const text = await file.text();
   return marked.parse(text, { async: false, gfm: true, breaks: true });
 }
 
-/** 校验文件扩展名 */
-function isValidMarkdownFile(file: File): boolean {
+/** 解析 .docx → HTML */
+async function parseDocxFile(file: File): Promise<string> {
+  const mammoth = await import('mammoth');
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  return result.value;
+}
+
+/** 解析 .txt → HTML（先转义后包裹，防 HTML 注入） */
+async function parseTextFile(file: File): Promise<string> {
+  const text = await file.text();
+  const escaped = escapeHtml(text);
+  return `<p>${escaped.replace(/\n/g, '<br>')}</p>`;
+}
+
+/** 根据文件扩展名路由到正确的解析器 */
+async function parseFile(file: File): Promise<string> {
   const name = file.name.toLowerCase();
-  return VALID_EXTENSIONS.some(ext => name.endsWith(ext));
+  if (name.endsWith('.md') || name.endsWith('.markdown')) {
+    return parseMarkdownFile(file);
+  }
+  if (name.endsWith('.docx')) {
+    return parseDocxFile(file);
+  }
+  return parseTextFile(file);
 }
 
 /**
- * Markdown 文件导入按钮（admin 端） — 弹窗支持拖拽和点击选择 .md 文件，
+ * 文档文件导入按钮（admin 端） — 弹窗支持拖拽和点击选择文件，
  * 浏览器端解析并回调净化后的 HTML。
+ *
+ * 支持格式：.md / .docx / .txt
  *
  * @param props.onImport - 文件解析成功后的回调。
  * @param props.disabled - 按钮禁用状态。
@@ -51,8 +89,8 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
     async (file: File) => {
       setError(null);
 
-      if (!isValidMarkdownFile(file)) {
-        setError('仅支持 .md (Markdown) 文件');
+      if (!isValidImportFile(file)) {
+        setError('仅支持 .docx / .md / .txt 文件');
         return;
       }
 
@@ -63,7 +101,7 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
 
       try {
         const { default: DOMPurify } = await import('dompurify');
-        const rawHtml = await parseMarkdownFile(file);
+        const rawHtml = await parseFile(file);
         const cleanHtml = DOMPurify.sanitize(rawHtml);
 
         if (!cleanHtml.trim()) {
@@ -129,8 +167,8 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
   return (
     <>
       <input
-        accept=".md,.markdown"
-        aria-label="选择要导入的 Markdown 文件"
+        accept=".md,.markdown,.docx,.txt"
+        aria-label="选择要导入的文档文件"
         style={{ display: 'none' }}
         onChange={event => void handleFileChange(event)}
         ref={inputRef}
@@ -142,8 +180,9 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
         icon={<UploadOutlined />}
         onClick={() => setOpen(true)}
         size="small"
+        title={disabled ? "请先点击正文编辑区以启用导入功能" : undefined}
       >
-        导入 MD
+        导入文件
       </Button>
 
       <Modal
@@ -151,11 +190,11 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
         okButtonProps={{ style: { display: 'none' } }}
         onCancel={handleClose}
         open={open}
-        title="导入 Markdown 文件"
+        title="导入文档文件"
         width={480}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Text type="secondary">将 .md 文件内容导入到编辑器中</Text>
+          <Text type="secondary">将文件内容导入到编辑器中</Text>
 
           {/* 拖拽区域 */}
           <div
@@ -198,11 +237,11 @@ export function ImportFileButton({ onImport, disabled }: ImportFileButtonProps) 
                 strong
                 style={{ color: isDragOver ? '#1677ff' : undefined }}
               >
-                {isDragOver ? '释放以导入文件' : '拖拽 .md 文件到此处'}
+                {isDragOver ? '释放以导入文件' : '拖拽文件到此处或点击选择'}
               </Text>
               <br />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                仅支持 .md (Markdown) 文件，最大 10MB
+                支持 .docx / .md / .txt，最大 10MB
               </Text>
             </div>
           </div>

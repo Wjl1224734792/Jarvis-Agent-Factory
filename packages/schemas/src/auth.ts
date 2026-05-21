@@ -30,22 +30,27 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ["*"],
   editor: [
     "content:*",
+    "circles:manage",
     "overview:view",
     "messages:view",
-    "settings:security"
+    "settings:security",
+    "settings:recommendation",
   ],
   moderator: [
     "moderation:*",
+    "circles:moderate",
     "overview:view",
     "messages:view",
-    "settings:security"
+    "settings:security",
   ],
   operator: [
     "operations:*",
+    "circles:manage",
     "overview:view",
     "messages:view",
-    "settings:security"
-  ]
+    "settings:security",
+    "settings:recommendation",
+  ],
 };
 
 export const passwordPolicyDescription =
@@ -121,7 +126,7 @@ export const webSmsLoginRequestSchema = smsLoginCredentialsSchema.extend({
 
 export const webPasswordLoginRequestSchema = z.object({
   method: z.literal("password"),
-  phone: chinaMainlandMobilePhoneSchema,
+  phone: z.string().min(2).max(100),
   password: z.string().min(1).max(100),
   captchaChallengeId: z.string().min(1),
   captchaCode: z.string().min(4).max(8)

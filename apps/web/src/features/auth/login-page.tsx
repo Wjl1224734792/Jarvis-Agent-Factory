@@ -159,7 +159,7 @@ export function LoginPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground" htmlFor="login-phone">
-                  手机号
+                  {loginMode === "password" ? "手机号或账号" : "手机号"}
                 </label>
                 <div className="grid grid-cols-[4rem_minmax(0,1fr)] gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-2.5">
                   <div className="flex h-12 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-surface-2 px-2 text-sm font-semibold tabular-nums text-foreground sm:px-2.5 sm:text-base">
@@ -168,12 +168,16 @@ export function LoginPage() {
                   <Input
                     className="h-12 min-w-0 md:h-12"
                     id="login-phone"
-                    inputMode="numeric"
-                    maxLength={11}
+                    inputMode={loginMode === "password" ? "text" : "numeric"}
+                    maxLength={loginMode === "password" ? 100 : 11}
                     onChange={event => {
-                      setPhone(event.target.value.replace(/\D/g, "").slice(0, 11));
+                      if (loginMode === "password") {
+                        setPhone(event.target.value);
+                      } else {
+                        setPhone(event.target.value.replace(/\D/g, "").slice(0, 11));
+                      }
                     }}
-                    placeholder="请输入手机号"
+                    placeholder={loginMode === "password" ? "请输入手机号或管理员账号" : "请输入手机号"}
                     value={phone}
                   />
                 </div>
@@ -203,7 +207,7 @@ export function LoginPage() {
                       disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
                       onClick={() => {
                         setSubmitError(null);
-                        if (!isChinaMainlandMobilePhone(phone)) {
+                        if (loginMode === "sms" && !isChinaMainlandMobilePhone(phone)) {
                           setSubmitError("请输入有效的手机号");
                           return;
                         }
@@ -288,12 +292,16 @@ export function LoginPage() {
                   disabled={isSubmitting}
                   onClick={() => {
                     setSubmitError(null);
-                    if (!isChinaMainlandMobilePhone(phone)) {
+                    if (loginMode === "sms" && !isChinaMainlandMobilePhone(phone)) {
                       setSubmitError("请输入有效的手机号");
                       return;
                     }
 
                     if (loginMode === "password") {
+                      if (!phone.trim()) {
+                        setSubmitError("请输入手机号或管理员账号");
+                        return;
+                      }
                       if (!password) {
                         setSubmitError("请输入密码");
                         return;
