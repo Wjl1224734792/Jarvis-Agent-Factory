@@ -1,0 +1,68 @@
+.wiki-markdown-body {
+  line-height: 1.7;
+  font-size: 14px;
+  color: var(--ant-color-text);
+}
+
+.wiki-markdown-body h1 { font-size: 1.5em; margin: 16px 0 8px; font-weight: 600; }
+.wiki-markdown-body h2 { font-size: 1.25em; margin: 14px 0 6px; font-weight: 600; }
+.wiki-markdown-body h3 { font-size: 1.1em; margin: 12px 0 4px; font-weight: 600; }
+
+.wiki-markdown-body p { margin: 8px 0; }
+
+.wiki-markdown-body code {
+  background: var(--ant-color-fill-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.wiki-markdown-body pre {
+  border-radius: 6px;
+  margin: 12px 0;
+}
+
+.wiki-markdown-body pre code {
+  font-size: 13px;
+}
+
+.wiki-markdown-body ul, .wiki-markdown-body ol {
+  padding-left: 1.5em;
+  margin: 6px 0;
+}
+
+.wiki-markdown-body blockquote {
+  border-left: 3px solid var(--ant-color-primary);
+  padding: 4px 12px;
+  margin: 8px 0;
+  color: var(--ant-color-text-secondary);
+}
+
+.wiki-markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.wiki-markdown-body th, .wiki-markdown-body td {
+  border: 1px solid var(--ant-color-border-secondary);
+  padding: 6px 12px;
+  text-align: left;
+}
+
+.wiki-markdown-body th {
+  background: var(--ant-color-fill-secondary);
+  font-weight: 600;
+}
+
+.wiki-markdown-body a {
+  color: var(--ant-color-primary);
+}
+
+.breadcrumb-link {
+  cursor: pointer;
+}
+
+.breadcrumb-link:hover {
+  color: var(--ant-color-primary);
+}

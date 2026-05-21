@@ -62,6 +62,21 @@ export interface CommandsData {
   global: { commands: CommandItem[] };
 }
 
+export interface WikiPageMeta {
+  title: string;
+  slug: string;
+  category: string;
+  tags: string[];
+  updated: string;
+  size: number;
+  confidence?: string;
+}
+
+export interface WikiPageDetail extends WikiPageMeta {
+  body: string;
+  created: string;
+}
+
 export interface AgentsData {
   agents: AgentItem[];
   available_models: string[];
@@ -153,5 +168,13 @@ export const api = {
 
   commands: (): Promise<CommandsData> =>
     fetchJSON('/api/commands'),
+
+  wikiPages: async (): Promise<WikiPageMeta[]> => {
+    const d = await fetchJSON('/api/wiki/pages');
+    return d.pages || [];
+  },
+
+  wikiPage: async (slug: string): Promise<WikiPageDetail> =>
+    fetchJSON(`/api/wiki/page/${encodeURIComponent(slug)}`),
 
 };

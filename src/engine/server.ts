@@ -252,9 +252,15 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     }
     // 每次请求从磁盘重新读取，确保 npm update -g 后无需重启引擎
     if (!existsSync(indexPath)) {
+      // dev 模式尝试自动构建
+      const isDev = process.env.JARVIS_DEV === '1' || process.env.JARVIS_DEV === 'true';
+      if (isDev) {
+        autoBuildWeb(root).catch(() => {});
+      }
       return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
-        <p>请运行 <code>npm run build:web</code> 构建前端产物，或从 GitHub Release 下载预构建包。</p>
+        <p>正在自动构建，请刷新页面...</p>
+        <p style="color:#656d76;font-size:14px;">如持续显示此页面，请手动运行 <code>npm run build:web</code>，或从 <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases">GitHub Release</a> 下载预构建包。</p>
       </body></html>`);
     }
     const indexHtml = readFileSync(indexPath, 'utf-8');
@@ -542,6 +548,21 @@ function getWebDistDir(root: string) {
   }
   // import.meta.dirname = <pkg>/dist/src/engine/ → ../../ = <pkg>/dist/
   return resolve(import.meta.dirname, '..', '..', 'web');
+}
+
+/** 自动构建 web 面板（仅 dev 模式触发） */
+let autoBuildPromise: Promise<void> | null = null;
+async function autoBuildWeb(root: string): Promise<void> {
+  if (autoBuildPromise) return autoBuildPromise; // 去重：并发请求只触发一次构建
+  const { execSync } = await import('node:child_process');
+  autoBuildPromise = new Promise<void>((resolve) => {
+    try {
+      execSync('npm run build:web', { cwd: root, stdio: 'pipe', timeout: 120000 });
+    } catch { /* 构建失败由占位页提示用户手动操作 */ }
+    autoBuildPromise = null;
+    resolve();
+  });
+  return autoBuildPromise;
 }
 
 function readPkgVersion() { return readPackageVersion(import.meta.dirname); }

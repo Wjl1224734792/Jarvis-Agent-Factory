@@ -33,8 +33,6 @@ jobs:
       - run: npm run test
       - run: npm audit --audit-level=moderate
       - run: npm run build
-      - run: npm run build:web
-
   # ── 发布：仅 tag push 或 workflow_dispatch 时触发 ──
   release:
     needs: check
@@ -81,8 +79,6 @@ jobs:
       - run: npm run test
       - run: npm audit --audit-level=moderate
       - run: npm run build
-      - run: npm run build:web
-
       # 统一获取 RELEASE_TAG
       - name: Resolve release tag
         id: tag
