@@ -135,7 +135,8 @@ export default function DashboardHome() {
                   const pt = s.pipeline_type || 'full';
                   return (
                     <Col xs={24} sm={12} lg={8} xl={6} key={s.id}>
-                      <Card size="small" style={{ borderRadius: 14, opacity: 0.55 }}>
+                      <Card size="small" hoverable onClick={() => navigate(`/session/${encodeURIComponent(s.id)}`)}
+                        style={{ borderRadius: 14, opacity: 0.55 }}>
                         <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {s.task_name || s.platform + ' · 会话'}
                         </div>

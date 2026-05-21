@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Progress, Tag, Button, Empty, Spin, Timeline, Statistic, Breadcrumb, message,
+  Card, Progress, Tag, Button, Empty, Spin, Timeline, Statistic, Breadcrumb, message, Table,
 } from 'antd';
 import {
   CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
   ThunderboltOutlined, LoadingOutlined, FileSearchOutlined, CloseOutlined,
-  HomeOutlined,
+  HomeOutlined, HistoryOutlined,
 } from '@ant-design/icons';
-import type { PipelineSession } from '../api';
+import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
+import { usePipelineData } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { MARKDOWN_CSS, LazyMarkdown, GATE_COLORS, GATE_LABELS, GATE_DESCRIPTIONS, shortGate } from './Dashboard';
 
@@ -36,7 +37,9 @@ function formatTime(ts: string | null | undefined): string {
 export default function SessionDetail() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const { pipeline: ssePipeline } = usePipelineData();
   const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
+  const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(false);
   const [mdPreview, setMdPreview] = useState<{ open: boolean; content: string; title: string }>({
     open: false, content: '', title: '',
@@ -56,12 +59,23 @@ export default function SessionDetail() {
     if (!sessionId) return;
     setLoading(true);
     try {
-      const sessions = await api.pipeline();
+      const [sessions, runList] = await Promise.all([
+        api.pipeline(),
+        api.pipelineRuns(sessionId),
+      ]);
       setPipeline(sessions.find(s => s.session_id === sessionId) || null);
+      setRuns(runList || []);
     } catch { /* ignore */ } finally { setLoading(false); }
   }, [sessionId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // SSE 实时更新：当推送的 pipeline 匹配当前 session 时刷新
+  useEffect(() => {
+    if (ssePipeline && ssePipeline.session_id === sessionId) {
+      setPipeline(ssePipeline);
+    }
+  }, [ssePipeline, sessionId]);
 
   const openMdPreview = async (filepath: string) => {
     try {
@@ -90,51 +104,100 @@ export default function SessionDetail() {
     );
   }
 
-  if (loading && !pipeline) {
+  if (loading && !pipeline && runs.length === 0) {
     return <div style={{ textAlign: 'center', padding: 80 }}><Spin indicator={<LoadingOutlined style={{ color: 'var(--ant-color-primary)' }} />} /></div>;
   }
 
-  if (!pipeline) {
-    return (
-      <div style={{ textAlign: 'center', padding: 80 }}><Empty description="暂无流水线数据">
-        <Button type="primary" onClick={loadData}>重新加载</Button>
-      </Empty></div>
-    );
-  }
+  const hasPipeline = !!pipeline;
+  const hasRuns = runs.length > 0;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
       <Breadcrumb style={{ marginBottom: 10, flexShrink: 0 }} items={[
         { title: <><HomeOutlined /><a onClick={() => navigate('/')}> 首页</a></> },
-        { title: pipeline.pipeline_name || sessionId.slice(0, 8) },
+        { title: pipeline?.pipeline_name || sessionId.slice(0, 8) },
       ]} />
 
-      {/* 标题栏 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
-        <div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ant-color-text)' }}>
-            {pipeline.pipeline_name || pipeline.pipeline_type} · {currentGate}
-          </span>
-          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
-            {pipeline.platform}
-          </Tag>
-        </div>
-      </div>
+      {hasPipeline && (
+        <>
+          {/* 标题栏 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+            <div>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ant-color-text)' }}>
+                {pipeline!.pipeline_name || pipeline!.pipeline_type} · {currentGate}
+              </span>
+              <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
+                {pipeline!.platform}
+              </Tag>
+            </div>
+          </div>
 
-      {/* 统计卡片 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10, flexShrink: 0 }}>
-        <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
-          <Statistic title="完成进度" value={progressPct} suffix="%" styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 18 } }} />
+          {/* 统计卡片 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10, flexShrink: 0 }}>
+            <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
+              <Statistic title="完成进度" value={progressPct} suffix="%" styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 18 } }} />
+            </Card>
+            <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
+              <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} styles={{ content: { fontSize: 18 } }} />
+            </Card>
+            <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
+              <Statistic title="产物文件" value={totalArtifacts} suffix="个" styles={{ content: { fontSize: 18 } }} />
+            </Card>
+          </div>
+        </>
+      )}
+
+      {!hasPipeline && !hasRuns && (
+        <div style={{ textAlign: 'center', padding: 80 }}><Empty description="暂无流水线数据">
+          <Button type="primary" onClick={loadData}>重新加载</Button>
+        </Empty></div>
+      )}
+
+      {/* Run 历史 */}
+      {hasRuns && (
+        <Card size="small" style={{ borderRadius: 14, marginBottom: 10, flexShrink: 0 }}
+          title={<span style={{ fontWeight: 600, fontSize: 13 }}><HistoryOutlined style={{ marginRight: 6 }} />Run 历史 · {runs.length} 条</span>}
+        >
+          <Table
+            dataSource={runs}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            onRow={(record) => ({
+              onClick: () => navigate(`/archive/${record.id}`),
+              style: { cursor: 'pointer' },
+            })}
+            columns={[
+              {
+                title: '任务', dataIndex: 'task_name', key: 'task_name',
+                render: (t: string | null) => t || <span style={{ fontStyle: 'italic', opacity: 0.4 }}>未命名</span>,
+              },
+              {
+                title: '状态', dataIndex: 'status', key: 'status', width: 80,
+                render: (s: string) => (
+                  <Tag color={s === 'completed' ? 'var(--ant-color-success)' : s === 'active' ? 'var(--ant-color-primary)' : 'var(--ant-color-text)'}
+                    style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>{s === 'completed' ? '已完成' : s === 'active' ? '进行中' : s}</Tag>
+                ),
+              },
+              {
+                title: 'Gate', dataIndex: 'current_gate', key: 'current_gate', width: 70,
+                render: (g: string) => <Tag style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>{g}</Tag>,
+              },
+              {
+                title: '开始', dataIndex: 'started_at', key: 'started_at', width: 110,
+                render: (t: string) => formatTime(t),
+              },
+              {
+                title: '耗时', dataIndex: 'total_duration_display', key: 'duration', width: 80,
+                render: (d: string | null) => d || '-',
+              },
+            ]}
+          />
         </Card>
-        <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
-          <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} styles={{ content: { fontSize: 18 } }} />
-        </Card>
-        <Card size="small" style={{ flex: '1 1 0', minWidth: 100, borderRadius: 14 }}>
-          <Statistic title="产物文件" value={totalArtifacts} suffix="个" styles={{ content: { fontSize: 18 } }} />
-        </Card>
-      </div>
+      )}
 
       {/* 内容区：左侧 Gate 时间线 + 右侧文档预览 */}
+      {hasPipeline && (
       <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
         {/* 左侧：Gate 时间线 + 文档 */}
         <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
@@ -247,6 +310,7 @@ export default function SessionDetail() {
           </Card>
         </div>
       </div>
+      )}
     </div>
   );
 }
