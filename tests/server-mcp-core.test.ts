@@ -123,7 +123,7 @@ describe('MCP Core API — gate_check', () => {
     expect(JSON.parse(writeCode.content[0].text).allowed).toBe(false);
 
     const spawnImpl = await tools['gate_check']({ operation: 'spawn_impl' }, { sessionId: sid });
-    expect(JSON.parse(spawnImpl.content[0].text).allowed).toBe(false);
+    expect(JSON.parse(spawnImpl.content[0].text).allowed).toBe(true);
   });
 
   it('gate_check 正确返回操作是否允许', async () => {

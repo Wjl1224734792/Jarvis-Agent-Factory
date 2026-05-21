@@ -103,12 +103,12 @@ describe('getGateOperations', () => {
     expect(ops.deny).toContain('build');
   });
 
-  it('Gate B1 允许 read + write_doc + sweep_arch，禁止 spawn_impl', () => {
+  it('Gate B1 允许 read + write_doc + sweep_arch + spawn_impl，禁止 write_code', () => {
     const ops = getGateOperations('Gate B1');
     expect(ops.allow).toContain('read');
     expect(ops.allow).toContain('write_doc');
     expect(ops.allow).toContain('sweep_arch');
-    expect(ops.deny).toContain('spawn_impl');
+    expect(ops.allow).toContain('spawn_impl');
     expect(ops.deny).toContain('write_code');
   });
 
@@ -344,10 +344,10 @@ describe('TASK-001: GATE_OPERATIONS 注册 22 个新 Gate', () => {
     expect(ops.allow).toContain('write_doc');
   });
 
-  it('13. D0 禁止 write_code / spawn_impl / spawn_test / build / deploy', () => {
+  it('13. D0 允许 spawn_impl，禁止 write_code / spawn_test / build / deploy', () => {
     const ops = getGateOperations('D0');
+    expect(ops.allow).toContain('spawn_impl');
     expect(ops.deny).toContain('write_code');
-    expect(ops.deny).toContain('spawn_impl');
     expect(ops.deny).toContain('spawn_test');
     expect(ops.deny).toContain('build');
     expect(ops.deny).toContain('deploy');

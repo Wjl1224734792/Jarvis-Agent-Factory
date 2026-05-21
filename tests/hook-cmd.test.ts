@@ -105,16 +105,19 @@ describe('hookCommand', () => {
   // gate-check WITHOUT --operation（Phase 1 新行为）
   // ================================================================
   describe('gate-check without --operation (Agent default)', () => {
-    it('8 | Gate A：spawn_impl 不在 allow → exit(1) 显示 Agent 被禁止', async () => {
+    it('8 | Gate A：spawn_impl 在 allow → enforce 通过 → exit(0) 探索 Agent 允许 spawn', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           sessions: [{ session_id: 's1', current_gate: 'Gate A', pipeline_name: '全流程', status: 'active' }]
         })
       });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ allowed: true })
+      });
       await hookCommand(['gate-check']);
-      expect(exitSpy).toHaveBeenCalledWith(1);
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Agent 操作被禁止'));
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
     it('9 | Gate C-impl：spawn_impl 允许 + enforce 通过 → exit(0)', async () => {
