@@ -240,11 +240,11 @@ export const GATE_CHECKS = {
  *   fix        — 修复（质量/测试/审查反馈驱动）
  */
 export const GATE_OPERATIONS = {
-  'Gate A':      { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate A':      { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'Gate B-DDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'Gate B-BDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'Gate B-TDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
-  'Gate B1':     { allow: ['read','write_doc','sweep_arch'],               deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate B1':     { allow: ['read','write_doc','sweep_arch','spawn_impl'],   deny: ['write_code','spawn_test','build','deploy'] },
   'Gate C':    { allow: ['read','write_doc','sweep_arch','write_code','spawn_impl'], deny: ['spawn_test','build','deploy'] },
   'Gate C-impl': { allow: ['read','write_code','spawn_impl'],             deny: ['spawn_test','build','deploy'] },
   'Gate C1':   { allow: ['read','lint','build','fix'],                   deny: ['spawn_impl','spawn_test','deploy','write_code'] },
@@ -269,24 +269,24 @@ export const GATE_OPERATIONS = {
   'M3': { allow: ['read','lint','build','fix'],                   deny: ['write_code','spawn_impl','spawn_test','deploy'] },
   'M4': { allow: ['read','lint','build','fix'],                   deny: ['write_code','spawn_impl','spawn_test','deploy'] },
   // TASK-001: /evaluate 流水线 Gate 操作矩阵
-  'E0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'E0': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'E1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
   'E2': { allow: ['read','spawn_test'],                            deny: ['write_code','spawn_impl','build','deploy'] },
   'E3': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   // TASK-001: /debug 流水线 Gate 操作矩阵
-  'D0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'D0': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'D1': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
   'D2': { allow: ['read','write_code','spawn_impl'],              deny: ['spawn_test','build','deploy'] },
   'D3': { allow: ['read','write_code','spawn_impl','spawn_test'], deny: ['build','deploy'] },
   'D4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   // /research 流水线 Gate 操作矩阵
-  'RS0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'RS0': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'RS1': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'RS2': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'RS3': { allow: ['read','write_doc','spawn_impl','spawn_test'],   deny: ['write_code','build','deploy'] },
   'RS4': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   // /release 流水线 Gate 操作矩阵
-  'RL0': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'RL0': { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
   'RL1': { allow: ['read','lint','build','fix'],                   deny: ['spawn_impl','spawn_test','deploy','write_code'] },
   'RL2': { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   'RL3': { allow: ['read','deploy','write_doc'],                   deny: ['write_code','spawn_impl','spawn_test','lint','build'] },
@@ -327,17 +327,17 @@ export function getGateOperations(gate: any) {
  * 操作类型说明见 GATE_OPERATIONS，此处聚焦 Agent 级的可生成范围。
  */
 export const GATE_AGENT_GUIDE = {
-  'Gate A':    { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '需求澄清——用subagent(Agent工具)spawn code-explore-expert+external-resource-expert探索+文档', team_strategy: 'subagent_only' },
+  'Gate A':    { can_spawn: ['code-explore-expert', 'external-resource-expert', 'docs-research-expert', 'browser-use-expert'], note: '需求澄清——spawn code-explore-expert探索代码库+external-resource-expert外部知识+docs-research-expert文档调研+browser-use-expert探索现有UI（按需），纯只读探索不写代码', team_strategy: 'subagent_only' },
   'Gate B-DDD': { can_spawn: ['task-design'], note: '领域驱动分析——spawn task-design (DDD模式) 产出聚合/实体/值对象/领域服务列表及路由建议' },
   'Gate B-BDD': { can_spawn: ['task-design'], note: '行为驱动——spawn task-design (BDD模式) 为高业务价值聚合行为编写Gherkin场景；纯技术逻辑时编排者可跳过此Gate' },
   'Gate B-TDD': { can_spawn: ['task-design'], note: '测试驱动任务——spawn task-design (TDD模式) 产出TDD任务包，每个TASK映射REQ+场景' },
-  'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert'], note: '架构评审——用subagent(Agent工具)spawn对应架构师(依变更范围选择前端/后端/数据库/算法架构师)', team_strategy: 'subagent_only' },
+  'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert', 'code-explore-expert'], note: '架构评审——spawn对应架构师(依变更范围选择前端/后端/数据库/算法)+code-explore-expert辅助探索现有代码库架构，纯只读不写代码', team_strategy: 'subagent_only' },
   'Gate C':    { can_spawn: ['planner', 'skill-assignment-expert'], note: '执行规划——用subagent(Agent工具)spawn planner+skill-assignment-expert产出parallel_batches和执行计划', team_strategy: 'subagent_only' },
   'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert', 'android-dev-expert', 'android-ui-expert', 'android-state-expert', 'ios-dev-expert', 'ios-ui-expert', 'ios-state-expert', 'flutter-dev-expert', 'flutter-ui-expert', 'flutter-state-expert', 'taro-dev-expert', 'taro-ui-expert', 'taro-state-expert', 'react-native-dev-expert', 'react-native-ui-expert', 'react-native-state-expert', 'expo-dev-expert', 'expo-ui-expert', 'expo-state-expert', 'remediation-expert', 'remediation-planner'], note: '批量实现——推荐 Agent Team(TeamCreate) 并行调度实现Agent(Team模式),轻量任务用subagent(Agent工具)；平台Agent(android/ios/flutter/taro/react-native/expo)按需选择；修复回退时spawn remediation-expert或remediation-planner', team_strategy: 'prefer_team', team_rules: '每个Team成员必须独占模块/文件区域,禁止多成员共享同一文件或模块。前端按组件/页面拆分,后端按服务/路由模块拆分,移动端按平台+页面拆分,共享区域由唯一责任人处理'  },
   'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
   'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
   'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'android-test-expert', 'ios-test-expert', 'flutter-test-expert', 'taro-test-expert', 'expo-test-expert', 'react-native-test-expert', 'api-test-expert', 'test-executor', 'remediation-expert', 'browser-test-expert', 'browser-use-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——推荐 Agent Team 并行跑测试(TeamCreate→各tester并行执行),轻量检查用subagent。平台测试Agent(android/ios/flutter/taro/react-native/expo)按需选择。步骤1(Team并行):spawn test-doc-writer+各平台test-expert → 步骤2:spawn test-executor → 步骤3(失败时):spawn remediation-expert(≤2轮) → 步骤4:spawn e2e-test-expert → 步骤5:汇总至.jarvis/testing/', team_strategy: 'prefer_team', team_rules: '各tester按测试类型独占(单元/集成/E2E/性能/安全),test-doc-writer写文档后tester按文档独立执行,互不干扰。平台测试按平台隔离,互不交叉'  },
-  'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'android-review-expert', 'ios-review-expert', 'flutter-review-expert', 'taro-review-expert', 'expo-review-expert', 'react-native-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert', 'change-review-expert', 'diff-review-expert', 'project-review-expert', 'audit-fix-optimize', 'audit-only'], note: '评审阶段——推荐 Agent Team 并行审查(TeamCreate→各reviewer并行),qa-review-expert用subagent综合签核。平台审查Agent(android/ios/flutter/taro/react-native/expo)按需选择', team_strategy: 'prefer_team', team_rules: '各reviewer按领域独占(前端/后端/移动端/安全/性能),只读审查不修改文件。qa-review-expert为唯一签核者,汇总各领域findings后综合判定。平台审查按平台隔离,互不交叉'  },
+  'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'android-review-expert', 'ios-review-expert', 'flutter-review-expert', 'taro-review-expert', 'expo-review-expert', 'react-native-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert', 'change-review-expert', 'diff-review-expert', 'project-review-expert', 'audit-fix-optimize', 'audit-only', 'code-explore-expert', 'browser-use-expert', 'browser-test-expert'], note: '评审阶段——推荐 Agent Team 并行审查(TeamCreate→各reviewer并行),qa-review-expert用subagent综合签核。平台审查Agent(android/ios/flutter/taro/react-native/expo)按需选择', team_strategy: 'prefer_team', team_rules: '各reviewer按领域独占(前端/后端/移动端/安全/性能),只读审查不修改文件。qa-review-expert为唯一签核者,汇总各领域findings后综合判定。平台审查按平台隔离,互不交叉'  },
   'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert', 'docs-engineer'], note: '发布阶段——安全审计+文档生成+上线检查+版本管理+归档' },
   // TASK-001: /refactor 流水线 Agent 生成指引
   'R1': { can_spawn: [], note: '定义重构边界与目标' },

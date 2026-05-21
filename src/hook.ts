@@ -127,10 +127,18 @@ export async function hookCommand(args) {
         console.log('Engine: running, no sessions');
       } else {
         console.log(`Engine: ${sessions.length} session(s), ${pipeline.active_count || sessions.filter(s => s.status === 'active').length} active\n`);
+        let hasIncomplete = false;
         for (const s of sessions) {
           const badge = s.status === 'active' ? '🟢' : '⚪';
           const task = s.task_name ? ` · ${s.task_name}` : '';
           console.log(`  ${badge} ${s.pipeline_name} · ${s.current_gate} · ${s.platform || '?'}${task}`);
+          // 检测未完成的活跃流水线：current_gate 不是 Complete / Gate E 且状态为 active
+          if (s.status === 'active' && s.current_gate !== 'Complete' && s.current_gate !== 'Gate E') {
+            hasIncomplete = true;
+          }
+        }
+        if (hasIncomplete) {
+          console.log('\n⚠️  存在未完成的活跃流水线。输入 /cancel 中止或继续推进到 Gate E 完成发布。');
         }
       }
       process.exit(0);

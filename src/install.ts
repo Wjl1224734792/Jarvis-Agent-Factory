@@ -246,17 +246,32 @@ async function installDeepinit(target: string, _force: boolean) {
 
 function installHooks(platform: string, target: string, isGlobal: boolean, force: boolean) {
   // ============================================================
-  // 单一 hooks 配置源：settings.json
-  // 不再使用 plugin 系统 —— hooks 覆盖全部需求：
-  //   PostToolUse(Agent)        → gate-check --operation spawn_impl
-  //   PostToolUse(Write/Edit)   → gate-check --operation write_code
-  //   Stop                      → status
+  // 单一 hooks 配置源：settings.json（不依赖 plugin 系统）
+  //
+  // PreToolUse 在工具执行前拦截——违规操作在发生前被阻止：
+  //   Agent               → gate-check --operation spawn_impl
+  //   Write / Edit        → gate-check --operation write_code
+  //   Bash(npm:*build*)   → gate-check --operation build
+  //   Bash(npm:*lint*)    → gate-check --operation lint
+  //   Bash(npm:*test*)    → gate-check --operation spawn_test
+  //   Bash(git:push*)     → gate-check --operation deploy
+  //   Bash(npm:publish*)  → gate-check --operation deploy
+  //
+  // 设计约束：
+  // - PreToolUse 确保违规操作在发生前被引擎拒绝（优于 PostToolUse 的事后检测）
+  // - Agent matcher 无法区分 spawn_impl/review/test，统一按 spawn_impl 保守检查
+  // - Bash 类通过字符串子匹配（npm build/lint 等）降低误拦截
   // ============================================================
   const hookJson = {
-    PostToolUse: [
+    PreToolUse: [
       { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation spawn_impl' }] },
       { matcher: 'Write', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
       { matcher: 'Edit', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
+      { matcher: 'Bash(npm run build)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation build' }] },
+      { matcher: 'Bash(npm run lint)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation lint' }] },
+      { matcher: 'Bash(npm test)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation spawn_test' }] },
+      { matcher: 'Bash(git push)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation deploy' }] },
+      { matcher: 'Bash(npm publish)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation deploy' }] },
     ],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
@@ -386,7 +401,7 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
     const codexDir = isGlobal ? GLOBAL_ROOTS.codex : resolve(target, '.codex');
     if (!existsSync(codexDir)) mkdirSync(codexDir, { recursive: true });
     const hookFile = resolve(codexDir, 'hooks.json');
-    writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
+    writeFileSync(hookFile, JSON.stringify({ hooks: { PreToolUse: hookJson.PreToolUse } }, null, 2));
     console.log('  🔗 hooks → .codex/hooks.json');
   }
 }
