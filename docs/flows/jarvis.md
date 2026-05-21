@@ -1,5 +1,31 @@
 # `/jarvis` — 全流程编排流程图
 
+- **命令**：`/jarvis [需求描述]`
+- **类别**：编排入口
+- **说明**：全流程严格模式——13 Gate 全部强制执行，适合中大型功能开发，从需求到发布的完整生命周期。
+
+## 使用场景
+
+| 场景 | 说明 |
+|------|------|
+| 中大型功能开发 | 完整 13-Gate 流程，适合 3+ 模块变更 |
+| 全新项目启动 | 从零开始的完整工程化开发 |
+| 关键业务逻辑 | 需要严格质量门和审查的关键代码 |
+| 跨模块重构 | 涉及前后端+数据库的复杂变更 |
+
+## 关键 Agent
+
+| Gate | Agent |
+|------|-------|
+| Gate A (需求) | idea-refine |
+| Gate B (DDD/BDD/TDD) | task-design ×3 |
+| Gate B1 (架构) | frontend-architect, backend-architect, database-architect |
+| Gate C (规划) | planner |
+| Gate C-impl (实现) | frontend-dev/ui/state-expert, backend-dev/api/logic/data-expert |
+| Gate C2 (测试) | backend-test-expert, frontend-test-expert, e2e-test-expert |
+| Gate D (评审) | frontend/backend/security/perf-review-expert, qa-review-expert |
+| Gate E (发布) | infra-deploy-expert |
+
 ```mermaid
 flowchart TD
     START([用户输入 /jarvis]) --> LOAD[加载 behavioral-guidelines<br/>+ using-agent-skills]

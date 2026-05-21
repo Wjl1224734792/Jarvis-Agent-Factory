@@ -13,23 +13,18 @@ An AI coding assistant configuration set + MCP orchestration engine. A complete 
 
 ## Quick Start
 
+**Lazy Mode** — Copy and paste this into Claude Code, let AI install for you:
+
+> Open https://github.com/Wjl1224734792/Jarvis-Agent-Factory and help me install and configure Jarvis Agent Factory following the QUICKSTART.md steps, then run jarvis init -y
+
+**Manual Install (3 steps):**
+
 ```bash
 npm i -g jarvis-agent-factory   # Install CLI (zero native deps, node:sqlite built-in)
 jarvis init -y                   # One-click deploy config + MCP + hooks
-# → After Claude Code restart, engine auto-starts
-jarvis web                       # Start Web panel (on demand)
-# → http://localhost:3456/dashboard
 ```
 
-### Remote Panel (no local install)
-
-Each Release includes a standalone HTML file. Download and open directly:
-
-1. Open [GitHub Releases](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
-2. Download the latest `index.html` (~3.4MB, all JS/CSS inlined)
-3. Double-click to open → auto-connects to `localhost:3456`
-
-> Requires `jarvis engine start` running locally. The panel communicates with the local engine via HTTP.
+📖 **Full install guide, CLI commands, env vars, MCP config** → [QUICKSTART.md](./QUICKSTART.md)
 
 ## Core Features
 
@@ -103,39 +98,6 @@ Pipeline artifacts are stored by Gate in corresponding subdirectories:
  (stdio auto-launch engine)
 ```
 
-## CLI Commands
-
-```bash
-jarvis [path]                             # Guided install (global or local)
-jarvis init [path] -y                     # Initialize project
-jarvis add claude                         # Add platform
-jarvis remove claude [path]               # Remove platform
-jarvis upgrade [path]                     # Smart upgrade (changed files only)
-jarvis diff [path]                        # Preview pending updates
-jarvis doctor [path]                      # Health check
-
-jarvis hook gate-check [--session <id>]   # Check current Gate status (exit 1 if blocked)
-jarvis hook gate-advance [--session <id>] # Advance to next Gate
-jarvis hook status [--json]               # Pipeline session status
-
-jarvis engine start [--port=N]            # Start orchestration engine (stdio auto-launch)
-jarvis engine stop / status               # Stop / status
-jarvis web [--port=N]                     # Start Web panel (independent, requires engine)
-
-# Options: -g global install  -y skip confirm  -v version  -h help
-```
-
-## Environment Variables
-
-Engine and scripts configured via env vars (supports `.env` file):
-
-```bash
-# Create .env file in project root
-PORT=3456              # Engine port (default 3456)
-WEB_PORT=3457          # Web panel port (default 3457)
-GITHUB_TOKEN=xxx       # GitHub personal access token (for sync-github-releases)
-```
-
 ## Lightweight Orchestration `/jarvis-lite`
 
 Skips irrelevant Gates, intelligently maps to entry Gate:
@@ -193,11 +155,7 @@ Document-driven closed loop integrated in Gate C2:
 
 ## MCP Configuration Guide
 
-### Jarvis Engine (required)
-
-| Platform | Config File | Transport | Description |
-|----------|------------|-----------|-------------|
-| **Claude Code** | `.mcp.json` | `type: stdio` → auto-launches `jarvis engine start --stdio` |
+📖 **Engine MCP config, Visual Primitives MCP setup, dev environment config** → [QUICKSTART.md](./QUICKSTART.md)
 
 ### Visual Primitives MCP (recommended for text-only models)
 
@@ -206,39 +164,7 @@ Document-driven closed loop integrated in Gate C2:
 
 Based on DeepSeek's "Thinking with Visual Primitives" paper. Converts screenshots/images into precise text descriptions and coordinate locations. **Strongly recommended for pure-text model users (DeepSeek etc.)** — it gives "eyes" to text-only models.
 
-```json
-{
-  "mcpServers": {
-    "visual-primitives": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["visual-primitives-mcp"],
-      "env": {
-        "VISION_API_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "VISION_API_KEY": "<your Bailian API Key>",
-        "VISION_MODEL_NAME": "qwen3.5-plus",
-        "VISION_MODEL_OCR": "qwen3-vl-ocr"
-      }
-    }
-  }
-}
-```
-
-### Dev Environment MCP
-
-For developing Jarvis itself, point engine MCP to local workspace:
-
-```json
-{
-  "mcpServers": {
-    "jarvis-engine": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["bin/jarvis.js", "engine", "start", "--stdio"]
-    }
-  }
-}
-```
+> **Why text-only models need it?** Models like DeepSeek V4 can't "see" images. Visual Primitives MCP converts screenshots into natural language descriptions + coordinate data, enabling text-only models to understand UI layouts, locate elements, and read screenshot content.
 
 ## Lifecycle Pipeline
 

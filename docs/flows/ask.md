@@ -1,5 +1,26 @@
 # `/ask` — 需求探询流程图（4 模式）
 
+- **命令**：`/ask [--mode=interview|direct|consensus|review] [问题描述]`
+- **类别**：编排入口
+- **说明**：4 模式自适应需求探询——Interview 苏格拉底式追问澄清模糊需求，Direct 快速确认，Consensus 共识汇聚，Review 需求评审。
+
+## 使用场景
+
+| 场景 | 模式 | 说明 |
+|------|------|------|
+| 需求模糊不清 | Interview | 多轮苏格拉底式追问，逐步细化 |
+| 需求明确但需确认 | Direct | 快速上下文确认，跳过深度访谈 |
+| 多人意见不一致 | Consensus | 汇聚多方观点，形成共识需求 |
+| 已有需求文档需审查 | Review | 审查需求完整性、可行性和一致性 |
+
+## 关键 Agent
+
+| Agent | 职责 |
+|-------|------|
+| code-explore-expert | 深度代码探索、上下文收集 |
+| external-resource-expert | 外部领域知识补充 |
+| Critic (评估) | 流程效率 + Agent调度 + Gate设计评估 |
+
 ## Interview 模式（模糊请求）
 
 ```mermaid
