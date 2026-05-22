@@ -2,6 +2,7 @@
 name: repowiki
 description: 项目知识库——持久化、可搜索的 Markdown Wiki，支持增/查/改/删/健康检查
 model: deepseek-v4-pro
+effort: max
 argument-hint: [add <title> | ingest <title> | query <keyword> | list | read <page> | delete <page> | lint]
 allowed-tools: Read, Bash, Write, Edit, Glob, Grep, Skill, Agent, AskUserQuestion, WebFetch, WebSearch, mcp__jarvis-engine__session_join, mcp__jarvis-engine__repowiki_add, mcp__jarvis-engine__repowiki_ingest, mcp__jarvis-engine__repowiki_query, mcp__jarvis-engine__repowiki_list, mcp__jarvis-engine__repowiki_read, mcp__jarvis-engine__repowiki_delete, mcp__jarvis-engine__repowiki_lint
 version: "4.6.0"

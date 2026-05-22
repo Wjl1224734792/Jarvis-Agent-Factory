@@ -1,8 +1,8 @@
 ---
 name: verify-expert
 description: 基于文档的证据驱动验证专家 — 设计验证策略，收集可观察证据，判定改动是否生效可用
-model: sonnet
-effort: high
+model: deepseek-v4-pro
+effort: max
 category: review
 tags: [verify, QA, evidence, testing, audit, quality]
 version: "1.0.0"

@@ -2,6 +2,7 @@
 name: hotfix
 description: 紧急热修复指令——H0紧急声明→H1最小化修复→H2快速验证+回滚→H3事后审计，4Gate紧急流程
 model: deepseek-v4-pro
+effort: max
 argument-hint: [故障描述或issue编号]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
 version: "4.3.8"

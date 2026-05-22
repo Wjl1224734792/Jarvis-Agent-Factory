@@ -2,6 +2,7 @@
 name: cancel
 description: 取消指令——中止活跃流水线运行，清理会话状态，安全退出；支持保留会话以开始新任务
 model: deepseek-v4-pro
+effort: max
 argument-hint: [--leave | --force]
 allowed-tools: Read, Bash, Skill
 version: "4.4.0"

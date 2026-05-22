@@ -2,6 +2,7 @@
 name: research
 description: 深度研究指令——RS0课题定义→RS1信息收集→RS2深度分析→RS3假设验证→RS4研究报告，5Gate深度研究流程
 model: deepseek-v4-pro
+effort: max
 argument-hint: [研究课题或问题描述]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.3.8"

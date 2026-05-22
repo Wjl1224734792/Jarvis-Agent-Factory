@@ -2,6 +2,7 @@
 name: refactor
 description: 重构指令——R1定义边界→R2基线测试→R3执行重构→R4行为漂移检测→R5生成报告，完整5Gate安全网
 model: deepseek-v4-pro
+effort: max
 argument-hint: [重构目标描述或文件路径]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent
 version: "4.3.8"

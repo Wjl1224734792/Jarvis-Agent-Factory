@@ -2,6 +2,7 @@
 name: test-e2e
 description: 端到端测试指令——基于用户故事生成 Playwright/Cypress 脚本，验证核心流程从前端到后端完整性
 model: deepseek-v4-pro
+effort: max
 argument-hint: [用户故事描述或E2E测试范围]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
 version: "4.3.8"

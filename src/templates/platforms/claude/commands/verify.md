@@ -2,8 +2,8 @@
 description: 文档驱动的改动验证 — 基于项目 AGENTS.md 层级文档，收集证据确认改动生效可用
 name: verify
 argument-hint: "[what to verify]"
-model: sonnet
-effort: medium
+model: deepseek-v4-pro
+effort: max
 allowed-tools: read,lint,build,spawn_test
 version: "1.0.0"
 updated: "2026-05-22"
