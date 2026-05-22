@@ -3,7 +3,7 @@ name: algorithm-expert
 description: "算法专家：在规划阶段或 Gate B1 架构评审时由编排者 spawn（当涉及复杂算法/计算密集型模块时）；负责算法选型、复杂度分析、数据结构设计、计算密集型模块的性能优化策略。不编写业务逻辑代码，只输出算法方案与验证原型。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, WebFetch, WebSearch, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: deepseek-v4-pro
+model: heavy
 version: "4.3.8"
 updated: "2026-05-14"
 ---

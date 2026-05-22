@@ -3,7 +3,7 @@ name: flutter-review-expert
 description: Flutter 代码审查专家：审查 Flutter/Dart 组件架构、UI 实现、状态管理、性能优化与跨端适配，输出 Flutter 审查报告。
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
 effort: max
-model: deepseek-v4-pro
+model: heavy
 version: "4.3.8"
 updated: "2026-05-18"
 ---

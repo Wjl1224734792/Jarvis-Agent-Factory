@@ -1,7 +1,7 @@
 ---
 name: migrate
 description: 框架迁移指令——M1规则验证→M2应用迁移→M3编译验证→M4自动修复Lint，4Gate迁移流程
-model: deepseek-v4-pro
+model: heavy
 effort: max
 argument-hint: [迁移描述，如"Express→Fastify"或"Vue2→Vue3"]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill

@@ -2,7 +2,7 @@
 name: android-ui-expert
 description: "Android UI 专项工作者：负责 Jetpack Compose 页面布局、组件构建、Material Design 3 主题、响应式适配和无障碍访问。不涉及 ViewModel 或数据层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: heavy
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"

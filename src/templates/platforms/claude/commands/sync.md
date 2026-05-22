@@ -1,7 +1,7 @@
 ---
 description: 同步项目文档——检查并更新核心文档使其与代码一致，清理过时文件
 name: sync
-model: deepseek-v4-pro
+model: heavy
 effort: max
 argument-hint: [--dry-run 预览模式] [--no-clean 跳过清理]
 version: "4.3.8"

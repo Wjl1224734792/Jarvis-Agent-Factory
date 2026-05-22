@@ -261,13 +261,7 @@ export function getGateTeamStrategy(gate: any) {
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */
 export const AGENT_LIST = getAgentList();
 
-export const AVAILABLE_MODELS = [
-  ...new Set([
-    'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash',
-    'gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.3-codex-spark', 'gpt-5.4-mini', 'gpt-5.2',
-    'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5',
-  ])
-];
+export { getAgentModelValues as getAvailableModels } from './agent-registry.js';
 
 /**
  * 扫描 Gate 产物文档（返回相对 .jarvis/ 的完整路径）。

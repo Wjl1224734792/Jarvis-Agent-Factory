@@ -2,7 +2,7 @@
 name: flutter-ui-expert
 description: "Flutter UI 专项工作者：负责 Widget 页面布局、组件构建、主题样式、交互动画和平台适配。不涉及状态管理或数据层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: heavy
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"

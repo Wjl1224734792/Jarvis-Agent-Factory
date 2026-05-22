@@ -5,6 +5,7 @@ import type { ToolContext } from './types.js';
 import { getAgentConfig, setAgentModel } from '../db.js';
 import { getAgentList } from '../agent-registry.js';
 import { resolvePlatformInfo } from '../platform-info.js';
+import { resolveModelConfig } from '../../shared/model-config.js';
 
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
@@ -18,6 +19,7 @@ export function registerAgentTools(server: McpServer, db: DatabaseSync, _root: s
       }
       const cfg = getAgentConfig(db);
       const agents = getAgentList(true);
+      const models = resolveModelConfig();
       return ctx.resp({
         agents: agents.map(a => {
           const c = cfg[a.id];
@@ -28,7 +30,7 @@ export function registerAgentTools(server: McpServer, db: DatabaseSync, _root: s
             is_custom: !!c,
           };
         }),
-        available_models: [...new Set(agents.map(a => a.defaultModel).filter(Boolean))],
+        available_models: [models.heavy, models.light],
         available_efforts: EFFORTS,
       });
     });

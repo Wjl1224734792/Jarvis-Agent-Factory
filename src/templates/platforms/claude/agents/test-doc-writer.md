@@ -3,7 +3,7 @@ name: test-doc-writer
 description: 浏览器测试用例编写者——根据需求文档和前端变更编写结构化测试用例文档，不执行测试
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: deepseek-v4-pro
+model: heavy
 version: "4.3.8"
 updated: "2026-05-14"
 ---

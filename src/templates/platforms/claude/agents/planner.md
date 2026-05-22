@@ -3,7 +3,7 @@ name: planner
 description: "在需求文档已通过 Gate A、任务文档已通过 Gate B 后使用；选择当前轮次任务包，生成执行计划，并明确实现代理分工、共享改动归属与 Execution Packet。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: deepseek-v4-pro
+model: heavy
 version: "4.3.8"
 updated: "2026-05-14"
 ---

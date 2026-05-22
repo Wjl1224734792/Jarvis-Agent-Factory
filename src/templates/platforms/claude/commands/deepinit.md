@@ -2,7 +2,7 @@
 description: 扫描项目全目录树，按实际架构层级动态生成渐进式 AGENTS.md + CLAUDE.md 引导入口
 name: deepinit
 argument-hint: "[--smart | --force | --incremental]"
-model: deepseek-v4-flash
+model: light
 effort: max
 version: "1.1.0"
 updated: "2026-05-22"

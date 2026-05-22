@@ -3,7 +3,7 @@ name: frontend-dev-expert
 description: "前端全栈实现者：在 Gate C-impl 由编排者 spawn 分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。负责协调 UI+State 专项 Agent 的工作成果，聚焦集成与编排。自身不调度其他 agent。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_logs, mcp__Claude_Preview__preview_stop, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: deepseek-v4-pro
+model: heavy
 version: "4.3.8"
 updated: "2026-05-14"
 ---

@@ -1,7 +1,7 @@
 ---
 name: ask
 description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束
-model: deepseek-v4-pro
+model: heavy
 effort: max
 argument-hint: [需求/想法/计划/指令]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
