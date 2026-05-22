@@ -1,40 +1,40 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-21 -->
 
-# engine
+# engine — Core engine logic
 
 ## Purpose
-MCP orchestration engine core. Provides HTTP/MCP server, pipeline gate management, SQLite persistence, agent registry, wiki store, and event broadcasting.
+This directory contains the engine module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `server.ts` | Engine entry point — Hono HTTP server + MCP SDK, API routes, SPA serving, guardian lifecycle |
-| `db.ts` | SQLite database layer — sessions, pipeline_runs, checkpoints, agent_models, artifacts, events |
-| `gates.ts` | Gate configuration — 62 gate entries in unified `GATE_CONFIG`, 9 pipeline type sequences, artifact scanning |
-| `pubsub.ts` | In-process EventEmitter singleton for SSE broadcast and event-driven updates |
-| `guardian.ts` | Process watchdog — PID file management, crash auto-restart (max 3, exponential backoff) |
-| `agent-registry.ts` | Agent discovery — scans template directories, builds agent list and file mappings |
-| `agent-fs.ts` | Agent file sync — writes model/effort preferences back to template `.md`/`.toml` files |
-| `wiki-store.ts` | Wiki persistence — file-based Markdown + YAML frontmatter storage with locking and pagination |
-| `quality-gate.ts` | Quality gate — YAML config loading, condition validation, degraded fallback |
-| `platform-info.ts` | Platform metadata — agent count, available models, platform features |
-| `tools/` | MCP tool registration modules (see `tools/AGENTS.md`) — 7 modules |
+| agent-fs.ts | TypeScript source — Exports: syncAgentFile |
+| agent-registry.ts | TypeScript source — Exports: resolveTemplatesDir, getActiveProjects, scanAllProjectAgents, getCategories, getAgentList |
+| AGENTS.md | Markdown documentation |
+| db.ts | TypeScript source — Exports: openDb, getPipeline, updatePipelineGate, initPipeline, getAllPipelines |
+| file-watcher.ts | TypeScript source — Exports: startFileWatcher, stopFileWatcher |
+| gates.ts | TypeScript source — Exports: PIPELINE_DEFS, DEFAULT_PIPELINE, GATES, getPipelineGates, getPipelineName |
+| guardian.ts | TypeScript source — Exports: PidData, readPidFile, writePidFile, removePidFile, isEngineRunning |
+| platform-info.ts | TypeScript source — Exports: resolvePlatformInfo |
+| pubsub.ts | TypeScript source — Exports: PubSubEventType, PubSubEvent, incrementBroadcastCount, getPubSub, emitEvent |
+| quality-gate.ts | TypeScript source — Exports: QualityThreshold, QualityProfileSource, QualityProfile, Violation, EvaluationResult |
+| server.ts | TypeScript source — Exports: sanitizeErrorMessage, resolveErrorResponse, createLoggerMiddleware, registerMcpTools, stopEngine |
+| wiki-store.ts | TypeScript source — Exports: titleToSlug, readWikiPage, listWikiPages, queryWikiPages, lintWikiPages |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| tools/ | Project subdirectory | [AGENTS.md](tools/AGENTS.md) |
+
 
 ## For AI Agents
 
-### Working In This Directory
-- Engine starts on port 3456 (HTTP) / 3457 (web proxy)
-- `JARVIS_DEV=1` enables local web dist and auto-build
-- MCP runs in stdio mode (Claude Code) or HTTP mode (standalone)
-- Database is per-project: `<root>/.jarvis/engine.db`
 
-### Testing Requirements
-- Engine tests in `tests/server-mcp-core.test.ts`, `tests/db.test.ts`, `tests/gates.test.ts` (project root)
-- Wiki tests in `tests/wiki-store.test.ts` (project root)
+## Dependencies
+- **Internal:** tools/
+- **External:** See package.json for full dependency list
 
-### Common Patterns
-- All tools registered via `registerMcpTools()` → delegates to `tools/` modules
-- Events flow: tool → db → pubsub → SSE → web frontend
-- Artifacts stored as `.jarvis/YYYY-MM-DD/{gateSubdir}/` (date-based directories only)
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

@@ -1,26 +1,31 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-21 -->
 
-# components
+# components — UI components
 
 ## Purpose
-Shared React components for the Jarvis Engine web panel. Contains the main layout shell and error boundary.
+This directory contains the components module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `Layout.tsx` | Main app shell — Ant Design Layout with collapsible sidebar, session list, MCP status, SSE connection, and React context providers (`SessionContext`, `PipelineDataContext`) |
-| `ErrorBoundary.tsx` | Error boundary wrapping markdown preview — catches render errors and shows Alert fallback |
+| AGENTS.md | Markdown documentation |
+| ErrorBoundary.tsx | React component — Exports: ErrorBoundary |
+| Layout.tsx | React component — Exports: applyPinOptimistic, applyArchiveOptimistic, applyDeleteOptimistic, applyRollback, sortSessions |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| __tests__/ | Project subdirectory | [AGENTS.md](__tests__/AGENTS.md) |
+
 
 ## For AI Agents
 
-### Working In This Directory
-- `Layout.tsx` is the single most complex component — it manages session state, SSE, navigation, and context
-- Sidebar sessions are sorted: pinned items first, then by heartbeat descending
-- Optimistic updates (pin/archive/delete) with rollback snapshots
-- SSE uses exponential backoff (1s → 30s max)
-- New nav items: add to `NAV_ITEMS` array
 
-### Testing Requirements
-- Tests in `__tests__/Layout.test.tsx`
+## Dependencies
+- **Internal:** __tests__/
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

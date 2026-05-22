@@ -1,40 +1,57 @@
 ---
-description: 生成按架构层级的渐进式 AGENTS.md 文档树，同级同步生成 CLAUDE.md 引导入口
+description: 扫描项目全目录树，按实际架构层级动态生成渐进式 AGENTS.md + CLAUDE.md 引导入口
 name: deepinit
-argument-hint: "[--full | --smart | --incremental]"
+argument-hint: "[--smart | --force | --incremental]"
 model: haiku
 effort: low
-version: "1.0.0"
+version: "1.1.0"
 updated: "2026-05-22"
 ---
 
-# DeepInit — 分层文档初始化
+# DeepInit — 自适应分层文档初始化
 
-为项目生成按目录架构层级组织的 `AGENTS.md` 文档树。每个目录获得一份 `AGENTS.md`（描述该目录的用途、关键文件、子目录、AI 使用指南），并同步生成同级 `CLAUDE.md` 引导文件指向 `AGENTS.md`。
+扫描项目的**完整目录树**，按实际架构层级为每个目录动态生成 `AGENTS.md` 和同级 `CLAUDE.md` 引导文件。不是固定数量——项目有多少层源码目录，就生成多少份文档。
+
+## 原则
+
+- **自适应**：根据 `scanDirectory` 扫描的实际目录结构生成，N 层目录 → N 份 AGENTS.md + N 份 CLAUDE.md
+- **不预设数量**：没有"生成 10 份"的限制。当前项目扫描到 71 个目录就生成 71 套文档，其他项目按各自目录数生成
+- **MANUAL 保留**：重新生成时 `<!-- MANUAL:START -->` 到 `<!-- MANUAL:END -->` 之间的手动内容不被覆盖
 
 ## 执行
 
-调用 Jarvis CLI 的 deepinit 引擎：
-
 ```bash
-jarvis deepinit . {{mode}}
+jarvis deepinit . --yes --smart
 ```
 
-- `--smart`（默认）：深度分析源码文件，检测框架和模块导出，生成精确描述
-- `--full`：完全重新生成，忽略已有文档
-- `--incremental`：仅更新发生变化的目录，保留手动编辑部分
-- `--parallel`：按层级并行生成，加快速度
+- `--smart`（默认）：深度读取源码文件，检测框架（React/Vue/Express/Hono/Prisma 等）和模块导出，生成场景化描述
+- `--yes`：强制覆盖已生成的 AGENTS.md（手工编写的不会被覆盖——检测 `<!-- Generated:` 标记）
+- `--incremental`：仅更新目录结构发生变化的目录
+- `--parallel`：按层级分组并行生成
 
-## 文档结构
+## 生成内容
 
-每个生成的 `AGENTS.md` 包含：
-- **Purpose** — 目录用途说明
-- **Key Files** — 关键文件及描述
-- **Subdirectories** — 子目录链接表（含子级 AGENTS.md 链接）
-- **For AI Agents** — 该目录下工作的 AI 使用指南
-- **Dependencies** — 内部依赖和外部包依赖
-- **MANUAL 保留区** — `<!-- MANUAL:START -->` / `<!-- MANUAL:END -->` 之间的手动编辑内容在重新生成时保留
+每个目录产出两个文件：
 
-## 非目录文件
+**AGENTS.md** — 该目录的 AI 可读文档：
+- `<!-- Generated: ISO时间戳 -->` 标记（用于区分自动生成 vs 手工编写）
+- `<!-- Parent: 相对路径 -->` 层级引用
+- Purpose / Key Files / Subdirectories / For AI Agents / Dependencies
 
-本命令仅处理目录级 `AGENTS.md` 和 `CLAUDE.md` 引导文件，不创建或修改任何业务代码。
+**CLAUDE.md** — 极简 AI 入口，指向同目录 AGENTS.md：
+```
+# 目录名
+> AI 入口 → [AGENTS.md](./AGENTS.md)
+父级参考: [../AGENTS.md](../AGENTS.md)
+```
+
+## 层级示例
+
+项目扫描到 3 层深度时：
+```
+src/           → src/AGENTS.md      + src/CLAUDE.md
+src/cli/       → src/cli/AGENTS.md  + src/cli/CLAUDE.md
+src/cli/utils/ → src/cli/utils/AGENTS.md + src/cli/utils/CLAUDE.md
+```
+
+每层 CLAUDE.md 引导 AI 先读同层 AGENTS.md，再通过 `<!-- Parent -->` 上溯完整文档链。

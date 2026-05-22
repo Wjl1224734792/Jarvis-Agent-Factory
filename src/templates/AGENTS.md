@@ -1,31 +1,34 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-22 -->
 
-# templates/
+# templates — Code templates
 
 ## Purpose
-Template system root — default agent definitions, command files, skill templates, MCP configurations, and memory scaffolds shipped with the Jarvis package.
+This directory contains the templates module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `mcp-claude.json` | Default MCP server configuration for the Claude Code platform |
-| `mcp-codex.toml` | Default MCP configuration for the OpenCodex platform |
-| `mcp-opencode.json` | Default MCP configuration for the OpenCode platform |
+| AGENTS.md | Markdown documentation |
+| mcp-claude.json | JSON config/data |
+| mcp-codex.toml | TOML config |
+| mcp-opencode.json | JSON config/data |
+
 
 ## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| deepinit/ | DeepInit documentation generator | [AGENTS.md](deepinit/AGENTS.md) |
+| memory/ | Memory templates | [AGENTS.md](memory/AGENTS.md) |
+| platforms/ | Platform-specific configs | [AGENTS.md](platforms/AGENTS.md) |
 
-| Directory | Purpose |
-|-----------|---------|
-| `platforms/claude/` | Claude Code platform templates — agents, commands, skills, settings (see `platforms/claude/AGENTS.md`) |
-| `deepinit/` | Deep init templates — AGENTS.md scaffolds for new projects |
-| `memory/` | Memory templates — initial MEMORY.md and category scaffolds |
 
 ## For AI Agents
 
-### Working In This Directory
-- Template files are copied into user projects at `jarvis add` / `jarvis init` time
-- Changes here become the new defaults for all users on next release
-- MCP configs define which tools are exposed per platform
-- Skill and agent templates drive the 71-agent / 35-skill ecosystem
+
+## Dependencies
+- **Internal:** deepinit/, memory/, platforms/
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

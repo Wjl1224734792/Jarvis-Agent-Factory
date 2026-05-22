@@ -1,24 +1,32 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-21 -->
 
-# deepinit
+# deepinit — DeepInit documentation generator
 
 ## Purpose
-Hierarchical documentation generator. Scans directory trees and generates AGENTS.md + CLAUDE.md files with parent-child linkage, manual section preservation, and incremental update support.
+This directory contains the deepinit module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `index.ts` | Re-export entry point — aggregates scanner, generator, and manifest APIs |
-| `scanner.ts` | Directory tree scanner — produces `DirEntry` lists, reads existing AGENTS.md manual sections |
-| `generator.ts` | Document renderer — generates AGENTS.md and CLAUDE.md from scanned tree, supports full/incremental/parallel/smart modes |
-| `manifest.ts` | Manifest manager — `.deepinit_manifest.json` for incremental diff detection |
+| AGENTS.md | Markdown documentation |
+| generator.ts | TypeScript source — Exports: GenContext, generateAgentsMd, generateClaudeMd, generateAll, generateAllParallel |
+| index.ts | TypeScript source — No exports |
+| manifest.ts | TypeScript source — Exports: scanDirectories, loadManifest, saveManifest, computeDiff, changedPaths |
+| scanner.ts | TypeScript source — Exports: DirEntry, scanDirectory, flattenTree, readExistingManual |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+
 
 ## For AI Agents
 
-### Working In This Directory
-- CLI entry point is `src/cli/commands/deepinit.ts`
-- Supports `--full`, `--incremental`, `--parallel`, and `--smart` modes
-- `<!-- MANUAL -->` sections are preserved across regenerations
-- Parent references use format: `<!-- Parent: relative/path/AGENTS.md -->`
+
+## Dependencies
+- **Internal:** None
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

@@ -1,32 +1,40 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-22 -->
 
-# commands/
+# commands — Command definitions
 
 ## Purpose
-CLI command implementations — each file exports a handler for one `jarvis <verb>` subcommand.
+This directory contains the commands module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `add.ts` | `jarvis add` — scaffold Jarvis config into a project directory |
-| `init.ts` | `jarvis init` — initialize a new project with Jarvis templates |
-| `remove.ts` | `jarvis remove` — remove Jarvis config from a project |
-| `deepinit.ts` | `jarvis deepinit` — generate AGENTS.md documentation across a codebase |
-| `diff.ts` | `jarvis diff` — show differences between current and template state |
-| `doctor.ts` | `jarvis doctor` — validate project configuration health |
-| `engine.ts` | `jarvis engine` — start the MCP orchestration engine |
-| `engine-restart.ts` | `jarvis engine-restart` — restart a running engine |
-| `engine-status.ts` | `jarvis engine-status` — check engine health and uptime |
-| `hook.ts` | `jarvis hook` — manage Claude Code hook configurations |
-| `resolve.ts` | `jarvis resolve` — resolve agent/template paths and references |
-| `upgrade.ts` | `jarvis upgrade` — upgrade Jarvis package to latest version |
+| add.ts | TypeScript source — No exports |
+| AGENTS.md | Markdown documentation |
+| deepinit.ts | TypeScript source — No exports |
+| diff.ts | TypeScript source — No exports |
+| doctor.ts | TypeScript source — No exports |
+| engine-restart.ts | TypeScript source — No exports |
+| engine-status.ts | TypeScript source — Exports: executeStatus |
+| engine.ts | TypeScript source — No exports |
+| hook.ts | TypeScript source — No exports |
+| init.ts | TypeScript source — No exports |
+| remove.ts | TypeScript source — No exports |
+| resolve.ts | TypeScript source — No exports |
+| upgrade.ts | TypeScript source — No exports |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+
 
 ## For AI Agents
 
-### Working In This Directory
-- Each command file exports a default function or handler
-- Commands share utilities from `../utils/` (args, io, resolve, scope)
-- New commands must be registered in the CLI dispatcher
-- All commands receive parsed CLI arguments and the working directory
+
+## Dependencies
+- **Internal:** None
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

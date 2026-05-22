@@ -723,7 +723,7 @@ export function setupApiRoutes(app, db, root) {
     function readCommandsFromDir(dir: string) {
       let files: string[];
       try {
-        files = readdirSync(dir).filter(f => f.endsWith('.md'));
+        files = readdirSync(dir).filter(f => f.endsWith('.md') && f !== 'AGENTS.md' && f !== 'CLAUDE.md' && f !== 'README.md');
       } catch (e) {
         console.warn(`[commands] 读取 ${dir} 失败:`, (e as Error).message);
         return [];

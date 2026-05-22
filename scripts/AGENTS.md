@@ -1,22 +1,33 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-22 -->
 
-# scripts/
+# scripts — Build/tooling scripts
 
 ## Purpose
-Build, release, and utility scripts for the Jarvis package lifecycle.
+This directory contains the scripts module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `copy-assets.js` | Copies template assets (agents, commands, skills, MCP configs) into the dist package during build |
-| `release.sh` | Release automation — bump version, build, npm publish |
-| `sync-github-releases.js` | Syncs GitHub release artifacts from CI workflows |
+| AGENTS.md | Markdown documentation |
+| copy-assets.js | JavaScript source — No exports |
+| dev-start.ps1 | Project file |
+| dev-start.sh | Project file |
+| release.sh | Project file |
+| sync-github-releases.js | JavaScript source — No exports |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+
 
 ## For AI Agents
 
-### Working In This Directory
-- Scripts are Node.js (.js) or Bash (.sh)
-- `copy-assets.js` is invoked by the root `npm run build` pipeline
-- Do not hardcode local paths — use relative paths from project root
+
+## Dependencies
+- **Internal:** None
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

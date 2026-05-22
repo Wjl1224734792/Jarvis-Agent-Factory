@@ -1,41 +1,38 @@
-<!-- Parent: ../../AGENTS.md -->
-<!-- Generated: 2026-05-21 -->
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Parent: ../AGENTS.md -->
 
-# web/src
+# src — Full-stack source code (client + server)
 
 ## Purpose
-React 19 SPA source for the Jarvis Engine web panel. Uses Ant Design 6, React Router 6, and Vite with single-file output.
+This directory contains the src module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `main.tsx` | App entry point — ReactDOM root with BrowserRouter |
-| `App.tsx` | Route definitions and lazy-loaded page components |
-| `api.ts` | Fetch-based API client with typed interfaces (Session, PipelineSession, AgentItem, WikiPage, etc.) |
-| `theme.tsx` | Ant Design theme config — blue primary (#1677ff), 6px radius |
+| AGENTS.md | Markdown documentation |
+| api.ts | TypeScript source — Exports: Session, GateState, PipelineSession, PipelineRun, AgentItem |
+| App.tsx | React component — Exports: App |
+| main.tsx | React component — No exports |
+| react-dom-client.d.ts | TypeScript source — Exports: createRoot |
+| react-syntax-highlighter.d.ts | TypeScript source — Exports: Prism |
+| test-setup.ts | TypeScript source — No exports |
+| theme.tsx | React component — No exports |
+
 
 ## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| components/ | UI components | [AGENTS.md](components/AGENTS.md) |
+| pages/ | Project subdirectory | [AGENTS.md](pages/AGENTS.md) |
+| utils/ | Utility functions | [AGENTS.md](utils/AGENTS.md) |
 
-| Directory | Purpose |
-|-----------|---------|
-| `components/` | Shared React components (see `components/AGENTS.md`) |
-| `pages/` | Page components for each route (see `pages/AGENTS.md`) |
-| `utils/` | Utility functions — command filtering |
 
 ## For AI Agents
 
-### Working In This Directory
-- `npm run build` → `tsc --noEmit && vite build` → outputs single `dist/web/index.html`
-- Dev server on port 5173 with HMR, proxies `/api` to `127.0.0.1:3456`
-- All pages are lazy-loaded via `React.lazy()`
-- **Routes**: `/` (overview), `/session/:id` (detail), `/agents`, `/commands`, `/archive`, `/archive/:runId`, `/wiki`, `/guide`
 
-### Testing Requirements
-- 45 tests in `pages/__tests__/` and `components/__tests__/`
-- Run: `cd web && npm test`
+## Dependencies
+- **Internal:** components/, pages/, utils/
+- **External:** See package.json for full dependency list
 
-### Common Patterns
-- SSE for real-time data (8s broadcast + event-driven)
-- Optimistic UI updates with rollback on failure
-- Session-aware via React context (`SessionContext`, `PipelineDataContext`)
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

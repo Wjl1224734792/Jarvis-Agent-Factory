@@ -1,30 +1,39 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-21 -->
 
-# src
+# src — Full-stack source code (client + server)
 
 ## Purpose
-Application source code for the Jarvis Agent Factory CLI and MCP orchestration engine. Contains all TypeScript source across CLI tooling, engine core, shared utilities, and web/API layer.
+This directory contains the src module of the project.
+
+## Key Files
+| File | Description |
+|------|-------------|
+| AGENTS.md | Markdown documentation |
+| doctor.ts | TypeScript source — Exports: doctor |
+| hash-paths.ts | TypeScript source — Exports: getHashFilePath |
+| hook.ts | TypeScript source — No exports |
+| install.ts | TypeScript source — No exports |
+| suppress-warnings.ts | TypeScript source — No exports |
+
 
 ## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| cli/ | CLI entry point | [AGENTS.md](cli/AGENTS.md) |
+| deepinit/ | DeepInit documentation generator | [AGENTS.md](deepinit/AGENTS.md) |
+| engine/ | Core engine logic | [AGENTS.md](engine/AGENTS.md) |
+| shared/ | Shared utilities | [AGENTS.md](shared/AGENTS.md) |
+| templates/ | Code templates | [AGENTS.md](templates/AGENTS.md) |
+| web/ | Web frontend | [AGENTS.md](web/AGENTS.md) |
 
-| Directory | Purpose |
-|-----------|---------|
-| `cli/` | CLI command handlers and argument parsing (see `cli/AGENTS.md`) |
-| `deepinit/` | Hierarchical AGENTS.md documentation generator (see `deepinit/AGENTS.md`) |
-| `engine/` | MCP orchestration engine: server, gates, DB, agents, wiki (see `engine/AGENTS.md`) |
-| `shared/` | Shared utilities: MCP config, markdown parsing, version detection (see `shared/AGENTS.md`) |
-| `web/` | Web API routes, reverse proxy, static HTML views (see `web/AGENTS.md`) |
-| `templates/` | Installer templates for agents, commands, skills, memory, deepinit — copied to target projects at install time |
 
 ## For AI Agents
 
-### Working In This Directory
-- All source is TypeScript ESM (`type: "module"`)
-- Target Node.js >=22.5
-- Run `npx tsc --noEmit` from project root to typecheck
 
-### Common Patterns
-- Each top-level subdirectory is a self-contained module
-- Shared code lives in `shared/` with zero internal dependencies
-- Engine code in `engine/` must not import from `cli/` or `web/`
+## Dependencies
+- **Internal:** cli/, deepinit/, engine/, shared/, templates/, web/
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

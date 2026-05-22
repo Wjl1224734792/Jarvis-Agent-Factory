@@ -1,20 +1,29 @@
+<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-22 -->
 
-# utils/
+# utils — Utility functions
 
 ## Purpose
-Frontend utility functions — currently focused on command filtering and search logic for the Commands page.
+This directory contains the utils module of the project.
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `commands-filter.ts` | Command filtering logic — search, category grouping, pipeline type matching for the Commands page |
+| AGENTS.md | Markdown documentation |
+| commands-filter.ts | TypeScript source — Exports: SourceTab, filterCommands, onSourceTabChange |
+
+
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+
 
 ## For AI Agents
 
-### Working In This Directory
-- Keep utilities pure — no React hooks or component imports
-- Add new utility files here rather than inline logic in pages
-- Export typed functions with clear signatures
+
+## Dependencies
+- **Internal:** None
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->
