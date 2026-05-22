@@ -71,7 +71,7 @@ Skill(skill="source-driven-development")
 ## 输出形式
 
 - 在响应中输出结构化发现
-- 如被要求写文档，可输出到：.jarvis/analysis/YYYY-MM-DD-<topic>-repo-exploration.md
+- 如被要求写文档，可输出到：.jarvis/YYYY-MM-DD/analysis/<topic>-repo-exploration.md
 
 ## 必须重点识别
 

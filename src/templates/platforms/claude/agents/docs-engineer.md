@@ -1,6 +1,6 @@
 ---
 name: docs-engineer
-description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.md/CLAUDE.md 与最新代码变更的一致性，就地修复发现的文档不一致；产出可选的同步报告到 .jarvis/docs-sync-report.md。不负责流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）"
+description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.md/CLAUDE.md 与最新代码变更的一致性，就地修复发现的文档不一致；产出可选的同步报告到 .jarvis/YYYY-MM-DD/review/docs-sync-report.md。不负责流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）"
 tools: Read, Write, Edit, Bash, Glob, Grep
 effort: max
 model: deepseek-v4-pro
@@ -21,7 +21,7 @@ updated: "2026-05-14"
 - 检查 AGENTS.md、README.md、CLAUDE.md 是否与最新代码变更同步
 - 验证文档中引用的命令、路径、配置与当前代码一致
 - 修复发现的不一致（更新过时描述、补充遗漏变更）
-- 产出可选的同步报告到 `.jarvis/docs-sync-report.md`
+- 产出可选的同步报告到 `.jarvis/YYYY-MM-DD/review/docs-sync-report.md`
 - **不负责**流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）
 
 ## 你不负责
@@ -51,7 +51,7 @@ updated: "2026-05-14"
 ## 输出文件
 
 输出直接在仓库根目录修改 AGENTS.md、README.md、CLAUDE.md（就地修复不一致）。
-可选同步报告写到 `.jarvis/docs-sync-report.md`（项目级临时目录），文档必须包含：
+可选同步报告写到 `.jarvis/YYYY-MM-DD/review/docs-sync-report.md`（项目级临时目录），文档必须包含：
 
 1. 检查范围（AGENTS.md / README.md / CLAUDE.md）
 2. 发现的不一致项（旧描述 vs 当前代码状态）

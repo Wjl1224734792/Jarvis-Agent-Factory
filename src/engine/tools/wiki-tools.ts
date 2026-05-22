@@ -11,10 +11,11 @@ export function registerWikiTools(server: McpServer, _db: any, root: string, ctx
       content: z.string().describe('Markdown 格式页面内容'),
       tags: z.array(z.string()).optional().describe('标签列表'),
       category: z.enum(['architecture', 'decision', 'pattern', 'debugging', 'environment', 'session-log', 'reference', 'convention']).optional(),
+      project: z.string().optional().describe('项目名称，用于分类筛选 wiki 页面'),
     },
-    async ({ title, content, tags, category }) => {
+    async ({ title, content, tags, category, project }) => {
       if (!title || !content) return ctx.resp({ error: 'title 和 content 为必填参数' });
-      const result = await addWikiPage(root, title, content, tags, category);
+      const result = await addWikiPage(root, title, content, tags, category, project);
       if (!result.created) return ctx.resp({ error: `页面 "${result.slug}" 已存在。使用 repowiki_ingest 追加内容。`, slug: result.slug });
       return ctx.resp({ ok: true, slug: result.slug, created: true });
     });
@@ -28,10 +29,11 @@ export function registerWikiTools(server: McpServer, _db: any, root: string, ctx
       category: z.enum(['architecture', 'decision', 'pattern', 'debugging', 'environment', 'session-log', 'reference', 'convention']).optional(),
       sources: z.array(z.string()).optional().describe('来源会话 ID 列表'),
       confidence: z.enum(['high', 'medium', 'low']).optional(),
+      project: z.string().optional().describe('项目名称，用于分类筛选 wiki 页面'),
     },
-    async ({ title, content, tags, category, sources, confidence }) => {
+    async ({ title, content, tags, category, sources, confidence, project }) => {
       if (!title || !content) return ctx.resp({ error: 'title 和 content 为必填参数' });
-      const result = await ingestWikiPage(root, title, content, tags, category, sources, confidence);
+      const result = await ingestWikiPage(root, title, content, tags, category, sources, confidence, project);
       return ctx.resp({
         ok: true, slug: result.slug,
         action: result.appended ? 'appended' : 'created',
@@ -45,19 +47,22 @@ export function registerWikiTools(server: McpServer, _db: any, root: string, ctx
       tags: z.array(z.string()).optional().describe('按标签过滤'),
       category: z.enum(['architecture', 'decision', 'pattern', 'debugging', 'environment', 'session-log', 'reference', 'convention']).optional(),
       limit: z.number().optional().describe('返回结果数量上限，默认 20'),
+      project: z.string().optional().describe('按项目过滤'),
     },
-    async ({ query, tags, category, limit }) => {
+    async ({ query, tags, category, limit, project }) => {
       if (!query) return ctx.resp({ results: [], count: 0 });
-      const results = queryWikiPages(root, query, { tags, category, limit });
+      const results = queryWikiPages(root, query, { tags, category, limit, project });
       return ctx.resp({ results, count: results.length, query });
     });
 
   server.tool('repowiki_list',
-    '【知识库】列出所有 Wiki 页面。返回 slug、标题、分类、标签、更新时间。',
-    {},
-    async () => {
-      const pages = listWikiPages(root);
-      return ctx.resp({ pages, count: pages.length });
+    '【知识库】列出所有 Wiki 页面。返回 slug、标题、分类、标签、更新时间。可按项目过滤。',
+    {
+      project: z.string().optional().describe('按项目过滤，不传则返回全部'),
+    },
+    async ({ project }) => {
+      const pages = listWikiPages(root, project);
+      return ctx.resp({ pages, count: pages.length, project: project || null });
     });
 
   server.tool('repowiki_read',

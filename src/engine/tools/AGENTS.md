@@ -32,9 +32,8 @@ MCP tool registration modules extracted from `src/engine/server.ts`. Each module
 
 ### Testing Requirements
 
-- MCP tool tests are in `tests/server-mcp-core.test.ts`
-- Platform info tests are in `tests/mcp-platform-info.test.ts`
-- Run `npm test` to verify all tool registrations
+- MCP tool tests are in `tests/server-mcp-core.test.ts` (project root)
+- Run `npm test` from project root to verify all tool registrations
 
 ### Common Patterns
 

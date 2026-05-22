@@ -43,11 +43,23 @@ export default function Wiki() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
+  const [projects, setProjects] = useState<string[]>([]);
   const [selectedPage, setSelectedPage] = useState<WikiPageDetail | null>(null);
 
+  const loadPages = (project?: string) => {
+    setLoading(true);
+    api.wikiPages(project).then(setPages).catch(() => setPages([])).finally(() => setLoading(false));
+  };
+
   useEffect(() => {
-    api.wikiPages().then(setPages).catch(() => setPages([])).finally(() => setLoading(false));
+    loadPages();
+    api.projects().then(setProjects).catch(() => setProjects([]));
   }, []);
+
+  useEffect(() => {
+    loadPages(selectedProject);
+  }, [selectedProject]);
 
   const categories = useMemo(
     () => [...new Set(pages.map(p => p.category).filter(Boolean))] as string[],
@@ -109,6 +121,11 @@ export default function Wiki() {
             <Descriptions.Item label="分类">
               <Tag color={CATEGORY_COLORS[selectedPage.category]}>{CATEGORY_NAMES[selectedPage.category] || selectedPage.category}</Tag>
             </Descriptions.Item>
+            {selectedPage.project && (
+              <Descriptions.Item label="项目">
+                <Tag color="geekblue">{(selectedPage.project.split(/[\\/]/).filter(Boolean).pop() || selectedPage.project)}</Tag>
+              </Descriptions.Item>
+            )}
             <Descriptions.Item label="标签">
               {selectedPage.tags?.map(t => <Tag key={t}>{t}</Tag>)}
             </Descriptions.Item>
@@ -166,6 +183,19 @@ export default function Wiki() {
           allowClear
           style={{ flex: 1 }}
         />
+        {projects.length > 0 && (
+          <Select
+            placeholder="全部项目"
+            value={selectedProject}
+            onChange={setSelectedProject}
+            allowClear
+            style={{ width: 180 }}
+            options={projects.map(p => {
+              const name = (p || '').split(/[\\/]/).filter(Boolean).pop() || p;
+              return { label: name, value: p };
+            })}
+          />
+        )}
         <Select
           placeholder="全部分类"
           value={categoryFilter}
@@ -200,6 +230,9 @@ export default function Wiki() {
             >
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Tag color={CATEGORY_COLORS[p.category]}>{CATEGORY_NAMES[p.category] || p.category}</Tag>
+                {p.project && (
+                  <Tag color="geekblue">{(p.project.split(/[\\/]/).filter(Boolean).pop() || p.project)}</Tag>
+                )}
                 {p.tags?.map(t => <Tag key={t}>{t}</Tag>)}
                 {p.size > 0 && (
                   <Text type="secondary" style={{ fontSize: 11 }}>{formatSize(p.size)}</Text>

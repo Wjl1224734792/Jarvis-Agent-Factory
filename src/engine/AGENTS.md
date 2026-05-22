@@ -31,8 +31,8 @@ MCP orchestration engine core. Provides HTTP/MCP server, pipeline gate managemen
 - Database is per-project: `<root>/.jarvis/engine.db`
 
 ### Testing Requirements
-- Engine tests in `tests/server-*.test.ts`, `tests/db.test.ts`, `tests/gates.test.ts`
-- Wiki tests in `tests/wiki-store.test.ts`
+- Engine tests in `tests/server-mcp-core.test.ts`, `tests/db.test.ts`, `tests/gates.test.ts` (project root)
+- Wiki tests in `tests/wiki-store.test.ts` (project root)
 
 ### Common Patterns
 - All tools registered via `registerMcpTools()` → delegates to `tools/` modules

@@ -19,8 +19,8 @@ updated: "2026-05-14"
 ## 你的职责
 
 1. 接收编排者传入的**完整 @skill-name 清单**（除流水线基础技能 `behavioral-guidelines` / `context-engineering` / `using-agent-skills` 外的所有可用技能）
-2. 读取 Gate B 产出的任务文档（`.jarvis/<YYYY>-<MM>-<DD>/tasks/` 下的任务文档）
-3. 读取 Gate C 产出的规划文档（`.jarvis/<YYYY>-<MM>-<DD>/plans/` 下的规划文档）
+2. 读取 Gate B 产出的任务文档（`.jarvis/YYYY-MM-DD/tasks/` 下的任务文档）
+3. 读取 Gate C 产出的规划文档（`.jarvis/YYYY-MM-DD/plans/` 下的规划文档）
 4. 分析每个子 Agent 的任务类型、领域、风险等级
 5. 为每个子 Agent 输出必须加载的 `@skill-name` 清单
 6. 产出标准化技能分配文档，供编排者直接消费
@@ -53,12 +53,12 @@ Skill(skill="behavioral-guidelines")
 
 1. **可用技能清单**（除 `behavioral-guidelines` / `context-engineering` / `using-agent-skills` 外）：
    - 格式：`@skill-name` 列表，如 `@test-driven-development`、`@source-driven-development`、`@security-and-hardening` 等
-2. **任务文档路径**：`.jarvis/<YYYY>-<MM>-<DD>/tasks/<topic>-tasks.md`
-3. **规划文档路径**：`.jarvis/<YYYY>-<MM>-<DD>/plans/<topic>-plan.md`
+2. **任务文档路径**：`.jarvis/YYYY-MM-DD/tasks/<topic>-tasks.md`
+3. **规划文档路径**：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 ## 输出规范
 
-路径：`.jarvis/<YYYY>-<MM>-<DD>/skills/skill-assignment.md`
+路径：`.jarvis/YYYY-MM-DD/skills/skill-assignment.md`
 
 输出格式如下（每个子 Agent 一个区块）：
 
@@ -170,7 +170,7 @@ Lint/Type-check/Build 检查相关：
 - [ ] 规划文档中每个任务均有对应的技能分配区块
 - [ ] 每个技能均来自编排者传入的可用技能清单
 - [ ] 分配逻辑符合本模板定义的规则
-- [ ] 技能分配文档已写入 `.jarvis/<YYYY>-<MM>-<DD>/skills/skill-assignment.md`
+- [ ] 技能分配文档已写入 `.jarvis/YYYY-MM-DD/skills/skill-assignment.md`
 - [ ] 文档中未重复列出 `@behavioral-guidelines`
 
 ## 红线

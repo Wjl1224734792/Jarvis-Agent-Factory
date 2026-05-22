@@ -122,7 +122,7 @@ curl "http://localhost:8080/JSON/ascan/view/status/?scanId=0"
 curl "http://localhost:8080/JSON/core/view/alerts/?baseurl=http://testapp.local" > alerts.json
 
 # HTML 报告
-curl "http://localhost:8080/OTHER/core/other/htmlreport/" > security-report.html
+curl "http://localhost:8080/OTHER/core/other/htmlreport/" > .jarvis/YYYY-MM-DD/testing/security-report.html
 ```
 
 ### 步骤 4：漏洞分类与处置

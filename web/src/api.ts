@@ -70,6 +70,7 @@ export interface WikiPageMeta {
   updated: string;
   size: number;
   confidence?: string;
+  project?: string;
 }
 
 export interface WikiPageDetail extends WikiPageMeta {
@@ -159,9 +160,10 @@ export const api = {
 
   platforms: () => fetchJSON('/api/platforms'),
 
-  docContent: async (filepath: string): Promise<string> => {
+  docContent: async (filepath: string, sessionId?: string): Promise<string> => {
     const safePath = (filepath ?? '').split('/').map(encodeURIComponent).join('/');
-    const r = await fetch(BASE + `/api/jarvis/${safePath}`);
+    const qs = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
+    const r = await fetch(BASE + `/api/jarvis/${safePath}${qs}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },
@@ -169,12 +171,18 @@ export const api = {
   commands: (): Promise<CommandsData> =>
     fetchJSON('/api/commands'),
 
-  wikiPages: async (): Promise<WikiPageMeta[]> => {
-    const d = await fetchJSON('/api/wiki/pages');
+  wikiPages: async (project?: string): Promise<WikiPageMeta[]> => {
+    const qs = project ? '?project=' + encodeURIComponent(project) : '';
+    const d = await fetchJSON('/api/wiki/pages' + qs);
     return d.pages || [];
   },
 
   wikiPage: async (slug: string): Promise<WikiPageDetail> =>
     fetchJSON(`/api/wiki/page/${encodeURIComponent(slug)}`),
+
+  projects: async (): Promise<string[]> => {
+    const d = await fetchJSON('/api/projects');
+    return d.projects || [];
+  },
 
 };

@@ -80,7 +80,7 @@ export default function SessionDetail() {
   const openMdPreview = async (filepath: string) => {
     try {
       const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
-      const content = await api.docContent(sanitized);
+      const content = await api.docContent(sanitized, sessionId);
       setMdPreview({ open: true, content, title: filepath });
     } catch { message.error('文档加载失败'); }
   };
@@ -196,11 +196,11 @@ export default function SessionDetail() {
         </Card>
       )}
 
-      {/* 内容区：左侧 Gate 时间线 + 右侧文档预览 */}
+      {/* 内容区：中间文档预览区 + 右侧 Gate 时间线边栏 */}
       {hasPipeline && (
       <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
-        {/* 左侧：Gate 时间线 + 文档 */}
-        <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
+        {/* 中间：文档预览预留区域 */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
           {mdPreview.open ? (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -219,94 +219,76 @@ export default function SessionDetail() {
               </div>
             </div>
           ) : (
-            <Card size="small" style={{ borderRadius: 14, height: '100%', overflow: 'auto' }}
-              title={<span style={{ fontWeight: 600, fontSize: 13 }}><FileTextOutlined style={{ marginRight: 6 }} />Gate 流水线</span>}
-              extra={<Progress percent={progressPct} size="small" style={{ width: 120 }} strokeColor="var(--ant-color-primary)" />}
-            >
-              <Timeline
-                items={gates.map(g => {
-                  const sg = shortGate(g.gate);
-                  const passed = g.passed;
-                  const isCurrent = g.gate === currentGate;
-                  const hasDocs = (g.artifacts || []).length > 0;
-                  return {
-                    color: passed ? 'var(--ant-color-success)' : isCurrent ? 'var(--ant-color-primary)' : 'var(--ant-color-text)',
-                    icon: passed ? <CheckCircleOutlined style={{ fontSize: 14 }} /> :
-                         isCurrent ? <LoadingOutlined style={{ fontSize: 14 }} /> :
-                         <ClockCircleOutlined style={{ fontSize: 14 }} />,
-                    children: (
-                      <div style={{
-                        padding: '8px 12px', borderRadius: 10,
-                        backgroundColor: isCurrent ? 'var(--ant-color-primary-bg)' : 'transparent',
-                        border: isCurrent ? '2px solid var(--ant-color-primary)' : '1px solid var(--ant-color-border)',
-                        cursor: hasDocs ? 'pointer' : 'default',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, fontSize: 13, color: GATE_COLORS[sg] || 'var(--ant-color-primary)' }}>{g.gate}</span>
-                          <span style={{ fontSize: 11 }}>{GATE_LABELS[sg] || sg}</span>
-                          {passed && <Tag color="var(--ant-color-success)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>✓</Tag>}
-                          {isCurrent && <Tag color="var(--ant-color-primary)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>进行中</Tag>}
-                        </div>
-                        {GATE_DESCRIPTIONS[g.gate] && (
-                          <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.45, marginTop: 2 }}>{GATE_DESCRIPTIONS[g.gate]}</div>
-                        )}
-                        {g.entered_at && (
-                          <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.4, marginTop: 2 }}>
-                            进入: {formatTime(g.entered_at)}{g.duration_display ? ` · 耗时: ${g.duration_display}` : ''}
-                          </div>
-                        )}
-                        {hasDocs && (
-                          <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {g.artifacts.map((a: string, i: number) => (
-                              <Tag key={i} style={{ borderRadius: 6, fontSize: 10, cursor: 'pointer', margin: 0 }}
-                                color="var(--ant-color-primary)"
-                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); openMdPreview(a); }}>
-                                {a.split('/').pop()}
-                              </Tag>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  };
-                })}
-              />
+            <Card size="small" style={{ borderRadius: 14, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              styles={{ body: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } }}>
+              <div style={{ textAlign: 'center', opacity: 0.45 }}>
+                <FileSearchOutlined style={{ fontSize: 48, marginBottom: 12, color: 'var(--ant-color-text)' }} />
+                <div style={{ fontSize: 14, color: 'var(--ant-color-text)', marginBottom: 4 }}>文档预览区域</div>
+                <div style={{ fontSize: 12, color: 'var(--ant-color-text)' }}>点击右侧 Gate 上的文档标签即可在此预览</div>
+              </div>
             </Card>
           )}
         </div>
 
-        {/* 右侧：当前 Gate 产物列表 */}
-        <div style={{ width: 300, flexShrink: 0, overflow: 'auto' }}>
+        {/* 右侧边栏：Gate 流水线 + 产物文档 */}
+        <div style={{ width: 340, flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' }}>
           <Card size="small" style={{ borderRadius: 14 }}
-            title={<span style={{ fontWeight: 600, fontSize: 13 }}><FileTextOutlined style={{ marginRight: 6 }} />产物文档</span>}
-            extra={(() => {
-              const ca = gates.find(g => g.gate === currentGate);
-              return ca ? <Tag style={{ borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>{(ca.artifacts || []).length} 个</Tag> : null;
-            })()}
+            title={<span style={{ fontWeight: 600, fontSize: 13 }}><FileTextOutlined style={{ marginRight: 6 }} />Gate 流水线</span>}
+            extra={<Progress percent={progressPct} size="small" style={{ width: 100 }} strokeColor="var(--ant-color-primary)" />}
           >
-            {(() => {
-              const curArtifacts = gates.find(g => g.gate === currentGate)?.artifacts || [];
-              if (curArtifacts.length === 0) return <Empty description="暂无文档" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {curArtifacts.map((a: string) => (
-                    <Card key={a} size="small" hoverable onClick={() => openMdPreview(a)}
-                      style={{ borderRadius: 10, cursor: 'pointer' }}
-                      styles={{ body: { padding: '10px 12px' } }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <FileTextOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 14, flexShrink: 0 }} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {a.split('/').pop()}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.45 }}>点击预览</div>
-                        </div>
+            <Timeline
+              items={gates.map(g => {
+                const sg = shortGate(g.gate);
+                const passed = g.passed;
+                const isCurrent = g.gate === currentGate;
+                const hasDocs = (g.artifacts || []).length > 0;
+                return {
+                  color: passed ? 'var(--ant-color-success)' : isCurrent ? 'var(--ant-color-primary)' : 'var(--ant-color-text)',
+                  icon: passed ? <CheckCircleOutlined style={{ fontSize: 14 }} /> :
+                       isCurrent ? <LoadingOutlined style={{ fontSize: 14 }} /> :
+                       <ClockCircleOutlined style={{ fontSize: 14 }} />,
+                  children: (
+                    <div style={{
+                      padding: '8px 12px', borderRadius: 10,
+                      backgroundColor: isCurrent ? 'var(--ant-color-primary-bg)' : 'transparent',
+                      border: isCurrent ? '2px solid var(--ant-color-primary)' : '1px solid var(--ant-color-border)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: GATE_COLORS[sg] || 'var(--ant-color-primary)' }}>{g.gate}</span>
+                        <span style={{ fontSize: 11 }}>{GATE_LABELS[sg] || sg}</span>
+                        {passed && <Tag color="var(--ant-color-success)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>✓</Tag>}
+                        {isCurrent && <Tag color="var(--ant-color-primary)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>进行中</Tag>}
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              );
-            })()}
+                      {GATE_DESCRIPTIONS[g.gate] && (
+                        <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.45, marginTop: 2 }}>{GATE_DESCRIPTIONS[g.gate]}</div>
+                      )}
+                      {g.entered_at && (
+                        <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.4, marginTop: 2 }}>
+                          进入: {formatTime(g.entered_at)}{g.duration_display ? ` · 耗时: ${g.duration_display}` : ''}
+                        </div>
+                      )}
+                      {hasDocs && (
+                        <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {g.artifacts.map((a: string, i: number) => (
+                            <Card key={i} size="small" hoverable
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); openMdPreview(a); }}
+                              style={{ borderRadius: 8, cursor: 'pointer' }}
+                              styles={{ body: { padding: '6px 10px' } }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <FileTextOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 12, flexShrink: 0 }} />
+                                <span style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {a.split('/').pop()}
+                                </span>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
+            />
           </Card>
         </div>
       </div>

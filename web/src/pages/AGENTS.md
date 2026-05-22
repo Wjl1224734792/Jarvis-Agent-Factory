@@ -29,5 +29,6 @@ React page components for each route in the Jarvis Engine web panel. Lazy-loaded
 - Markdown preview: import `LazyMarkdown` and `MARKDOWN_CSS` from `./Dashboard`
 
 ### Testing Requirements
-- Tests in `__tests__/` directory
-- 45 tests across all page suites
+- Tests in `__tests__/` directory — `matchPipelineType.test.ts`
+- Component tests in `../components/__tests__/` — `Layout.test.tsx`
+- 382 total project tests when run from root

@@ -8,7 +8,7 @@ import {
   getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate,
   getActiveRun, createPipelineRun, setRunTaskName, updateRunGate, updateRunGateEnteredAt,
   insertArtifact, completeRun, abortRun, saveResumeData, getResumeData,
-  updateSessionMetadata, logSessionEvent, getSession, removeSession,
+  updateSessionMetadata, logSessionEvent, removeSession,
 } from '../db.js';
 import {
   GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, DEFAULT_PIPELINE,

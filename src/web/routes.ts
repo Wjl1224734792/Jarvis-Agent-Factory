@@ -671,6 +671,7 @@ export function setupApiRoutes(app, db, root) {
   // ---- Jarvis 产物读取 ----
   app.get('/api/jarvis/:filepath{.*}', (c) => {
     const filepath = decodeURIComponent(c.req.param('filepath'));
+    const sessionId = c.req.query('session_id');
 
     // 拒绝空路径
     if (!filepath || filepath === '/') {
@@ -687,6 +688,20 @@ export function setupApiRoutes(app, db, root) {
     // 拒绝非 .md 文件
     if (!filepath.endsWith('.md')) {
       return c.json({ error: 'Only .md files allowed' }, 400);
+    }
+
+    // 会话隔离：验证文件属于该会话的产物记录
+    if (sessionId) {
+      const runs = getSessionRuns(db, sessionId);
+      if (runs.length > 0) {
+        const artifact = runs
+          .flatMap(r => (getArtifactsByRun(db, r.id) as { filepath: string }[]))
+          .find(a => a.filepath === filepath);
+        if (!artifact) {
+          console.warn(`[jarvis-api] 403: ${filepath} not in session ${sessionId} artifacts`);
+          return c.json({ error: 'File not registered to this session' }, 403);
+        }
+      }
     }
 
     // 文件存在性检查
@@ -784,8 +799,16 @@ export function setupApiRoutes(app, db, root) {
   // ── RepoWiki API ─────────────────────────────
 
   app.get('/api/wiki/pages', (c) => {
-    const pages = listWikiPages(root);
-    return c.json({ pages, count: pages.length });
+    const project = c.req.query('project') || undefined;
+    const pages = listWikiPages(root, project);
+    return c.json({ pages, count: pages.length, project: project || null });
+  });
+
+  app.get('/api/projects', (c) => {
+    const pipeline = db.prepare('SELECT DISTINCT project FROM pipeline WHERE project IS NOT NULL AND project != ? ORDER BY project').all(root) as { project: string }[];
+    const runs = db.prepare('SELECT DISTINCT project FROM pipeline_runs WHERE project IS NOT NULL AND project != ? ORDER BY project').all(root) as { project: string }[];
+    const projects = [...new Set([...pipeline.map(r => r.project), ...runs.map(r => r.project)])].sort();
+    return c.json({ projects, count: projects.length });
   });
 
   app.get('/api/wiki/page/:slug', (c) => {

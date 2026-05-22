@@ -19,6 +19,7 @@ interface WikiPageMeta {
   category: string;
   confidence: string;
   schemaVersion: number;
+  project?: string;
 }
 
 interface WikiPage {
@@ -91,7 +92,7 @@ async function withWikiLock<T>(root: string, fn: () => T): Promise<T> {
   throw new Error('Wiki lock timeout', { cause: lastError });
 }
 
-export async function addWikiPage(root: string, title: string, content: string, tags?: string[], category?: string): Promise<{ slug: string; created: boolean }> {
+export async function addWikiPage(root: string, title: string, content: string, tags?: string[], category?: string, project?: string): Promise<{ slug: string; created: boolean }> {
   const dir = ensureWikiDir(root);
   const slug = titleToSlug(title);
   const pagePath = resolve(dir, 'pages', `${slug}.md`);
@@ -110,6 +111,7 @@ export async function addWikiPage(root: string, title: string, content: string, 
       confidence: 'medium',
       schemaVersion: 1,
     };
+    if (project) meta.project = project;
     writeFileSync(pagePath, stringifyFrontmatter(meta) + content, 'utf-8');
     appendLog(dir, 'add', slug, title);
     rebuildIndex(dir);
@@ -117,7 +119,7 @@ export async function addWikiPage(root: string, title: string, content: string, 
   });
 }
 
-export async function ingestWikiPage(root: string, title: string, content: string, tags?: string[], category?: string, sources?: string[], confidence?: string): Promise<{ slug: string; appended: boolean }> {
+export async function ingestWikiPage(root: string, title: string, content: string, tags?: string[], category?: string, sources?: string[], confidence?: string, project?: string): Promise<{ slug: string; appended: boolean }> {
   const dir = ensureWikiDir(root);
   const slug = titleToSlug(title);
   const pagePath = resolve(dir, 'pages', `${slug}.md`);
@@ -129,7 +131,8 @@ export async function ingestWikiPage(root: string, title: string, content: strin
       // Merge: append new content with timestamp, merge tags
       const mergedTags = [...new Set([...(meta.tags || []), ...(tags || [])])];
       const mergedSources = [...new Set([...(meta.sources || []), ...(sources || [])])];
-      const newMeta = { ...meta, tags: mergedTags, sources: mergedSources, updated: now, confidence: confidence || meta.confidence || 'medium' };
+      const newMeta: any = { ...meta, tags: mergedTags, sources: mergedSources, updated: now, confidence: confidence || meta.confidence || 'medium' };
+      if (project) newMeta.project = project;
       const newBody = body.trimEnd() + '\n\n---\n_Appended ' + now + '_\n\n' + content;
       writeFileSync(pagePath, stringifyFrontmatter(newMeta) + newBody, 'utf-8');
       appendLog(dir, 'ingest', slug, title);
@@ -147,6 +150,7 @@ export async function ingestWikiPage(root: string, title: string, content: strin
       confidence: confidence || 'medium',
       schemaVersion: 1,
     };
+    if (project) meta.project = project;
     writeFileSync(pagePath, stringifyFrontmatter(meta) + content, 'utf-8');
     appendLog(dir, 'ingest', slug, title);
     rebuildIndex(dir);
@@ -201,12 +205,12 @@ export async function deleteWikiPage(root: string, page: string): Promise<boolea
   });
 }
 
-export function listWikiPages(root: string): { slug: string; title: string; category: string; tags: string[]; updated: string; size: number }[] {
+export function listWikiPages(root: string, project?: string): { slug: string; title: string; category: string; tags: string[]; updated: string; size: number; project?: string }[] {
   const dir = resolve(root, '.jarvis', 'wiki');
   const pagesDir = resolve(dir, 'pages');
   if (!existsSync(pagesDir)) return [];
   const files = readdirSync(pagesDir).filter(f => f.endsWith('.md'));
-  return files.map(f => {
+  const results = files.map(f => {
     const raw = readFileSync(resolve(pagesDir, f), 'utf-8');
     const { meta } = parseFrontmatter(raw);
     const stat = statSync(resolve(pagesDir, f));
@@ -217,12 +221,15 @@ export function listWikiPages(root: string): { slug: string; title: string; cate
       tags: meta.tags || [],
       updated: meta.updated || '',
       size: stat.size,
+      project: (meta as any).project || undefined,
     };
   }).sort((a, b) => b.updated.localeCompare(a.updated));
+  if (project) return results.filter(p => p.project === project);
+  return results;
 }
 
-export function queryWikiPages(root: string, query: string, opts?: { tags?: string[]; category?: string; limit?: number }): { slug: string; title: string; snippet: string; category: string; tags: string[]; updated: string }[] {
-  const pages = listWikiPages(root);
+export function queryWikiPages(root: string, query: string, opts?: { tags?: string[]; category?: string; limit?: number; project?: string }): { slug: string; title: string; snippet: string; category: string; tags: string[]; updated: string }[] {
+  const pages = listWikiPages(root, opts?.project);
   const results: { slug: string; title: string; snippet: string; category: string; tags: string[]; updated: string; score: number }[] = [];
   const q = query.toLowerCase();
   for (const p of pages) {

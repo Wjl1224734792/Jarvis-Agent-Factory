@@ -56,7 +56,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 输出文件
 
-如被要求落盘，写到：.jarvis/<YYYY>-<MM>-<DD>/plans/<topic>-remediation-plan.md
+如被要求落盘，写到：.jarvis/YYYY-MM-DD/plans/<topic>-remediation-plan.md
 
 ## 输出必须包含
 

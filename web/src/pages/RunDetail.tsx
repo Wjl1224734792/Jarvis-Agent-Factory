@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Tag, Timeline, Table, Spin, Button, Breadcrumb, message, Modal } from 'antd';
 import { ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { api } from '../api';
 import { MARKDOWN_CSS, LazyMarkdown } from './Dashboard';
 
 interface RunDetail {
@@ -53,9 +54,7 @@ export default function RunDetail() {
   const openMdPreview = async (filepath: string) => {
     try {
       const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
-      const r = await fetch(`/api/jarvis/${encodeURIComponent(sanitized)}`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const content = await r.text();
+      const content = await api.docContent(sanitized, data?.run?.session_id);
       setMdPreview({ open: true, content, title: filepath });
     } catch { message.error('文档加载失败'); }
   };

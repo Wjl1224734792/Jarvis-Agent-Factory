@@ -61,7 +61,7 @@ updated: "2026-05-14"
 ## 输出
 
 - 响应中输出结构化搜索结果
-- 如被要求写文档，输出到 .jarvis/research/YYYY-MM-DD-<topic>-external-resource-research.md
+- 如被要求写文档，输出到 .jarvis/YYYY-MM-DD/research/<topic>-external-resource-research.md
 
 ## 红线
 

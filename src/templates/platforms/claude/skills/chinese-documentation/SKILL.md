@@ -296,9 +296,9 @@ const result = await client.doSomething();
 
 ## 文档
 
-- [使用指南](./.jarvis/guide.md)
-- [API 参考](./.jarvis/api.md)
-- [常见问题](./.jarvis/faq.md)
+- [使用指南](./.jarvis/YYYY-MM-DD/docs/guide.md)
+- [API 参考](./.jarvis/YYYY-MM-DD/docs/api.md)
+- [常见问题](./.jarvis/YYYY-MM-DD/docs/faq.md)
 - [更新日志](./CHANGELOG.md)
 
 ## 示例

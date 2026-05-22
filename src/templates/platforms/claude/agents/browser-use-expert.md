@@ -135,7 +135,7 @@ browser-use screenshot .jarvis/tmp/screenshots/flow-step2.png
 
 ### 步骤 7：输出探索报告
 
-输出探索报告到 `.jarvis/<YYYY>-<MM>-<DD>/browser-use/report.md`，包含：
+输出探索报告到 `.jarvis/YYYY-MM-DD/browser-use/report.md`，包含：
 
 1. **探索目标**：本次探索的目的和范围
 2. **探索路径**：实际执行的交互步骤记录

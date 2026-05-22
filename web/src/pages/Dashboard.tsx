@@ -356,7 +356,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, minWidth: 0 }}>
               <Card
                 title={
                   <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
@@ -373,7 +373,7 @@ export default function Dashboard() {
                 }
                 size="small"
                 style={{ borderRadius: 14, flex: 1 }}
-                styles={{ body: { flex: 1, overflow: 'auto' } }}
+                styles={{ body: { flex: 1, overflowY: 'auto', overflowX: 'hidden' } }}
               >
                 {currentGateArtifacts.length === 0 ? (
                   <Empty description="暂无文档，等待 Gate 通过后自动生成" image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -441,7 +441,7 @@ export default function Dashboard() {
 
         {/* ============ 右侧栏：Gate 步骤 ============ */}
         <div ref={rightPanelRef} style={{
-          width: rightPanelWidth, flexShrink: 0, overflow: 'auto',
+          width: rightPanelWidth, flexShrink: 0, overflowY: 'auto', overflowX: 'hidden',
           paddingLeft: 8,
         }}>
           {/* Gate 进度条 */}

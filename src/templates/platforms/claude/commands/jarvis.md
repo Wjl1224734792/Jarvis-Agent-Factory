@@ -28,7 +28,7 @@ updated: "2026-05-14"
 1. 🔴 **创建任务会话（必须第一步执行，不可跳过）**：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
    - **不传 task_name**——此时需求未明确，会话默认显示"未命名"
-   - 此调用会创建独立会话+新 run，自动生成 `.jarvis/<YYYY>-<MM>-<DD>/` 日期产物目录
+   - 此调用会创建独立会话+新 run，自动生成 `.jarvis/YYYY-MM-DD/` 日期产物目录
    - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
    - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
    - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({ gate: "<下一Gate>" })` 推进

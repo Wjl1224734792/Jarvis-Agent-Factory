@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 import { getAgentList } from './agent-registry.js';
-import { getArtifactsByRunAndGate } from './db.js';
+import { getArtifactsByRunAndGate, getSessionRuns } from './db.js';
 
 /**
  * 流水线定义表 — 不同工作流可注册不同的 Gate 序列。
@@ -318,6 +318,15 @@ export function findSessionGateArtifacts(artifactsDir, gate, sessionId, db, runI
   if (runId && db) {
     const rows = getArtifactsByRunAndGate(db, runId, gate);
     return rows.map(r => r.filepath).slice(0, 5);
+  }
+
+  // 无活跃 run 时回退：查询该会话最近一次 run 的产物记录
+  if (sessionId && db) {
+    const sessionRuns = getSessionRuns(db, sessionId);
+    if (sessionRuns.length > 0) {
+      const rows = getArtifactsByRunAndGate(db, sessionRuns[0].id, gate);
+      return rows.map(r => r.filepath).slice(0, 5);
+    }
   }
 
   return [];

@@ -40,6 +40,7 @@ vi.mock('node:fs', () => ({
 
 vi.mock('../src/engine/db.js', () => ({
   getArtifactsByRunAndGate: mockArtifacts,
+  getSessionRuns: vi.fn(() => []),
 }));
 // ---- End mock setup ----
 
@@ -534,9 +535,9 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  // --- Green 阶段：findSessionGateArtifacts 测试（已移除 checkpoint 回退 + 扁平回退） ---
+  // --- findSessionGateArtifacts 测试：runId 优先 → 回退历史 run 查询 → 无结果返回空 ---
 
-  it('1. 无 runId 时不扫描日期目录，返回空数组', () => {
+  it('1. 无 runId 时无活跃 run 且无历史 run 时返回空数组', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-10T12:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-10', isDir: true }]);
@@ -549,7 +550,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('2. 当日日期目录不存在时返回空数组', () => {
+  it('2. 无活跃 run 且历史 run 无产物时返回空数组', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-13T10:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配今天
@@ -560,7 +561,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('3. 日期目录存在但 subdir 不存在时返回空数组', () => {
+  it('3. 无活跃 run 时回退查询历史 run 产物（默认空）', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-11T08:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-11', isDir: true }]);
@@ -572,7 +573,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('4. 无 runId 时不扫描日期目录，返回空数组', () => {
+  it('4. 无 runId 时无活跃 run 且无历史 run 时返回空数组', () => {
     mockFs.setEntries(DOCS, [{ name: '2026-05-12', isDir: true }]);
     mockFs.setExists(join(DOCS, '2026-05-12', 'requirements'), true);
     mockFs.setEntries(join(DOCS, '2026-05-12', 'requirements'), ['REQ-005.md']);
@@ -585,7 +586,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('5. 日期目录和子目录都不存在时返回空数组', () => {
+  it('5. 无活跃 run 且无历史 run 时返回空数组', () => {
     mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]);
 
     vi.useFakeTimers();
