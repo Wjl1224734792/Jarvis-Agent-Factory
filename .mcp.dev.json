@@ -8,7 +8,10 @@
     "jarvis-engine": {
       "type": "stdio",
       "command": "node",
-      "args": ["bin/jarvis.js", "engine", "start", "--stdio"]
+      "args": ["bin/jarvis.js", "engine", "start", "--stdio"],
+      "env": {
+        "JARVIS_DEV": "1"
+      }
     }
   }
 }
