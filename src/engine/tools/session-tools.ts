@@ -11,6 +11,7 @@ import { DEFAULT_PIPELINE } from '../gates.js';
 import { emitEvent } from '../pubsub.js';
 import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
 import { getSessionContextSummary, cleanExpiredMemories } from '../session-archive.js';
+import { getPriorityContextForInjection } from './memory-tools.js';
 
 const SESSION_TIMEOUT = 7_200_000;
 
@@ -38,7 +39,10 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
         }
       }
       cleanExpiredMemories(db);
-      const contextSummary = getSessionContextSummary(db, root);
+      const archiveSummary = getSessionContextSummary(db, root);
+      const priorityNotes = getPriorityContextForInjection(root);
+      const contextSummary = [archiveSummary, priorityNotes ? `## 永久优先上下文\n${priorityNotes}` : null]
+        .filter(Boolean).join('\n\n') || null;
       const existing = getSession(db, sid);
       if (existing) {
         touchSession(db, sid);

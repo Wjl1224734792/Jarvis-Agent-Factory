@@ -22,6 +22,8 @@ import { registerAgentTools } from './tools/agent-tools.js';
 import { registerFlowTools } from './tools/flow-tools.js';
 import { registerWikiTools } from './tools/wiki-tools.js';
 import { registerMemoryTools } from './tools/memory-tools.js';
+import { registerAstTools } from './tools/ast-tools.js';
+import { registerLspTools } from './tools/lsp-tools.js';
 
 
 // ── TASK-003: 全局错误处理 + 请求日志 ─────────────────────
@@ -383,6 +385,8 @@ export function registerMcpTools(server: McpServer, db: DatabaseSync, root: stri
   registerFlowTools(server, db, root, ctx);
   registerWikiTools(server, db, root, ctx);
   registerMemoryTools(server, db, root, ctx);
+  registerAstTools(server, db, root, ctx);
+  registerLspTools(server, db, root, ctx);
 }
 
 export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_PORT, projectRoot = '.' } = {}) {

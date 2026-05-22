@@ -1,5 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { ToolContext } from './types.js';
 import {
@@ -7,6 +9,21 @@ import {
   getActiveRun, getRecentSessionContexts, getSessionContext,
 } from '../db.js';
 import { archiveSession, getSessionContextSummary, cleanExpiredMemories } from '../session-archive.js';
+
+const PRIORITY_FILE = '.jarvis/priority-context.md';
+
+function getPriorityFile(root: string) { return join(root, PRIORITY_FILE); }
+function readPriorityContext(root: string): string | null {
+  const fp = getPriorityFile(root);
+  return existsSync(fp) ? readFileSync(fp, 'utf-8').trim() || null : null;
+}
+function writePriorityContext(root: string, content: string) {
+  writeFileSync(getPriorityFile(root), content, 'utf-8');
+}
+
+export function getPriorityContextForInjection(root: string): string | null {
+  return readPriorityContext(root);
+}
 
 export function registerMemoryTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('working_memory_add',
@@ -89,5 +106,29 @@ export function registerMemoryTools(server: McpServer, db: DatabaseSync, root: s
         pending: result.pending,
         wiki_slug: result.wikiSlug || null,
       });
+    });
+
+  server.tool('jarvis_priority_context',
+    '【优先上下文】读取或设置项目级永久优先上下文。Set 的内容会在每次 session_join 时自动注入到 context_summary。类似 OMC notepad 的 Priority Context。',
+    {
+      action: z.enum(['get', 'set', 'clear']).describe('get=读取, set=写入(覆盖), clear=清除'),
+      content: z.string().optional().describe('要设置的上下文内容（仅 set 时需要）'),
+    },
+    async ({ action, content }) => {
+      if (action === 'get') {
+        const text = readPriorityContext(root);
+        return ctx.resp({ ok: true, has_content: !!text, content: text || null });
+      }
+      if (action === 'set') {
+        if (!content || !content.trim()) return ctx.resp({ ok: false, error: 'content required for set action' });
+        writePriorityContext(root, content.trim());
+        return ctx.resp({ ok: true, action: 'set', message: `Priority context saved (${content.trim().length} chars). Will be injected on next session_join.` });
+      }
+      if (action === 'clear') {
+        const fp = getPriorityFile(root);
+        if (existsSync(fp)) unlinkSync(fp);
+        return ctx.resp({ ok: true, action: 'clear', message: 'Priority context cleared.' });
+      }
+      return ctx.resp({ ok: false, error: `Unknown action: ${action}` });
     });
 }
