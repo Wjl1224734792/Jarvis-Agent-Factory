@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.6.7-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.6.9-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.6.7** — 会话详情页流水线右侧边栏布局 + 产物文档会话隔离追踪 + 修复主内容区横向滚动条
+> **v4.6.9** — /deepinit 自适应分层文档生成 + /verify 文档驱动验证 + 文件监听实时同步 + 71 目录 AGENTS.md 树
 
 ## 快速开始
 
@@ -135,7 +135,7 @@ jarvis init -y                   # 一键部署配置 + MCP + 钩子
 | 会话详情 | `/session/:id` | Gate 时间线 · 产物文档预览 · Markdown 阅读器 |
 | 知识库 | `/wiki` | 项目知识库浏览 · 搜索/分类筛选 · Markdown 渲染 |
 | 使用指南 | `/guide` | 快速开始 · 核心约束 · 指令参考 · 资源链接 |
-| 指令参考 | `/commands` | 40条指令流程详解 · 71个Agent目录 · 流水线架构 |
+| 指令参考 | `/commands` | 34条指令流程详解 · 72个Agent目录 · 流水线架构 |
 | 智能体配置 | `/agents` | Agent 搜索/筛选 · 模型/思考等级配置 |
 | 归档记录 | `/archive` | 已归档运行记录 · 搜索过滤 · 恢复/删除 |
 

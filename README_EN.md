@@ -1,7 +1,7 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.6.7-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.6.9-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>**Pure-text model (e.g. DeepSeek) users** → Pair with [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) for visual understanding
@@ -9,7 +9,7 @@
 
 An AI coding assistant configuration set + MCP orchestration engine. A complete **idea-to-delivery software development pipeline**. **Claude Code only**.
 
-> **v4.6.7** — Session detail pipeline right-sidebar layout + artifact session-scoped tracking + fix horizontal scrollbar in main content
+> **v4.6.9** — /deepinit adaptive hierarchical docs + /verify document-driven verification + file watcher real-time sync + 71-dir AGENTS.md tree
 
 ## Quick Start
 
@@ -209,9 +209,9 @@ Idea Refine → Requirements → Task Design → Architecture Review → Plannin
 
 | | Claude Code |
 |---|:--:|
-| Agents | 88 |
-| Commands | 33 |
-| Skills | 29 |
+| Agents | 72 |
+| Commands | 34 |
+| Skills | 33 |
 | Hooks | settings.json |
 | MCP | `.mcp.json` |
 
