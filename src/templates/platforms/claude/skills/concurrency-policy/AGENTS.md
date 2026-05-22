@@ -1,19 +1,15 @@
 <!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
 <!-- Parent: ../AGENTS.md -->
 
-# memory — Memory templates
+# concurrency-policy — Project subdirectory
 
 ## Purpose
-This directory contains the memory module of the project.
+This directory contains the concurrency-policy module of the project.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| AGENTS.md | Markdown documentation |
-| CLAUDE.md | Markdown documentation |
-| context.md | Markdown documentation |
-| decisions.md | Markdown documentation |
-| notes.md | Markdown documentation |
+| SKILL.md | Markdown documentation |
 
 
 ## Subdirectories

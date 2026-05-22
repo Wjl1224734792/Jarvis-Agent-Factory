@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
+<!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # src — Full-stack source code (client + server)

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
+<!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # skills — Skill definitions
@@ -24,6 +24,7 @@ This directory contains the skills module of the project.
 | code-review-and-quality/ | Project subdirectory | [AGENTS.md](code-review-and-quality/AGENTS.md) |
 | code-simplification/ | Project subdirectory | [AGENTS.md](code-simplification/AGENTS.md) |
 | code-standards/ | Project subdirectory | [AGENTS.md](code-standards/AGENTS.md) |
+| concurrency-policy/ | Project subdirectory | [AGENTS.md](concurrency-policy/AGENTS.md) |
 | context-engineering/ | Project subdirectory | [AGENTS.md](context-engineering/AGENTS.md) |
 | debugging-and-error-recovery/ | Project subdirectory | [AGENTS.md](debugging-and-error-recovery/AGENTS.md) |
 | debugging-deep/ | Project subdirectory | [AGENTS.md](debugging-deep/AGENTS.md) |
@@ -55,7 +56,7 @@ This directory contains the skills module of the project.
 
 
 ## Dependencies
-- **Internal:** behavioral-guidelines/, browser-testing/, browser-use/, chinese-documentation/, code-quality-gate/, code-review-and-quality/, code-simplification/, code-standards/, context-engineering/, debugging-and-error-recovery/, debugging-deep/, documentation-and-adrs/, find-docs/, finishing-a-development-branch/, frontend-design/, git-workflow-and-versioning/, idea-refine/, incremental-implementation/, jarvis-reference/, mcp-builder/, perf-testing/, planning-and-task-breakdown/, refactoring/, security-and-hardening/, security-testing/, shipping-and-launch/, source-driven-development/, spec-driven-development/, test-data-factory/, test-driven-development/, using-agent-skills/, verification-before-completion/, writing-skills/
+- **Internal:** behavioral-guidelines/, browser-testing/, browser-use/, chinese-documentation/, code-quality-gate/, code-review-and-quality/, code-simplification/, code-standards/, concurrency-policy/, context-engineering/, debugging-and-error-recovery/, debugging-deep/, documentation-and-adrs/, find-docs/, finishing-a-development-branch/, frontend-design/, git-workflow-and-versioning/, idea-refine/, incremental-implementation/, jarvis-reference/, mcp-builder/, perf-testing/, planning-and-task-breakdown/, refactoring/, security-and-hardening/, security-testing/, shipping-and-launch/, source-driven-development/, spec-driven-development/, test-data-factory/, test-driven-development/, using-agent-skills/, verification-before-completion/, writing-skills/
 - **External:** See package.json for full dependency list
 
 <!-- MANUAL:START -->
