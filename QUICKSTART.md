@@ -1,6 +1,6 @@
 # Jarvis Agent Factory — 快速开始
 
-[![Version](https://img.shields.io/badge/version-v4.6.7-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.6.8-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，**仅支持 Claude Code**。
@@ -140,9 +140,9 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | `VISION_MODEL_VIDEO` | 视频分析专用模型（可选） | `qwen3.5-plus` |
 | `VISION_MODEL_OCR` | OCR 文字识别专用模型 | `qwen3-vl-ocr` |
 
-### 开发环境 MCP
+### 开发环境 MCP（仅 Jarvis 自身开发者）
 
-开发 Jarvis 本身时，将引擎 MCP 指向本地工作区（无需全局安装）：
+若你参与 Jarvis 源码开发，将引擎 MCP 指向本地工作区（无需全局安装），其他用户无需关注此配置：
 
 ```json
 {
@@ -150,11 +150,14 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
     "jarvis-engine": {
       "type": "stdio",
       "command": "node",
-      "args": ["bin/jarvis.js", "engine", "start", "--stdio"]
+      "args": ["bin/jarvis.js", "engine", "start", "--stdio"],
+      "env": { "JARVIS_DEV": "1" }
     }
   }
 }
 ```
+
+> 普通用户使用 `jarvis init` 自动生成的配置即可，无需手动设置。
 
 ---
 

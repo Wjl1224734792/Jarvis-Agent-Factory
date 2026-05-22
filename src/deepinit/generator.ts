@@ -110,7 +110,7 @@ export function generateAll(flatEntries: DirEntry[], rootDir: string): { dir: st
   for (const entry of flatEntries) {
     const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
     const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-    const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+    const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
     const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
     results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
   }
@@ -157,7 +157,7 @@ export function generateAllParallel(
       for (const entry of batch) {
         const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
         const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-        const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+        const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
         const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
         results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
       }
@@ -169,7 +169,7 @@ export function generateAllParallel(
         const chunkResults = chunk.map(entry => {
           const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
           const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-          const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+          const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
           const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
           return { dir: entry.absPath, agents: agentsContent, claude: claudeContent };
         });
@@ -238,7 +238,7 @@ export function generateIncremental(
     if (!changedRelPaths.has(entry.relPath)) continue;
     const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
     const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-    const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+    const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
     const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
     results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
   }
@@ -272,7 +272,7 @@ export function generateIncrementalParallel(
       for (const entry of batch) {
         const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
         const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-        const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+        const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
         const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
         results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
       }
@@ -283,7 +283,7 @@ export function generateIncrementalParallel(
         const chunkResults = chunk.map(entry => {
           const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
           const agentsContent = generateAgentsMd(entry, parentRel, ctx);
-          const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+          const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
           const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
           return { dir: entry.absPath, agents: agentsContent, claude: claudeContent };
         });
@@ -369,7 +369,7 @@ export function generateAllSmart(
     for (const entry of batch) {
       const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
       const agentsContent = generateAgentsMdSmart(entry, parentRel, ctx, smartCtx);
-      const shouldGenClaude = entry.depth === 0 || entry.subdirs.length > 0;
+      const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
       const claudeContent = shouldGenClaude ? generateClaudeMd(entry, parentRel !== null, ctx) : null;
       results.push({ dir: entry.absPath, agents: agentsContent, claude: claudeContent });
     }
