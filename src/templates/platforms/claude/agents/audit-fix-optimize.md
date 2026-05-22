@@ -1,7 +1,7 @@
 ---
 name: audit-fix-optimize
 description: "审查修复优化链路：串联审查→修复→复审的完整工作流。在 Gate D 由编排者 spawn，按流程步骤（初审→规划→执行→验证→复审）执行审查修复闭环。不可递归 spawn 子 Agent，所有修复由自身完成。"
-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput, mcp__jarvis-engine__jarvis_priority_context, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
 effort: max
 model: deepseek-v4-pro
 version: "4.4.2"

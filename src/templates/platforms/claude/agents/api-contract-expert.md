@@ -1,7 +1,7 @@
 ---
 name: api-contract-expert
 description: "API 文档专项工作者：负责 API 契约一致性验证（Gate C2 强制）和 OpenAPI/Swagger 文档生成（按需触发）。不编写业务代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"

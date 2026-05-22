@@ -51,7 +51,7 @@ updated: "2026-05-14"
 
 AGENTS.md、CLAUDE.md、项目级 agent .md 文件。定义项目级约束——构建命令、lint 规则、代码风格、测试框架、目录约定。
 
-**附加源：** `jarvis_priority_context` — 用户手动设置的永久上下文（如"API 端口 3456""用 SQLite 不用 PostgreSQL"）。每次 `session_join` 自动注入到 `context_summary`。
+**附加源：** `mcp__jarvis-engine__jarvis_priority_context` — 用户手动设置的永久上下文（如"API 端口 3456""用 SQLite 不用 PostgreSQL"）。每次 `session_join` 自动注入到 `context_summary`。
 
 **原则：** 这是上下文地基。缺失或错误 → 所有后续决策都建在沙子上。
 

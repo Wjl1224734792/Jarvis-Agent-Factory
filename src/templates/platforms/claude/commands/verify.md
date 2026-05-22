@@ -4,7 +4,7 @@ name: verify
 argument-hint: "[what to verify]"
 model: deepseek-v4-pro
 effort: max
-allowed-tools: read,lint,build,spawn_test
+tools: Read, Bash, Write, Edit, Glob, Grep, WebFetch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition
 version: "1.0.0"
 updated: "2026-05-22"
 ---

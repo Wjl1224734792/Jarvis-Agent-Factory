@@ -277,11 +277,15 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
   //   Bash(npm:*test*)    → gate-check --operation spawn_test
   //   Bash(git:push*)     → gate-check --operation deploy
   //   Bash(npm:publish*)  → gate-check --operation deploy
+  //   Bash(git:commit*)   → gate-check --operation write_code
+  //   Bash(npx *)          → gate-check --operation write_code
+  //   Bash(node *)         → gate-check --operation write_code
   //
   // 设计约束：
   // - PreToolUse 确保违规操作在发生前被引擎拒绝（优于 PostToolUse 的事后检测）
   // - Agent matcher 无法区分 spawn_impl/review/test，统一按 spawn_impl 保守检查
   // - Bash 类通过字符串子匹配（npm build/lint 等）降低误拦截
+  // - npx/node 类统一按 write_code 检查（可运行任意脚本，按最保守策略）
   // ============================================================
   const hookJson = {
     PreToolUse: [
@@ -293,6 +297,9 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
       { matcher: 'Bash(npm test)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation spawn_test' }] },
       { matcher: 'Bash(git push)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation deploy' }] },
       { matcher: 'Bash(npm publish)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation deploy' }] },
+      { matcher: 'Bash(git commit)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
+      { matcher: 'Bash(npx *)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
+      { matcher: 'Bash(node *)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
     ],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };

@@ -1,7 +1,7 @@
 ---
 name: backend-review-expert
 description: 后端代码审查专家：审查后端 API 设计、业务逻辑、数据层、错误处理与性能，输出后端审查报告。
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

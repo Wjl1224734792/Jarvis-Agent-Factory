@@ -33,10 +33,10 @@ updated: "2026-05-14"
 
 | 场景 | 推荐工具 | 代替 |
 |------|---------|------|
-| 搜索代码模式 | `jarvis_ast_search` | Grep（文本搜索会匹配注释/字符串） |
-| 理解现有类型 | `jarvis_lsp_hover` / `jarvis_lsp_goto_definition` | 读文件+人眼推断 |
-| 追踪引用链 | `jarvis_lsp_find_references` | Grep 搜符号名（容易漏/误匹配） |
-| 查看文件结构 | `jarvis_lsp_document_symbols` | 读全文件找函数/类 |
+| 搜索代码模式 | `mcp__jarvis-engine__jarvis_ast_search` | Grep（文本搜索会匹配注释/字符串） |
+| 理解现有类型 | `mcp__jarvis-engine__jarvis_lsp_hover` / `mcp__jarvis-engine__jarvis_lsp_goto_definition` | 读文件+人眼推断 |
+| 追踪引用链 | `mcp__jarvis-engine__jarvis_lsp_find_references` | Grep 搜符号名（容易漏/误匹配） |
+| 查看文件结构 | `mcp__jarvis-engine__jarvis_lsp_document_symbols` | 读全文件找函数/类 |
 - 配置文件的新增条目（但需要看现有条目格式）
 
 ---

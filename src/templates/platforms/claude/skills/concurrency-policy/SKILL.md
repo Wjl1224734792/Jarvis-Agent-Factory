@@ -1,3 +1,10 @@
+---
+name: concurrency-policy
+description: "并发调用与 Team/Subagent 分配规范——无依赖并行、同层并行跨层串行、Team 按规模选择、Gate 级并发规则"
+version: "4.7.2"
+updated: "2026-05-22"
+---
+
 # Concurrency Policy — 并发调用与 Team/Subagent 分配规范
 
 ## 核心原则

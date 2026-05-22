@@ -1,7 +1,7 @@
 ---
 name: change-review-expert
 description: "变更后复审代理：在 Gate D 修复完成后由编排者 spawn；逐项复核初审 findings 的关闭情况、实际 diff、验证证据和残余风险。输出关闭矩阵（open/closed/insufficient）和复审结论。不直接修复代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

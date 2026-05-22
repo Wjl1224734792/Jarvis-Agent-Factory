@@ -136,7 +136,7 @@ mcp__jarvis-engine__session_join({
 **代码智能工具（Agent 可用）：**
 - `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，比 Grep 精确
 - `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true）
-- `mcp__jarvis-engine__jarvis_lsp_hover` / `jarvis_lsp_goto_definition` / `jarvis_lsp_find_references` — 理解现有代码
+- `mcp__jarvis-engine__jarvis_lsp_hover` / `mcp__jarvis-engine__jarvis_lsp_goto_definition` / `mcp__jarvis-engine__jarvis_lsp_find_references` — 理解现有代码
 - `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 秒级诊断，无需编译
 
 按复杂度选择调度策略：

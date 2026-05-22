@@ -283,11 +283,11 @@ updated: "2026-05-20"
 
 | 审查维度 | 推荐工具 | 用途 |
 |---------|---------|------|
-| 变更影响范围 | `jarvis_lsp_find_references` | 追踪符号引用链，避免遗漏 |
-| 代码质量问题 | `jarvis_lsp_diagnostics` | 获取 typescript/pylint 等 LSP 诊断 |
-| 模式匹配 | `jarvis_ast_search` | 搜索反模式（如 `console.log($MSG)`） |
-| 类型正确性 | `jarvis_lsp_hover` | 验证类型签名和推导 |
-| 文件结构 | `jarvis_lsp_document_symbols` | 快速了解变更文件的符号组织 |
+| 变更影响范围 | `mcp__jarvis-engine__jarvis_lsp_find_references` | 追踪符号引用链，避免遗漏 |
+| 代码质量问题 | `mcp__jarvis-engine__jarvis_lsp_diagnostics` | 获取 typescript/pylint 等 LSP 诊断 |
+| 模式匹配 | `mcp__jarvis-engine__jarvis_ast_search` | 搜索反模式（如 `console.log($MSG)`） |
+| 类型正确性 | `mcp__jarvis-engine__jarvis_lsp_hover` | 验证类型签名和推导 |
+| 文件结构 | `mcp__jarvis-engine__jarvis_lsp_document_symbols` | 快速了解变更文件的符号组织 |
 
 ## 红线——停下来，按流程走
 

@@ -1,7 +1,7 @@
 ---
 name: diff-review-expert
 description: "代码差异只读审查代理：审查 git diff、PR 或指定文件变更中的 bug、回归、安全、边界条件和缺失测试，不修改任何文件。"
-tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

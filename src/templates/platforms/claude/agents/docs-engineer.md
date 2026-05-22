@@ -1,7 +1,7 @@
 ---
 name: docs-engineer
 description: "文档同步工程师：在 Gate E 阶段检查 AGENTS.md/README.md/CLAUDE.md 与最新代码变更的一致性，就地修复发现的文档不一致；产出可选的同步报告到 .jarvis/YYYY-MM-DD/review/docs-sync-report.md。不负责流水线产生的驱动文档（.jarvis/YYYY-MM-DD/requirements/、.jarvis/YYYY-MM-DD/tasks/、.jarvis/YYYY-MM-DD/plans/ 等）"
-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_document_symbols, mcp__jarvis-engine__jarvis_lsp_workspace_symbols
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

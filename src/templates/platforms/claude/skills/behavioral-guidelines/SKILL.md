@@ -200,23 +200,13 @@ updated: "2026-05-14"
 
 ## 准则 6：多模态回退
 
-**当模型缺乏多模态能力时，使用 visual-primitives-mcp 提供的视觉工具。**
+**当模型缺乏多模态能力时，使用截图 + 文字描述作为回退方案。**
 
-当任务涉及图像、截图或视频分析时，若当前模型不支持多模态能力，应使用 `visual-primitives-mcp` 提供的以下工具进行视觉分析：
+当任务涉及图像、截图或视频分析时，若当前模型不支持多模态能力：
+1. 使用 Playwright MCP 工具 (`browser_take_screenshot`) 截取页面截图
+2. 结合 `browser_snapshot` 获取页面可访问性快照（含元素结构和文本）
+3. 通过页面 DOM 状态和文本内容推断视觉问题
 
-- **`visual_describe`** — 场景描述：对图像进行详细描述，适用于审查截图、验证 UI 布局、检查设计稿
-- **`visual_locate`** — 目标定位：在图像中定位特定目标并返回坐标
-- **`visual_ocr`** — 文字提取：从图像中提取文字内容
-- **`visual_video_analyze`** — 视频分析：对视频帧进行分析
-
-**适用场景：** 审查截图、验证 UI 布局、检查设计稿、分析浏览器截图等需要视觉理解的场景。
-
-**使用方式：**
-```
-mcp__visual-primitives__visual_describe({ image_path: "..." })
-mcp__visual-primitives__visual_locate({ image_path: "...", target: "..." })
-mcp__visual-primitives__visual_ocr({ image_path: "..." })
-mcp__visual-primitives__visual_video_analyze({ video_path: "...", query: "..." })
-```
+**适用场景：** 审查 UI 布局、检查设计稿、分析浏览器截图等需要视觉理解的场景。
 
 此约定适用于所有智能体，无需在各 agent 中重复声明。
