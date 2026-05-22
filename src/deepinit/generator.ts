@@ -662,6 +662,6 @@ const FALLBACK_CLAUDE_TMPL = `# {{dirname}}
 > AI Entry → [AGENTS.md](./AGENTS.md)
 
 {{#parent_agents}}
-Parent: [{{.}}](../AGENTS.md)
+Parent: [{{.parent_agents}}](../AGENTS.md)
 {{/parent_agents}}
 `;
