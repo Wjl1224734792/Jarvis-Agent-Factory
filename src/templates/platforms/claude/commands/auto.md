@@ -21,6 +21,7 @@ Skill("using-agent-skills")
 Skill("context-engineering")
 Skill("incremental-implementation")
 Skill("verification-before-completion")
+Skill("concurrency-policy")
 ```
 
 > **核心理念**：参考 OMC 插件 `autopilot`（全自动执行）和 `ralplan`（共识路由）的自动路由模式。**你输入什么，我自动检测 → 自动选流水线 → 自动跳过无关 Gate → 自动分配 Agent**。不需要你告诉我"这是 bug 修复"或"这是重构"。
@@ -117,13 +118,14 @@ mcp__jarvis-engine__session_join({
 ### Gate C-impl：并行实现
 
 **核心原则**：编排者不写代码，所有代码变更通过 spawn Agent 完成。
+**并发规范**：详见 `Skill("concurrency-policy")` — 无依赖=并行，同 batch 同发，Team 按规模触发。
 
 按复杂度选择调度策略：
-| 复杂度 | 调度方式 | 说明 |
-|--------|---------|------|
-| 小(<3文件) | Subagent 1-2 个 | `Agent` 直接 spawn，串行即可 |
-| 中(3-10文件) | Subagent 并行 2-3 个 | 同一消息中并发 spawn |
-| 大(>10文件) | **Team**（`TeamCreate` + `Agent(team_name)`） | 按模块拆分，各成员独占文件 |
+| 复杂度 | 调度方式 | 首条消息 |
+|--------|---------|---------|
+| 小(<3文件) | Subagent ×1-2 | 1-2 个 Agent 同发 |
+| 中(3-10文件) | Subagent 并行 ×2-3 | 同发 2-3 个 |
+| 大(>10文件或跨≥3目录) | **Team 模式** | TeamCreate → 按模块分配 |
 
 ### Gate C1：代码质量门
 

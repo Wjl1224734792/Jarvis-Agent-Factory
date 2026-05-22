@@ -39,6 +39,7 @@ updated: "2026-05-14"
    - `Skill("context-engineering")`
    - `Skill("incremental-implementation")`
    - `Skill("verification-before-completion")`
+   - `Skill("concurrency-policy")`
 
 3. 判断是否适合流水线：
    - ❌ 不适合：纯信息提问、单 agent 可完成的简单修改、纯文档翻译
@@ -424,47 +425,70 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 - 不同 TDD 任务的同阶段步骤可按路径边界并行
 
 ---
-## Team 编排增强（大任务优化）
+## 并发调用规范（引用 concurrency-policy 技能）
 
-当任务涉及 >10 个文件或跨模块变更时，优先使用 Team 模式：
+> 详细规则见 `Skill("concurrency-policy")`。本节为 `/jarvis` 全流程专用的执行摘要。
 
-### Gate C-impl: Team 并行实现
-```
-1. 调用 TeamCreate({ team_name: "{task}-impl" })
-2. 按 parallel_batches 分组，每组 spawn Agent(team_name="...", name="...", subagent_type="...")
-3. 每个 Team 成员分配独占文件/模块，无重叠
-4. 全部完成后 → Agent 子任务自动 resolved
-```
+### 模式选择速查
 
-### Gate C2: Team 并行测试
-```
-1. 调用 TeamCreate({ team_name: "{task}-test" })
-2. 按测试类型并行：单元测试 Agent + 集成测试 Agent + E2E 测试 Agent
-3. 每个 Agent 负责独立测试文件，无重叠
-4. 全部通过后 → qa-review-expert 综合签核
-```
+| 条件 | 模式 | 首条消息发出数 |
+|------|------|-------------|
+| ≤5 文件，单模块 | Subagent ×1 | 1 个 Agent |
+| 5-10 文件，单模块 | Subagent ×2-3 并行 | 同发 2-3 个 |
+| >10 文件，跨 ≥3 目录 | **Team 模式** | TeamCreate → 按模块分配 |
+| 只读探索多目录 | Subagent ×N 并行 | 同发 N 个 explore |
+| 多领域审查 | Subagent ×4 并行 | 同发 4 个 review |
 
-### Gate D: Team 并行审查
+### Gate C-impl: 按计划批次并行实现
+
 ```
-1. 调用 TeamCreate({ team_name: "{task}-review" })
-2. 按审查领域并行：安全 + 性能 + 平台审查 + QA
-3. 每个审查者独立评审，产出分级报告
-4. 全部通过后 → 调用 TeamDelete() 清理 Team
+1. 读 planner 产出的 parallel_batches
+2. 同 batch 内 Agent 一条消息同发（无文件冲突）
+3. batch 间串行（后 batch 可能依赖前 batch 产出）
+4. >10 文件或跨 ≥3 目录 → TeamCreate({ team_name: "{task}-impl" })
+5. 每个成员独占文件/模块，无重叠
 ```
 
-### Team 关闭协议
+**Batch 同发示例**：
 ```
-每个 Team Gate 完成后：
-1. 确认所有 Team 成员已完成（TaskList 全部 resolved）
-2. 调用 SendMessage({ type: "shutdown_request" }) 优雅关闭成员
-3. 调用 TeamDelete() 清理 team/task 资源
-4. 标记 Gate checkpoint 后再 advance_gate
+# 一条消息同时发出 batch 1 全部 Agent（不等不串行）
+Agent(frontend-ui-expert, "UI 组件实现", task_id=T1)
+Agent(frontend-state-expert, "状态管理", task_id=T2)
+Agent(backend-api-expert, "API 路由", task_id=T3)
+Agent(backend-data-expert, "数据模型", task_id=T4)
+# 全部完成后 → 进入 batch 2
 ```
 
-### 降级策略
-- 当 Claude Code 不支持 TeamCreate（缺少环境变量）时，回退到并行 subagent 模式
-- 小任务（<5 文件）直接用 subagent 模式，无需 Team
-- 中任务（5-10 文件）可选 Team 或并行 subagent
+### Gate C2: 并行测试
+
+```
+# 一条消息同发全部测试 Agent
+Agent(frontend-test-expert, "前端单元+组件测试")
+Agent(backend-test-expert, "后端单元+集成测试")
+# 等前两个完成后 → Agent(e2e-test-expert, "端到端测试")
+# 全部通过 → Agent(qa-review-expert, "综合签核")
+```
+
+### Gate D: 并行审查
+
+```
+# 一条消息同发 4 个领域审查（互不依赖）
+Agent(frontend-review-expert, "前端审查") \
+Agent(backend-review-expert, "后端审查")  } 同发
+Agent(security-review-expert, "安全审计") /
+Agent(perf-review-expert, "性能审计")   /
+# 全部完成后 → Agent(qa-review-expert, "综合签核") — 串行等待前 4 个
+```
+
+### Team 生命周期
+
+```
+创建: TeamCreate({ team_name: "{task}-{gate}" })
+分配: spawn Agent 带 team_name + name + subagent_type
+完成: TaskList 全部 resolved
+关闭: SendMessage(shutdown_request) → TeamDelete()
+降级: TeamCreate 不可用 → 回退并行 Subagent
+```
 
 
 ---
