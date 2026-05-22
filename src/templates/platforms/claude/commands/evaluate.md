@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: 技术评估指令——E0定义标准→E1生成原型→E2收集指标→E3生成报告，4Gate评估流程
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: [评估对象，如"是否采用Bun替代Node.js"或"React vs Vue技术选型"]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch, WebSearch

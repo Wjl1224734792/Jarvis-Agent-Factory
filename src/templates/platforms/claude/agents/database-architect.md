@@ -2,7 +2,7 @@
 name: database-architect
 description: "数据库专项专家：在 Gate B1 架构评审阶段由编排者 spawn（当有 Schema 变更时）；负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。不编写业务逻辑代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"

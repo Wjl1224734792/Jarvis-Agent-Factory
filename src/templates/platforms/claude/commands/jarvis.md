@@ -2,7 +2,7 @@
 description: 启动贾维斯全流程编排——需求→任务→计划→实现→质量→测试→评审→发布
 name: jarvis
 argument-hint: "[任务描述]"
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"

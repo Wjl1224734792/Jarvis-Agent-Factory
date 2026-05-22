@@ -3,7 +3,7 @@ name: backend-architect
 description: "后端架构师：在规划阶段或 Gate B1 架构评审时由编排者 spawn；负责后端微服务拆分、API 网关设计、数据库架构、分布式系统可靠性、数据一致性策略和可观测性架构。不编写业务逻辑代码，只输出架构方案与原型验证。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, WebFetch, WebSearch, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: heavy
+model: deepseek-v4-pro
 version: "4.3.8"
 updated: "2026-05-14"
 ---

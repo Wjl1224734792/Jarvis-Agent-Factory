@@ -7,7 +7,6 @@ import { createInterface } from 'node:readline';
 import { getHashFilePath } from './hash-paths.js';
 import { readMcpConfig, writeMcpConfig } from './shared/mcp-config.js';
 import { FM_SEARCH_LIMIT, readFrontmatter, splitMarkdownSections, computeSectionHashes, isSectionHashRecord } from './shared/markdown-utils.js';
-import { resolveModel, defaultModelConfigContent } from './shared/model-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -163,7 +162,7 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
     const srcDir = join(srcRoot, bucket);
     const destDir = join(destRoot, bucket);
     if (!existsSync(srcDir)) continue;
-    const stats = mergeDir(srcDir, destDir, hashFilePath, bucket);
+    const stats = mergeDir(srcDir, destDir, hashFilePath);
     totalFiles += stats.files;
     const tag = existsSync(destDir) && stats.files > 0 ? '~' : '+';
     console.log(`  ${tag} ${(isGlobal ? '~/' + info.dir : info.dir) + '/' + bucket.padEnd(8)} → ${stats.files} files${stats.skipped ? ` (${stats.skipped} unchanged skipped)` : ''}`);
@@ -177,7 +176,6 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
   // Initialize project memory system (.jarvis/memory/)
   if (platform === 'claude' && !isGlobal) {
-    installModelConfig(target);
     installMemory(target);
     installWiki(target);
     // Generate hierarchical AGENTS.md + CLAUDE.md via deepinit
@@ -932,7 +930,7 @@ function mergeMarkdownSections(
  * @param dest 目标目录（安装位置）
  * @param hashFilePath hash 文件绝对路径
  */
-function mergeDir(src, dest, hashFilePath, bucket = '') {
+function mergeDir(src, dest, hashFilePath) {
   let files = 0, dirs = 0, skipped = 0;
   if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
 
@@ -943,19 +941,13 @@ function mergeDir(src, dest, hashFilePath, bucket = '') {
     if (entry.startsWith('.') || entry === 'node_modules') continue;
     const sp = join(src, entry), dp = join(dest, entry);
     if (statSync(sp).isDirectory()) {
-      const d = mergeDir(sp, dp, hashFilePath, bucket);
+      const d = mergeDir(sp, dp, hashFilePath);
       files += d.files; dirs += d.dirs + 1; skipped += d.skipped;
     } else {
       const newHash = fileHash(sp);
 
       if (!existsSync(dp)) {
-        // 新文件 — 对 .md 文件解析模型标签（agents + commands 通用）
-        if (entry.endsWith('.md')) {
-          const projectRoot = resolve(dp, '..', '..');
-          copyWithModelResolution(sp, dp, projectRoot);
-        } else {
-          copyFileSync(sp, dp);
-        }
+        copyFileSync(sp, dp);
         hashes[dp] = newHash;
         files++;
       } else {
@@ -1010,29 +1002,6 @@ function mergeDir(src, dest, hashFilePath, bucket = '') {
 
   saveHashes(hashes, hashFilePath);
   return { files, dirs, skipped };
-}
-
-/** 复制 agent .md 文件，替换模型标签为真实模型名 */
-function copyWithModelResolution(src, dest, projectRoot) {
-  const content = readFileSync(src, 'utf-8');
-  const resolved = content.replace(
-    /^model:\s*heavy\s*$/m,
-    `model: ${resolveModel('heavy', projectRoot)}`
-  ).replace(
-    /^model:\s*light\s*$/m,
-    `model: ${resolveModel('light', projectRoot)}`
-  );
-  writeFileSync(dest, resolved);
-}
-
-/** 安装默认模型配置文件到 .jarvis/model-config.json（仅新建，不覆盖） */
-function installModelConfig(target) {
-  const configPath = resolve(target, '.jarvis', 'model-config.json');
-  if (existsSync(configPath)) return;
-  const configDir = resolve(target, '.jarvis');
-  if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
-  writeFileSync(configPath, defaultModelConfigContent());
-  console.log('  📋 model-config → .jarvis/model-config.json (用户可自定义模型映射)');
 }
 
 async function confirm(q) {

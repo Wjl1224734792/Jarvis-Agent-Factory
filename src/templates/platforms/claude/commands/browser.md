@@ -1,7 +1,7 @@
 ---
 description: 浏览器自动化——自由探索发现 Bug 或按测试用例逐条执行验证
 name: browser
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: "[--mode explore|test] [URL 或功能描述]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent

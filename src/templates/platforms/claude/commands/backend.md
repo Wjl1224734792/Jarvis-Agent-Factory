@@ -1,7 +1,7 @@
 ---
 description: 后端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路
 name: backend
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: [后端需求描述]
 version: "4.3.8"

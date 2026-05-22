@@ -134,7 +134,7 @@
 
     <!-- Footer -->
     <footer class="mt-8 pt-6 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
-      <span class="font-mono">Jarvis Engine · MCP :3456</span>
+      <span class="font-mono" id="enginePortDisplay">Jarvis Engine · MCP</span>
       <span>
         <a href="/dashboard" class="text-indigo-500 hover:text-indigo-600 transition-colors font-medium">流水线看板</a>
         <span class="mx-2 text-slate-300">·</span>
@@ -568,6 +568,9 @@ async function loadMcpStatus() {
     if (h && h.version) document.getElementById('verNum').textContent = 'v' + h.version;
   } catch {}
 })();
+
+// 动态显示引擎端口
+(function() { const el = document.getElementById('enginePortDisplay'); if (el && location.port) el.textContent = 'Jarvis Engine · MCP :' + location.port; })();
 
 // 初始加载
 load();

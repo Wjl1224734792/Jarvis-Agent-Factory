@@ -1,7 +1,7 @@
 ---
 name: improve
 description: 自主迭代改进——IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代，对标OMC self-improve+autoresearch+ralph
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: [改进目标/优化方向]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch

@@ -1,7 +1,7 @@
 ---
 description: 架构师直接对话——前端/后端/算法三大领域技术咨询、选型与方案设计
 name: consult
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: "[--expert frontend-architect|backend-architect|algorithm-expert] [问题描述]"
 version: "4.3.8"

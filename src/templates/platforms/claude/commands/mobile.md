@@ -1,7 +1,7 @@
 ---
 description: 移动端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布，支持 6 平台
 name: mobile
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: "[--platform android|ios|flutter|expo|react-native|taro] [需求描述]"
 version: "4.3.8"

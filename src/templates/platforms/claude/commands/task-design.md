@@ -2,7 +2,7 @@
 name: task-design
 description: 任务分解——DDD领域分析/BDD场景生成/TDD任务包，三模式可独立使用或链式执行
 argument-hint: "[--mode ddd|bdd|tdd] [需求文档路径]"
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-20"

@@ -22,7 +22,7 @@ export async function executeRestart(opts: CliOpts, positional: string[]): Promi
   const args = positional.slice(2);
   const port = parseInt(
     args.find(a => a.startsWith('--port='))?.split('=')[1] ||
-      process.env.PORT ||
+      process.env.JARVIS_PORT ||
       '3456',
   );
   const stdio = args.includes('--stdio');

@@ -7,7 +7,6 @@ import { resolve, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { resolveModelConfig } from '../shared/model-config.js';
 
 /** 获取当前文件所在目录（跨 dev / 编译后兼容） */
 function getDirname(): string {
@@ -339,8 +338,21 @@ export function getPlatforms() {
  * 用于 /api/agents 的 available_models 动态来源
  */
 export function getAgentModelValues(): string[] {
-  const config = resolveModelConfig();
-  return [config.heavy, config.light];
+  const templatesDir = resolveTemplatesDir();
+  const models = new Set<string>();
+  for (const [, config] of Object.entries(PLATFORM_CONFIG)) {
+    const agentsDir = join(templatesDir, config.dir, 'agents');
+    if (!existsSync(agentsDir)) continue;
+    for (const entry of readdirSync(agentsDir)) {
+      if (!entry.endsWith(config.ext)) continue;
+      try {
+        const content = readFileSync(join(agentsDir, entry), 'utf-8');
+        const { meta: fm } = parseMdFrontmatter(content);
+        if (fm.model) models.add(fm.model as string);
+      } catch { /* skip */ }
+    }
+  }
+  return [...models];
 }
 
 /** 按平台分组的可用模型，force 强制重新扫描 */
@@ -351,15 +363,10 @@ export function getPlatformModels(force?: boolean): Record<string, string[]> {
     if (!models[a.platform]) models[a.platform] = new Set();
     if (a.defaultModel) models[a.platform].add(a.defaultModel);
   }
-  // 从模型配置读取可用模型（引擎不硬编码模型名）
-  const config = resolveModelConfig();
-  const extras = {
-    claude: [config.heavy, config.light],
-  };
-  for (const [p, list] of Object.entries(extras)) {
-    if (!models[p]) models[p] = new Set();
-    for (const m of list) models[p].add(m);
-  }
+  // 补充模板中的模型名
+  const tmplModels = getAgentModelValues();
+  if (!models.claude) models.claude = new Set();
+  for (const m of tmplModels) models.claude.add(m);
   const result: Record<string, string[]> = {};
   for (const [p, s] of Object.entries(models)) result[p] = [...s];
   return result;

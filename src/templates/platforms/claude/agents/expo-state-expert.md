@@ -2,7 +2,7 @@
 name: expo-state-expert
 description: "Expo 状态与数据专项工作者：负责 Zustand/Redux 状态管理、expo-secure-store 安全存储、数据获取、Expo Router 路由。不涉及 UI 样式或布局。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-19"

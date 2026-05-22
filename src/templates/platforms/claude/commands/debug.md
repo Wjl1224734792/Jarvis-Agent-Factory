@@ -1,7 +1,7 @@
 ---
 name: debug
 description: 调试诊断指令——D0收集信息→D1复现用例→D2调试会话→D3交互诊断→D4输出报告，5Gate诊断流程
-model: heavy
+model: deepseek-v4-pro
 effort: max
 argument-hint: [异常描述或Bug报告]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill

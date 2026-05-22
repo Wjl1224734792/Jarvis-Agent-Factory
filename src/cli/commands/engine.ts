@@ -24,7 +24,7 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
   if (sub === 'start') {
     const port = parseInt(
       positional.find(a => a.startsWith('--port='))?.split('=')[1] ||
-        process.env.PORT ||
+        process.env.JARVIS_PORT ||
         '3456',
     );
     const stdio = positional.includes('--stdio');
@@ -47,8 +47,8 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
 export async function executeWeb(opts: CliOpts, positional: string[]): Promise<void> {
   const port = parseInt(
     positional.find(a => a.startsWith('--port='))?.split('=')[1] ||
-      process.env.WEB_PORT ||
-      '3456',
+      process.env.JARVIS_WEB_PORT ||
+      '3457',
   );
   const projectRoot =
     positional.find(

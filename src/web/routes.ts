@@ -3,7 +3,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun, getArtifactsByRun, getArtifactsByRunAndGate } from '../engine/db.js';
-import { GATE_CHECKS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE, getAvailableModels } from '../engine/gates.js';
+import { GATE_CHECKS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
@@ -619,7 +619,7 @@ export function setupApiRoutes(app, db, root) {
     const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
     return c.json({
       agents: list,
-      available_models: getAvailableModels(),
+      available_models: getAgentModelValues(),
       available_efforts: EFFORTS,
       platforms: [...new Set(allAgents.map(a => a.platform))],
       platform_models: platformModels,

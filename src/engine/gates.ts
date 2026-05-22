@@ -261,7 +261,6 @@ export function getGateTeamStrategy(gate: any) {
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */
 export const AGENT_LIST = getAgentList();
 
-export { getAgentModelValues as getAvailableModels } from './agent-registry.js';
 
 /**
  * 扫描 Gate 产物文档（返回相对 .jarvis/ 的完整路径）。

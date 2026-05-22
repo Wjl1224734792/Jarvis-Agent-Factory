@@ -2,7 +2,7 @@
 name: ios-dev-expert
 description: "iOS 原生开发工作者：负责 Swift/SwiftUI 页面、组件、交互实现与 iOS/macOS 平台适配。不涉及后端或跨平台。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"

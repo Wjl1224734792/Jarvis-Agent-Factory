@@ -3,7 +3,7 @@ name: e2e-test-expert
 description: "端到端测试工作者：基于 Playwright MCP 编写代码级自动化集成测试。覆盖完整用户路径、跨栈集成、CI 回归。不替代 browser-test-expert 的交互式页面验证。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__playwright__browser_close, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_select_option, mcp__playwright__browser_hover, mcp__playwright__browser_drag, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_evaluate, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_tabs, mcp__playwright__browser_file_upload, mcp__playwright__browser_handle_dialog, mcp__playwright__browser_resize, mcp__playwright__browser_navigate_back, mcp__playwright__browser_install, mcp__playwright__browser_uninstall, mcp__playwright__browser_run_code, mcp__playwright__browser_generate_locator, mcp__playwright__browser_pdf_save, mcp__playwright__browser_tabs_list, mcp__playwright__browser_tabs_select, mcp__playwright__browser_tabs_close, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: heavy
+model: deepseek-v4-pro
 version: "4.3.8"
 updated: "2026-05-14"
 ---

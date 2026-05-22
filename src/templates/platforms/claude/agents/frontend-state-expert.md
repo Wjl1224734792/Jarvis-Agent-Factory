@@ -2,7 +2,7 @@
 name: frontend-state-expert
 description: "前端状态与数据专项工作者：在编排者 分配明确子任务后执行；负责全局/局部状态管理、数据获取、缓存策略、请求客户端对接和前端路由逻辑；不涉及 UI 样式或测试。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: heavy
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-14"
