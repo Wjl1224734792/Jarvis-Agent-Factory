@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { homedir } from 'node:os';
 import { isEngineRunning } from './engine/guardian.js';
 
 /**
@@ -61,6 +62,23 @@ export function doctor({ target, platforms, pkgRoot, ..._rest }: {
     console.log('     - 如 PowerShell 中 jarvis 命令不工作，使用 `jarvis.cmd` 或 `npx jarvis`');
     console.log('     - PowerShell 执行策略检查: Get-ExecutionPolicy');
     console.log('     - 若为 Restricted，npm 全局 bin 目录中的 .cmd 包装器仍然可用\n');
+  }
+
+  // Check MCP config conflicts（全局 vs 项目级 jarvis-engine 冲突检测）
+  const globalMcp = resolve(homedir(), '.claude', '.mcp.json');
+  const projectMcp = resolve(target, '.mcp.json');
+  if (existsSync(globalMcp) && existsSync(projectMcp)) {
+    try {
+      const gCfg = JSON.parse(readFileSync(globalMcp, 'utf-8'));
+      const pCfg = JSON.parse(readFileSync(projectMcp, 'utf-8'));
+      if (gCfg.mcpServers?.['jarvis-engine'] && pCfg.mcpServers?.['jarvis-engine']) {
+        console.log('  ⚠️  MCP 冲突: 全局 (~/.claude/.mcp.json) 和项目 (.mcp.json) 都定义了 jarvis-engine');
+        console.log('     全局安装的 jarvis 可能干扰当前项目的引擎。');
+        console.log('     建议: 项目开发模式保留 .mcp.json 中的 jarvis-engine (JARVIS_DEV=1)，');
+        console.log('     全局仅用于其他项目 (jarvis init -g)。');
+        console.log('     若冲突持续，删除全局配置中的 jarvis-engine: jarvis remove --global\n');
+      }
+    } catch { /* JSON 解析失败不阻塞 */ }
   }
 
   // Check engine status via guardian API（项目级 PID 隔离）

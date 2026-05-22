@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { streamSSE } from 'hono/streaming';
@@ -816,6 +816,68 @@ export function setupApiRoutes(app, db, root) {
     const page = readWikiPage(root, slug);
     if (!page) return c.json({ error: `Page "${slug}" not found` }, 404);
     return c.json(page);
+  });
+
+  // ── 产物同步 API ─────────────────────────────────────────
+
+  /** 列出所有日期目录下的 requirements 文件 */
+  app.get('/api/artifacts/requirements', (c) => {
+    const jarvisDir = getArtifactsDir(root);
+    const results: { date: string; files: string[] }[] = [];
+    try {
+      if (existsSync(jarvisDir)) {
+        const dateDirs = readdirSync(jarvisDir, { withFileTypes: true })
+          .filter(d => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name))
+          .sort((a, b) => b.name.localeCompare(a.name)); // 最新日期在前
+        for (const dd of dateDirs) {
+          const reqDir = join(jarvisDir, dd.name, 'requirements');
+          if (existsSync(reqDir)) {
+            const files = readdirSync(reqDir)
+              .filter(f => f.endsWith('.md'))
+              .sort();
+            if (files.length > 0) {
+              results.push({ date: dd.name, files });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      return c.json({ error: String(e) }, 500);
+    }
+    return c.json({ requirements: results, count: results.reduce((s, r) => s + r.files.length, 0) });
+  });
+
+  /** 同步 requirements 从日期目录到扁平 .jarvis/requirements/ 目录 */
+  app.post('/api/artifacts/sync', (c) => {
+    const from = c.req.query('from'); // 可选：指定日期目录，如 2026-05-22
+    const jarvisDir = getArtifactsDir(root);
+    const flatDir = join(jarvisDir, 'requirements');
+    if (!existsSync(flatDir)) {
+      mkdirSync(flatDir, { recursive: true });
+    }
+    const synced: string[] = [];
+    try {
+      if (existsSync(jarvisDir)) {
+        const dateDirs = readdirSync(jarvisDir, { withFileTypes: true })
+          .filter(d => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name) && (!from || d.name === from));
+        for (const dd of dateDirs) {
+          const reqDir = join(jarvisDir, dd.name, 'requirements');
+          if (!existsSync(reqDir)) continue;
+          const mdFiles = readdirSync(reqDir).filter(f => f.endsWith('.md'));
+          for (const f of mdFiles) {
+            const src = join(reqDir, f);
+            const dest = join(flatDir, f);
+            copyFileSync(src, dest);
+            synced.push(`${dd.name}/requirements/${f}`);
+          }
+        }
+      }
+    } catch (e) {
+      return c.json({ error: String(e) }, 500);
+    }
+    // 触发 SSE 广播
+    emitEvent('session:changed', { action: 'sync-requirements', synced });
+    return c.json({ ok: true, synced, count: synced.length, flatDir: '.jarvis/requirements/' });
   });
 }
 

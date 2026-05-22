@@ -13,6 +13,7 @@ import { openDb, touchSession, markStaleSessions } from './db.js';
 import { setupApiRoutes } from '../web/routes.js';
 import { readPackageVersion } from '../shared/package-version.js';
 import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
+import { startFileWatcher, stopFileWatcher } from './file-watcher.js';
 import type { ToolContext } from './tools/types.js';
 import { registerSessionTools } from './tools/session-tools.js';
 import { registerPipelineTools } from './tools/pipeline-tools.js';
@@ -195,6 +196,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // TASK-003: 冲突文件扫描（不阻塞启动）
   scanConflictFiles(root);
 
+  // 启动文件系统监听器（实时同步 .jarvis/ 产物到 Web 面板侧边栏）
+  startFileWatcher(root, db);
+
   // 过期标记：每 5 分钟检查一次（活动追踪在每次工具调用时自动完成）
   setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 300_000);
 
@@ -212,6 +216,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     if (token && c.req.header('x-shutdown-token') !== token) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
+    stopFileWatcher();
     stopGuardian();
     removePidFile(root);
     setTimeout(() => process.exit(0), 100);
@@ -269,6 +274,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   // TASK-004: 优雅退出信号处理（SIGINT/SIGTERM）
   const gracefulShutdown = () => {
+    stopFileWatcher();
     stopGuardian();
     removePidFile(root);
     process.exit(0);
