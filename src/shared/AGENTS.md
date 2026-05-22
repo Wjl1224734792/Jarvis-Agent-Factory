@@ -4,7 +4,7 @@
 # shared — Shared utilities
 
 ## Purpose
-This directory contains the shared module of the project.
+跨模块共享工具：Markdown frontmatter 解析、MCP 配置读写、模型默认值常量、包版本读取。
 
 ## Key Files
 | File | Description |
@@ -13,6 +13,7 @@ This directory contains the shared module of the project.
 | CLAUDE.md | Markdown documentation |
 | markdown-utils.ts | TypeScript source — Exports: parseFrontmatter, FM_SEARCH_LIMIT, readFrontmatter, splitMarkdownSections, computeSectionHashes |
 | mcp-config.ts | TypeScript source — Exports: McpServerConfig, McpConfig, readMcpConfig, writeMcpConfig, getConfigVersion |
+| model-config.ts | 模型默认值常量：DEFAULT_HEAVY_MODEL, DEFAULT_LIGHT_MODEL |
 | package-version.ts | TypeScript source — Exports: readPackageVersion |
 
 

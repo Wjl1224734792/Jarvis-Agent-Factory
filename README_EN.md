@@ -1,7 +1,7 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.7.2-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.7.5-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>**Pure-text model (e.g. DeepSeek) users** → Pair with [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) for visual understanding
@@ -9,7 +9,7 @@
 
 An AI coding assistant configuration set + MCP orchestration engine. A complete **idea-to-delivery software development pipeline**. **Claude Code only**.
 
-> **v4.7.2** — Cross-session auto-memory system
+> **v4.7.5** — Simplified model config + port isolation + 46 MCP tools + AST/LSP code intelligence
 
 ## Quick Start
 
