@@ -5,11 +5,12 @@ import type { ToolContext } from './types.js';
 import {
   getSession, addSession, getSessions, touchSession, removeSession, markStaleSessions,
   migrateSession, getPipeline, initPipeline, getActiveRun, getResumeData,
-  createPipelineRun, setRunTaskName, abortRun, logSessionEvent,
+  createPipelineRun, setRunTaskName, abortRun, logSessionEvent, addWorkingMemory,
 } from '../db.js';
 import { DEFAULT_PIPELINE } from '../gates.js';
 import { emitEvent } from '../pubsub.js';
 import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
+import { getSessionContextSummary, cleanExpiredMemories } from '../session-archive.js';
 
 const SESSION_TIMEOUT = 7_200_000;
 
@@ -36,6 +37,8 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
           removeSession(db, resume_session_id);
         }
       }
+      cleanExpiredMemories(db);
+      const contextSummary = getSessionContextSummary(db, root);
       const existing = getSession(db, sid);
       if (existing) {
         touchSession(db, sid);
@@ -58,6 +61,7 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
             resume_gate: resumeData.gate || p?.current_gate,
             resume_checkpoints: resumeData.checkpoints || [],
             gate_sequence: gateList,
+            context_summary: contextSummary,
             message: `\u{1F504} 欢迎回来！检测到未完成任务「${resumeData.taskName || '(未知)'}」— 当前 Gate: ${resumeData.gate || p?.current_gate}。调用 pipeline_resume 继续，或 start_fresh=true 开始新任务。`,
           });
         }
@@ -81,6 +85,7 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
           gate: p?.current_gate || 'Gate A',
           pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
           project: p?.project || root, run_id: runId, resumed: false,
+          context_summary: contextSummary,
         });
       }
       addSession(db, sid, platform || 'unknown', 'member');
@@ -95,12 +100,14 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
       emitEvent('session:changed', { sessionId: sid, action: 'join' });
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       logSessionEvent(db, sid, 'session_join', { runId, detail: 'new session' });
+      addWorkingMemory(db, sid, `会话初始化 — pipeline: ${pt}`, { category: 'progress', ttlDays: 7 });
       return ctx.resp({
         session_id: sid, platform: platform || 'unknown',
         gate: p?.current_gate || 'Gate A',
         pipeline_type: pt, project: p?.project || root, run_id: runId,
         message: '\u{1F195} 新会话已初始化，独立流水线已就绪。',
         resumed: !!resume_session_id,
+        context_summary: contextSummary,
       });
     });
 

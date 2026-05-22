@@ -22,6 +22,7 @@ Skill("context-engineering")
 Skill("incremental-implementation")
 Skill("verification-before-completion")
 Skill("concurrency-policy")
+Skill("session-memory")
 ```
 
 > **核心理念**：参考 OMC 插件 `autopilot`（全自动执行）和 `ralplan`（共识路由）的自动路由模式。**你输入什么，我自动检测 → 自动选流水线 → 自动跳过无关 Gate → 自动分配 Agent**。不需要你告诉我"这是 bug 修复"或"这是重构"。
@@ -85,6 +86,17 @@ mcp__jarvis-engine__session_join({
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 的 `team_strategy` 和允许的操作
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
 - spawn Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })`
+
+### 2.1 加载会话上下文
+
+`session_join` 返回的 `context_summary` 包含历史会话摘要（最近 3 次归档）。若有内容，AI 必须在开始任务前将其作为参考上下文：
+
+1. 检查 `context_summary` 是否为非空字符串 — 包含上次会话的 Gate 进度、关键决策、未完成事项
+2. 若有 `pending_items`（未完成事项），提醒用户上次有遗留任务
+3. 可选：调用 `mcp__jarvis-engine__session_context()` 获取更详细的历史上下文
+4. 若 `context_summary` 为空 — 说明是首次使用或历史已清理，正常开始
+
+> 这个步骤消除了 Jarvis 的"冷启动"问题——每次新会话自动获得上次会话的上下文。
 
 ---
 

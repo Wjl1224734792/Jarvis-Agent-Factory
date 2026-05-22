@@ -214,6 +214,34 @@ function initSchema(db: DbConn) {
   // ----  OMC-inspired: sessions 元数据列 ----
   try { db.exec("ALTER TABLE sessions ADD COLUMN metadata TEXT"); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
 
+  // ----  OMC-inspired: working_memory 短期记忆表（7天 TTL） ----
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS working_memory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      run_id TEXT,
+      category TEXT NOT NULL DEFAULT 'general',
+      content TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      expires_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_working_memory_session ON working_memory(session_id, created_at DESC);
+  `);
+
+  // ----  OMC-inspired: session_context 会话归档摘要表 ----
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS session_context (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      run_id TEXT,
+      summary TEXT NOT NULL,
+      key_decisions TEXT,
+      pending_items TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_session_context_session ON session_context(session_id, created_at DESC);
+  `);
+
   // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
   // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
   const backfillResult = db.prepare(`
@@ -722,5 +750,47 @@ export function deleteFlowSkill(db: DbConn,  id: string) {
 export function getFlowSkillCount(db: DbConn): number {
   const row = db.prepare('SELECT COUNT(*) as cnt FROM flow_skills').get() as any;
   return row?.cnt || 0;
+}
+
+// ---- Working Memory（OMC-inspired 短期记忆，7天 TTL） ----
+
+export function addWorkingMemory(db: DbConn, sessionId: string, content: string, opts?: { runId?: string; category?: string; ttlDays?: number }) {
+  const expiresAt = opts?.ttlDays
+    ? new Date(Date.now() + opts.ttlDays * 86400000).toISOString()
+    : new Date(Date.now() + 7 * 86400000).toISOString();
+  db.prepare('INSERT INTO working_memory (session_id, run_id, category, content, expires_at) VALUES (?, ?, ?, ?, ?)')
+    .run(sessionId, opts?.runId || null, opts?.category || 'general', content, expiresAt);
+}
+
+export function getWorkingMemory(db: DbConn, sessionId: string, limit = 20) {
+  return db.prepare(
+    "SELECT * FROM working_memory WHERE session_id=? AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY created_at DESC LIMIT ?"
+  ).all(sessionId, limit);
+}
+
+export function queryWorkingMemory(db: DbConn, query: string, limit = 20) {
+  return db.prepare(
+    "SELECT * FROM working_memory WHERE (expires_at IS NULL OR expires_at > datetime('now')) AND content LIKE ? ORDER BY created_at DESC LIMIT ?"
+  ).all(`%${query}%`, limit);
+}
+
+export function pruneWorkingMemory(db: DbConn) {
+  const result = db.prepare("DELETE FROM working_memory WHERE expires_at IS NOT NULL AND expires_at <= datetime('now')").run();
+  return result.changes;
+}
+
+// ---- Session Context（会话归档摘要） ----
+
+export function saveSessionContext(db: DbConn, sessionId: string, runId: string, summary: string, keyDecisions?: string[], pendingItems?: string[]) {
+  db.prepare('INSERT INTO session_context (session_id, run_id, summary, key_decisions, pending_items) VALUES (?, ?, ?, ?, ?)')
+    .run(sessionId, runId, summary, keyDecisions ? JSON.stringify(keyDecisions) : null, pendingItems ? JSON.stringify(pendingItems) : null);
+}
+
+export function getRecentSessionContexts(db: DbConn, limit = 3) {
+  return db.prepare('SELECT * FROM session_context ORDER BY created_at DESC LIMIT ?').all(limit);
+}
+
+export function getSessionContext(db: DbConn, sessionId: string) {
+  return db.prepare('SELECT * FROM session_context WHERE session_id=? ORDER BY created_at DESC LIMIT 1').get(sessionId);
 }
 

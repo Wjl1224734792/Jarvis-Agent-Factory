@@ -8,7 +8,7 @@ import {
   getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate,
   getActiveRun, createPipelineRun, setRunTaskName, updateRunGate, updateRunGateEnteredAt,
   insertArtifact, completeRun, abortRun, saveResumeData, getResumeData,
-  updateSessionMetadata, logSessionEvent, removeSession,
+  updateSessionMetadata, logSessionEvent, removeSession, addWorkingMemory,
 } from '../db.js';
 import {
   GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, DEFAULT_PIPELINE,
@@ -16,6 +16,7 @@ import {
 } from '../gates.js';
 import { emitEvent } from '../pubsub.js';
 import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
+import { archiveSession } from '../session-archive.js';
 
 export function registerPipelineTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
@@ -162,6 +163,10 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
           lastRunId: runId,
           lastActive: new Date().toISOString(),
         });
+        // 自动记录 working_memory
+        addWorkingMemory(db, sid, `${cur} → ${gate}：Gate 推进完成${task_name ? ` — ${task_name}` : ''}`, {
+          runId, category: 'progress', ttlDays: 7,
+        });
       }
       if (runId) {
         updateRunGate(db, runId, gate);
@@ -172,6 +177,11 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
         addCheckpoint(db, gate, 'Complete', sid, undefined);
         if (runId) {
           completeRun(db, runId);
+          // 最终 Gate：自动归档会话到 repowiki
+          const run = db.prepare('SELECT task_name FROM pipeline_runs WHERE id=?').get(runId) as { task_name?: string } | undefined;
+          archiveSession(root, db, sid, runId, run?.task_name).catch(e => {
+            console.warn('[session-archive] 归档失败（非致命）:', String(e));
+          });
         }
       }
       emitEvent('gate:advanced', { sessionId: sid, runId, gate, previousGate: cur });
@@ -265,6 +275,10 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       logSessionEvent(db, sid, 'pipeline_cancel', {
         runId,
         detail: `cancelled at ${previousStatus.current_gate || '?'} — task: ${previousStatus.task_name || '(unnamed)'}`,
+      });
+      // 取消时自动归档
+      archiveSession(root, db, sid, runId, previousStatus.task_name).catch(e => {
+        console.warn('[session-archive] 归档失败（非致命）:', String(e));
       });
       if (leave_session) {
         removeSession(db, sid);

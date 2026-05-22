@@ -1,6 +1,6 @@
 # Jarvis Agent Factory — 快速开始
 
-[![Version](https://img.shields.io/badge/version-v4.6.9-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.7.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，**仅支持 Claude Code**。
@@ -174,7 +174,7 @@ Claude Code 中输入 `/jarvis 你好` 测试引擎是否正常响应。
 
 ## 下一步
 
-- 回到 [README.md](./README.md) 了解完整功能（核心特性、架构、流水线体系、40条指令）
+- 回到 [README.md](./README.md) 了解完整功能（核心特性、架构、流水线体系、34条指令）
 - 在 Claude Code 中输入 `/auto 你的任务` 开始使用
 - 遇到问题？在 Claude Code 中输入 `/debug` 进行诊断
 

@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.6.9-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.7.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.6.9** — /deepinit 自适应分层文档生成 + /verify 文档驱动验证 + 文件监听实时同步 + 71 目录 AGENTS.md 树
+> **v4.7.0** — 跨会话自动记忆系统（启动注入+归档 repowiki+Working Memory）+ MCP 工具扩展至 22 个
 
 ## 快速开始
 
@@ -240,8 +240,8 @@ test-doc-writer → test-executor → remediation-expert
 
 | | Claude Code |
 |---|:--:|
-| Agents | 71 |
-| Commands | 32 |
+| Agents | 72 |
+| Commands | 34 |
 | Skills | 35 |
 | Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |
 | 钩子 | settings.json |
@@ -284,7 +284,7 @@ test-doc-writer → test-executor → remediation-expert
 
 ## 命令流程图
 
-每个 Claude Code 命令的完整介绍，包含项目概览、40条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、71个智能体目录、流水线架构和使用推荐。启动引擎后访问 `/commands` 查看项目介绍与指令参考。
+每个 Claude Code 命令的完整介绍，包含项目概览、34条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、72个智能体目录、流水线架构和使用推荐。启动引擎后访问 `/commands` 查看项目介绍与指令参考。
 
 | 分类 | 命令 | 流程图 | Gate 序列 |
 |------|------|--------|----------|

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
+<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-22T08:28:05.565Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # engine — Core engine logic
@@ -21,6 +21,7 @@ This directory contains the engine module of the project.
 | pubsub.ts | TypeScript source — Exports: PubSubEventType, PubSubEvent, incrementBroadcastCount, getPubSub, emitEvent |
 | quality-gate.ts | TypeScript source — Exports: QualityThreshold, QualityProfileSource, QualityProfile, Violation, EvaluationResult |
 | server.ts | TypeScript source — Exports: sanitizeErrorMessage, resolveErrorResponse, createLoggerMiddleware, registerMcpTools, stopEngine |
+| session-archive.ts | TypeScript source — Exports: getSessionContextSummary, cleanExpiredMemories |
 | wiki-store.ts | TypeScript source — Exports: titleToSlug, readWikiPage, listWikiPages, queryWikiPages, lintWikiPages |
 
 

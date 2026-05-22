@@ -40,6 +40,7 @@ updated: "2026-05-14"
    - `Skill("incremental-implementation")`
    - `Skill("verification-before-completion")`
    - `Skill("concurrency-policy")`
+   - `Skill("session-memory")`
 
 3. 判断是否适合流水线：
    - ❌ 不适合：纯信息提问、单 agent 可完成的简单修改、纯文档翻译
@@ -51,6 +52,8 @@ updated: "2026-05-14"
    - 按 Gate 序列推进，不可跳过
    - 在 Gate C-impl 按 `parallel_batches` 批量 spawn 实现 Agent
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释
+
+5. **加载会话上下文**：`session_join` 返回的 `context_summary` 包含历史会话摘要。若有内容（非空），说明之前有未完成的任务或关键决策，必须在开始任务规划前告知用户。若 `context_summary` 为空则跳过。
 
 ---
 

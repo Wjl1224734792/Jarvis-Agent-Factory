@@ -1,7 +1,7 @@
-<!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
+<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-22T08:28:05.565Z -->
 <!-- Parent: (root) -->
 
-# . — Project subdirectory
+# jarvis — Project subdirectory
 
 ## Purpose
 Full-stack application (Hono, Vitest/Jest, TypeScript, React). This is the project root directory.

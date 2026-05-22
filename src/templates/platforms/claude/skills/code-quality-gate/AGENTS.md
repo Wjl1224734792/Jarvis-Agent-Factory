@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T08:04:04.645Z | Updated: 2026-05-22T08:04:04.645Z -->
+<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-22T08:28:05.565Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # code-quality-gate — Project subdirectory
