@@ -8,7 +8,7 @@
  * 4. 触发 SSE 广播推送到 Web 面板侧边栏
  */
 import { watch, existsSync, mkdirSync, readdirSync, copyFileSync, statSync } from 'node:fs';
-import { resolve, join, relative, dirname } from 'node:path';
+import { resolve, join, relative } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { emitEvent } from './pubsub.js';
 import { GATE_DIRS } from './gates.js';
