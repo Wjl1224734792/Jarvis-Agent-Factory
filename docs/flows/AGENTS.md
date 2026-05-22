@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # flows — Pipeline flow diagrams
@@ -9,6 +9,7 @@ This directory contains the flows module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
 | algorithm-expert.md | Markdown documentation |
 | android.md | Markdown documentation |
 | ask.md | Markdown documentation |
@@ -22,6 +23,7 @@ This directory contains the flows module of the project.
 | browser.md | Markdown documentation |
 | bug-fix.md | Markdown documentation |
 | cancel.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | consult.md | Markdown documentation |
 | debug.md | Markdown documentation |
 | evaluate.md | Markdown documentation |
@@ -37,8 +39,6 @@ This directory contains the flows module of the project.
 | mobile.md | Markdown documentation |
 | publish.md | Markdown documentation |
 | react-native.md | Markdown documentation |
-| refactor.md | Markdown documentation |
-| release.md | Markdown documentation |
 
 
 ## Subdirectories

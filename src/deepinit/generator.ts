@@ -227,15 +227,16 @@ export function writeDocs(
  */
 export function generateIncremental(
   flatEntries: DirEntry[],
-  changedRelPaths: Set<string>,
+  changedRelPaths: Set<string> | string[],
   rootDir: string,
 ): { dir: string; agents: string; claude: string | null }[] {
   const now = new Date().toISOString();
   const ctx: GenContext = { entry: flatEntries[0], rootDir, now };
   const results: { dir: string; agents: string; claude: string | null }[] = [];
+  const changedSet = changedRelPaths instanceof Set ? changedRelPaths : new Set(changedRelPaths);
 
   for (const entry of flatEntries) {
-    if (!changedRelPaths.has(entry.relPath)) continue;
+    if (!changedSet.has(entry.relPath)) continue;
     const parentRel = entry.depth > 0 ? '../AGENTS.md' : null;
     const agentsContent = generateAgentsMd(entry, parentRel, ctx);
     const shouldGenClaude = true; // 每个 AGENTS.md 同级生成 CLAUDE.md 引导入口
@@ -251,11 +252,12 @@ export function generateIncremental(
  */
 export function generateIncrementalParallel(
   flatEntries: DirEntry[],
-  changedRelPaths: Set<string>,
+  changedRelPaths: Set<string> | string[],
   rootDir: string,
   concurrency: number = 0,
 ): { dir: string; agents: string; claude: string | null }[] {
-  const changedEntries = flatEntries.filter(e => changedRelPaths.has(e.relPath));
+  const changedSet = changedRelPaths instanceof Set ? changedRelPaths : new Set(changedRelPaths);
+  const changedEntries = flatEntries.filter(e => changedSet.has(e.relPath));
   if (changedEntries.length === 0) return [];
 
   const now = new Date().toISOString();

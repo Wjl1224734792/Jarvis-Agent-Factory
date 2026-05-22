@@ -88,7 +88,7 @@ export function scanDirectory(
   if (files.length === 0 && subdirs.length === 0) return null;
 
   return {
-    relPath: relative(root, current) || '.',
+    relPath: (relative(root, current) || '.').replace(/\\/g, '/'),
     absPath: current,
     name: depth === 0 ? basename(root) : name,
     files,

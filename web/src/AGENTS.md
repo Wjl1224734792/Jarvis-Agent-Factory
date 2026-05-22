@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # src — Full-stack source code (client + server)
@@ -12,6 +12,7 @@ This directory contains the src module of the project.
 | AGENTS.md | Markdown documentation |
 | api.ts | TypeScript source — Exports: Session, GateState, PipelineSession, PipelineRun, AgentItem |
 | App.tsx | React component — Exports: App |
+| CLAUDE.md | Markdown documentation |
 | main.tsx | React component — No exports |
 | react-dom-client.d.ts | TypeScript source — Exports: createRoot |
 | react-syntax-highlighter.d.ts | TypeScript source — Exports: Prism |

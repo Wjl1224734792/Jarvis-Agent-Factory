@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # pages — Project subdirectory
@@ -12,6 +12,7 @@ This directory contains the pages module of the project.
 | AGENTS.md | Markdown documentation |
 | Agents.tsx | React component — Exports: Agents |
 | Archive.tsx | React component — Exports: Archive |
+| CLAUDE.md | Markdown documentation |
 | Commands.css | Style sheet |
 | Commands.tsx | React component — Exports: Commands |
 | Dashboard.tsx | React component — Exports: shortGate, GATE_COLORS, GATE_LABELS, GATE_DESCRIPTIONS, MARKDOWN_CSS |

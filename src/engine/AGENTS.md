@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # engine — Core engine logic
@@ -12,6 +12,7 @@ This directory contains the engine module of the project.
 | agent-fs.ts | TypeScript source — Exports: syncAgentFile |
 | agent-registry.ts | TypeScript source — Exports: resolveTemplatesDir, getActiveProjects, scanAllProjectAgents, getCategories, getAgentList |
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | db.ts | TypeScript source — Exports: openDb, getPipeline, updatePipelineGate, initPipeline, getAllPipelines |
 | file-watcher.ts | TypeScript source — Exports: startFileWatcher, stopFileWatcher |
 | gates.ts | TypeScript source — Exports: PIPELINE_DEFS, DEFAULT_PIPELINE, GATES, getPipelineGates, getPipelineName |

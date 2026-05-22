@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # tests — Test suite
@@ -11,6 +11,7 @@ This directory contains the tests module of the project.
 |------|-------------|
 | agent-registry.test.ts | TypeScript source — No exports |
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | cli-scope.test.ts | TypeScript source — No exports |
 | commands-api.test.ts | TypeScript source — No exports |
 | commands-filter.test.ts | TypeScript source — No exports |

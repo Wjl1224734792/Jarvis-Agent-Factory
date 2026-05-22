@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # deepinit — DeepInit documentation generator
@@ -10,6 +10,7 @@ This directory contains the deepinit module of the project.
 | File | Description |
 |------|-------------|
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | generator.ts | TypeScript source — Exports: GenContext, generateAgentsMd, generateClaudeMd, generateAll, generateAllParallel |
 | index.ts | TypeScript source — No exports |
 | manifest.ts | TypeScript source — Exports: scanDirectories, loadManifest, saveManifest, computeDiff, changedPaths |

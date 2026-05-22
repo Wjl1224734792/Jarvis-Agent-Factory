@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # references — Project subdirectory
@@ -9,7 +9,9 @@ This directory contains the references module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
 | cdp-python.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | multi-session.md | Markdown documentation |
 
 

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # tools — Project subdirectory
@@ -11,6 +11,7 @@ This directory contains the tools module of the project.
 |------|-------------|
 | agent-tools.ts | TypeScript source — Exports: registerAgentTools |
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | flow-tools.ts | TypeScript source — Exports: registerFlowTools |
 | gate-tools.ts | TypeScript source — Exports: registerGateTools |
 | pipeline-tools.ts | TypeScript source — Exports: registerPipelineTools |

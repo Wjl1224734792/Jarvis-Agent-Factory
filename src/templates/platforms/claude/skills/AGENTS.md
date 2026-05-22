@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # skills — Skill definitions
@@ -9,6 +9,8 @@ This directory contains the skills module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 
 
 ## Subdirectories

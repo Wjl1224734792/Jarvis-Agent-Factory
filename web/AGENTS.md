@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # web — Web frontend
@@ -10,6 +10,7 @@ This directory contains the web module of the project.
 | File | Description |
 |------|-------------|
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | index.html | HTML template |
 | jsdom-29.1.1.tgz | Project file |
 | package-lock.json | JSON config/data |

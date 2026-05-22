@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # agents — Agent definitions
@@ -9,6 +9,7 @@ This directory contains the agents module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
 | algorithm-expert.md | Markdown documentation |
 | android-dev-expert.md | Markdown documentation |
 | android-review-expert.md | Markdown documentation |
@@ -29,6 +30,7 @@ This directory contains the agents module of the project.
 | browser-test-expert.md | Markdown documentation |
 | browser-use-expert.md | Markdown documentation |
 | change-review-expert.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | code-explore-expert.md | Markdown documentation |
 | database-architect.md | Markdown documentation |
 | diff-review-expert.md | Markdown documentation |
@@ -37,8 +39,6 @@ This directory contains the agents module of the project.
 | e2e-test-expert.md | Markdown documentation |
 | expo-dev-expert.md | Markdown documentation |
 | expo-review-expert.md | Markdown documentation |
-| expo-state-expert.md | Markdown documentation |
-| expo-test-expert.md | Markdown documentation |
 
 
 ## Subdirectories

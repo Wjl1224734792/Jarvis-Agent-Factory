@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # src — Full-stack source code (client + server)
@@ -10,6 +10,7 @@ This directory contains the src module of the project.
 | File | Description |
 |------|-------------|
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | doctor.ts | TypeScript source — Exports: doctor |
 | hash-paths.ts | TypeScript source — Exports: getHashFilePath |
 | hook.ts | TypeScript source — No exports |

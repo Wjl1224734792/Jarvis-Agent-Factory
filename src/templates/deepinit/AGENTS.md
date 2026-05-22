@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # deepinit — DeepInit documentation generator
@@ -9,7 +9,9 @@ This directory contains the deepinit module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
 | AGENTS.md.tmpl | Project file |
+| CLAUDE.md | Markdown documentation |
 | CLAUDE.md.tmpl | Project file |
 
 

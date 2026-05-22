@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # views — Project subdirectory
@@ -10,6 +10,8 @@ This directory contains the views module of the project.
 | File | Description |
 |------|-------------|
 | agents.html | HTML template |
+| AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | pipeline.html | HTML template |
 
 

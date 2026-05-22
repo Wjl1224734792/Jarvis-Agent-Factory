@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # utils — Utility functions
@@ -11,6 +11,7 @@ This directory contains the utils module of the project.
 |------|-------------|
 | AGENTS.md | Markdown documentation |
 | args.ts | TypeScript source — Exports: CliOpts, parseArgs |
+| CLAUDE.md | Markdown documentation |
 | constants.ts | TypeScript source — Exports: PKG_ROOT, PKG_VERSION, PKG_NAME, PLATFORMS, ALL_PLATFORMS |
 | io.ts | TypeScript source — No exports |
 | resolve.ts | TypeScript source — Exports: resolveTarget, checkLatest, semverGt |

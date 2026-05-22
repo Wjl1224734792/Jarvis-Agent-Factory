@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # shared — Shared utilities
@@ -10,6 +10,7 @@ This directory contains the shared module of the project.
 | File | Description |
 |------|-------------|
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | markdown-utils.ts | TypeScript source — Exports: parseFrontmatter, FM_SEARCH_LIMIT, readFrontmatter, splitMarkdownSections, computeSectionHashes |
 | mcp-config.ts | TypeScript source — Exports: McpServerConfig, McpConfig, readMcpConfig, writeMcpConfig, getConfigVersion |
 | package-version.ts | TypeScript source — Exports: readPackageVersion |

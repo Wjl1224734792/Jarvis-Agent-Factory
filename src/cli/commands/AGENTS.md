@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # commands — Command definitions
@@ -11,6 +11,7 @@ This directory contains the commands module of the project.
 |------|-------------|
 | add.ts | TypeScript source — No exports |
 | AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | deepinit.ts | TypeScript source — No exports |
 | diff.ts | TypeScript source — No exports |
 | doctor.ts | TypeScript source — No exports |

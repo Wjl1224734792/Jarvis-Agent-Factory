@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T07:27:14.780Z | Updated: 2026-05-22T07:27:14.780Z -->
+<!-- Generated: 2026-05-22T07:50:04.735Z | Updated: 2026-05-22T07:50:04.735Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # commands — Command definitions
@@ -9,6 +9,7 @@ This directory contains the commands module of the project.
 ## Key Files
 | File | Description |
 |------|-------------|
+| AGENTS.md | Markdown documentation |
 | ask.md | Markdown documentation |
 | audit-fix.md | Markdown documentation |
 | audit.md | Markdown documentation |
@@ -17,6 +18,7 @@ This directory contains the commands module of the project.
 | browser.md | Markdown documentation |
 | bug-fix.md | Markdown documentation |
 | cancel.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
 | consult.md | Markdown documentation |
 | debug.md | Markdown documentation |
 | deepinit.md | Markdown documentation |
@@ -37,8 +39,6 @@ This directory contains the commands module of the project.
 | sync.md | Markdown documentation |
 | task-design.md | Markdown documentation |
 | test-e2e.md | Markdown documentation |
-| test-integration.md | Markdown documentation |
-| test-perf.md | Markdown documentation |
 
 
 ## Subdirectories
