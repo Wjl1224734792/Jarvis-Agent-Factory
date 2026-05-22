@@ -28,6 +28,15 @@ updated: "2026-05-14"
 **不适用场景：**
 - 创建全新的独立文件，且不依赖现有代码
 - 修改变量名之类的机械操作（但仍需 `grep` 确认影响范围）
+
+## 工具速查
+
+| 场景 | 推荐工具 | 代替 |
+|------|---------|------|
+| 搜索代码模式 | `jarvis_ast_search` | Grep（文本搜索会匹配注释/字符串） |
+| 理解现有类型 | `jarvis_lsp_hover` / `jarvis_lsp_goto_definition` | 读文件+人眼推断 |
+| 追踪引用链 | `jarvis_lsp_find_references` | Grep 搜符号名（容易漏/误匹配） |
+| 查看文件结构 | `jarvis_lsp_document_symbols` | 读全文件找函数/类 |
 - 配置文件的新增条目（但需要看现有条目格式）
 
 ---

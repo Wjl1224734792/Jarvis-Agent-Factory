@@ -94,7 +94,8 @@ mcp__jarvis-engine__session_join({
 1. 检查 `context_summary` 是否为非空字符串 — 包含上次会话的 Gate 进度、关键决策、未完成事项
 2. 若有 `pending_items`（未完成事项），提醒用户上次有遗留任务
 3. 可选：调用 `mcp__jarvis-engine__session_context()` 获取更详细的历史上下文
-4. 若 `context_summary` 为空 — 说明是首次使用或历史已清理，正常开始
+4. 设置/更新优先上下文：`mcp__jarvis-engine__jarvis_priority_context({ action: "get" })` 读取项目关键约束
+5. 若 `context_summary` 为空 — 说明是首次使用或历史已清理，正常开始
 
 > 这个步骤消除了 Jarvis 的"冷启动"问题——每次新会话自动获得上次会话的上下文。
 
@@ -131,6 +132,12 @@ mcp__jarvis-engine__session_join({
 
 **核心原则**：编排者不写代码，所有代码变更通过 spawn Agent 完成。
 **并发规范**：详见 `Skill("concurrency-policy")` — 无依赖=并行，同 batch 同发，Team 按规模触发。
+
+**代码智能工具（Agent 可用）：**
+- `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，比 Grep 精确
+- `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true）
+- `mcp__jarvis-engine__jarvis_lsp_hover` / `jarvis_lsp_goto_definition` / `jarvis_lsp_find_references` — 理解现有代码
+- `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 秒级诊断，无需编译
 
 按复杂度选择调度策略：
 | 复杂度 | 调度方式 | 首条消息 |

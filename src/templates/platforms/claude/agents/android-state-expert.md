@@ -1,7 +1,7 @@
 ---
 name: android-state-expert
 description: "Android 状态与数据专项工作者：负责 ViewModel、StateFlow 状态管理、Room 数据库、DataStore 本地存储、网络请求与 API 对接。不涉及 UI 样式或布局。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"

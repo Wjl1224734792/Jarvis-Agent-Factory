@@ -1,7 +1,7 @@
 ---
 name: android-review-expert
 description: Android 代码审查专家：审查 Android/Jetpack Compose 组件架构、UI 实现、状态管理、性能优化与安全性，输出 Android 审查报告。
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_find_references
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

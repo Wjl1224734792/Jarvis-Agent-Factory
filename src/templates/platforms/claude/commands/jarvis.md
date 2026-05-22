@@ -452,6 +452,12 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 5. 每个成员独占文件/模块，无重叠
 ```
 
+**代码智能工具（Agent 实现时使用）：**
+- `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，理解现有代码结构
+- `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true，先预览再应用）
+- `mcp__jarvis-engine__jarvis_lsp_hover` / `jarvis_lsp_goto_definition` / `jarvis_lsp_find_references` — 理解现有 API 和引用链
+- `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 修改后秒级诊断，无需等待完整编译
+
 **Batch 同发示例**：
 ```
 # 一条消息同时发出 batch 1 全部 Agent（不等不串行）

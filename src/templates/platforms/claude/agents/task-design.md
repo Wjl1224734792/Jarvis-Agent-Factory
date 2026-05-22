@@ -1,7 +1,7 @@
 ---
 name: task-design
 description: "在编排者 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

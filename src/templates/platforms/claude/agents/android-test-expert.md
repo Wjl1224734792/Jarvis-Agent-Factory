@@ -1,7 +1,7 @@
 ---
 name: android-test-expert
 description: "Android 测试专项工作者：在编排者 分配明确子任务后执行；负责 Android 单元测试(JUnit5/MockK)、UI 测试(Compose Test Rule/Espresso)和集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"

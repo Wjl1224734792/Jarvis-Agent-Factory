@@ -1,7 +1,7 @@
 ---
 name: ios-ui-expert
 description: "iOS UI 专项工作者：负责 SwiftUI 页面布局、组件构建、Human Interface Guidelines 主题、响应式适配和无障碍访问。不涉及状态管理或数据层。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
