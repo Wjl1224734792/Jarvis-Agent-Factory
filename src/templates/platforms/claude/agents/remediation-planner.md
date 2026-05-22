@@ -1,7 +1,7 @@
 ---
 name: remediation-planner
 description: "修复与优化规划代理：把初审 findings 转成可执行修复/优化计划，明确所有权、顺序、验证命令和共享区域边界。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_priority_context
+tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_priority_context, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_document_symbols, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_find_references
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"

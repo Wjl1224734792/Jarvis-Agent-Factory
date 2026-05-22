@@ -113,7 +113,7 @@
     多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
     <strong>仅支持 Claude Code</strong> · 34 指令 · 72 智能体 · 35 技能 · 15 流水线
   </div>
-  <span class="version">v4.7.0</span>
+  <span class="version">v4.7.2</span>
 </div>
 
 <div class="stats">
@@ -148,6 +148,8 @@
     <li><strong>Agent 按需 spawn</strong>：72 个 Agent 覆盖前端/后端/移动端/测试/审查/架构</li>
     <li><strong>文档驱动</strong>：每个 Gate 产出结构化文档存入 <code>.jarvis/YYYY-MM-DD/</code></li>
     <li><strong>跨会话自动记忆</strong>：启动注入 + 归档 repowiki + Working Memory，上下文跨会话持久化</li>
+    <li><strong>AST 结构化搜索</strong>：语法树匹配 17 种语言，比文本 Grep 精确；安全替换 dryRun 默认</li>
+    <li><strong>LSP 代码智能</strong>：12 个工具提供 IDE 级能力——hover 类型签名、跳转定义、查找引用、诊断、安全重命名</li>
     <li><strong>零手动启动</strong>：MCP stdio 随 Claude Code 自动拉起引擎</li>
   </ul>
 </div>
@@ -174,7 +176,7 @@
   <div class="arch-layer">
     <div class="arch-box user"><strong>用户输入</strong><br><span style="font-size:12px;color:var(--muted)">/jarvis "需求"</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
-    <div class="arch-box user"><strong>指令模板</strong><br><span style="font-size:12px;color:var(--muted)">32 条命令</span></div>
+    <div class="arch-box user"><strong>指令模板</strong><br><span style="font-size:12px;color:var(--muted)">34 条命令</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
     <div class="arch-box engine"><strong>编排引擎</strong><br><span style="font-size:12px;color:var(--muted)">FSM + SQLite</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
@@ -190,7 +192,7 @@
   <h4>引擎内部组件</h4>
   <table class="pipe-table">
     <tr><th style="width:140px">组件</th><th>职责</th></tr>
-    <tr><td><strong>MCP stdio 服务</strong></td><td>通过 MCP 协议与 Claude Code 通信，暴露 28 个编排工具</td></tr>
+    <tr><td><strong>MCP stdio 服务</strong></td><td>通过 MCP 协议与 Claude Code 通信，暴露 46 个编排工具</td></tr>
     <tr><td><strong>FSM 闸门引擎</strong></td><td>强制执行 Gate 序列——跳过/回退一律拒绝</td></tr>
     <tr><td><strong>SQLite WAL 数据库</strong></td><td>会话管理、流水线运行、SSE 事件日志、跨会话持久化</td></tr>
     <tr><td><strong>REST API + Web 面板</strong></td><td>端口 3456，提供看板/Agent 配置/归档/指令列表</td></tr>
@@ -492,7 +494,7 @@
 <!-- ═══════════════════════════════════════ FOOTER -->
 <div class="footer">
   <p>
-    <strong>Jarvis Agent Factory v4.7.0</strong> &nbsp;·&nbsp;
+    <strong>Jarvis Agent Factory v4.7.2</strong> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
