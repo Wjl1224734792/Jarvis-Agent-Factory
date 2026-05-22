@@ -111,14 +111,14 @@
   <h1>Jarvis Agent Factory</h1>
   <div class="tagline">
     多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
-    <strong>仅支持 Claude Code</strong> · 33 指令 · 71 智能体 · 35 技能 · 15 流水线
+    <strong>仅支持 Claude Code</strong> · 34 指令 · 72 智能体 · 35 技能 · 15 流水线
   </div>
   <span class="version">v4.6.9</span>
 </div>
 
 <div class="stats">
-  <div class="stat a"><div class="num">33</div><div class="label">指令 Commands</div></div>
-  <div class="stat g"><div class="num">71</div><div class="label">智能体 Agents</div></div>
+  <div class="stat a"><div class="num">34</div><div class="label">指令 Commands</div></div>
+  <div class="stat g"><div class="num">72</div><div class="label">智能体 Agents</div></div>
   <div class="stat p"><div class="num">35</div><div class="label">技能 Skills</div></div>
   <div class="stat o"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
   <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
@@ -326,7 +326,7 @@
 </table>
 
 <!-- ═══════════════════════════════════════ 6. COMMANDS -->
-<h2 id="commands">六、全部 33 条指令</h2>
+<h2 id="commands">六、全部 34 条指令</h2>
 
 <h3>编排入口（2 条）</h3>
 <div class="cmd-grid">
@@ -387,7 +387,7 @@
   <div class="cmd-card"><div class="cmd-name">/consult --expert=&lt;name&gt;</div><div class="cmd-desc">架构专家讨论 — 仅方案讨论，不进入流水线。支持 frontend-architect/backend-architect/algorithm-expert。</div><div class="cmd-pipe">不进入流水线（纯讨论）</div></div>
 </div>
 
-<h3>专用工具 + 流程管理（5 条）</h3>
+<h3>专用工具 + 流程管理（6 条）</h3>
 <div class="cmd-grid">
   <div class="cmd-card"><div class="cmd-name">/bug-fix</div><div class="cmd-desc">Bug 修复专用流程 — 分析根因→最小化修复→回归验证→修复报告。</div><div class="cmd-pipe">对应：full（轻量路径）</div></div>
   <div class="cmd-card"><div class="cmd-name">/sync</div><div class="cmd-desc">配置同步 — Hash 对比增量更新，保护用户自定义。将 Jarvis 配置同步到目标项目。</div><div class="cmd-pipe">不进入流水线（CLI 操作）</div></div>
@@ -395,6 +395,7 @@
   <div class="cmd-card"><div class="cmd-name">/cancel [--leave | --force]</div><div class="cmd-desc">取消流水线运行 — 中止活跃 run→aborted。默认保留会话；--leave 离开；--force 紧急清除。</div><div class="cmd-pipe">不进入流水线（会话管理）</div></div>
   <div class="cmd-card"><div class="cmd-name">/repowiki</div><div class="cmd-desc">项目知识库管理 — 7 子命令：add/ingest/query/list/read/delete/lint。Markdown+YAML 持久化到 .jarvis/wiki/pages/。</div><div class="cmd-pipe">不进入流水线（知识管理）</div></div>
   <div class="cmd-card"><div class="cmd-name">/deepinit [--smart|--full|--incremental]</div><div class="cmd-desc">分层文档初始化 — 按架构层级生成渐进式 AGENTS.md 文档树，同级同步 CLAUDE.md 引导。支持智能检测框架模块。</div><div class="cmd-pipe">不进入流水线（文档生成）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/verify</div><div class="cmd-desc">文档驱动验证 — 基于项目 AGENTS.md 层级文档收集证据，确认改动生效可用。PASS/FAIL/GAP 裁决 + 置信度评估。</div><div class="cmd-pipe">不进入流水线（独立验证）</div></div>
 </div>
 
 <!-- ═══════════════════════════════════════ 7. AGENTS -->
@@ -495,7 +496,7 @@
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
   </p>
-  <p style="margin-top:8px">33 Commands · 71 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">34 Commands · 72 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>
