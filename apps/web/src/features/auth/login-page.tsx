@@ -2,6 +2,7 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
+import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -102,6 +103,12 @@ export function LoginPage() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 px-4 py-8 backdrop-blur-md">
+      <motion.div
+        className="w-full max-w-[420px]"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+      >
       <SitePanel className="w-full max-w-[420px]" variant="floating">
         <SitePanelBody className="space-y-5">
           <div className="flex items-start justify-between gap-3">
@@ -180,6 +187,14 @@ export function LoginPage() {
                     placeholder={loginMode === "password" ? "请输入手机号或管理员账号" : "请输入手机号"}
                     value={phone}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {loginMode === "sms"
+                      ? "请输入 11 位中国大陆手机号"
+                      : "请输入手机号或管理员账号"}
+                  </p>
+                  {loginMode === "sms" && phone.length === 11 && !isChinaMainlandMobilePhone(phone) ? (
+                    <p className="text-xs text-destructive mt-1">手机号格式不正确，请检查</p>
+                  ) : null}
                 </div>
               </div>
 
@@ -198,6 +213,7 @@ export function LoginPage() {
                       placeholder="请输入 6 位验证码"
                       value={smsFlow.smsCode}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">请输入 6 位短信验证码</p>
                   </div>
 
                   <div className="space-y-2 sm:min-w-[7.25rem]">
@@ -243,6 +259,7 @@ export function LoginPage() {
                       type="password"
                       value={password}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">请输入密码</p>
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-start">
@@ -258,6 +275,7 @@ export function LoginPage() {
                         placeholder="请输入图中字符"
                         value={passwordCaptchaFlow.captchaCode}
                       />
+                      <p className="text-xs text-muted-foreground mt-1">请输入图中 4 位字符，不区分大小写</p>
                     </div>
                     <div className="pt-7">
                       <AuthCaptchaSvg
@@ -567,6 +585,7 @@ export function LoginPage() {
           </p>
         </SitePanelBody>
       </SitePanel>
+      </motion.div>
 
       <SendSmsCaptchaDialog
         flow={smsFlow}

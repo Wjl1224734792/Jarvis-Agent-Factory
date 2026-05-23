@@ -1,6 +1,6 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockOutlined, ReloadOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
-import { Alert, Button, Flex, Form, Input, Space, message } from "antd";
+import { Alert, Button, Checkbox, Flex, Form, Input, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -13,16 +13,53 @@ const DEMO_ADMIN_ACCOUNT = "admin";
 const DEMO_ADMIN_PASSWORD = "Admin#123";
 const shouldPrefillDemoCredentials = import.meta.env.DEV;
 
+const REMEMBER_KEY = "admin_remembered_credentials";
+
+/**
+ * 从 localStorage 加载已保存的登录凭据
+ * @returns 保存的凭据对象，若无或解析失败则返回 null
+ */
+function loadRememberedCredentials(): { account: string; password: string } | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return null;
+    const decoded = atob(raw);
+    const parsed = JSON.parse(decoded) as { account?: string; password?: string };
+    if (parsed.account && parsed.password) return { account: parsed.account, password: parsed.password };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 将登录凭据保存到 localStorage（Base64 编码） */
+function saveRememberedCredentials(account: string, password: string) {
+  try {
+    const encoded = btoa(JSON.stringify({ account, password }));
+    localStorage.setItem(REMEMBER_KEY, encoded);
+  } catch { /* 忽略存储异常 */ }
+}
+
+/** 清除已保存的登录凭据 */
+function clearRememberedCredentials() {
+  localStorage.removeItem(REMEMBER_KEY);
+}
+
 export function AdminLoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const setAuthenticated = useAdminAuthStore((state) => state.setAuthenticated);
-  const [account, setAccount] = useState(() =>
-    shouldPrefillDemoCredentials ? DEMO_ADMIN_ACCOUNT : ""
-  );
-  const [password, setPassword] = useState(() =>
-    shouldPrefillDemoCredentials ? DEMO_ADMIN_PASSWORD : ""
-  );
+  const [rememberPassword, setRememberPassword] = useState(() => loadRememberedCredentials() !== null);
+  const [account, setAccount] = useState(() => {
+    const saved = loadRememberedCredentials();
+    if (saved) return saved.account;
+    return shouldPrefillDemoCredentials ? DEMO_ADMIN_ACCOUNT : "";
+  });
+  const [password, setPassword] = useState(() => {
+    const saved = loadRememberedCredentials();
+    if (saved) return saved.password;
+    return shouldPrefillDemoCredentials ? DEMO_ADMIN_PASSWORD : "";
+  });
   const [captchaChallenge, setCaptchaChallenge] = useState<CaptchaChallenge | null>(null);
   const [captchaCode, setCaptchaCode] = useState("");
   const [isCaptchaLoading, setIsCaptchaLoading] = useState(false);
@@ -116,11 +153,21 @@ export function AdminLoginPage() {
                 })
                 .then((response: AdminLoginResult) => {
                   setAuthenticated(response.user);
+                  if (rememberPassword) {
+                    saveRememberedCredentials(account, password);
+                  } else {
+                    clearRememberedCredentials();
+                  }
                   message.success("登录成功");
                   void navigate(redirectTo, { replace: true });
                 })
                 .catch((reason: unknown) => {
-                  const msg = reason instanceof Error ? reason.message : "管理员登录失败";
+                  const msg =
+                    reason instanceof TypeError && reason.message === "Failed to fetch"
+                      ? "网络连接失败，请检查网络"
+                      : reason instanceof Error
+                        ? reason.message
+                        : "管理员登录失败";
                   setError(msg);
                   message.error(msg);
                   void refreshLoginCaptcha(false);
@@ -141,7 +188,11 @@ export function AdminLoginPage() {
               />
             ) : null}
 
-            <Form.Item label="管理员账号" required>
+            <Form.Item
+              help={!account ? "请输入管理员账号" : undefined}
+              label="管理员账号"
+              required
+            >
               <Input
                 onChange={(event) => {
                   setAccount(event.target.value);
@@ -152,7 +203,11 @@ export function AdminLoginPage() {
               />
             </Form.Item>
 
-            <Form.Item label="密码" required>
+            <Form.Item
+              help={!password ? "请输入管理员密码" : undefined}
+              label="密码"
+              required
+            >
               <Input.Password
                 onChange={(event) => {
                   setPassword(event.target.value);
@@ -163,7 +218,35 @@ export function AdminLoginPage() {
               />
             </Form.Item>
 
-            <Form.Item label="图形验证码" required>
+            <Form.Item>
+              <Flex align="center" gap={8}>
+                <Checkbox
+                  checked={rememberPassword}
+                  onChange={(e) => setRememberPassword(e.target.checked)}
+                >
+                  记住密码
+                </Checkbox>
+                {loadRememberedCredentials() ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => {
+                      clearRememberedCredentials();
+                      setRememberPassword(false);
+                      message.info("已清除已保存的凭据");
+                    }}
+                  >
+                    清除已保存凭据
+                  </Button>
+                ) : null}
+              </Flex>
+            </Form.Item>
+
+            <Form.Item
+              help={!captchaCode ? "请输入图中 4 位字符，不区分大小写" : undefined}
+              label="图形验证码"
+              required
+            >
               <Flex gap={8} align="center">
                 <Input
                   autoComplete="off"

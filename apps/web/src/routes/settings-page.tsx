@@ -10,6 +10,7 @@ import {
   ShieldCheckIcon,
   SmartphoneIcon
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -1051,114 +1052,125 @@ export function SettingsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isPhoneDialogOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm">
-          <SitePanel className="w-full max-w-[560px]" variant="floating">
-            <SitePanelBody className="space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-lg font-semibold text-foreground">更换绑定手机</div>
-                  <div className="mt-1 text-sm leading-6 text-muted-foreground">
-                    输入新手机号并完成验证码校验后，绑定会立即更新。
+      <AnimatePresence>
+        {isPhoneDialogOpen ? (
+          <motion.div
+            key="phone-dialog"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SitePanel className="w-full max-w-[560px]" variant="floating">
+              <SitePanelBody className="space-y-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-lg font-semibold text-foreground">更换绑定手机</div>
+                    <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                      输入新手机号并完成验证码校验后，绑定会立即更新。
+                    </div>
                   </div>
+                  <Button onClick={closePhoneDialog} size="sm" type="button" variant="ghost">
+                    关闭
+                  </Button>
                 </div>
-                <Button onClick={closePhoneDialog} size="sm" type="button" variant="ghost">
-                  关闭
-                </Button>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
-                  新手机号
-                </label>
-                <Input
-                  id="settings-next-phone"
-                  inputMode="numeric"
-                  maxLength={11}
-                  onChange={(event) => setNextPhone(normalizeChinaMobilePhoneInput(event.target.value))}
-                  placeholder="请输入新的手机号"
-                  type="tel"
-                  value={nextPhone}
-                />
-                {showNextPhoneInvalid ? (
-                  <p className="text-xs text-destructive">请输入有效的手机号</p>
-                ) : null}
-              </div>
-
-              <Button
-                className="h-12 w-full"
-                disabled={
-                  phoneSmsFlow.isSendingSms ||
-                  phoneSmsFlow.cooldownSeconds > 0 ||
-                  !hasPassword ||
-                  !canRequestPhoneRebind({ nextPhone })
-                }
-                onClick={() => {
-                  setPhoneActionError(null);
-                  setIsPhoneSmsCaptchaOpen(true);
-                }}
-                type="button"
-                variant="panel"
-              >
-                <SmartphoneIcon data-icon="inline-start" />
-                {phoneSmsFlow.isSendingSms
-                  ? "发送中..."
-                  : phoneSmsFlow.cooldownSeconds > 0
-                    ? `${phoneSmsFlow.cooldownSeconds} 秒后重发`
-                    : phoneSmsFlow.requestHint
-                      ? "重新发送验证码"
-                      : "获取验证码"}
-              </Button>
-
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground" htmlFor="settings-phone-sms">
-                    短信验证码
+                  <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
+                    新手机号
                   </label>
                   <Input
-                    id="settings-phone-sms"
-                    onChange={(event) => phoneSmsFlow.setSmsCode(event.target.value)}
-                    placeholder="请输入 6 位验证码"
-                    value={phoneSmsFlow.smsCode}
+                    id="settings-next-phone"
+                    inputMode="numeric"
+                    maxLength={11}
+                    onChange={(event) => setNextPhone(normalizeChinaMobilePhoneInput(event.target.value))}
+                    placeholder="请输入新的手机号"
+                    type="tel"
+                    value={nextPhone}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">请输入 11 位中国大陆手机号</p>
+                  {showNextPhoneInvalid ? (
+                    <p className="text-xs text-destructive">请输入有效的手机号</p>
+                  ) : null}
                 </div>
+
                 <Button
                   className="h-12 w-full"
                   disabled={
-                    isConfirmingPhone ||
-                    !canConfirmPhoneRebind({
-                      nextPhone,
-                      requestId: phoneRequestId,
-                      smsCode: phoneSmsFlow.smsCode
-                    })
+                    phoneSmsFlow.isSendingSms ||
+                    phoneSmsFlow.cooldownSeconds > 0 ||
+                    !hasPassword ||
+                    !canRequestPhoneRebind({ nextPhone })
                   }
                   onClick={() => {
-                    void confirmPhoneChange();
+                    setPhoneActionError(null);
+                    setIsPhoneSmsCaptchaOpen(true);
                   }}
                   type="button"
-                  variant="hero"
+                  variant="panel"
                 >
-                  {isConfirmingPhone ? "保存中..." : "保存"}
+                  <SmartphoneIcon data-icon="inline-start" />
+                  {phoneSmsFlow.isSendingSms
+                    ? "发送中..."
+                    : phoneSmsFlow.cooldownSeconds > 0
+                      ? `${phoneSmsFlow.cooldownSeconds} 秒后重发`
+                      : phoneSmsFlow.requestHint
+                        ? "重新发送验证码"
+                        : "获取验证码"}
                 </Button>
-              </div>
 
-              {phoneSmsFlow.requestHint ? (
-                <Alert>
-                  <AlertTitle>验证码已发送</AlertTitle>
-                  <AlertDescription>请查收新手机号短信并填写验证码。</AlertDescription>
-                </Alert>
-              ) : null}
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground" htmlFor="settings-phone-sms">
+                      短信验证码
+                    </label>
+                    <Input
+                      id="settings-phone-sms"
+                      onChange={(event) => phoneSmsFlow.setSmsCode(event.target.value)}
+                      placeholder="请输入 6 位验证码"
+                      value={phoneSmsFlow.smsCode}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">请输入 6 位短信验证码</p>
+                  </div>
+                  <Button
+                    className="h-12 w-full"
+                    disabled={
+                      isConfirmingPhone ||
+                      !canConfirmPhoneRebind({
+                        nextPhone,
+                        requestId: phoneRequestId,
+                        smsCode: phoneSmsFlow.smsCode
+                      })
+                    }
+                    onClick={() => {
+                      void confirmPhoneChange();
+                    }}
+                    type="button"
+                    variant="hero"
+                  >
+                    {isConfirmingPhone ? "保存中..." : "保存"}
+                  </Button>
+                </div>
 
-              {phoneActionError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>手机号换绑失败</AlertTitle>
-                  <AlertDescription>{phoneActionError}</AlertDescription>
-                </Alert>
-              ) : null}
-            </SitePanelBody>
-          </SitePanel>
-        </div>
-      ) : null}
+                {phoneSmsFlow.requestHint ? (
+                  <Alert>
+                    <AlertTitle>验证码已发送</AlertTitle>
+                    <AlertDescription>请查收新手机号短信并填写验证码。</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {phoneActionError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>手机号换绑失败</AlertTitle>
+                    <AlertDescription>{phoneActionError}</AlertDescription>
+                  </Alert>
+                ) : null}
+              </SitePanelBody>
+            </SitePanel>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {isPhoneDialogOpen ? (
         <SendSmsCaptchaDialog
@@ -1174,148 +1186,169 @@ export function SettingsPage() {
         />
       ) : null}
 
-      {isPasswordDialogOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm">
-          <SitePanel className="w-full max-w-[560px]" variant="floating">
-            <SitePanelBody className="space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-lg font-semibold text-foreground">
-                    {hasPassword ? "修改登录密码" : "设置登录密码"}
+      <AnimatePresence>
+        {isPasswordDialogOpen ? (
+          <motion.div
+            key="password-dialog"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <SitePanel className="w-full max-w-[560px]" variant="floating">
+              <SitePanelBody className="space-y-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-lg font-semibold text-foreground">
+                      {hasPassword ? "修改登录密码" : "设置登录密码"}
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {hasPassword
+                        ? "输入当前密码与新密码，通过短信验证码完成修改。修改后需重新登录。"
+                        : "通过手机短信验证后设置登录密码，后续可使用手机号密码登录。"}
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {hasPassword
-                      ? "输入当前密码与新密码，通过短信验证码完成修改。修改后需重新登录。"
-                      : "通过手机短信验证后设置登录密码，后续可使用手机号密码登录。"}
+                  <Button
+                    onClick={() => {
+                      setIsPasswordDialogOpen(false);
+                      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                      setPasswordRequestId(null);
+                      passwordSmsFlow.reset();
+                      setPasswordActionError(null);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    关闭
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {hasPassword ? (
+                    <div className="space-y-2">
+                      <Input
+                        autoComplete="current-password"
+                        onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
+                        placeholder="当前密码"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">请输入当前登录密码</p>
+                    </div>
+                  ) : null}
+                  <div className="space-y-2">
+                    <Input
+                      autoComplete="new-password"
+                      onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
+                      placeholder={hasPassword ? "新密码" : "设置登录密码"}
+                      type="password"
+                      value={passwordForm.newPassword}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">至少 8 位，包含大写字母、小写字母和特殊符号</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      autoComplete="new-password"
+                      onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
+                      placeholder="确认新密码"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">请再次输入新密码</p>
                   </div>
                 </div>
-                <Button
-                  onClick={() => {
-                    setIsPasswordDialogOpen(false);
-                    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-                    setPasswordRequestId(null);
-                    passwordSmsFlow.reset();
-                    setPasswordActionError(null);
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  关闭
-                </Button>
-              </div>
 
-              <div className="space-y-3">
-                {hasPassword ? (
-                  <Input
-                    autoComplete="current-password"
-                    onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
-                    placeholder="当前密码"
-                    type="password"
-                    value={passwordForm.currentPassword}
-                  />
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                  <div className="space-y-2">
+                    <Input
+                      inputMode="numeric"
+                      onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
+                      placeholder="手机短信验证码"
+                      value={passwordSmsFlow.smsCode}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">请输入 6 位短信验证码</p>
+                  </div>
+                  <Button
+                    className="h-12 w-full"
+                    disabled={
+                      passwordSmsFlow.isSendingSms ||
+                      passwordSmsFlow.cooldownSeconds > 0 ||
+                      !isChinaMainlandMobilePhone(boundPhoneDigits)
+                    }
+                    onClick={() => {
+                      setPasswordActionError(null);
+                      setIsPasswordSmsCaptchaOpen(true);
+                    }}
+                    type="button"
+                    variant="outline"
+                  >
+                    {passwordSmsFlow.isSendingSms
+                      ? "发送中..."
+                      : passwordSmsFlow.cooldownSeconds > 0
+                        ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
+                        : passwordSmsFlow.requestHint
+                          ? "重新获取验证码"
+                          : "获取验证码"}
+                  </Button>
+                </div>
+
+                {passwordSmsFlow.requestHint ? (
+                  <div className="text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
                 ) : null}
-                <Input
-                  autoComplete="new-password"
-                  onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
-                  placeholder={hasPassword ? "新密码" : "设置登录密码"}
-                  type="password"
-                  value={passwordForm.newPassword}
-                />
-                <Input
-                  autoComplete="new-password"
-                  onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
-                  placeholder="确认新密码"
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                />
-              </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
-                <Input
-                  inputMode="numeric"
-                  onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
-                  placeholder="手机短信验证码"
-                  value={passwordSmsFlow.smsCode}
-                />
+                {passwordActionError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>获取验证码失败</AlertTitle>
+                    <AlertDescription>{passwordActionError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {passwordForm.newPassword ? (
+                  <div className="space-y-1.5">
+                    <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          "transition-all duration-300",
+                          passwordStrength.level === "weak" && "bg-red-500",
+                          passwordStrength.level === "medium" && "bg-amber-500",
+                          passwordStrength.level === "strong" && "bg-emerald-500"
+                        )}
+                        style={{ width: `${passwordStrength.width}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      密码强度：{passwordStrength.label}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                  <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
+                  {passwordPolicyHint}
+                </div>
+
                 <Button
                   className="h-12 w-full"
-                  disabled={
-                    passwordSmsFlow.isSendingSms ||
-                    passwordSmsFlow.cooldownSeconds > 0 ||
-                    !isChinaMainlandMobilePhone(boundPhoneDigits)
-                  }
+                  disabled={isChangingPassword}
                   onClick={() => {
-                    setPasswordActionError(null);
-                    setIsPasswordSmsCaptchaOpen(true);
+                    void changePassword();
                   }}
                   type="button"
-                  variant="outline"
+                  variant="hero"
                 >
-                  {passwordSmsFlow.isSendingSms
-                    ? "发送中..."
-                    : passwordSmsFlow.cooldownSeconds > 0
-                      ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
-                      : passwordSmsFlow.requestHint
-                        ? "重新获取验证码"
-                        : "获取验证码"}
+                  {isChangingPassword
+                    ? "保存中..."
+                    : hasPassword
+                      ? "确认修改"
+                      : "确认设置"}
                 </Button>
-              </div>
-
-              {passwordSmsFlow.requestHint ? (
-                <div className="text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
-              ) : null}
-
-              {passwordActionError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>获取验证码失败</AlertTitle>
-                  <AlertDescription>{passwordActionError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {passwordForm.newPassword ? (
-                <div className="space-y-1.5">
-                  <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn(
-                        "transition-all duration-300",
-                        passwordStrength.level === "weak" && "bg-red-500",
-                        passwordStrength.level === "medium" && "bg-amber-500",
-                        passwordStrength.level === "strong" && "bg-emerald-500"
-                      )}
-                      style={{ width: `${passwordStrength.width}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    密码强度：{passwordStrength.label}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
-                <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
-                {passwordPolicyHint}
-              </div>
-
-              <Button
-                className="h-12 w-full"
-                disabled={isChangingPassword}
-                onClick={() => {
-                  void changePassword();
-                }}
-                type="button"
-                variant="hero"
-              >
-                {isChangingPassword
-                  ? "保存中..."
-                  : hasPassword
-                    ? "确认修改"
-                    : "确认设置"}
-              </Button>
-            </SitePanelBody>
-          </SitePanel>
-        </div>
-      ) : null}
+              </SitePanelBody>
+            </SitePanel>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <SendSmsCaptchaDialog
         description="验证通过后将向当前绑定手机号发送短信验证码。"
