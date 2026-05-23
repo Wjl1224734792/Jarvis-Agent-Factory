@@ -17,6 +17,7 @@ import { useSlidePanelStore } from '@/features/circles/use-slide-panel-store';
 import { apiClient } from '@/lib/api-client';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 import { VirtualFeed } from '@/components/virtual-feed';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
 // ── 帖子数据转换：listCirclePosts 返回原始字段，需映射为 CircleFeedItem ──
@@ -95,15 +96,24 @@ function CircleDetailSkeleton() {
         <div className="mt-4 h-8 w-24 rounded-lg bg-gray-200" />
       </div>
 
-      {/* 帖子列表骨架 */}
-      <div className="mt-6 space-y-0 divide-y divide-border/40">
+      {/* 帖子列表骨架（与 FlatPostItem 卡片外观一致） */}
+      <div className="mt-6">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div className="flex gap-3 px-4 py-3 animate-pulse" key={i}>
-            <div className="size-10 rounded-full bg-gray-200 shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-3/4 rounded bg-gray-200" />
-              <div className="h-3 w-full rounded bg-gray-200" />
-              <div className="h-3 w-1/2 rounded bg-gray-200" />
+          <div
+            className="flex w-full gap-3 px-4 py-3"
+            key={i}
+          >
+            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-2 pt-0.5">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+              <div className="flex items-center gap-3 pt-1">
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-3 w-16" />
+              </div>
             </div>
           </div>
         ))}
@@ -198,7 +208,7 @@ export function CircleDetailPage() {
   // ── 加载中：骨架屏 ──
   if (circleQuery.isLoading) {
     return (
-      <SitePage className="bg-gray-50">
+      <SitePage className="bg-transparent">
         <CircleDetailSkeleton />
       </SitePage>
     );
@@ -207,7 +217,7 @@ export function CircleDetailPage() {
   // ── 错误态 ──
   if (circleQuery.isError) {
     return (
-      <SitePage className="bg-gray-50">
+      <SitePage className="bg-transparent">
         <div className="mx-auto max-w-[680px] px-4 py-12 text-center">
           <p className="text-sm text-red-500">
             {circleQuery.error?.message ?? '加载失败，请稍后重试'}
@@ -226,7 +236,7 @@ export function CircleDetailPage() {
   // ── 圈子不存在 → 404 ──
   if (!circle) {
     return (
-      <SitePage className="bg-gray-50">
+      <SitePage className="bg-transparent">
         <div className="mx-auto max-w-[680px] px-4 py-12 text-center">
           <p className="text-base font-semibold text-foreground">圈子不存在</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -266,7 +276,7 @@ export function CircleDetailPage() {
   }
 
   return (
-    <SitePage className="bg-gray-50">
+    <SitePage className="bg-transparent">
       <div className="mx-auto w-full max-w-[680px]">
         {/* ── 返回导航 ── */}
         <div className="flex items-center gap-3 px-4 py-3">
@@ -357,16 +367,25 @@ export function CircleDetailPage() {
             </div>
           ) : null}
 
-          {/* 加载骨架屏 */}
+          {/* 加载骨架屏（与 FlatPostItem 卡片外观一致） */}
           {isPostsLoading ? (
-            <div className="space-y-0 divide-y divide-border/40">
+            <div>
               {Array.from({ length: 5 }).map((_, i) => (
-                <div className="flex gap-3 px-4 py-3 animate-pulse" key={i}>
-                  <div className="size-10 rounded-full bg-gray-200 shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-3/4 rounded bg-gray-200" />
-                    <div className="h-3 w-full rounded bg-gray-200" />
-                    <div className="h-3 w-1/2 rounded bg-gray-200" />
+                <div
+                  className="flex w-full gap-3 px-4 py-3"
+                  key={i}
+                >
+                  <Skeleton className="size-10 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-2 pt-0.5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                    <div className="flex items-center gap-3 pt-1">
+                      <Skeleton className="h-3 w-14" />
+                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
                   </div>
                 </div>
               ))}
