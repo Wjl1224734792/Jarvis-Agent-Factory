@@ -1,4 +1,4 @@
-// Page-private component for CirclePage
+// Page-private component for CirclePage -- 关注圈子横滚条
 
 import { useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,31 @@ type CircleTabSelectorProps = {
   isLoading: boolean;
 };
 
+/** 初始字母背景色板——按 slug hash 分配，保证同一圈子颜色固定 */
+const AVATAR_COLORS = [
+  "bg-sky-100 text-sky-600",
+  "bg-amber-100 text-amber-600",
+  "bg-emerald-100 text-emerald-600",
+  "bg-rose-100 text-rose-600",
+  "bg-violet-100 text-violet-600",
+  "bg-cyan-100 text-cyan-600",
+  "bg-orange-100 text-orange-600",
+  "bg-teal-100 text-teal-600",
+];
+
+function resolveColorClass(slug: string) {
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) {
+    hash = (hash * 31 + slug.charCodeAt(i)) | 0;
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+/**
+ * 关注圈子横滚条——贴吧式紧凑风格。
+ * 展示用户已关注圈子的头像与名称，点击可切换到对应圈子的帖子流。
+ * 鼠标滚轮支持横向滚动。
+ */
 export function CircleTabSelector({
   circles,
   selectedCircleId,
@@ -37,85 +62,71 @@ export function CircleTabSelector({
 
   if (isLoading) {
     return (
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2"
-        onWheel={handleWheel}
-      >
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            className="shrink-0 w-36 rounded-xl border border-border/60 overflow-hidden"
-            key={index}
-          >
-            <Skeleton className="aspect-[4/3] w-full rounded-none" />
-            <div className="p-3">
-              <Skeleton className="h-4 w-3/4" />
-              <div className="mt-2 flex items-center gap-2">
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-3 w-10" />
-              </div>
+      <div className="px-4 pt-3">
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto pb-2"
+          onWheel={handleWheel}
+        >
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div className="flex shrink-0 flex-col items-center gap-1" key={index}>
+              <Skeleton className="size-12 rounded-full" />
+              <Skeleton className="h-3 w-10" />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
 
   if (circles.length === 0) {
-    return (
-      <div className="px-5 py-8 text-center">
-        <div className="text-sm font-semibold text-foreground">
-          还没有加入任何圈子
-        </div>
-        <div className="mt-2 text-xs text-muted-foreground">
-          去发现页面浏览感兴趣的圈子吧
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex gap-3 overflow-x-auto pb-2"
-      onWheel={handleWheel}
-    >
-      {circles.map((circle) => (
-        <button
-          className={cn(
-            "shrink-0 w-36 rounded-xl border text-left transition overflow-hidden",
-            selectedCircleId === circle.id
-              ? "border-primary bg-sky-50"
-              : "border-border/60 hover:border-primary/40 hover:bg-sky-50/30"
-          )}
-          key={circle.id}
-          onClick={() => onSelect(circle.id)}
-          type="button"
-        >
-          <div className="aspect-[4/3] w-full bg-slate-100 overflow-hidden">
-            {circle.coverImageUrl ? (
-              <img
-                alt={circle.name}
-                className="h-full w-full object-cover"
-                src={circle.coverImageUrl}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <span className="text-2xl font-bold text-slate-300">{circle.name.charAt(0)}</span>
-              </div>
+    <div className="px-4 pt-3">
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto pb-2"
+        onWheel={handleWheel}
+      >
+        {circles.map((circle) => (
+          <button
+            className={cn(
+              "flex shrink-0 flex-col items-center gap-1 focus:outline-none",
+              "transition-transform hover:scale-105"
             )}
-          </div>
-          <div className="p-3">
-            <div className="text-sm font-semibold text-foreground line-clamp-1">
+            key={circle.id}
+            onClick={() => onSelect(circle.id)}
+            type="button"
+          >
+            <div
+              className={cn(
+                "flex size-12 items-center justify-center overflow-hidden rounded-full transition-all",
+                selectedCircleId === circle.id
+                  ? "ring-2 ring-primary"
+                  : "ring-2 ring-transparent hover:ring-primary/30",
+                !circle.coverImageUrl && resolveColorClass(circle.slug)
+              )}
+            >
+              {circle.coverImageUrl ? (
+                <img
+                  alt={circle.name}
+                  className="h-full w-full object-cover"
+                  src={circle.coverImageUrl}
+                />
+              ) : (
+                <span className="text-base font-bold">
+                  {circle.name.charAt(0)}
+                </span>
+              )}
+            </div>
+            <span className="max-w-[3.5rem] truncate text-[0.7rem] leading-tight text-foreground/70">
               {circle.name}
-            </div>
-            <div className="mt-1.5 flex items-center gap-2 text-[0.65rem] text-muted-foreground">
-              <span>{circle.memberCount} 成员</span>
-              <span>{circle.postCount} 帖子</span>
-            </div>
-          </div>
-        </button>
-      ))}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

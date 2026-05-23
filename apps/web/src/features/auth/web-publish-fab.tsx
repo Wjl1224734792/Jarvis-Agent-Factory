@@ -48,7 +48,7 @@ export function WebPublishFab() {
   }
 
   return (
-    <div className="fixed right-4 z-[45] max-xl:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] xl:bottom-6">
+    <div className="fixed right-4 z-[45] max-xl:bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] xl:bottom-5">
       <div
         className="relative pb-2"
         ref={rootRef}
@@ -59,7 +59,7 @@ export function WebPublishFab() {
           aria-expanded={open}
           aria-haspopup="menu"
           aria-label="打开发布菜单"
-          className="size-11 rounded-full shadow-[var(--shadow-float)] xl:size-14"
+          className="size-10 rounded-full shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-float)] xl:size-11"
           onClick={() => {
             if (authStatus !== "authenticated") {
               promptLogin({
@@ -73,20 +73,20 @@ export function WebPublishFab() {
           }}
           size="icon"
           type="button"
-          variant="hero"
+          variant="default"
         >
-          <PlusIcon className="size-5 xl:size-6" />
+          <PlusIcon className="size-5" />
         </Button>
 
         {open ? (
-          <div className="absolute right-0 bottom-full z-50 w-[10.5rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
+          <div className="absolute right-0 bottom-full z-50 mb-2 w-[9.5rem] overflow-hidden rounded-xl border border-border/60 bg-card p-1 shadow-[var(--shadow-panel)]">
             <div className="space-y-0.5">
               {webPublishMenuEntries.map((entry) => {
                 // action 类型菜单项：点击触发回调而非路由跳转
                 if ("action" in entry && entry.action) {
                   return (
                     <button
-                      className="flex h-8 w-full items-center justify-center rounded-[0.8rem] px-3 text-center text-[0.82rem] font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                      className="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-[0.8rem] font-medium text-foreground/80 transition-colors hover:bg-accent/70 hover:text-foreground"
                       key={entry.action}
                       onClick={() => {
                         if (authStatus !== "authenticated") {
@@ -111,7 +111,7 @@ export function WebPublishFab() {
                 if (!toPath) return null;
                 return (
                   <Link
-                    className="flex h-8 items-center justify-center rounded-[0.8rem] px-3 text-center text-[0.82rem] font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                    className="flex h-9 items-center gap-2 rounded-lg px-3 text-[0.8rem] font-medium text-foreground/80 transition-colors hover:bg-accent/70 hover:text-foreground"
                     key={toPath}
                     onClick={(event) => {
                       if (authStatus !== "authenticated") {

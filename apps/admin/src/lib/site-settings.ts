@@ -42,6 +42,10 @@ function resolveLegacyModerationEnabled(
       return settings?.rankingModerationEnabled ?? false;
     case "ratingTarget":
       return settings?.ratingTargetModerationEnabled ?? settings?.rankingModerationEnabled ?? true;
+    case "circlePost":
+    case "circleComment":
+      // circle keys 无 legacy boolean 对应，默认启用 AI 审核
+      return true;
   }
 }
 

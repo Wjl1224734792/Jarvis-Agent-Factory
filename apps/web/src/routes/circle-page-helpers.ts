@@ -8,6 +8,10 @@ export type CircleMediaItem = {
   label: string;
 };
 
+/**
+ * @deprecated 瀑布流卡片布局——Feed 已改为贴吧式扁平列表（TASK-003），此区域仅被榜单页引用。
+ * 后续榜单页迁移后可整体移除。
+ */
 /** 竖版封面（高大于宽），Web 端用 3:4～4:5 一带，比 9:16 更矮、一屏可多行；随索引轮换保留轻微错落感 */
 const masonryAspectClasses = [
   "aspect-[3/4]",
@@ -65,6 +69,9 @@ export type CircleFeedColumnCell<T> = {
   absoluteIndex: number;
 };
 
+/**
+ * @deprecated 瀑布流列分区——Feed 已改为贴吧式扁平列表（TASK-003），此函数仅被榜单页引用。
+ */
 /** 按索引轮转落列（第 i 条进 i % columnCount 列），保证从左到右、从上到下的阅读顺序 */
 export function partitionCircleFeedIntoColumns<T>(items: T[], columnCount: number): CircleFeedColumnCell<T>[][] {
   const n = normalizeCircleColumnCount(columnCount);
@@ -80,6 +87,9 @@ export function partitionCircleFeedIntoColumns<T>(items: T[], columnCount: numbe
   return columns;
 }
 
+/**
+ * @deprecated 瀑布流最短列分区——Feed 已改为贴吧式扁平列表（TASK-003），此函数仅被榜单页引用。
+ */
 /** 按估算高度放入当前最短列（小红书式瀑布），absoluteIndex 与封面比例一致 */
 export function partitionCircleFeedShortestColumn<T>(items: T[], columnCount: number): CircleFeedColumnCell<T>[][] {
   const n = normalizeCircleColumnCount(columnCount);
@@ -106,6 +116,9 @@ export function partitionCircleFeedShortestColumn<T>(items: T[], columnCount: nu
   return columns;
 }
 
+/**
+ * @deprecated 瀑布流封面宽高比——Feed 已改为贴吧式扁平列表（TASK-003），此函数仅被发布页引用。
+ */
 export function getCircleCardMediaAspectClass(index: number) {
   return masonryAspectClasses[index % masonryAspectClasses.length];
 }

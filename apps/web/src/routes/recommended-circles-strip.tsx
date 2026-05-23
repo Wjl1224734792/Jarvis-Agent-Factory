@@ -26,17 +26,6 @@ function resolveColorClass(slug: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-/** 格式化成员数为简洁显示（如 1.2k、3.5w） */
-function formatMemberCount(count: number) {
-  if (count >= 10000) {
-    return `${(count / 10000).toFixed(1).replace(/\.0$/, "")}w`;
-  }
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-  }
-  return String(count);
-}
-
 interface RecommendedCircle {
   id: string;
   slug: string;
@@ -47,16 +36,17 @@ interface RecommendedCircle {
 
 function SkeletonCard() {
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1.5">
-      <Skeleton className="size-16 rounded-full" />
-      <Skeleton className="h-3 w-12" />
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <Skeleton className="size-12 rounded-full" />
+      <Skeleton className="h-3 w-10" />
     </div>
   );
 }
 
 /**
- * 推荐圈子横向滚动条——类似 Instagram Stories 横滚条风格。
- * 展示热门圈子的头像（封面图或首字母）、名称、成员数，支持点击进入圈子详情。
+ * 推荐圈子横向滚动条——贴吧式紧凑风格。
+ * 展示热门圈子的头像（封面图或首字母）与名称，支持点击进入圈子详情。
+ * 鼠标滚轮支持横向滚动。
  */
 export function RecommendedCirclesStrip() {
   const navigate = useNavigate();
@@ -84,10 +74,10 @@ export function RecommendedCirclesStrip() {
 
   if (circlesQuery.isLoading) {
     return (
-      <div className="px-4 pt-2">
+      <div className="px-4 pt-3">
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-2"
+          className="flex gap-3 overflow-x-auto pb-2"
           onWheel={handleWheel}
         >
           {Array.from({ length: 8 }).map((_, i) => (
@@ -103,22 +93,22 @@ export function RecommendedCirclesStrip() {
   }
 
   return (
-    <div className="px-4 pt-2">
+    <div className="px-4 pt-3">
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-2"
+        className="flex gap-3 overflow-x-auto pb-2"
         onWheel={handleWheel}
       >
         {circles.map((circle) => (
           <button
-            className="flex shrink-0 flex-col items-center gap-1.5 focus:outline-none"
+            className="flex shrink-0 flex-col items-center gap-1 focus:outline-none"
             key={circle.id}
             onClick={() => handleClick(circle)}
             type="button"
           >
             <div
               className={cn(
-                "flex size-16 items-center justify-center overflow-hidden rounded-full ring-2 ring-primary/20 transition-all hover:ring-primary/50 hover:scale-105",
+                "flex size-12 items-center justify-center overflow-hidden rounded-full transition-transform hover:scale-105",
                 !circle.coverImageUrl && resolveColorClass(circle.slug)
               )}
             >
@@ -129,16 +119,13 @@ export function RecommendedCirclesStrip() {
                   src={circle.coverImageUrl}
                 />
               ) : (
-                <span className="text-xl font-bold">
+                <span className="text-base font-bold">
                   {circle.name.charAt(0)}
                 </span>
               )}
             </div>
-            <span className="max-w-[4rem] truncate text-[0.7rem] leading-tight text-foreground/70">
+            <span className="max-w-[3.5rem] truncate text-[0.7rem] leading-tight text-foreground/70">
               {circle.name}
-            </span>
-            <span className="text-[0.6rem] text-muted-foreground">
-              {formatMemberCount(circle.memberCount)}
             </span>
           </button>
         ))}
