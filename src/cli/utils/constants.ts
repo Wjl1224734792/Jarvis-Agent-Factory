@@ -57,17 +57,20 @@ export function getHelpText(): string {
   for Claude Code (主力维护). OpenCode/Codex 配置保留但已冻结不更新.
 
 Usage:
-  jarvis [path]                  ≡ jarvis init [path]
-  jarvis init [path]             Bootstrap project with all platforms + MCP
-  jarvis add <p...> [path]       Add platform(s) to project
-  jarvis remove [p...] [path]   Fine-grained remove (hash-aware, only jarvis-installed)
-  jarvis upgrade [path]          Upgrade to latest config version
-  jarvis diff [path]             Show what files would change on upgrade
-  jarvis engine start [--port=N] Start MCP orchestration engine
-  jarvis engine stop             Stop engine
-  jarvis engine status           Engine status
-  jarvis web [--port=N]          Start web dashboard (≡ engine start)
-  jarvis doctor [path]           Verify installation
+  jarvis [path]                      ≡ jarvis init [path]
+  jarvis init [path]                 Bootstrap project with all platforms + MCP
+  jarvis add <p...> [path]           Add platform(s) to project
+  jarvis remove [p...] [path]        Fine-grained remove (hash-aware, only jarvis-installed files)
+  jarvis upgrade [path]              Upgrade to latest config version
+  jarvis diff [path]                 Show what files would change on upgrade
+  jarvis engine start [--port=N]     Start MCP orchestration engine
+  jarvis engine stop                 Stop engine
+  jarvis engine status               Engine status
+  jarvis web [--port=N]              Start web dashboard (≡ engine start)
+  jarvis hook <subcommand>           Engine hook integration (gate-check/gate-advance/status/agent-config)
+  jarvis doctor [path]               Verify installation
+  jarvis deepinit [path]             Deep codebase initialization (AGENTS.md regeneration)
+  jarvis resolve [path]              Resolve jarvis paths and configuration
 
 Options:
   -g, --global    Target user global directory instead of project
@@ -75,23 +78,33 @@ Options:
   -h, --help      Show this help
   -v, --version   Show version
 
+Remove flags:
+  --dry-run       Preview what would be removed (no changes made)
+  --list          List all jarvis-tracked files
+  --engine        Also clean .jarvis/ engine data (DB + artifacts + archives)
+  --force         Skip confirmation prompt (required with --engine)
+  --global        Clean user global ~ directory configs
+
 Platforms:
   claude     ${PLATFORMS.claude.desc}
   opencode   ${PLATFORMS.opencode.desc} (⛔ 已冻结)
   codex      ${PLATFORMS.codex.desc} (⛔ 已冻结)
 
 Examples:
-  jarvis                          Bootstrap current directory
-  jarvis init my-app              Bootstrap new project
-  jarvis add claude               Add Claude Code to current directory
-  jarvis add claude -g            Add Claude Code globally
-  jarvis remove claude            Fine-grained remove (only jarvis-installed files)
-  jarvis remove --dry-run         Preview what would be removed
-  jarvis remove --list            List jarvis-tracked files
-  jarvis engine start             Start MCP orchestration engine
-  jarvis web                      Start web dashboard (≡ engine start)
-  jarvis upgrade                  Upgrade all configs
-  jarvis doctor                   Check current directory
+  jarvis                              Bootstrap current directory
+  jarvis init my-app                  Bootstrap new project
+  jarvis add claude                   Add Claude Code to current directory
+  jarvis add claude -g                Add Claude Code globally
+  jarvis remove claude                Fine-grained remove configs only
+  jarvis remove claude --dry-run      Preview what would be removed
+  jarvis remove claude --list         List jarvis-tracked files
+  jarvis remove claude --engine --force   Remove configs + engine data
+  jarvis remove claude -g --engine --force  Remove global configs + engine data
+  jarvis engine start                 Start MCP orchestration engine
+  jarvis web                          Start web dashboard (≡ engine start)
+  jarvis upgrade                      Upgrade all configs
+  jarvis doctor                       Check current directory
+  jarvis hook gate-check write_code   Check if write_code is allowed at current gate
 `;
 }
 
