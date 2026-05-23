@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ export function CreatePostModal({
 }: CreatePostModalProps) {
   const open = useCreatePostDialogStore((s) => s.open);
   const closeDialog = useCreatePostDialogStore((s) => s.closeDialog);
+  const authStatus = useAuthStore((s) => s.status);
   const currentUser = useAuthStore((s) => s.user);
 
   const isPreselected = Boolean(preselectedCircleId);
@@ -67,11 +69,21 @@ export function CreatePostModal({
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 用户已加入的圈子列表
-  const [userCircles, setUserCircles] = useState<UserCircle[]>([]);
-  const [isLoadingCircles, setIsLoadingCircles] = useState(false);
-
   const titleMaxLength = 31;
+
+  /** 查询用户已加入的圈子列表 */
+  const userCirclesQuery = useQuery({
+    queryKey: ["user-circles", currentUser?.id],
+    queryFn: () => apiClient.listUserCircles(currentUser!.id),
+    enabled:
+      open &&
+      !isPreselected &&
+      authStatus === "authenticated" &&
+      !!currentUser?.id,
+  });
+
+  const userCircles = (userCirclesQuery.data?.items ?? []) as unknown as UserCircle[];
+  const isLoadingCircles = userCirclesQuery.isLoading;
   const contentMaxLength = 2000;
 
   function resetForm() {
@@ -95,28 +107,6 @@ export function CreatePostModal({
     }
     resetForm();
   }
-
-  /** 加载用户圈子列表 */
-  const loadUserCircles = useCallback(async () => {
-    if (!currentUser?.id) return;
-    setIsLoadingCircles(true);
-    try {
-      const result = await apiClient.listUserCircles(currentUser.id);
-      const circles = (result.items ?? []) as unknown as UserCircle[];
-      setUserCircles(circles);
-    } catch {
-      // 加载圈子列表失败不阻断流程，用户仍可通过下拉看到已有的圈子
-    } finally {
-      setIsLoadingCircles(false);
-    }
-  }, [currentUser?.id]);
-
-  // 弹窗打开时加载用户圈子列表（仅非预选时需要）
-  useEffect(() => {
-    if (open && !isPreselected) {
-      void loadUserCircles();
-    }
-  }, [open, isPreselected, loadUserCircles]);
 
   /** 图片上传（复用三段式上传逻辑） */
   async function handleImageUpload(files: FileList) {
@@ -327,6 +317,12 @@ export function CreatePostModal({
                 </label>
                 {isLoadingCircles ? (
                   <div className="text-sm text-muted-foreground">加载中...</div>
+                ) : userCircles.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    {authStatus !== "authenticated"
+                      ? "请先登录后再选择圈子"
+                      : "你还没有加入任何圈子，请先关注圈子"}
+                  </div>
                 ) : (
                   <select
                     className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
