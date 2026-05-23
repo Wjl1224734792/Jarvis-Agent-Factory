@@ -4,6 +4,11 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.18] - 2026-05-24
+
+### Changed
+- **Web Guide 页面重构**：流水线卡片网格布局 + 指令搜索过滤 + 去除文档外链引用
+
 ## [4.7.17] - 2026-05-24
 
 ### Changed
