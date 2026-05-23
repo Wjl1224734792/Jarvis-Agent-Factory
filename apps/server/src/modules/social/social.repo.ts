@@ -60,6 +60,8 @@ type NotificationTargetType =
   | "rating_target"
   | "aircraft_submission"
   | "brand_application"
+  | "circle_posts"
+  | "circle_post_comments"
   | "status";
 
 type ProfileVisibility = "community" | "followers" | "private";

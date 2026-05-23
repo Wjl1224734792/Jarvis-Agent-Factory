@@ -605,6 +605,8 @@ export const socialService = {
             item.targetType === "rating_target" ||
             item.targetType === "aircraft_submission" ||
             item.targetType === "brand_application" ||
+            item.targetType === "circle_posts" ||
+            item.targetType === "circle_post_comments" ||
             item.targetType === "status"
               ? item.targetType
               : "status";
@@ -767,6 +769,8 @@ export const socialService = {
             item.targetType === "rating_target" ||
             item.targetType === "aircraft_submission" ||
             item.targetType === "brand_application" ||
+            item.targetType === "circle_posts" ||
+            item.targetType === "circle_post_comments" ||
             item.targetType === "status"
               ? item.targetType
               : "status";
