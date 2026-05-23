@@ -929,7 +929,7 @@ export const socialRepo = {
       db
         .select({ count: sql<number>`count(*)` })
         .from(circlePostsTable)
-        .where(sql`${circlePostsTable.reportCount} > 0`),
+        .where(eq(circlePostsTable.status, "pending_review")),
       db
         .select({ count: sql<number>`count(*)` })
         .from(circlePostCommentsTable)

@@ -46,6 +46,10 @@ export function resolveSystemNotificationHref(input: { target: SystemNotificatio
       return explicitHref ?? replaceRouteParam(APP_ROUTES.postDetail, "id", targetId);
     case "ranking":
       return explicitHref ?? replaceRouteParam(APP_ROUTES.rankingDetail, "id", targetId);
+    case "circle_posts":
+      return explicitHref ?? "/admin/moderation/circle-posts";
+    case "circle_post_comments":
+      return explicitHref ?? "/admin/moderation/circle-comments";
     case "status":
     default:
       return explicitHref;

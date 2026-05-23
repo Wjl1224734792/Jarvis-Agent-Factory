@@ -201,7 +201,9 @@ export const userProfileViewerSchema = z.object({
 });
 
 export const userProfileSchema = z.object({
-  user: userSummarySchema,
+  user: userSummarySchema.extend({
+    bio: z.string().nullable().default(null)
+  }),
   followerCount: z.number().int().nonnegative(),
   followingCount: z.number().int().nonnegative(),
   favoriteCount: z.number().int().nonnegative(),

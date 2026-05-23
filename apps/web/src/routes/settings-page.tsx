@@ -71,7 +71,7 @@ import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-fl
 import { settingsNotificationOptions } from "../features/auth/settings-notification-options";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
-const MAX_BIO_LENGTH = 50;
+const MAX_BIO_LENGTH = 300;
 const passwordPolicyHint = "至少 8 位，并同时包含大写字母、小写字母和特殊符号。";
 
 type EditableProfileField = "displayName" | "bio" | "profileVisibility" | null;
@@ -277,6 +277,7 @@ export function SettingsPage() {
     queryClient.setQueryData(["current-user-profile", currentUser.id], {
       item: snapshot
     });
+    void queryClient.invalidateQueries({ queryKey: ["self-profile", currentUser.id] });
   }
 
   function cancelEdit(field: Exclude<EditableProfileField, null>) {

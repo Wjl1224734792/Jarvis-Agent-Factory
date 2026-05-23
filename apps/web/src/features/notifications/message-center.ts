@@ -101,14 +101,17 @@ export function normalizeMessageCenterCategory(value: unknown): MessageCenterCat
 function getKindLabel(type: string | null, fallbackCategory: MessageCenterCategory) {
   switch (type) {
     case "post_liked":
+    case "circle_post_liked":
       return "点赞";
     case "post_favorited":
       return "收藏";
     case "post_shared":
       return "分享";
     case "post_commented":
+    case "circle_post_commented":
       return "评论";
     case "comment_replied":
+    case "circle_comment_replied":
       return "回复";
     case "followed":
       return "新增关注";

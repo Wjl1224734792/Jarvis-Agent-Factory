@@ -189,11 +189,13 @@ export const circlesService = {
     if (active && type === "like") {
       const post = await circlesRepo.findPostById(postId);
       if (post && post.author.id !== userId) {
+        const postCircle = post.circleId ? await circlesRepo.findById(post.circleId) : null;
+        const postHref = postCircle ? `/circles/${postCircle.slug}?post=${postId}` : null;
         await socialService.recordNotification({
           userId: post.author.id,
           actorId: userId,
           type: "circle_post_liked",
-          target: { type: "post", id: postId, title: post.title }
+          target: { type: "post", id: postId, title: post.title, href: postHref }
         });
       }
     }
@@ -229,24 +231,26 @@ export const circlesService = {
     // 通知帖子作者（非自己评论自己）
     const post = await circlesRepo.findPostById(input.postId);
     if (post && post.author.id !== input.authorId) {
+      const postCircle = post.circleId ? await circlesRepo.findById(post.circleId) : null;
+      const postHref = postCircle ? `/circles/${postCircle.slug}?post=${input.postId}` : null;
       await socialService.recordNotification({
         userId: post.author.id,
         actorId: input.authorId,
         type: "circle_post_commented",
-        target: { type: "post", id: input.postId, title: post.title },
+        target: { type: "post", id: input.postId, title: post.title, href: postHref },
         preview: input.content
       });
-    }
 
-    // 如果回复了别人的评论，通知被回复者
-    if (input.replyToUserId && input.replyToUserId !== input.authorId) {
-      await socialService.recordNotification({
-        userId: input.replyToUserId,
-        actorId: input.authorId,
-        type: "circle_comment_replied",
-        target: { type: "comment", id: input.parentCommentId ?? id, title: post?.title ?? "圈子帖子" },
-        preview: input.content
-      });
+      // 如果回复了别人的评论，通知被回复者
+      if (input.replyToUserId && input.replyToUserId !== input.authorId) {
+        await socialService.recordNotification({
+          userId: input.replyToUserId,
+          actorId: input.authorId,
+          type: "circle_comment_replied",
+          target: { type: "comment", id: input.parentCommentId ?? id, title: post.title, href: postHref },
+          preview: input.content
+        });
+      }
     }
 
     try {

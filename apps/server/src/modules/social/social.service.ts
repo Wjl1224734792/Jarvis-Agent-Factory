@@ -878,6 +878,7 @@ export const socialService = {
           id: user.id,
           displayName: user.displayName,
           avatarUrl: await resolvePublicUploadedFileUrl(user.avatarFileId ?? null),
+          bio: user.bio ?? null,
           ipLocationLabel: ipLocationLabelMap.get(targetUserId) ?? null,
           role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
         },

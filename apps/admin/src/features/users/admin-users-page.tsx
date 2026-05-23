@@ -10,7 +10,8 @@ import {
   Select,
   Space,
   Table,
-  Tag
+  Tag,
+  message
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useMemo, useState } from "react";
@@ -133,6 +134,7 @@ export function AdminUsersPage() {
       setBanTarget(null);
       setBanReason("");
       await refreshUsers(banTarget.id);
+      message.success("操作成功");
     } catch (reasonValue: unknown) {
       setActionError(reasonValue instanceof Error ? reasonValue.message : "封禁用户失败");
     } finally {
@@ -146,6 +148,7 @@ export function AdminUsersPage() {
     try {
       await apiClient.unbanAdminUser(user.id);
       await refreshUsers(user.id);
+      message.success("操作成功");
     } catch (reasonValue: unknown) {
       setActionError(reasonValue instanceof Error ? reasonValue.message : "解封用户失败");
     } finally {

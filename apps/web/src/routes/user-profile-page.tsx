@@ -158,9 +158,11 @@ export function UserProfilePage() {
   }
 
   const avatarSrc = resolveUserAvatarSrc(profile.user.avatarUrl);
-  const bioText = profile.viewer.canViewProfile
-    ? "这里展示对方当前开放给你的资料和内容。"
-    : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。";
+  const bioText =
+    profile.user.bio ||
+    (profile.viewer.canViewProfile
+      ? "还没有填写个人简介。"
+      : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。");
   const relationshipSummary = getVisitorProfileRelationshipSummary({
     canViewContent: profile.viewer.canViewContent,
     canFollow: profile.viewer.canFollow,
