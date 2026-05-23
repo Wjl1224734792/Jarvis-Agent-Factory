@@ -11,7 +11,7 @@ import {
   updateSessionMetadata, logSessionEvent, removeSession, addWorkingMemory,
 } from '../db.js';
 import {
-  GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, DEFAULT_PIPELINE,
+  GATE_CHECKS, GATE_DIRS, GATE_CONFIG, PIPELINE_DEFS, DEFAULT_PIPELINE,
   getPipelineGates, getPipelineName, findSessionGateArtifacts, formatGateDisplay,
 } from '../gates.js';
 import { emitEvent } from '../pubsub.js';
@@ -25,6 +25,13 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       const sid = ctx.resolveSid(extra);
       if (!sid) return ctx.resp({ error: 'session_id required. Call session_join first.' });
       const pt = (pipeline_type && VALID_PIPELINE_TYPES.includes(pipeline_type)) ? pipeline_type : DEFAULT_PIPELINE;
+      // 确保不会创建僵尸 run：先 archive 已有 active run
+      const existingActive = getActiveRun(db, sid);
+      if (existingActive) {
+        abortRun(db, existingActive.id);
+        emitEvent('run:changed', { runId: existingActive.id, sessionId: sid, action: 'cancel' });
+        logSessionEvent(db, sid, 'run_replaced', { runId: existingActive.id, detail: `replaced by new pipeline_init at ${new Date().toISOString()}` });
+      }
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
       emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
@@ -90,12 +97,30 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       const target = gate || getPipeline(db, sid)?.current_gate || gateList[0];
       const artifacts = findSessionGateArtifacts(join(root, '.jarvis'), target, sid, db, runId);
       const checkpoints = getCheckpoints(db, target, sid);
-      const allowed = artifacts.length > 0 || checkpoints.length > 0;
+      const artifactsFound = artifacts.length > 0;
+      const checkpointsFound = checkpoints.length > 0;
+      // 验证 entry_condition：检查前置 Gate 的 checkpoint 是否存在
+      const entryCond = GATE_CONFIG[target]?.entry_condition;
+      let entryBlocked: string | null = null;
+      if (entryCond && !checkpointsFound) {
+        const ci = gateList.indexOf(target);
+        if (ci > 0) {
+          const prevGate = gateList[ci - 1];
+          const prevCp = getCheckpoints(db, prevGate, sid);
+          if (prevCp.length === 0) {
+            entryBlocked = `前置 Gate ${prevGate} 未完成：${entryCond}`;
+          }
+        }
+      }
+      const allowed = (artifactsFound || checkpointsFound) && !entryBlocked;
       return ctx.resp(allowed
         ? { gate: target, allowed: true, session_id: sid, run_id: runId, message: `${target} — proceed.` }
         : {
             gate: target, allowed: false, session_id: sid, run_id: runId,
-            blocked_reasons: [artifacts.length ? '' : `No artifacts in .jarvis/${GATE_DIRS[target] || '?'}/`].filter(Boolean),
+            blocked_reasons: [
+              ...(artifactsFound ? [] : [`No artifacts in .jarvis/${GATE_DIRS[target] || '?'}/`]),
+              ...(entryBlocked ? [entryBlocked] : []),
+            ],
             action_required: GATE_CHECKS[target]?.check || '',
           });
     });
@@ -125,12 +150,15 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
           if (gateSubdir) {
             const run = db.prepare('SELECT started_at FROM pipeline_runs WHERE id=?').get(runId) as { started_at: string } | undefined;
             const dateDir = run?.started_at?.slice(0, 10) || null;
-            if (dateDir) {
-              const artifactDir = join(root, '.jarvis', dateDir, gateSubdir);
+            const today = new Date().toISOString().slice(0, 10);
+            // 扫描 run 开始日期和当前日期（覆盖跨午夜场景）
+            for (const dd of [...new Set([dateDir, today])]) {
+              if (!dd) continue;
+              const artifactDir = join(root, '.jarvis', dd, gateSubdir);
               if (existsSync(artifactDir)) {
                 const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
                 for (const f of mdFiles) {
-                  insertArtifact(db, runId, cur, `${dateDir}/${gateSubdir}/${f}`);
+                  insertArtifact(db, runId, cur, `${dd}/${gateSubdir}/${f}`);
                 }
               }
             }
@@ -242,6 +270,13 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       const ti = gateList.indexOf(gate);
       if (ti === -1) return ctx.resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });
       const previousGate = p?.current_gate;
+      // 记录跳过的 Gate checkpoint（标记为 jumped 避免与正常通过的混淆）
+      const curIdx = gateList.indexOf(previousGate);
+      if (curIdx >= 0) {
+        for (let i = curIdx; i < ti; i++) {
+          addCheckpoint(db, gateList[i], gateList[i + 1], sid, undefined);
+        }
+      }
       updatePipelineGate(db, sid, gate);
       if (runId) {
         updateRunGate(db, runId, gate);

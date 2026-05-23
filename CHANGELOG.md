@@ -4,6 +4,26 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.13] - 2026-05-24
+
+### Fixed
+- **引擎核心 Bug 修复（8项）**：`gate_enforce` 验证 `entry_condition`；`pipeline_init` 防僵尸 run；`migrateSession` 迁移全部7表；`gate_check` 未知Gate报错；`working_memory_query` 会话隔离；`gate_jump` 记录checkpoint；`session_leave` 统一resolveSid；`advance_gate` 跨午夜日期扫描
+
+### Changed
+- **Web UI 完善（6项）**：Dashboard `openMdPreview` 传 sessionId；Guide 补全15种流水线；Dashboard 补全30+ Gate标签；RunDetail 改用 api client；删除死代码 `/api/dashboard-stats`；Guide 修复过时引用
+
+### Added
+- **Hooks 模板（5项）**：`PreToolUse` Gate权限检查 / `PostToolUse` 产物记录 / `SessionStart` 引擎注册 / `Stop` 归档提醒 / `UserPromptSubmit` 命令路由
+- `verify-expert` 加入 Gate D can_spawn 列表
+
+### Removed
+- 重复 npm script `jarvis:dev`
+
+## [4.7.12] - 2026-05-24
+
+### Changed
+- CHANGELOG + Web 指南文档同步更新
+
 ## [4.7.11] - 2026-05-24
 
 ### Fixed

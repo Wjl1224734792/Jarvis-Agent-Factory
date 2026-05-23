@@ -394,10 +394,14 @@ export function markStaleSessions(db: DbConn,  timeoutMs: any) {
 export function resumeSession(db: DbConn,  sid: any) {
   db.prepare("UPDATE sessions SET status='active', last_heartbeat=? WHERE id=?").run(Date.now(), sid);
 }
-/** 迁移旧会话的 pipeline 和 checkpoints 到新 sessionId（用于 MCP 重连恢复） */
+/** 迁移旧会话的所有数据到新 sessionId（用于 MCP 重连恢复） */
 export function migrateSession(db: DbConn,  oldSid: any,  newSid: any) {
   db.prepare('UPDATE pipeline SET session_id=? WHERE session_id=?').run(newSid, oldSid);
   db.prepare('UPDATE checkpoints SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.prepare('UPDATE pipeline_runs SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.prepare('UPDATE working_memory SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.prepare('UPDATE session_events SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.prepare('UPDATE session_context SET session_id=? WHERE session_id=?').run(newSid, oldSid);
 }
 export function getOldestSession(db: DbConn) {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();
@@ -768,10 +772,10 @@ export function getWorkingMemory(db: DbConn, sessionId: string, limit = 20) {
   ).all(sessionId, limit);
 }
 
-export function queryWorkingMemory(db: DbConn, query: string, limit = 20) {
+export function queryWorkingMemory(db: DbConn, query: string, sessionId: string, limit = 20) {
   return db.prepare(
-    "SELECT * FROM working_memory WHERE (expires_at IS NULL OR expires_at > datetime('now')) AND content LIKE ? ORDER BY created_at DESC LIMIT ?"
-  ).all(`%${query}%`, limit);
+    "SELECT * FROM working_memory WHERE (expires_at IS NULL OR expires_at > datetime('now')) AND session_id=? AND content LIKE ? ORDER BY created_at DESC LIMIT ?"
+  ).all(sessionId, `%${query}%`, limit);
 }
 
 export function pruneWorkingMemory(db: DbConn) {

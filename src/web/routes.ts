@@ -180,49 +180,6 @@ export function setupApiRoutes(app, db, root) {
   // Health
   app.get('/health', (c) => c.json({ status: 'ok', version: readVersion() }));
 
-  // Dashboard 数据统计
-  app.get('/api/dashboard-stats', (c) => {
-    markStaleSessions(db, SESSION_TIMEOUT);
-    const allSessions = getSessions(db);
-    const activeSessions = allSessions.filter(s => s.status === 'active');
-    const inactiveSessions = allSessions.filter(s => s.status === 'inactive');
-
-    // Pipeline 统计
-    const pipelineTypeCounts: Record<string, number> = {};
-    for (const s of allSessions) {
-      const p = getPipeline(db, s.id);
-      const pt = p?.pipeline_type || 'full';
-      pipelineTypeCounts[pt] = (pipelineTypeCounts[pt] || 0) + 1;
-    }
-
-    // Run 统计
-    const runStats = db.prepare(
-      "SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN status='aborted' THEN 1 ELSE 0 END) as aborted, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active FROM pipeline_runs"
-    ).get();
-
-    // Agent 配置统计
-    const agentCfg = getAgentConfig(db);
-    const configuredAgents = Object.keys(agentCfg).length;
-
-    // Gate 分布
-    const gateDistribution: Record<string, number> = {};
-    for (const s of allSessions) {
-      const p = getPipeline(db, s.id);
-      const g = p?.current_gate || '?';
-      gateDistribution[g] = (gateDistribution[g] || 0) + 1;
-    }
-
-    return c.json({
-      sessions: { total: allSessions.length, active: activeSessions.length, inactive: inactiveSessions.length },
-      runs: runStats || { total: 0, completed: 0, aborted: 0, active: 0 },
-      pipelines: pipelineTypeCounts,
-      gate_distribution: gateDistribution,
-      configured_agents: configuredAgents,
-      project: root.split(/[\\/]/).filter(Boolean).pop() || 'unknown',
-      timestamp: new Date().toISOString(),
-    });
-  });
-
   // 引擎状态 + MCP 平台接入信息
   app.get('/api/status', (c) => {
     markStaleSessions(db, SESSION_TIMEOUT);

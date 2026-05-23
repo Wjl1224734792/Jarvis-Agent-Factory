@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { DatabaseSync } from 'node:sqlite';
 import type { ToolContext } from './types.js';
 import { getPipeline, getActiveRun } from '../db.js';
-import { GATE_CHECKS, DEFAULT_PIPELINE, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy } from '../gates.js';
+import { GATE_CHECKS, GATE_CONFIG, DEFAULT_PIPELINE, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy } from '../gates.js';
 import { sessionGates } from './shared.js';
 
 export function registerGateTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
@@ -24,6 +24,13 @@ export function registerGateTools(server: McpServer, db: DatabaseSync, root: str
       const p = getPipeline(db, sid);
       const gateList = sessionGates(db, sid);
       const cur = p?.current_gate || gateList[0];
+      if (!GATE_CONFIG[cur]) {
+        return ctx.resp({
+          allowed: false, gate: cur, operation, session_id: sid, run_id: runId,
+          blocked_reasons: [`未知 Gate: "${cur}" 不在 GATE_CONFIG 中。有效 Gate: ${gateList.join(', ')}`],
+          error: `Unknown gate: ${cur}`,
+        });
+      }
       const ops = getGateOperations(cur);
       const allowed = ops.allow.includes(operation);
       if (allowed) return ctx.resp({ allowed: true, gate: cur, operation, session_id: sid, run_id: runId, message: `${operation} 在 ${cur} 允许执行` });

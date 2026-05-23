@@ -43,6 +43,12 @@ export const GATE_LABELS: Record<string, string> = {
   'M1': '规则验证', 'M2': '应用迁移', 'M3': '编译验证', 'M4': '修复Lint',
   'E0': '定义标准', 'E1': '生成原型', 'E2': '收集指标', 'E3': '生成报告',
   'D0': '收集信息', 'D1': '复现用例', 'D2': '调试会话', 'D3': '交互诊断', 'D4': '输出报告',
+  'RS0': '课题定义', 'RS1': '信息收集', 'RS2': '深度分析', 'RS3': '假设验证', 'RS4': '研究报告',
+  'RL0': '环境检测', 'RL1': '质量门', 'RL2': '版本递增', 'RL3': '发布执行', 'RL4': '发布验证',
+  'K0': '需求摄入', 'K1': '信息收集', 'K2': '分析综合', 'K3': '交付产出',
+  'S0': '代码分析', 'S1': '简化执行', 'S2': '回归验证', 'S3': '报告产出',
+  'T0': '问题框架', 'T1': '假设生成', 'T2': '证据收集', 'T3': '因果分析', 'T4': '解决方案',
+  'IM0': '目标定义', 'IM1': '研究分析', 'IM2': '计划制定', 'IM3': '执行验证', 'IM4': '评估迭代',
 };
 
 export const GATE_DESCRIPTIONS: Record<string, string> = {
@@ -68,6 +74,22 @@ export const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate E2': '指标数据已收集', 'Gate E3': '评估报告已产出',
   'Gate D0': '异常信息已收集', 'Gate D1': '最小复现用例已生成',
   'Gate D2': '调试会话已启动', 'Gate D3': '根因已定位', 'Gate D4': '诊断报告已产出',
+  'Gate RS0': '研究课题定义：范围+方法论+成功标准', 'Gate RS1': '信息收集清单：代码/文档/网络资源',
+  'Gate RS2': '多维度分析：竞争假设+证据矩阵', 'Gate RS3': '假设验证：证据充分支持/否定',
+  'Gate RS4': '研究报告：结论+建议+后续行动',
+  'Gate RL0': '环境检测：分支/包管理器/版本文件', 'Gate RL1': '质量门：Lint+Type-check+Build+Audit',
+  'Gate RL2': '版本号递增+CHANGELOG更新', 'Gate RL3': 'Commit+Tag+Push+npm publish',
+  'Gate RL4': 'Tag存在+CI已触发+Registry已更新',
+  'Gate K0': '需求摄入：模式选择Interview/Direct/Consensus/Review', 'Gate K1': '信息收集：代码上下文/需求解析/计划加载',
+  'Gate K2': '分析综合：需求分析+计划草案/架构审查', 'Gate K3': '交付产出：结构化计划/共识裁决/优化建议',
+  'Gate S0': '代码分析：复杂度/冗余/AI痕迹清单', 'Gate S1': '简化执行：按分析报告优化，功能不变',
+  'Gate S2': '回归验证：Lint+Type-check+Build+Test', 'Gate S3': '简化报告：before/after对比+统计',
+  'Gate T0': '问题框架：症状+上下文+已知信息+时间线', 'Gate T1': '假设生成：2-5个竞态假设+先验概率',
+  'Gate T2': '证据收集：支持/反对证据+不确定性评估', 'Gate T3': '因果分析：贝叶斯更新+假设排序+根因定位',
+  'Gate T4': '解决方案：推荐修复+验证步骤+预防建议',
+  'Gate IM0': '改进目标：量化指标+基准值+目标值', 'Gate IM1': '研究分析：改进机会识别+优先级排序',
+  'Gate IM2': '改进计划：可测试假设+实现方案+验证方法', 'Gate IM3': '执行验证：实现改进+基准测试',
+  'Gate IM4': '评估迭代：指标对比+继续/停止决策+报告',
 };
 
 export const MARKDOWN_CSS = `
@@ -220,7 +242,7 @@ export default function Dashboard() {
   const openMdPreview = async (filepath: string) => {
     try {
       const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
-      const content = await api.docContent(sanitized);
+      const content = await api.docContent(sanitized, sessionId || undefined);
       setMdPreview({ open: true, content, title: filepath });
     } catch { message.error('文档加载失败'); }
   };

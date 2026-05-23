@@ -18,7 +18,6 @@ Full-stack application (Hono, Vitest/Jest, TypeScript, React). This is the proje
 | agents-page.png | Project file |
 | AGENTS.md | Markdown documentation |
 | archive-page.png | Project file |
-| bun.lock | Project file |
 | CHANGELOG.md | Markdown documentation |
 | CLAUDE.md | Markdown documentation |
 | commands-desktop.png | Project file |
@@ -56,7 +55,7 @@ Full-stack application (Hono, Vitest/Jest, TypeScript, React). This is the proje
 
 ## For AI Agents
 - This is the project root. All agents must read this file on startup.
-- Project type: fullstack using Hono, Vitest/Jest, TypeScript, React, Vitest/Jest, TypeScript.
+- Project type: fullstack using Hono, TypeScript, React, Vitest.
 - Run `npm test` to execute the test suite.
 - Run `npm run build` to compile the project.
 

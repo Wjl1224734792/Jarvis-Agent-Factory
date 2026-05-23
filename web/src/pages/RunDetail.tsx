@@ -45,8 +45,8 @@ export default function RunDetail() {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/pipeline-runs/${encodeURIComponent(runId || '')}/detail`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    if (!runId) return;
+    api.runDetail(runId)
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [runId]);

@@ -137,7 +137,7 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
 
   server.tool('session_leave', '离开会话。', {},
     async (_args, extra) => {
-      const sid = extra?.sessionId;
+      const sid = ctx.resolveSid(extra);
       if (!sid || !getSession(db, sid)) return ctx.resp({ ok: true });
       const activeRuns = db.prepare(
         "SELECT id, task_name, current_gate FROM pipeline_runs WHERE session_id=? AND status='active'"

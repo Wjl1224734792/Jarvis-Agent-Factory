@@ -53,11 +53,11 @@ export function registerMemoryTools(server: McpServer, db: DatabaseSync, root: s
     },
     async ({ query, limit }, extra) => {
       const sid = ctx.resolveSid(extra);
-      if (query) {
-        const results = queryWorkingMemory(db, query, limit || 20) as any[];
-        return ctx.resp({ results, count: results.length, query });
-      }
       if (!sid) return ctx.resp({ ok: false, error: 'session_id required. Call session_join first.' });
+      if (query) {
+        const results = queryWorkingMemory(db, query, sid, limit || 20) as any[];
+        return ctx.resp({ results, count: results.length, session_id: sid, query });
+      }
       const results = getWorkingMemory(db, sid, limit || 20) as any[];
       return ctx.resp({ results, count: results.length, session_id: sid });
     });

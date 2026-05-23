@@ -185,4 +185,7 @@ export const api = {
     return d.projects || [];
   },
 
+  runDetail: (runId: string): Promise<any> =>
+    fetchJSON(`/api/pipeline-runs/${encodeURIComponent(runId)}/detail`),
+
 };

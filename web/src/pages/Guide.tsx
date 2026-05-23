@@ -9,22 +9,28 @@ import { api, CommandsData, CommandItem } from '../api';
 const { Title, Text, Paragraph, Link } = Typography;
 
 const PIPELINE_INFO: Record<string, { name: string; color: string; desc: string }> = {
-  full: { name: '全流程', color: '#52c41a', desc: '1→2→3→...→N 顺序执行所有 Gate' },
-  frontend: { name: '前端', color: '#ff4d4f', desc: '专注前端开发，跳过部署 Gate' },
-  backend: { name: '后端', color: '#1677ff', desc: '专注后端开发，包含部署 Gate' },
-  lite: { name: '轻量', color: '#faad14', desc: '快速开发，跳过审查/安全 Gate' },
-  refactor: { name: '重构', color: '#722ed1', desc: '重构流程，强调测试和审查' },
-  hotfix: { name: '紧急热修复', color: '#cf1322', desc: '极速修复，最小化审批链路' },
-  migrate: { name: '框架迁移', color: '#531dab', desc: '框架/依赖迁移，强化测试' },
-  evaluate: { name: '技术评估', color: '#006d75', desc: '只生成评估报告，不执行代码变更' },
-  debug: { name: '调试诊断', color: '#d46b08', desc: '诊断模式，只分析不修改' },
+  full: { name: '全流程', color: '#52c41a', desc: '需求→任务→计划→实现→质量→测试→评审→发布' },
+  frontend: { name: '前端', color: '#ff4d4f', desc: '专注前端开发，包含视觉验证 Gate' },
+  backend: { name: '后端', color: '#1677ff', desc: '专注后端开发，跳过视觉验证 Gate' },
+  lite: { name: '轻量', color: '#faad14', desc: '快速开发，支持 Gate 入口跳转' },
+  refactor: { name: '重构', color: '#722ed1', desc: '定义边界→基线测试→执行重构→漂移检测→报告' },
+  hotfix: { name: '紧急热修复', color: '#cf1322', desc: '极速修复：声明→修复→验证→审计' },
+  migrate: { name: '框架迁移', color: '#531dab', desc: '规则验证→应用迁移→编译验证→自动修复Lint' },
+  evaluate: { name: '技术评估', color: '#006d75', desc: '定义标准→原型→指标→报告，不执行代码变更' },
+  debug: { name: '调试诊断', color: '#d46b08', desc: '收集→复现→调试→诊断→报告，不修改代码' },
+  research: { name: '深度研究', color: '#2f54eb', desc: '课题定义→信息收集→深度分析→假设验证→报告' },
+  release: { name: '发布', color: '#237804', desc: '环境检测→质量门→版本递增→发布执行→验证' },
+  ask: { name: '需求探询', color: '#eb2f96', desc: '4模式：Interview/Direct/Consensus/Review' },
+  simplify: { name: '代码简化', color: '#13c2c2', desc: '分析→简化→回归验证→报告，不改变功能' },
+  trace: { name: '因果追踪', color: '#fa8c16', desc: '问题框架→假设→证据→因果分析→解决方案' },
+  improve: { name: '自主改进', color: '#a0d911', desc: '目标→研究→计划→执行→评估迭代' },
 };
 
 const CORE_RULES = [
   '所有 Agent 启动时必须读取 AGENTS.md',
   'Session 隔离：每个会话独立流水线状态',
   'Gate 硬约束：操作前必须通过 gate_check',
-  '文档驱动：所有产物遵循 AGENTS.md § L7 规范',
+  '文档驱动：所有产物遵循 AGENTS.md 文档规范',
 ];
 
 export default function Guide() {
@@ -124,7 +130,7 @@ export default function Guide() {
           ))}
         </div>
         <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-          更多细节见 AGENTS.md § L3 流水线体系
+          更多细节见引擎 gates.ts PIPELINE_DEFS
         </Paragraph>
       </Card>
 
@@ -183,7 +189,7 @@ export default function Guide() {
         </Paragraph>
         <Paragraph style={{ marginBottom: 4 }}>
           <Link href="/agents">
-            <LinkOutlined /> 智能体配置 — 71 个 Agent 模型与策略
+            <LinkOutlined /> 智能体配置 — Agent 模型与策略管理
           </Link>
         </Paragraph>
         <Paragraph style={{ marginBottom: 0 }}>
