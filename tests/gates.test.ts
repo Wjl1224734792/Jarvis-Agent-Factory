@@ -537,7 +537,7 @@ describe('findSessionGateArtifacts', () => {
 
   // --- findSessionGateArtifacts 测试：runId 优先 → 回退历史 run 查询 → 无结果返回空 ---
 
-  it('1. 无 runId 时无活跃 run 且无历史 run 时返回空数组', () => {
+  it('1. 无 runId 且无 DB 产物记录时回退文件系统扫描', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-10T12:00:00Z'));
     mockFs.setEntries(DOCS, [{ name: '2026-05-10', isDir: true }]);
@@ -546,7 +546,10 @@ describe('findSessionGateArtifacts', () => {
 
     const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
 
-    expect(result).toEqual([]);
+    expect(result).toEqual([
+      '2026-05-10/requirements/REQ-001.md',
+      '2026-05-10/requirements/REQ-002.md',
+    ]);
     vi.useRealTimers();
   });
 
@@ -573,7 +576,7 @@ describe('findSessionGateArtifacts', () => {
     vi.useRealTimers();
   });
 
-  it('4. 无 runId 时无活跃 run 且无历史 run 时返回空数组', () => {
+  it('4. 无 runId 且无 DB 产物记录时回退文件系统扫描单个文件', () => {
     mockFs.setEntries(DOCS, [{ name: '2026-05-12', isDir: true }]);
     mockFs.setExists(join(DOCS, '2026-05-12', 'requirements'), true);
     mockFs.setEntries(join(DOCS, '2026-05-12', 'requirements'), ['REQ-005.md']);
@@ -582,7 +585,7 @@ describe('findSessionGateArtifacts', () => {
     vi.setSystemTime(new Date('2026-05-12T10:00:00Z'));
 
     const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, mockDb([]));
-    expect(result).toEqual([]);
+    expect(result).toEqual(['2026-05-12/requirements/REQ-005.md']);
     vi.useRealTimers();
   });
 

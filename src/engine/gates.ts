@@ -310,7 +310,7 @@ export function findSessionGateArtifacts(artifactsDir, gate, sessionId, db, runI
   // 按 run_id + gate 精确查询 artifacts 表
   if (runId && db) {
     const rows = getArtifactsByRunAndGate(db, runId, gate);
-    return rows.map(r => r.filepath).slice(0, 5);
+    if (rows.length > 0) return rows.map(r => r.filepath).slice(0, 5);
   }
 
   // 无活跃 run 时回退：查询该会话最近一次 run 的产物记录
@@ -318,10 +318,19 @@ export function findSessionGateArtifacts(artifactsDir, gate, sessionId, db, runI
     const sessionRuns = getSessionRuns(db, sessionId);
     if (sessionRuns.length > 0) {
       const rows = getArtifactsByRunAndGate(db, sessionRuns[0].id, gate);
-      return rows.map(r => r.filepath).slice(0, 5);
+      if (rows.length > 0) return rows.map(r => r.filepath).slice(0, 5);
     }
   }
 
+  // 无 artifacts 记录时仅扫描当日目录（避免跨会话污染）
+  const today = new Date().toISOString().slice(0, 10);
+  const todayDir = join(artifactsDir, today, subdir);
+  if (existsSync(todayDir)) {
+    const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
+    if (mdFiles.length > 0) {
+      return mdFiles.slice(0, 5).map(f => `${today}/${subdir}/${f}`);
+    }
+  }
   return [];
 }
 

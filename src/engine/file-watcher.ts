@@ -26,14 +26,16 @@ function parseArtifactPath(
   const rel = relative(resolve(root, '.jarvis'), fullPath);
   if (rel.startsWith('..')) return null;
 
-  const m = rel.match(/^(\d{4}-\d{2}-\d{2})\/([^/]+)\/.+\.md$/);
+  // 统一为正斜杠（Windows 上 path.relative 返回反斜杠）
+  const normalized = rel.replace(/\\/g, '/');
+  const m = normalized.match(/^(\d{4}-\d{2}-\d{2})\/([^/]+)\/.+\.md$/);
   if (!m) return null;
 
   const dateDir = m[1];
   const subdir = m[2];
 
   for (const [gate, dir] of Object.entries(GATE_DIRS)) {
-    if (dir === subdir) return { gate, dateDir, relPath: rel.replace(/\\/g, '/') };
+    if (dir === subdir) return { gate, dateDir, relPath: normalized };
   }
 
   return null;
