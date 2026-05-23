@@ -184,7 +184,7 @@ const FlatPostItem = memo(function FlatPostItem({
 
   return (
     <div
-      className="flex w-full gap-3 px-4 py-3 text-left border-b border-border/40 hover:bg-gray-100/60 transition-colors cursor-pointer"
+      className="flex w-full gap-3 px-4 py-3 text-left bg-white rounded-lg shadow-sm mb-2 border-b border-border/40 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => onPostClick?.(post.id)}
       onKeyDown={handleKeyDown}
       role="button"

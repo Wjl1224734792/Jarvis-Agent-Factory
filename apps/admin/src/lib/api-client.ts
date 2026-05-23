@@ -629,7 +629,13 @@ const rawApiClient = {
   },
   getAdminRoles() {
     return getJson<{
-      roles: Record<string, string[]>;
+      roles: Array<{
+        name: string;
+        label: string;
+        permissions: string[];
+        description: string;
+        createdAt: string;
+      }>;
     }>(withApiV1Prefix("/admin/roles"));
   },
   updateAdminRole(name: string, permissions: string[]) {
@@ -637,6 +643,18 @@ const rawApiClient = {
       withApiV1Prefix(`/admin/roles/${encodeURIComponent(name)}`),
       { permissions }
     );
+  },
+  /** 圈子管理 — 列表 */
+  listCircles(input?: { keyword?: string; sort?: "hot" | "latest" }) {
+    return sharedClient.listCircles(input);
+  },
+  /** 圈子管理 — 更新 */
+  updateCircle(id: string, input: { name?: string; slug?: string; description?: string; joinMode?: string; isEnabled?: boolean }) {
+    return sharedClient.updateCircle(id, input);
+  },
+  /** 圈子管理 — 删除 */
+  deleteCircle(id: string) {
+    return sharedClient.deleteCircle(id);
   }
 };
 

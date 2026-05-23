@@ -153,13 +153,12 @@ export function AdminLoginPage() {
             </Form.Item>
 
             <Form.Item label="密码" required>
-              <Input
+              <Input.Password
                 onChange={(event) => {
                   setPassword(event.target.value);
                 }}
                 placeholder="请输入密码"
                 prefix={<LockOutlined />}
-                type="password"
                 value={password}
               />
             </Form.Item>

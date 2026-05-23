@@ -12,7 +12,7 @@ export function CirclesPage() {
 
   const circlesQuery = useQuery({
     queryKey: ["admin-circles"],
-    queryFn: () => (apiClient as any).listCircles({ sort: "latest" }) as Promise<{ items: Array<Record<string, unknown>> }>,
+    queryFn: () => apiClient.listCircles({ sort: "latest" }),
   });
 
   const items = circlesQuery.data?.items ?? [];
@@ -21,7 +21,7 @@ export function CirclesPage() {
     if (!editCircle) return;
     setEditLoading(true);
     try {
-      await (apiClient as any).updateCircle(editCircle.id as string, values);
+      await apiClient.updateCircle(editCircle.id as string, values);
       message.success("圈子已更新");
       setEditCircle(null);
       queryClient.invalidateQueries({ queryKey: ["admin-circles"] });
@@ -35,7 +35,7 @@ export function CirclesPage() {
   async function handleDelete(id: string) {
     setDeleteLoading(id);
     try {
-      await (apiClient as any).deleteCircle(id);
+      await apiClient.deleteCircle(id);
       message.success("圈子已删除");
       queryClient.invalidateQueries({ queryKey: ["admin-circles"] });
     } catch (e: any) {

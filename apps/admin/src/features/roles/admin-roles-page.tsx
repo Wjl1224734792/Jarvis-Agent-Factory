@@ -50,37 +50,29 @@ const PERMISSION_TAG_COLORS: Record<string, string> = {
   "system:users": "cyan"
 };
 
-/** 角色中文名映射 */
-const ROLE_LABEL_MAP: Record<string, string> = {
-  super_admin: "超级管理员",
-  admin: "管理员",
-  editor: "编辑",
-  moderator: "审核员",
-  operator: "运营"
-};
-
-/** 角色描述映射 */
-const ROLE_DESCRIPTION_MAP: Record<string, string> = {
-  super_admin: "拥有全部权限，不可修改",
-  admin: "拥有全部权限，不可修改",
-  editor: "内容创作与管理",
-  moderator: "内容审核与治理",
-  operator: "运营工具与发布"
-};
-
 const ROLES_QUERY_KEY = ["admin-roles"];
 
 function buildRolesFromResponse(
-  data: { roles: Record<string, string[]> } | undefined
+  data:
+    | {
+        roles: Array<{
+          name: string;
+          label: string;
+          permissions: string[];
+          description: string;
+          createdAt: string;
+        }>;
+      }
+    | undefined
 ): AdminRoleItem[] {
   if (!data?.roles) {
     return [];
   }
-  return Object.entries(data.roles).map(([name, permissions]) => ({
-    name,
-    label: ROLE_LABEL_MAP[name] ?? name,
-    permissions,
-    description: ROLE_DESCRIPTION_MAP[name] ?? null
+  return data.roles.map((r) => ({
+    name: r.name,
+    label: r.label,
+    permissions: r.permissions,
+    description: r.description ?? null
   }));
 }
 
