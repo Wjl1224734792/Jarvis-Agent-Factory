@@ -5,6 +5,8 @@ import { create } from 'zustand';
 interface SlidePanelState {
   /** 当前打开的帖子 ID */
   postId: string | null;
+  /** 当前帖子所属圈子标识（slug 或 id），为 null 时回退到全局帖子 API */
+  circleId: string | null;
   /** 面板是否打开 */
   isOpen: boolean;
   /** 关闭动画进行中（防止重复触发） */
@@ -14,8 +16,12 @@ interface SlidePanelState {
 }
 
 interface SlidePanelActions {
-  /** 打开面板（pushState + 锁定滚动） */
-  open: (postId: string) => void;
+  /**
+   * 打开面板（pushState + 锁定滚动）。
+   * @param postId 帖子 ID
+   * @param circleId 圈子标识（slug 或 id），传入时使用圈子帖子专属 API
+   */
+  open: (postId: string, circleId?: string | null) => void;
   /** 关闭面板（replaceState + 动画 + 解锁滚动） */
   close: () => void;
   /** popstate 事件处理：根据 URL 决定打开或关闭 */
@@ -60,11 +66,12 @@ const CLOSE_ANIMATION_MS = 300;
 
 export const useSlidePanelStore = create<SlidePanelStore>((set, get) => ({
   postId: null,
+  circleId: null,
   isOpen: false,
   isClosing: false,
   onClose: undefined,
 
-  open(postId) {
+  open(postId, circleId) {
     const state = get();
     // 互斥防护：关闭动画期间不响应新打开请求
     if (state.isClosing) return;
@@ -72,7 +79,7 @@ export const useSlidePanelStore = create<SlidePanelStore>((set, get) => ({
     if (state.isOpen && state.postId === postId) return;
 
     writePostToURL(postId);
-    set({ postId, isOpen: true, isClosing: false });
+    set({ postId, circleId: circleId ?? null, isOpen: true, isClosing: false });
   },
 
   close() {
@@ -86,6 +93,7 @@ export const useSlidePanelStore = create<SlidePanelStore>((set, get) => ({
       const current = get();
       set({
         postId: null,
+        circleId: null,
         isOpen: false,
         isClosing: false,
       });

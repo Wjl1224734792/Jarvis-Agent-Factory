@@ -166,8 +166,8 @@ export function CircleDetailPage() {
 
   // ── 帖子点击 → 打开 SlidePanel ──
   const handlePostClick = useCallback((postId: string) => {
-    useSlidePanelStore.getState().open(postId);
-  }, []);
+    useSlidePanelStore.getState().open(postId, slug ?? null);
+  }, [slug]);
 
   // ── 关注/已关注/圈主 按钮逻辑 ──
   function handleJoinLeave() {

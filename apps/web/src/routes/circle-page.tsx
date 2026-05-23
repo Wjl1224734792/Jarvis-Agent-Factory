@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   APP_ROUTES,
@@ -118,8 +118,12 @@ export function CirclePage() {
   }
 
   // ── 帖子点击回调 → 打开 SlidePanel ──
+  // postId → circleSlug 映射，由 renderItem 回调填充
+  const postCircleMapRef = useRef(new Map<string, string>());
+
   function handlePostClick(postId: string) {
-    useSlidePanelStore.getState().open(postId);
+    const circleSlug = postCircleMapRef.current.get(postId) ?? null;
+    useSlidePanelStore.getState().open(postId, circleSlug);
   }
 
   // ── 主 Feed 查询 ──
@@ -301,14 +305,20 @@ export function CirclePage() {
               onLoadMore={() => {
                 void circleFeedQuery.fetchNextPage();
               }}
-              renderItem={(item: CircleFeedItem) => (
-                <FlatPostItem
-                  key={item.id}
-                  onPostClick={handlePostClick}
-                  post={item}
-                  showSourceCircle
-                />
-              )}
+              renderItem={(item: CircleFeedItem) => {
+                // 填充 postId → circleSlug 映射，供 handlePostClick 使用
+                if (item.circle?.slug) {
+                  postCircleMapRef.current.set(item.id, item.circle.slug);
+                }
+                return (
+                  <FlatPostItem
+                    key={item.id}
+                    onPostClick={handlePostClick}
+                    post={item}
+                    showSourceCircle
+                  />
+                );
+              }}
               refetchFooterErrorMessage={
                 isFeedNextPageError
                   ? `${feedErrorMessage ?? '飞友圈加载失败，请稍后重试。'} 继续上滑将自动重试。`

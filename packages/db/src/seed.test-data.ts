@@ -1096,13 +1096,23 @@ async function seedPostgreSQL() {
   let circlePostCount = 0;
   for (const circleId of CIRCLE_IDS) {
     for (let j = 0; j < 5; j++) {
+      // 70% 帖子有图片 (1-3 张)，30% 无图片；少数帖子用视频替代
+      const hasMedia = Math.random() > 0.3;
+      const useVideo = hasMedia && Math.random() > 0.8;
+      const imageCount = hasMedia && !useVideo ? randInt(1, 3) : 0;
+      const imageIds = Array.from({ length: imageCount }, () =>
+        pick(postContentFileIds)
+      );
+      const videoIds = useVideo ? [pick(postContentFileIds)] : [];
+
       await db.insert(circlePostsTable).values({
         id: uid("cp"),
         circleId,
         authorId: j === 0 ? adminId : pick(regularUsers),
         title: circlePostTitles[circlePostCount % circlePostTitles.length],
         content: circlePostContents[circlePostCount % circlePostContents.length],
-        images: "[]", videos: "[]",
+        images: JSON.stringify(imageIds),
+        videos: JSON.stringify(videoIds),
         hotScore: randInt(10, 200),
         likeCount: randInt(0, 30),
         commentCount: randInt(0, 8),
