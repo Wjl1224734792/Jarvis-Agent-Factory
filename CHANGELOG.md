@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.16] - 2026-05-24
+
+### Fixed
+- **CI Node.js 24 兼容**：添加 `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`，适配 GitHub Actions 2026-06-02 强制升级
+- **CLI help 指令更新**：补充 `remove --engine/--force` 标志 + `hook/resolve/deepinit` 子命令
+- **文档同步**：`cleanup` 指令分类映射 + Web Guide 标签更新
+
 ## [4.7.15] - 2026-05-24
 
 ### Added
