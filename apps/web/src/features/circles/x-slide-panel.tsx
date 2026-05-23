@@ -30,13 +30,15 @@ export function XSlidePanel() {
   const isClosing = useSlidePanelStore(s => s.isClosing);
   const close = useSlidePanelStore(s => s.close);
 
-  // body 滚动锁定
+  // body 滚动锁定——cleanup 时检查 store 状态，避免其他面板实例仍打开时误恢复 overflow
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
-      document.body.style.overflow = '';
+      if (!useSlidePanelStore.getState().isOpen) {
+        document.body.style.overflow = '';
+      }
     };
   }, [isOpen]);
 

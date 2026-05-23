@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Toaster } from "sonner";
 import { Suspense, lazy, useEffect, useMemo, type ReactNode } from "react";
+import { ErrorBoundary } from "./components/error-boundary";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import {
   PublishAircraftPageSkeleton,
@@ -489,7 +490,9 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );

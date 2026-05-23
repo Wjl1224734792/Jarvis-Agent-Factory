@@ -134,8 +134,8 @@ export function CirclePostsAdminPage() {
       await apiClient.updateAdminCirclePostStatus(postId, { status: newStatus });
       message.success("状态更新成功");
       void refetch();
-    } catch {
-      message.error("操作失败");
+    } catch (reason: unknown) {
+      message.error(reason instanceof Error ? reason.message : "操作失败");
     }
   }
 
@@ -177,7 +177,7 @@ export function CirclePostsAdminPage() {
           columns={columns}
           dataSource={items}
           loading={isLoading}
-          pagination={{ current: page, pageSize: 20, onChange: setPage, total: items.length >= 20 ? (page + 1) * 20 : page * 20, showSizeChanger: false }}
+          pagination={{ current: page, pageSize: 20, onChange: setPage, total: items.length < 20 ? page * 20 + items.length : (page + 1) * 20 + 1, showSizeChanger: false }}
           scroll={{ x: 900 }}
         />
       </AdminPanel>

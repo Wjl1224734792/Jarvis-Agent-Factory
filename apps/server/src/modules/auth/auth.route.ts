@@ -421,8 +421,9 @@ authRoute.get(API_ROUTES.admin.roles, requireAdmin, async (context) => {
     if (rows.length > 0) {
       return context.json({ roles: rows });
     }
-  } catch {
-    // roles 表不存在时回退到常量
+  } catch (error) {
+    // roles 表不存在时回退到常量；记录异常便于排查数据库连接/权限问题
+    console.error("[auth] 查询 roles 表失败，回退到内置常量", error);
   }
   const ROLE_LABELS: Record<string, string> = {
     super_admin: "超级管理员",

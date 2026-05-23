@@ -29,7 +29,9 @@ export const dbPool =
   globalCache.__feijiaDbPool ??
   new Pool({
     connectionString: databaseUrl,
-    max: 10
+    max: 10,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000
   });
 
 if (!globalCache.__feijiaDbPool) {

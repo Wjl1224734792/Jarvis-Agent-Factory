@@ -44,7 +44,13 @@ function resolveListenPort(preferred: number): number {
   throw new Error(`Failed to start server. Is port ${preferred} in use?`);
 }
 
-await ensureRedisConnected();
+try {
+  await ensureRedisConnected();
+} catch (error) {
+  logger.error("Redis 连接失败，Server 仍将继续启动（部分功能将降级）", {
+    error: error instanceof Error ? error.message : String(error)
+  });
+}
 const port = resolveListenPort(preferredPort);
 
 Bun.serve({

@@ -898,7 +898,23 @@ export function ModelDetailPage() {
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <div className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-primary">热门机型</div>
-              {hotModels.map((model, index) => (
+              {hotModelsQuery.isError ? (
+                <Alert variant="destructive" className="rounded-none">
+                  <AlertTitle>加载失败</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p>{hotModelsQuery.error.message}</p>
+                    <Button
+                      onClick={() => {
+                        void hotModelsQuery.refetch();
+                      }}
+                      size="xs"
+                      variant="outline"
+                    >
+                      重试
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : hotModels.map((model, index) => (
                 <Link
                   className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.slug}

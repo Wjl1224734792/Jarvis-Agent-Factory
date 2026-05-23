@@ -49,11 +49,15 @@ export async function shouldCountUniqueView(input: {
     return false;
   }
 
-  await ensureRedisConnected();
-  const result = await redis.set(key, "1", {
-    NX: true,
-    EX: VIEW_SESSION_TTL_SECONDS
-  });
-
-  return result === "OK";
+  try {
+    await ensureRedisConnected();
+    const result = await redis.set(key, "1", {
+      NX: true,
+      EX: VIEW_SESSION_TTL_SECONDS
+    });
+    return result === "OK";
+  } catch {
+    // Redis 不可用时降级为非去重模式，直接允许计数
+    return true;
+  }
 }
