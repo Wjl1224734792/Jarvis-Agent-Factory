@@ -352,20 +352,173 @@ const BIO_TEXTS = [
   "低空法规研究员，推动行业发展",
 ];
 
-/** 为本地媒体文件构建 file record 字段（跳过 Kodo 上传，直接使用 /test-media/ 路径） */
-function buildLocalFileRecord(filename: string) {
+/** 为媒体文件构建 Kodo file record 字段 */
+function buildKodoFileRecord(filename: string) {
+  const bucket = process.env.STORAGE_BUCKET?.trim() || "feijia-dev";
+  const region = process.env.STORAGE_REGION?.trim() || "cn-east-1";
+  const keyPrefix = process.env.STORAGE_KEY_PREFIX?.trim() || "uploads";
+
   return {
-    provider: "local",
-    bucket: "",
-    region: "",
-    objectKey: `/test-media/${filename}`,
+    provider: "kodo" as const,
+    bucket,
+    region,
+    objectKey: keyPrefix ? `${keyPrefix}/seed/${filename}` : `seed/${filename}`,
   };
 }
 
 // ==================== Object Storage ====================
 
+/** 获取 Kodo 配置 */
+function getKodoConfig() {
+  const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY?.trim();
+  const bucket = process.env.STORAGE_BUCKET?.trim() || "feijia-dev";
+  const endpoint = process.env.STORAGE_ENDPOINT?.trim() || "https://up-z0.qiniup.com";
+  const kodoRegionId = process.env.KODO_REGION_ID?.trim() || "z0";
+
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error("缺少 Kodo 凭证：STORAGE_ACCESS_KEY_ID 或 STORAGE_SECRET_ACCESS_KEY 未设置");
+  }
+
+  return { accessKeyId, secretAccessKey, bucket, endpoint, kodoRegionId };
+}
+
+/** 上传单个文件到 Kodo（使用直接 HTTP 表单上传） */
+async function uploadFileToKodo(
+  filePath: string,
+  objectKey: string,
+  contentType: string
+): Promise<boolean> {
+  const config = getKodoConfig();
+  const qiniu = await import("qiniu");
+
+  // 生成上传凭证
+  const mac = new qiniu.auth.digest.Mac(config.accessKeyId, config.secretAccessKey);
+  const putPolicy = new qiniu.rs.PutPolicy({
+    scope: `${config.bucket}:${objectKey}`,
+    expires: 900,
+  });
+  const uploadToken = putPolicy.uploadToken(mac);
+
+  // 七牛表单上传地址（根据区域）
+  const uploadUrl = config.endpoint;
+
+  const { readFile } = await import("node:fs/promises");
+  const fileBuffer = await readFile(filePath);
+  const blob = new Blob([fileBuffer], { type: contentType });
+
+  const formData = new FormData();
+  formData.append("file", blob, objectKey.split("/").pop() ?? "file");
+  formData.append("token", uploadToken);
+  formData.append("key", objectKey);
+
+  try {
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+    if (response.ok) {
+      console.log(`  上传成功: ${objectKey}`);
+      return true;
+    }
+    const respText = await response.text().catch(() => "");
+    console.error(`  上传失败 ${objectKey}: HTTP ${response.status} ${respText}`);
+    return false;
+  } catch (err) {
+    console.error(`  上传失败 ${objectKey}:`, (err as Error).message);
+    return false;
+  }
+}
+
+/** 检查文件是否已存在于 Kodo */
+async function checkFileExistsInKodo(objectKey: string): Promise<boolean> {
+  const config = getKodoConfig();
+  const qiniu = await import("qiniu");
+
+  const mac = new qiniu.auth.digest.Mac(config.accessKeyId, config.secretAccessKey);
+  const qiniuConfig = new qiniu.conf.Config({
+    useHttpsDomain: config.endpoint.startsWith("https://"),
+  });
+
+  if (config.kodoRegionId) {
+    qiniuConfig.regionsProvider = qiniu.httpc.Region.fromRegionId(config.kodoRegionId);
+  }
+
+  const bucketManager = new qiniu.rs.BucketManager(mac, qiniuConfig);
+
+  return new Promise<boolean>((resolve) => {
+    void bucketManager.stat(config.bucket, objectKey, (err?: Error, _respBody?: unknown, respInfo?: { statusCode?: number }) => {
+      if (err) {
+        resolve(false);
+        return;
+      }
+
+      // 612 = 文件不存在，404 = 资源不存在
+      if (respInfo?.statusCode === 612 || respInfo?.statusCode === 404) {
+        resolve(false);
+        return;
+      }
+
+      resolve(respInfo?.statusCode === 200);
+    });
+  });
+}
+
+/** 获取需要上传的媒体文件列表 */
+function getMediaFilesToUpload(): Array<{ filename: string; contentType: string }> {
+  return [
+    { filename: "测试头像1.jpg", contentType: "image/jpeg" },
+    { filename: "测试头像2.jpg", contentType: "image/jpeg" },
+    { filename: "封面图1.webp", contentType: "image/webp" },
+    { filename: "封面图2.webp", contentType: "image/webp" },
+    { filename: "封面图3.webp", contentType: "image/webp" },
+    { filename: "封面图4.webp", contentType: "image/webp" },
+    { filename: "文章测试图.jpg", contentType: "image/jpeg" },
+  ];
+}
+
 async function seedObjectStorage() {
-  console.log("\n 跳过云端对象存储上传，使用本地 /test-media/ 路径");
+  console.log("\n 开始上传媒体文件到 Kodo...");
+
+  const { join, dirname } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  // 从当前文件位置向上找仓库根目录（packages/db/src → 仓库根）
+  const currentFileDir = dirname(fileURLToPath(import.meta.url));
+  const repoRoot = join(currentFileDir, "..", "..", "..");
+  const mediaDir = join(repoRoot, "docs", "tests_img-video");
+  const keyPrefix = process.env.STORAGE_KEY_PREFIX?.trim() || "uploads";
+
+  const mediaFiles = getMediaFilesToUpload();
+  let successCount = 0;
+  let skipCount = 0;
+  let failCount = 0;
+
+  for (const { filename, contentType } of mediaFiles) {
+    const objectKey = keyPrefix ? `${keyPrefix}/seed/${filename}` : `seed/${filename}`;
+    const filePath = join(mediaDir, filename);
+
+    // 检查文件是否已存在
+    const exists = await checkFileExistsInKodo(objectKey);
+    if (exists) {
+      console.log(`  跳过（已存在）: ${objectKey}`);
+      skipCount++;
+      continue;
+    }
+
+    // 上传文件
+    const success = await uploadFileToKodo(filePath, objectKey, contentType);
+    if (success) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+
+  console.log(`\n Kodo 上传完成: 成功 ${successCount}, 跳过 ${skipCount}, 失败 ${failCount}`);
+
+  if (failCount > 0) {
+    console.warn(`  注意: ${failCount} 个文件上传失败，seed 流程将继续`);
+  }
 }
 
 // ==================== Redis ====================
@@ -409,10 +562,14 @@ async function seedRedis() {
       suggestedDisplayName: "新飞友", clientIp: "127.0.0.1", userAgent: "TestApp/1.0", deviceLabel: "Test Device",
     }), { EX: 600 });
 
+    // 构建 CDN 基础 URL
+    const cdnBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim() || "http://telkuj4lw.hn-bkt.clouddn.com";
+    const keyPrefix = process.env.STORAGE_KEY_PREFIX?.trim() || "uploads";
+
     await client.set("feed:hot-circle", JSON.stringify(
       Array.from({ length: 10 }, (_, i) => ({
         id: `circle-${i + 1}`, title: `circle-${i + 1}`,
-        mediaPath: `/test-media/封面图${(i % 4) + 1}.webp`, heat: 100 - i * 7,
+        mediaPath: `${cdnBaseUrl}/${keyPrefix}/seed/封面图${(i % 4) + 1}.webp`, heat: 100 - i * 7,
       }))
     ));
     await client.set("feed:hot-models", JSON.stringify(
@@ -580,7 +737,8 @@ async function seedPostgreSQL() {
   console.log("   创建文件记录...");
   const fileEntries: Array<{
     id: string; ownerId: string; postId: string | null; bizType: string;
-    mediaKind: string; objectKey: string; filename: string;
+    mediaKind: string; provider: string; bucket: string; region: string;
+    objectKey: string; filename: string;
     contentType: string; size: number;
   }> = [];
 
@@ -592,7 +750,7 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: fileId, ownerId: USER_IDS[i], postId: null,
       bizType: "avatar", mediaKind: "image",
-      ...buildLocalFileRecord(i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg"),
+      ...buildKodoFileRecord(i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg"),
       filename: i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg",
       contentType: "image/jpeg", size: i % 2 === 0 ? 50000 : 48000,
     });
@@ -606,7 +764,7 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: fileId, ownerId: pick(regularUsers), postId: null,
       bizType: "aircraft-cover-image", mediaKind: "image",
-      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
+      ...buildKodoFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -620,7 +778,7 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "circle-cover-image", mediaKind: "image",
-      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
+      ...buildKodoFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -638,14 +796,14 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: coverFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
       bizType: "post-image", mediaKind: "image",
-      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
+      ...buildKodoFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
     fileEntries.push({
       id: contentFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
       bizType: "post-image", mediaKind: "image",
-      ...buildLocalFileRecord("文章测试图.jpg"),
+      ...buildKodoFileRecord("文章测试图.jpg"),
       filename: "文章测试图.jpg",
       contentType: "image/jpeg", size: 200000,
     });
@@ -659,7 +817,7 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "ranking-cover-image", mediaKind: "image",
-      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
+      ...buildKodoFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -672,7 +830,7 @@ async function seedPostgreSQL() {
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "ranking-item-image", mediaKind: "image",
-      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
+      ...buildKodoFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 80000,
     });
@@ -1005,7 +1163,7 @@ export async function seedMockTestDataDatabase() {
   console.log("  图形验证码: test_captcha_001 (code: TEST01)");
   console.log("  短信验证码: 13800138000 (code: 888888)");
   console.log("  注册令牌: test_reg_001");
-  console.log("\nStorage: 本地 /test-media/ 路径");
+  console.log("\nStorage: Kodo 云端存储");
 }
 
 if (import.meta.main) {
