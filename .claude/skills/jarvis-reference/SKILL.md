@@ -2,7 +2,7 @@
 name: jarvis-reference
 description: "Jarvis 统一参考 — Agent 目录、命令入口、技能注册表、流水线体系、MCP 工具参考、发布协议。Agent/编排者启动时自动加载获取全量能力索引。"
 version: "4.3.8"
-updated: "2026-05-23"
+updated: "2026-05-20"
 user-invocable: false
 ---
 

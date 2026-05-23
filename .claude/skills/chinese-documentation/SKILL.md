@@ -2,7 +2,7 @@
 name: chinese-documentation
 description: 中文技术文档写作规范——排版、术语、结构一步到位，告别机翻味
 version: "4.3.8"
-updated: "2026-05-23"
+updated: "2026-05-14"
 ---
 
 # 中文技术文档写作规范

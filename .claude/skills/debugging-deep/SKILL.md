@@ -2,7 +2,7 @@
 name: debugging-deep
 description: "深度调试方法论——断点诊断、堆栈分析、内存 Dump、事后调试、时间旅行调试。用于复杂 Bug 和疑难问题的深度排查。"
 version: "4.3.8"
-updated: "2026-05-23"
+updated: "2026-05-14"
 ---
 
 # 深度调试方法论

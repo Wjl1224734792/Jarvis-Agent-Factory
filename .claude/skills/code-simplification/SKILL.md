@@ -2,7 +2,7 @@
 name: code-simplification
 description: "代码简化——切斯特顿之栏、500 行规则、在保持行为不变的同时降低复杂度。用于代码能工作但难以阅读或维护时。"
 version: "4.3.8"
-updated: "2026-05-23"
+updated: "2026-05-14"
 ---
 
 # 代码简化

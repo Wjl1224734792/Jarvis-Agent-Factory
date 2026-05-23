@@ -2,7 +2,7 @@
 name: session-memory
 description: 跨会话记忆与上下文注入——自动归档关键决策、注入历史摘要、管理短期工作记忆
 version: "4.4.0"
-updated: "2026-05-23"
+updated: "2026-05-22"
 tags: [memory, session, context, persistence]
 ---
 
