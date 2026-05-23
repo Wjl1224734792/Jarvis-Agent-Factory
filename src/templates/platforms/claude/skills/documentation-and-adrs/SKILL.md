@@ -1,8 +1,8 @@
 ---
 name: documentation-and-adrs
 description: "文档与架构决策记录——ADRs、API 文档、内联文档标准。记录'为什么'而不是'是什么'。用于架构决策、API 变更或功能交付。"
-version: "4.3.8"
-updated: "2026-05-14"
+version: "4.3.9"
+updated: "2026-05-24"
 ---
 
 # 文档与架构决策记录
@@ -103,7 +103,7 @@ for item in items:
 ### 步骤 7：提交与维护
 
 - 把文档放在代码仓库里，和代码一起进行版本管理
-- ADR 放在 `.jarvis/adr/` 目录下
+- ADR 放在 `.jarvis/YYYY-MM-DD/adr/` 目录下（`YYYY-MM-DD` 为当前日期）
 - 在 PR 中引用相关 ADR，让 reviewer 也看到决策背景
 - 每次修改模块时顺手检查并更新相关文档
 
@@ -196,19 +196,19 @@ NNNN-title-with-dashes.md
 **正确示例：**
 
 ```
-.jarvis/adr/0001-use-postgres-for-persistence.md
-.jarvis/adr/0002-adopt-redis-as-cache-layer.md
-.jarvis/adr/0003-migrate-monolith-to-microservices.md
-.jarvis/adr/0004-deprecate-legacy-v1-api.md
+.jarvis/YYYY-MM-DD/adr/0001-use-postgres-for-persistence.md
+.jarvis/YYYY-MM-DD/adr/0002-adopt-redis-as-cache-layer.md
+.jarvis/YYYY-MM-DD/adr/0003-migrate-monolith-to-microservices.md
+.jarvis/YYYY-MM-DD/adr/0004-deprecate-legacy-v1-api.md
 ```
 
 **错误示例：**
 
 ```
-.jarvis/adr/使用Redis做缓存.md          # 中文文件名
-.jarvis/adr/1-redis.md                   # 编号不足 4 位
-.jarvis/adr/0001_use_redis_as_cache.md   # 使用下划线而非连字符
-.jarvis/adr/redis-decision.md            # 没有编号
+.jarvis/adr/使用Redis做缓存.md                    # 缺少日期目录
+.jarvis/adr/1-redis.md                             # 缺少日期目录 + 编号不足 4 位
+.jarvis/YYYY-MM-DD/adr/0001_use_redis.md           # 使用下划线而非连字符
+.jarvis/YYYY-MM-DD/adr/redis-decision.md           # 没有编号
 ```
 
 ---
