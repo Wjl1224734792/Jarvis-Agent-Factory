@@ -1,18 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
+import type { UserCircle } from "@feijia/schemas";
 import { UsersIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiClient } from "@/lib/api-client";
-
-interface CircleItem {
-  id: string;
-  slug: string;
-  name: string;
-  memberCount: number;
-  role?: string | null;
-}
 
 export function ProfileCirclesTab(props: { userId: string }) {
   const circlesQuery = useQuery({
@@ -21,7 +14,7 @@ export function ProfileCirclesTab(props: { userId: string }) {
     enabled: Boolean(props.userId),
   });
 
-  const circles = (circlesQuery.data?.items ?? []) as CircleItem[];
+  const circles: UserCircle[] = circlesQuery.data?.items ?? [];
 
   if (circlesQuery.isLoading) {
     return (

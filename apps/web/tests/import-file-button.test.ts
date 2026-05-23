@@ -18,7 +18,15 @@
  */
 import React from 'react';
 import { render, cleanup } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from 'vitest';
 
 /* ------------------------------------------------------------------ */
 /*   模块 Mock                                                          */
@@ -106,7 +114,7 @@ function stubFileText() {
 /*   模块级 mock 引用                                                    */
 /* ------------------------------------------------------------------ */
 
-type MockFn = ReturnType<typeof vi.fn>;
+type MockFn = Mock;
 let markedMock: { parse: MockFn };
 let mammothMock: { convertToHtml: MockFn };
 let sanitizeMock: MockFn;
@@ -122,13 +130,15 @@ describe('ImportFileButton', () => {
     vi.clearAllMocks();
     restoreFileText = stubFileText();
 
-    markedMock = (await import('marked')).marked as {
-      parse: MockFn;
+    markedMock = {
+      parse: vi.mocked((await import('marked')).marked.parse),
     };
-    mammothMock = (await import('mammoth')) as {
-      convertToHtml: MockFn;
+    mammothMock = {
+      convertToHtml: vi.mocked((await import('mammoth')).convertToHtml),
     };
-    sanitizeMock = (await import('@/lib/sanitize')).sanitizeHtml as MockFn;
+    sanitizeMock = vi.mocked(
+      (await import('@/lib/sanitize')).sanitizeHtml
+    );
 
     sanitizeMock.mockImplementation((html: string) => html);
     markedMock.parse.mockReturnValue('<p>md content</p>');

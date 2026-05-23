@@ -17,3 +17,5 @@ export * from "./search";
 export * from "./admin-logs";
 export * from "./users";
 export * from "./ai";
+export * from "./recommendation-settings";
+export * from "./circles";

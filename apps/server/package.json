@@ -22,6 +22,7 @@
     "@hono/swagger-ui": "^0.6.1",
     "@zhennann/svg-captcha": "^1.5.0",
     "dotenv": "^16.4.7",
+    "opentype.js": "^2.0.0",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.12.9",
     "ip2region.js": "^3.1.8",

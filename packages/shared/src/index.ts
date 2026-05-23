@@ -320,6 +320,10 @@ export const API_ROUTES = {
     commentStatus: (commentId: string) => withApiV1Prefix(`/admin/circles/comments/${commentId}/status`),
     commentReports: (commentId: string) => withApiV1Prefix(`/admin/circles/comments/${commentId}/reports`),
   },
+  recommendation: {
+    adminSettings: withApiV1Prefix("/admin/recommendation/settings"),
+    publicSettings: withApiV1Prefix("/recommendation/settings"),
+  },
   ai: {
     format: withApiV1Prefix("/ai/format"),
     features: withApiV1Prefix("/ai/features"),

@@ -133,6 +133,7 @@ export const siteSettingsTable = pgTable("site_settings", {
     .notNull(),
   moderationModes: text("moderation_modes").default("{}").notNull(),
   aiSettings: text("ai_settings"),
+  recommendationConfig: text("recommendation_config"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

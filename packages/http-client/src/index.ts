@@ -153,7 +153,8 @@ import {
   siteSearchResponseSchema,
   searchQuerySchema,
   type HealthResponse,
-  type UserSummary
+  type UserSummary,
+  type UserCircle
 } from "@feijia/schemas";
 import type { circleFeedResponseSchema } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
@@ -1052,7 +1053,7 @@ export function createApiClient(options: ApiClientOptions) {
         credentials: "include",
       });
       if (!response.ok) throw new Error(`Failed to list user circles: ${response.status}`);
-      return response.json() as Promise<{ items: Record<string, unknown>[] }>;
+      return response.json() as Promise<{ items: UserCircle[] }>;
     },
     async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
