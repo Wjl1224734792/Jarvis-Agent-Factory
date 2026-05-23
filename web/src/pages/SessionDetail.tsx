@@ -196,7 +196,7 @@ export default function SessionDetail() {
         </Card>
       )}
 
-      {/* 内容区：中间文档预览区 + 右侧 Gate 时间线边栏 */}
+      {/* 内容区：中间文档预览区 + 右侧 Gate 流水线边栏 */}
       {hasPipeline && (
       <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
         {/* 中间：文档预览预留区域 */}

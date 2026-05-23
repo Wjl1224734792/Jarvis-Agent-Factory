@@ -530,7 +530,7 @@ export default function Dashboard() {
           { color: 'var(--ant-color-primary)', content: <strong>预览产物文档</strong> },
           { color: 'var(--ant-color-primary)', content: '中间区域展示当前 Gate 的产物文档卡片列表，点击卡片打开 Markdown 阅读器预览' },
           { color: 'var(--ant-color-primary)', content: <strong>追踪 Gate 步骤</strong> },
-          { color: 'var(--ant-color-primary)', content: '右侧栏 Gate Timeline 展示各 Gate 状态与耗时，点击可预览对应文档产物' },
+          { color: 'var(--ant-color-primary)', content: '右侧栏 2列网格展示各 Gate 状态与耗时，点击可预览对应文档产物' },
           { color: 'var(--ant-color-primary)', content: <strong>调整右侧栏宽度</strong> },
           { color: 'var(--ant-color-primary)', content: '拖拽中间与右侧栏之间的分割线可调整右侧栏宽度，适配不同屏幕' },
           { color: 'var(--ant-color-primary)', content: <strong>实时状态推送（SSE）</strong> },

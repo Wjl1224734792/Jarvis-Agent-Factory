@@ -4,6 +4,23 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.11] - 2026-05-24
+
+### Fixed
+- **修复产物文档扁平化生成**：`documentation-and-adrs` skill 指示 ADR 路径从 `.jarvis/adr/` 改为 `.jarvis/YYYY-MM-DD/adr/`，与引擎日期目录要求一致
+- 移除 `test-integration` 中 `.jarvis/contracts/` flat 路径引用
+
+## [4.7.10] - 2026-05-24
+
+### Changed
+- **前端智能体注册 `browser-use` skill**：`frontend-dev-expert` 始终加载 `browser-use`，开发时可交互浏览器做视觉验证
+- 视觉验证 CLI 从 `agent-browser` 切换为 `browser-use`
+
+## [4.7.9] - 2026-05-23
+
+### Changed
+- **会话详情页 Gate 流水线改为 2 列网格布局**：从垂直 Timeline 改为紧凑的 CSS Grid 2列，文档预览区获得更多垂直空间
+
 ## [4.6.4] - 2026-05-21
 
 ### Removed
