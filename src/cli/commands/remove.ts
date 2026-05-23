@@ -1,5 +1,6 @@
 import { resolve, join } from 'node:path';
 import { existsSync, rmSync, readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { resolveScope } from '../utils/scope.js';
 import { resolveTarget } from '../utils/resolve.js';
 import { PLATFORMS, ALL_PLATFORMS, GLOBAL_ROOTS } from '../utils/constants.js';
@@ -26,12 +27,23 @@ function loadHashes(hashFilePath: string): Record<string, unknown> {
 
 /**
  * 细粒度移除——只删除 jarvis 安装的文件，保护用户自定义内容
+ *
+ * jarvis remove [platform] [path] [flags]
+ *
+ * Flags:
+ *   --dry-run   仅预览，不执行删除
+ *   --list      列出会被删除的文件
+ *   --engine    同时清理 .jarvis/ 引擎数据（数据库 + 产物文档 + 归档）
+ *   --force     跳过确认提示（非交互模式）
+ *   --global    清理用户全局 ~ 目录下的配置
  */
 export async function execute(opts: CliOpts, positional: string[]): Promise<void> {
   const platforms: string[] = [];
   let path = '.';
   let dryRun = false;
   let listOnly = false;
+  let cleanEngine = false;
+  let force = false;
 
   // 解析参数
   for (let i = 1; i < positional.length; i++) {
@@ -40,6 +52,10 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
       dryRun = true;
     } else if (p === '--list') {
       listOnly = true;
+    } else if (p === '--engine') {
+      cleanEngine = true;
+    } else if (p === '--force') {
+      force = true;
     } else if (PLATFORMS[p]) {
       platforms.push(p);
     } else if (!p.startsWith('-')) {
@@ -48,7 +64,7 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
   }
 
   if (platforms.length === 0) {
-    if (positional.length <= 1 + (dryRun ? 1 : 0) + (listOnly ? 1 : 0)) {
+    if (positional.length <= 1 + (dryRun ? 1 : 0) + (listOnly ? 1 : 0) + (cleanEngine ? 1 : 0)) {
       platforms.push(...ALL_PLATFORMS);
     } else {
       console.error('\n❌  No valid platform specified.\n');
@@ -65,11 +81,23 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
   if (listOnly) {
     console.log(`\n📋 Jarvis-tracked files — ${isGlobal ? '~ (全局)' : target}\n`);
     printTrackedFiles(platforms, target, isGlobal, hashes);
+    if (cleanEngine) printEngineData(target, isGlobal);
+    return;
+  }
+
+  // 引擎数据清理需确认（安全保护）
+  if (cleanEngine && !force && !dryRun) {
+    console.log(`\n⚠️  --engine 将删除 .jarvis/ 目录下所有引擎数据：`);
+    printEngineData(target, isGlobal);
+    console.log(`\n这包括 SQLite 数据库、产物文档、归档记录等不可恢复的数据。`);
+    console.log(`如需继续，请添加 --force 标志。\n`);
     return;
   }
 
   const mode = dryRun ? '🔍 DRY RUN' : '🗑';
-  console.log(`\n${mode} Removing jarvis-installed configs — ${isGlobal ? '~ (全局)' : target}\n`);
+  const scope = isGlobal ? '~ (全局)' : target;
+  const what = cleanEngine ? 'configs + engine data' : 'configs';
+  console.log(`\n${mode} Removing jarvis ${what} — ${scope}\n`);
 
   let totalRemoved = 0;
   for (const name of platforms) {
@@ -96,14 +124,133 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
     removeJarvisMcp(name, target, isGlobal, dryRun);
   }
 
-  // 清理 hash 记录文件本身
-  if (!dryRun && existsSync(hashFilePath)) {
+  // 清理引擎数据（需显式 --engine）
+  if (cleanEngine) {
+    totalRemoved += removeEngineData(target, isGlobal, dryRun);
+  }
+
+  // 清理 hash 记录文件本身（引擎数据清理时一并处理）
+  if (!cleanEngine && !dryRun && existsSync(hashFilePath)) {
     rmSync(hashFilePath);
     console.log(`  - ${hashFilePath}`);
     totalRemoved++;
   }
 
   console.log(`\n✅ ${dryRun ? 'DRY RUN complete (no changes made)' : 'Done!'} (${totalRemoved} items removed)\n`);
+}
+
+/**
+ * 清理 .jarvis/ 引擎数据目录
+ * 仅当显式传入 --engine 时调用，包含：
+ *   - engine.db / engine.db-wal / engine.db-shm（SQLite 数据库）
+ *   - engine.pid（进程锁）
+ *   - YYYY-MM-DD/（产物文档日期目录）
+ *   - flows/（已保存的流程 Skill）
+ *   - tmp/（临时文件）
+ *   - README.md（自动生成的说明）
+ *   - file-hashes.json（安装记录）
+ */
+function removeEngineData(target: string, isGlobal: boolean, dryRun: boolean): number {
+  const jarvisDir = isGlobal
+    ? resolve(homedir(), '.jarvis')
+    : resolve(target, '.jarvis');
+
+  if (!existsSync(jarvisDir)) {
+    console.log(`  ⏭  .jarvis/ not found`);
+    return 0;
+  }
+
+  let removed = 0;
+  try {
+    const entries = readdirSync(jarvisDir);
+    for (const entry of entries) {
+      const fullPath = join(jarvisDir, entry);
+      const isDir = statSync(fullPath).isDirectory();
+
+      // 保留用户可能自己的文件（不匹配已知 Jarvis 模式的跳过）
+      if (isDir) {
+        // 日期目录 (YYYY-MM-DD) 或 flows/tmp/requirements
+        if (/^\d{4}-\d{2}-\d{2}$/.test(entry) || entry === 'flows' || entry === 'tmp' || entry === 'requirements') {
+          const fileCount = countFiles(fullPath);
+          if (!dryRun) rmSync(fullPath, { recursive: true });
+          console.log(`  - .jarvis/${entry}/ (${fileCount} files)`);
+          removed += fileCount;
+        } else {
+          console.log(`  ⏭  .jarvis/${entry}/ (skipped, not Jarvis-managed)`);
+        }
+      } else {
+        // engine.db*, engine.pid, README.md, file-hashes.json, priority-context.md
+        const isJarvisFile = /^(engine\.db|engine\.db-wal|engine\.db-shm|engine\.pid|file-hashes\.json|priority-context\.md|README\.md)$/.test(entry);
+        if (isJarvisFile) {
+          if (!dryRun) rmSync(fullPath);
+          console.log(`  - .jarvis/${entry}`);
+          removed++;
+        } else {
+          console.log(`  ⏭  .jarvis/${entry} (skipped, not Jarvis-managed)`);
+        }
+      }
+    }
+
+    // 删除空的 .jarvis/ 目录
+    try {
+      const remaining = readdirSync(jarvisDir);
+      if (remaining.length === 0 && !dryRun) {
+        rmSync(jarvisDir);
+        console.log(`  - .jarvis/ (empty dir removed)`);
+      }
+    } catch { /* ignore */ }
+  } catch { /* ignore */ }
+
+  return removed;
+}
+
+/** 递归计算目录中的文件数 */
+function countFiles(dir: string): number {
+  let count = 0;
+  try {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) {
+        count += countFiles(p);
+      } else {
+        count++;
+      }
+    }
+  } catch { /* ignore */ }
+  return count;
+}
+
+/** 打印引擎数据内容（预览用） */
+function printEngineData(target: string, isGlobal: boolean): void {
+  const jarvisDir = isGlobal
+    ? resolve(homedir(), '.jarvis')
+    : resolve(target, '.jarvis');
+
+  if (!existsSync(jarvisDir)) {
+    console.log('  (no .jarvis/ directory)');
+    return;
+  }
+
+  try {
+    for (const entry of readdirSync(jarvisDir)) {
+      const p = join(jarvisDir, entry);
+      const isDir = statSync(p).isDirectory();
+      if (isDir && /^\d{4}-\d{2}-\d{2}$/.test(entry)) {
+        console.log(`  .jarvis/${entry}/ (${countFiles(p)} files)`);
+      } else if (isDir) {
+        console.log(`  .jarvis/${entry}/`);
+      } else {
+        const size = statSync(p).size;
+        console.log(`  .jarvis/${entry} (${formatSize(size)})`);
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 /**

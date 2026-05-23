@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.15] - 2026-05-24
+
+### Added
+- **CLI `remove` 增强**：新增 `--engine` 标志清理 `.jarvis/` 引擎数据（数据库+产物文档+归档）；新增 `--force` 标志跳过确认提示；引擎数据清理仅删已知 Jarvis 文件（日期目录/flows/tmp/engine.db*），保护用户自有文件
+- 新增 `/cleanup` slash 命令模板，支持在 Claude Code 会话中安全清理
+
 ## [4.7.14] - 2026-05-24
 
 ### Fixed
