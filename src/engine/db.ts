@@ -396,12 +396,19 @@ export function resumeSession(db: DbConn,  sid: any) {
 }
 /** 迁移旧会话的所有数据到新 sessionId（用于 MCP 重连恢复） */
 export function migrateSession(db: DbConn,  oldSid: any,  newSid: any) {
-  db.prepare('UPDATE pipeline SET session_id=? WHERE session_id=?').run(newSid, oldSid);
-  db.prepare('UPDATE checkpoints SET session_id=? WHERE session_id=?').run(newSid, oldSid);
-  db.prepare('UPDATE pipeline_runs SET session_id=? WHERE session_id=?').run(newSid, oldSid);
-  db.prepare('UPDATE working_memory SET session_id=? WHERE session_id=?').run(newSid, oldSid);
-  db.prepare('UPDATE session_events SET session_id=? WHERE session_id=?').run(newSid, oldSid);
-  db.prepare('UPDATE session_context SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.exec('BEGIN');
+  try {
+    db.prepare('UPDATE pipeline SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.prepare('UPDATE checkpoints SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.prepare('UPDATE pipeline_runs SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.prepare('UPDATE working_memory SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.prepare('UPDATE session_events SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.prepare('UPDATE session_context SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
 }
 export function getOldestSession(db: DbConn) {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();

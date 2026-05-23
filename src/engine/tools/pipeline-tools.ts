@@ -233,6 +233,11 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       if (!sid) return ctx.resp({ error: 'session_id required. Call session_join first.' });
       const data = getResumeData(db, run_id);
       if (!data) return ctx.resp({ ok: false, error: `No resume data found for run: ${run_id}`, resumed: false });
+      // 所有权检查：确保 run 属于当前会话
+      const run = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(run_id) as { session_id?: string } | undefined;
+      if (!run || run.session_id !== sid) {
+        return ctx.resp({ ok: false, error: 'Run does not belong to this session', resumed: false });
+      }
       if (data.gate) {
         updatePipelineGate(db, sid, data.gate as string);
       }
