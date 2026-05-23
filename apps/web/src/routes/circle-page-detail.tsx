@@ -199,6 +199,13 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
 
   // ── 关注切换 ──
   const handleToggleFollow = useCallback(() => {
+    if (authStatus !== 'authenticated') {
+      promptLogin({
+        title: '登录后才能关注',
+        description: '关注作者前请先登录。',
+      });
+      return;
+    }
     if (!selectedNote) {
       return;
     }
@@ -247,7 +254,7 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
         }
       );
     });
-  }, [postId, selectedNote, queryClient]);
+  }, [postId, selectedNote, queryClient, authStatus, promptLogin]);
 
   // ── 重试 ──
   const handleRetry = useCallback(() => {

@@ -7,6 +7,7 @@ import { SitePage } from '@/components/site-shell';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useLoginPrompt } from '@/features/auth/use-login-prompt';
 import { CreatePostModal } from '@/features/circles/create-post-modal';
 import { FlatPostItem } from '@/features/circles/flat-post-item';
 import type { CircleFeedItem } from '@/features/circles/flat-post-item';
@@ -122,6 +123,7 @@ function CircleDetailSkeleton() {
 export function CircleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const isAuthenticated = useAuthStore((s) => s.status === 'authenticated');
+  const promptLogin = useLoginPrompt();
 
   // ── SlidePanel URL 同步 ──
   useSlidePanelURLSync();
@@ -168,6 +170,13 @@ export function CircleDetailPage() {
 
   // ── 关注/已关注/圈主 按钮逻辑 ──
   function handleJoinLeave() {
+    if (!isAuthenticated) {
+      promptLogin({
+        title: '登录后才能关注圈子',
+        description: '关注圈子前请先登录。',
+      });
+      return;
+    }
     if (!circleId) return;
     void (async () => {
       try {
@@ -311,7 +320,7 @@ export function CircleDetailPage() {
           {/* 关注/已关注按钮 */}
           <div className="mt-4 flex justify-end">
             <Button
-              disabled={!isAuthenticated || (circle.viewerRole as string) === 'owner'}
+              disabled={(circle.viewerRole as string) === 'owner'}
               onClick={handleJoinLeave}
               size="sm"
               variant={

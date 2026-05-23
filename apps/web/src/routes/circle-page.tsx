@@ -123,6 +123,7 @@ export function CirclePage() {
   }
 
   // ── 主 Feed 查询 ──
+  // 关注 Tab 仅在已登录时发起请求，避免匿名用户无意义的 API 调用
   const feedApiTab = activeTab;
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ['circle-feed', feedApiTab],
@@ -133,7 +134,7 @@ export function CirclePage() {
         limit: 20,
       }),
     getNextPageParam: (lastPage) => resolveFeedNextCursor(lastPage),
-    enabled: true,
+    enabled: activeTab === 'recommended' || authStatus === 'authenticated',
   });
 
   const posts = useMemo<CircleFeedItem[]>(
