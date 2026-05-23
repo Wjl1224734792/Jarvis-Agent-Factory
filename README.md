@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.7.6-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/dynamic/json?color=green&label=version&query=version&url=https%3A%2F%2Fraw.githubusercontent.com%2FWjl1224734792%2FJarvis-Agent-Factory%2Fmain%2Fpackage.json)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,19 +9,24 @@
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
-> **v4.7.6** — 产物会话隔离 + 删除无效扁平复制 + 简化模型配置 + 端口隔离 + 46 MCP 工具
-
 ## 快速开始
 
 **懒人模式** — 复制这句话粘贴到 Claude Code，让 AI 帮你自动安装：
 
 > 打开 https://github.com/Wjl1224734792/Jarvis-Agent-Factory 帮我安装配置好 Jarvis Agent Factory，按照项目 QUICKSTART.md 的快速开始步骤操作即可，装好之后运行 jarvis init -y
 
-**手动安装（3 步）：**
+**手动安装（2 步）：**
 
 ```bash
 npm i -g jarvis-agent-factory   # 安装 CLI（零原生依赖，node:sqlite 内置）
 jarvis init -y                   # 一键部署配置 + MCP + 钩子
+```
+
+**卸载清理：**
+
+```bash
+jarvis remove claude --engine --force   # 项目级：配置 + 引擎数据
+jarvis remove claude -g --engine --force # 全局级：用户目录所有 Jarvis 文件
 ```
 
 📖 **完整安装指南、CLI 命令、环境变量、MCP 配置** → [QUICKSTART.md](./QUICKSTART.md)
@@ -48,6 +53,7 @@ jarvis init -y                   # 一键部署配置 + MCP + 钩子
 | **智能 env 合并** | `jarvis init` 增量合并 settings.json env，保护用户自定义环境变量 |
 | **Hook/Plugin** | Claude Code hooks + MCP 全覆盖 |
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
+| **智能卸载** | `jarvis remove` Hash 精确匹配 + `--engine` 清理引擎数据，不误删用户文件 |
 | **零原生依赖** | Node 22.5+ 内置 `node:sqlite`，安装秒级完成 |
 
 ## 平台维护状态
@@ -135,7 +141,7 @@ jarvis init -y                   # 一键部署配置 + MCP + 钩子
 | 会话详情 | `/session/:id` | Gate 时间线 · 产物文档预览 · Markdown 阅读器 |
 | 知识库 | `/wiki` | 项目知识库浏览 · 搜索/分类筛选 · Markdown 渲染 |
 | 使用指南 | `/guide` | 快速开始 · 核心约束 · 指令参考 · 资源链接 |
-| 指令参考 | `/commands` | 34条指令流程详解 · 72个Agent目录 · 流水线架构 |
+| 指令参考 | `/commands` | 35条指令流程详解 · 72个Agent目录 · 流水线架构 |
 | 智能体配置 | `/agents` | Agent 搜索/筛选 · 模型/思考等级配置 |
 | 归档记录 | `/archive` | 已归档运行记录 · 搜索过滤 · 恢复/删除 |
 
@@ -234,6 +240,7 @@ test-doc-writer → test-executor → remediation-expert
 | 完整发布流 | `/publish` |
 | 快速发布 | `/release` |
 | 文档同步 | `/sync` |
+| 安全清理 | `/cleanup` |
 | 流程管理 | `/skill-flow` |
 
 ## 统计
@@ -241,8 +248,9 @@ test-doc-writer → test-executor → remediation-expert
 | | Claude Code |
 |---|:--:|
 | Agents | 72 |
-| Commands | 34 |
+| Commands | 35 |
 | Skills | 35 |
+| CLI 命令 | 11 (`init`/`add`/`remove`/`upgrade`/`diff`/`engine`/`web`/`hook`/`doctor`/`deepinit`/`resolve`) |
 | Pipeline | 15 条流水线（full/lite/frontend/backend/refactor/hotfix/migrate/evaluate/debug/research/release/ask/simplify/trace/improve） |
 | 钩子 | settings.json |
 | MCP | `.mcp.json` |
@@ -284,7 +292,7 @@ test-doc-writer → test-executor → remediation-expert
 
 ## 命令流程图
 
-每个 Claude Code 命令的完整介绍，包含项目概览、34条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、72个智能体目录、流水线架构和使用推荐。启动引擎后访问 `/commands` 查看项目介绍与指令参考。
+每个 Claude Code 命令的完整介绍，包含项目概览、35条指令的详细流程（含 Gate 序列和 Agent spawn 关系）、72个智能体目录、流水线架构和使用推荐。启动引擎后访问 `/commands` 查看项目介绍与指令参考。
 
 | 分类 | 命令 | 流程图 | Gate 序列 |
 |------|------|--------|----------|
@@ -325,6 +333,7 @@ test-doc-writer → test-executor → remediation-expert
 | **核心编排** | `/publish` | [publish.md](docs/flows/publish.md) | 环境检测→质量门→测试→版本→commit→push→PR→合并→tag→发布 |
 | | `/sync` | [sync.md](docs/flows/sync.md) | 检查并同步核心文档与代码一致性 |
 | | `/skill-flow` | [skill-flow.md](docs/flows/skill-flow.md) | 会话流程导出为Skill模板(export/save/list/apply) |
+| **会话管理** | `/cleanup` | [cleanup.md](docs/flows/cleanup.md) | Hash精确匹配+引擎数据清理，不误删用户文件 |
 | | `/browser-explore` | [browser-explore.md](docs/flows/browser-explore.md) | browser-use自主探索+UI bug发现+结构化报告 |
 | | `/task-bdd` | [task-bdd.md](docs/flows/task-bdd.md) | BDD行为驱动：Gherkin场景编写 |
 | | `/task-ddd` | [task-ddd.md](docs/flows/task-ddd.md) | DDD领域驱动：聚合/实体/值对象分析 |
