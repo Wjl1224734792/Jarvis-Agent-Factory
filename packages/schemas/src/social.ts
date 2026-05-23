@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { userSummarySchema } from "./auth";
+import { paginationMetaSchema, paginationQuerySchema, userSummarySchema } from "./auth";
 import { chinaMainlandMobilePhoneSchema } from "./phone";
 import { powerTypeSchema } from "./models";
 import { APP_ROUTES } from "@feijia/shared";
@@ -416,6 +416,22 @@ export const userContentResponseSchema = z.object({
   items: z.array(userContentItemSchema)
 });
 
+export const userCommentItemSchema = z.object({
+  id: z.string().min(1),
+  postId: z.string().min(1),
+  postTitle: z.string().min(1).nullable().default(null),
+  content: z.string().min(1),
+  likeCount: z.number().int().nonnegative(),
+  createdAt: z.string().datetime()
+});
+
+export const userCommentListQuerySchema = paginationQuerySchema;
+
+export const userCommentListResponseSchema = z.object({
+  items: z.array(userCommentItemSchema),
+  meta: paginationMetaSchema
+});
+
 const adminAnalyticsCountSchema = z.number().int().nonnegative();
 
 export const adminAnalyticsSeriesPointSchema = z.object({
@@ -556,3 +572,4 @@ export type MessageCard = z.infer<typeof messageCardSchema>;
 export type AdminMessageDomain = z.infer<typeof adminMessageDomainSchema>;
 export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;
 export type UserContentItem = z.infer<typeof userContentItemSchema>;
+export type UserCommentItem = z.infer<typeof userCommentItemSchema>;

@@ -280,6 +280,8 @@ export function ContentFeedListRow(props: {
   onDelete?: (item: ContentItem) => void;
   deletingId?: string | null;
   viewer?: "self" | "visitor";
+  /** 在管理区域底部追加自定义操作按钮 */
+  extraAction?: React.ReactNode;
 }) {
   const { item, index } = props;
   const viewer = props.viewer ?? "self";
@@ -347,14 +349,14 @@ export function ContentFeedListRow(props: {
   );
 
   const management =
-    props.showManagement ? (
+    props.showManagement || props.extraAction ? (
       <div className="flex shrink-0 flex-col items-stretch gap-1.5 self-start pt-0.5 sm:min-w-22">
-        {manageHref ? (
+        {props.showManagement && manageHref ? (
           <Button asChild className="h-8 px-2.5 text-[0.76rem]" size="sm" type="button" variant="outline">
             <Link to={manageHref}>编辑</Link>
           </Button>
         ) : null}
-        {props.onDelete && (item.type === "post" || item.type === "aircraft" || item.type === "rating-target") ? (
+        {props.showManagement && props.onDelete && (item.type === "post" || item.type === "aircraft" || item.type === "rating-target") ? (
           <Button
             className="h-8 px-2.5 text-[0.76rem]"
             disabled={props.deletingId === item.id}
@@ -371,6 +373,7 @@ export function ContentFeedListRow(props: {
             {props.deletingId === item.id ? "处理中..." : "删除"}
           </Button>
         ) : null}
+        {props.extraAction}
       </div>
     ) : null;
 

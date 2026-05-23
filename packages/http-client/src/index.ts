@@ -133,6 +133,8 @@ import {
   updatePostCommentInputSchema,
   updatePostInputSchema,
   updateRankingStatusInputSchema,
+  userCommentListQuerySchema,
+  userCommentListResponseSchema,
   userContentResponseSchema,
   userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
@@ -1473,6 +1475,21 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, userContentResponseSchema);
+    },
+    async listUserComments(userId: string, input?: { page?: number; pageSize?: number }) {
+      const query = userCommentListQuerySchema.parse(input ?? {});
+      const search = new URLSearchParams();
+      search.set("page", String(query.page));
+      search.set("pageSize", String(query.pageSize));
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.users.comments(userId)}?${search.toString()}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, userCommentListResponseSchema);
     },
     async listContentCategories() {
       const response = await fetch(`${baseUrl}${API_ROUTES.content.categories}`, {

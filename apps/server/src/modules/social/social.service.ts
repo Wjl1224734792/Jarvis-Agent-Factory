@@ -1091,6 +1091,46 @@ export const socialService = {
 
     return { kind: "ok" as const, items };
   },
+  async listUserComments(
+    targetUserId: string,
+    currentUserId: string | null | undefined,
+    query: { page: number; pageSize: number }
+  ) {
+    const user = await socialRepo.getUserById(targetUserId);
+    if (!user || user.role !== "user") {
+      return { kind: "not_found" as const };
+    }
+    const isSelf = currentUserId === targetUserId;
+    const [settings, isFollowing] = await Promise.all([
+      socialRepo.getResolvedUserSettings(targetUserId),
+      currentUserId && !isSelf
+        ? socialRepo.isFollowing(currentUserId, targetUserId)
+        : Promise.resolve(false)
+    ]);
+    const canViewContent = canViewProfileContent({
+      profileVisibility: settings.profileVisibility,
+      isSelf,
+      isFollowing
+    });
+    if (!canViewContent) {
+      return { kind: "forbidden" as const };
+    }
+
+    const result = await socialRepo.listUserComments(targetUserId, query.page, query.pageSize);
+
+    return {
+      kind: "ok" as const,
+      items: result.items.map((item) => ({
+        id: item.id,
+        postId: item.postId,
+        postTitle: item.postTitle ?? null,
+        content: item.content,
+        likeCount: item.likeCount,
+        createdAt: item.createdAt.toISOString()
+      })),
+      meta: result.meta
+    };
+  },
   async getCurrentUserProfile(currentUserId: string) {
     const [user, settings, ipLocationLabelMap] = await Promise.all([
       socialRepo.getCurrentUserProfile(currentUserId),

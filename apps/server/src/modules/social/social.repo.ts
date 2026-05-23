@@ -1006,6 +1006,45 @@ export const socialRepo = {
 
     return rows[0] ?? null;
   },
+  /**
+   * 分页查询指定用户发表的帖子评论，关联帖子标题。
+   * @param userId - 用户 ID
+   * @param page - 页码（从 1 开始）
+   * @param pageSize - 每页条数
+   * @returns 评论列表与分页元数据
+   */
+  async listUserComments(userId: string, page: number, pageSize: number) {
+    const offset = (page - 1) * pageSize;
+
+    const [countRows, items] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(postCommentsTable)
+        .where(eq(postCommentsTable.authorId, userId)),
+      db
+        .select({
+          id: postCommentsTable.id,
+          postId: postCommentsTable.postId,
+          postTitle: postsTable.title,
+          content: postCommentsTable.content,
+          likeCount: postCommentsTable.likeCount,
+          createdAt: postCommentsTable.createdAt
+        })
+        .from(postCommentsTable)
+        .leftJoin(postsTable, eq(postCommentsTable.postId, postsTable.id))
+        .where(eq(postCommentsTable.authorId, userId))
+        .orderBy(desc(postCommentsTable.createdAt))
+        .limit(pageSize)
+        .offset(offset)
+    ]);
+
+    const total = Number(countRows[0]?.count ?? 0);
+
+    return {
+      items,
+      meta: { page, pageSize, total }
+    };
+  },
   defaultUserSettings() {
     return defaultUserSettings;
   }

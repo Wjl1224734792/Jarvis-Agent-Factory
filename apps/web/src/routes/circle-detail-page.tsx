@@ -58,8 +58,18 @@ function mapCirclePostToFeedItem(raw: Record<string, unknown>): CircleFeedItem {
     },
     engagement: {
       likeCount: Number(raw.likeCount) || 0,
+      favoriteCount: Number(raw.favoriteCount) || 0,
+      shareCount: Number(raw.shareCount) || 0,
       commentCount: Number(raw.commentCount) || 0,
+      viewer: {
+        isAuthor: false,
+        isFollowingAuthor: false,
+        hasLiked: false,
+        hasFavorited: false,
+        hasShared: false,
+      },
     },
+    circleId: (raw.circleId as string) ?? (circle?.id as string) ?? undefined,
     circle: circle
       ? {
           id: (circle.id as string) ?? '',

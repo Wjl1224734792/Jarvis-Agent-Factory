@@ -9,6 +9,8 @@ import {
   phoneChangeRequestInputSchema,
   phoneChangeRequestResponseSchema,
   updateCurrentUserProfileInputSchema,
+  userCommentListQuerySchema,
+  userCommentListResponseSchema,
   userContentResponseSchema,
   userProfileResponseSchema
 } from "@feijia/schemas";
@@ -289,4 +291,22 @@ socialRoute.get(API_ROUTES.users.content(":userId"), async (context) => {
   }
 
   return context.json(userContentResponseSchema.parse({ items: result.items }));
+});
+
+socialRoute.get(API_ROUTES.users.comments(":userId"), async (context) => {
+  const userId = getRequiredParam(context, "userId", "Missing user id.");
+  if (userId instanceof Response) {
+    return userId;
+  }
+
+  const query = userCommentListQuerySchema.parse(context.req.query());
+  const result = await socialService.listUserComments(userId, context.var.currentUser?.id, query);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Profile content is not visible." }, 403);
+  }
+
+  return context.json(userCommentListResponseSchema.parse({ items: result.items, meta: result.meta }));
 });

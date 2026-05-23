@@ -38,6 +38,23 @@ export const socialPaths = {
         }
       }
     },
+    [API_ROUTES.users.comments('{userId}')]: {
+      get: {
+        tags: ['social'],
+        summary: '查看用户评论列表',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('userId', '用户 ID。'),
+          stringQueryParameter('page', '页码，默认 1。'),
+          stringQueryParameter('pageSize', '每页条数，默认 20。')
+        ],
+        responses: {
+          '200': jsonResponse('UserCommentListResponse', '返回分页的用户评论列表。'),
+          '403': jsonResponse('ErrorResponse', '当前无权查看该用户评论。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      }
+    },
     [API_ROUTES.users.meProfile]: {
       get: {
         tags: ['social'],

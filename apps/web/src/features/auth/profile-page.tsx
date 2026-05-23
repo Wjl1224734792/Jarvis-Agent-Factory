@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, BellRingIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
+import { BellIcon, BellRingIcon, BookmarkMinusIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -34,12 +34,16 @@ import { ProfileStatusHint } from "./profile-status-hint";
 import { ProfileFilterBar } from "./profile-filter-bar";
 import { ProfilePagination } from "./profile-surface";
 import { ProfileCirclesTab } from "./profile-circles-tab";
+import { ProfileMyCommentsTab } from "./profile-my-comments-tab";
+import { ProfileInteractionsTab } from "./profile-interactions-tab";
 
-type ProfileTab = "activity" | "favorites" | "circles";
+type ProfileTab = "activity" | "favorites" | "circles" | "my-comments" | "interactions";
 
 const profileTabs: Array<{ value: ProfileTab; label: string }> = [
   { value: "activity", label: "内容" },
   { value: "favorites", label: "收藏" },
+  { value: "my-comments", label: "我的评论" },
+  { value: "interactions", label: "互动记录" },
   { value: "circles", label: "圈子" }
 ];
 
@@ -292,6 +296,24 @@ export function ProfilePage() {
     }
   }
 
+  async function handleUnfavorite(item: ContentItem) {
+    try {
+      if (item.type === "favorite-post") {
+        await apiClient.togglePostInteraction(item.id, "favorite");
+      } else if (item.type === "favorite-model") {
+        // 模型收藏通过模型交互 API 取消
+        await apiClient.togglePostInteraction(item.id, "favorite");
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", userId] })
+      ]);
+      toast.success("已取消收藏");
+    } catch {
+      toast.error("取消收藏失败，请稍后重试");
+    }
+  }
+
   async function handleCoverChange(file: File) {
     setIsUpdatingCover(true);
     setActionError(null);
@@ -492,7 +514,7 @@ export function ProfilePage() {
     </ProfileStatusHint>
   ) : null;
 
-  const filterBarNode = activeTab === "circles" ? null : activeTab === "activity" ? (
+  const filterBarNode = activeTab === "circles" || activeTab === "my-comments" || activeTab === "interactions" ? null : activeTab === "activity" ? (
     <>
       <ProfileFilterBar
         active={activeContentCategory}
@@ -523,6 +545,10 @@ export function ProfilePage() {
 
   const contentNode = activeTab === "circles" ? (
     <ProfileCirclesTab userId={userId} />
+  ) : activeTab === "my-comments" ? (
+    <ProfileMyCommentsTab userId={userId} />
+  ) : activeTab === "interactions" ? (
+    <ProfileInteractionsTab userId={userId} />
   ) : activeTab === "activity" ? (
     activityItems.length === 0 ? (
       <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
@@ -558,6 +584,18 @@ export function ProfilePage() {
       <div className="divide-y divide-border/60 border border-border/60 bg-white">
         {paginatedFavoriteItems.map((item, idx) => (
           <ContentFeedListRow
+            extraAction={
+              <Button
+                className="h-8 px-2.5 text-[0.76rem]"
+                onClick={() => handleUnfavorite(item)}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <BookmarkMinusIcon data-icon="inline-start" />
+                取消收藏
+              </Button>
+            }
             index={(favoritePage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
             item={item}
             key={`${item.type}-${item.id}`}

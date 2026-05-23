@@ -194,7 +194,8 @@ export const API_ROUTES = {
     mePhoneChangeRequest: withApiV1Prefix("/users/me/phone/change/request"),
     mePhoneChangeConfirm: withApiV1Prefix("/users/me/phone/change/confirm"),
     profile: (userId: string) => withApiV1Prefix(`/users/${userId}/profile`),
-    content: (userId: string) => withApiV1Prefix(`/users/${userId}/content`)
+    content: (userId: string) => withApiV1Prefix(`/users/${userId}/content`),
+    comments: (userId: string) => withApiV1Prefix(`/users/${userId}/comments`)
   },
   social: {
     follow: (userId: string) => withApiV1Prefix(`/users/${userId}/follow`),

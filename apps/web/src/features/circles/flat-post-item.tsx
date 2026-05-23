@@ -1,7 +1,11 @@
-import { HeartIcon, MessageCircleIcon, PlayIcon } from 'lucide-react';
+import { MessageCircleIcon, PlayIcon } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ProfileLink } from '@/components/profile-link';
+import { ReportActionSheet } from '@/components/report-action-sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
+import { PostInteractionBar } from '@/features/posts/post-interaction-bar';
+import { apiClient } from '@/lib/api-client';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 
 // ── 帖子 Feed 项类型（从 API 响应映射后的完整结构） ──
@@ -26,8 +30,19 @@ export interface CircleFeedItem {
   };
   engagement: {
     likeCount: number;
+    favoriteCount: number;
+    shareCount: number;
     commentCount?: number;
+    viewer: {
+      isAuthor: boolean;
+      isFollowingAuthor: boolean;
+      hasLiked: boolean;
+      hasFavorited: boolean;
+      hasShared: boolean;
+    };
   };
+  /** 圈子 ID——举报等功能需要 */
+  circleId?: string;
   /** 圈子信息——推荐/关注 Feed 时填充 */
   circle?: {
     id: string;
@@ -163,6 +178,9 @@ const FlatPostItem = memo(function FlatPostItem({
   showSourceCircle = true,
   onPostClick,
 }: FlatPostItemProps) {
+  /** 举报按钮触发器引用——点击后打开 ReportActionSheet */
+  const reportTriggerRef = useRef<HTMLButtonElement>(null);
+
   /** 键盘事件处理：Enter/Space 触发点击，保持无障碍可访问性 */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -181,6 +199,11 @@ const FlatPostItem = memo(function FlatPostItem({
     },
     [],
   );
+
+  /** 举报回调——点击后触发 ReportActionSheet */
+  const handleReport = useCallback(() => {
+    reportTriggerRef.current?.click();
+  }, []);
 
   return (
     <div
@@ -259,7 +282,7 @@ const FlatPostItem = memo(function FlatPostItem({
           </div>
         ) : null}
 
-        {/* 底部互动栏：作者 | 来源 | 评论数 | 点赞数 | 时间 */}
+        {/* 底部信息栏：作者 | 来源 | 评论数 | 时间 */}
         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
           <span onClick={handleProfileLinkClick}>
             <ProfileLink className="truncate hover:text-foreground" userId={post.author.id}>
@@ -275,12 +298,48 @@ const FlatPostItem = memo(function FlatPostItem({
             <MessageCircleIcon className="size-3" />
             {formatCount(post.engagement.commentCount ?? 0)}
           </span>
-          <span className="inline-flex items-center gap-1 shrink-0">
-            <HeartIcon className="size-3" />
-            {formatCount(post.engagement.likeCount)}
-          </span>
           <span className="shrink-0">{relativeTime(post.createdAt)}</span>
         </div>
+
+        {/* 互动操作栏：点赞 | 收藏 | 分享 | 举报 */}
+        <PostInteractionBar
+          authorId={post.author.id}
+          compact
+          favoriteCount={post.engagement.favoriteCount}
+          hideFollow
+          iconOnly
+          isPublished
+          likeCount={post.engagement.likeCount}
+          onReport={post.circleId ? handleReport : undefined}
+          plain
+          postId={post.id}
+          shareCount={post.engagement.shareCount}
+          viewer={post.engagement.viewer}
+        />
+
+        {/* 举报弹窗（由 PostInteractionBar 举报按钮触发） */}
+        {post.circleId ? (
+          <ReportActionSheet
+            description="请填写举报理由，并至少上传 1 张证据图。"
+            onSubmit={async (input) => {
+              const circleId = post.circleId;
+              if (!circleId) return;
+              await apiClient.reportCirclePost(circleId, post.id, {
+                reason: input.reason,
+                imageFileIds: input.imageIds,
+              });
+              toast.success('举报已提交，感谢反馈');
+            }}
+            title="举报帖子"
+            trigger={
+              <button
+                ref={reportTriggerRef}
+                className="hidden"
+                type="button"
+              />
+            }
+          />
+        ) : null}
       </div>
     </div>
   );

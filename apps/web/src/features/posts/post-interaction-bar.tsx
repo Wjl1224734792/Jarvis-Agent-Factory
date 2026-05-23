@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Eye, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
+import { Bookmark, Eye, Flag, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { startTransition, useRef, useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { PageShareControl } from "@/components/page-share-control";
+import { ShareQrCodeDialog } from "@/components/share-qrcode-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,9 @@ type Props = {
   // Enables copy-link and QR-based share flows when provided.
   sharePath?: string;
   layout?: "horizontal" | "vertical";
+  /** 举报回调——传入后显示举报按钮 */
+  onReport?: () => void;
+  hideReport?: boolean;
 };
 
 type ActionButtonProps = {
@@ -166,6 +170,7 @@ export function PostInteractionBar(props: Props) {
   const [pendingActions, setPendingActions] = useState<PendingActionState>(INITIAL_PENDING_ACTIONS);
   const pendingActionsRef = useRef<PendingActionState>(INITIAL_PENDING_ACTIONS);
   const [error, setError] = useState<string | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   async function ensureAuthenticated() {
     if (
@@ -423,6 +428,19 @@ export function PostInteractionBar(props: Props) {
               tone="share"
             />
           )
+        ) : null}
+
+        {!props.hideReport && props.onReport && !props.viewer.isAuthor ? (
+          <ActionButton
+            compact={props.compact}
+            icon={Flag}
+            iconOnly
+            label="举报"
+            layout={layout}
+            onClick={props.onReport}
+            plain={props.plain}
+            tone="share"
+          />
         ) : null}
       </div>
 
