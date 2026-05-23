@@ -1,42 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Card, Tag, List, Spin, Collapse, Alert } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Typography, Card, List, Spin, Collapse, Alert, Input, Row, Col } from 'antd';
 import {
   ReadOutlined, ThunderboltOutlined, CodeOutlined,
-  RocketOutlined, BookOutlined, LinkOutlined, CheckCircleOutlined,
+  RocketOutlined, SearchOutlined, PlayCircleOutlined,
+  SafetyOutlined, ToolOutlined, ExperimentOutlined,
+  BugOutlined, SyncOutlined, DeploymentUnitOutlined,
+  QuestionCircleOutlined, BulbOutlined, AimOutlined,
+  DashboardOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 import { api, CommandsData, CommandItem } from '../api';
 
-const { Title, Text, Paragraph, Link } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
-const PIPELINE_INFO: Record<string, { name: string; color: string; desc: string }> = {
-  full: { name: '全流程', color: '#52c41a', desc: '需求→任务→计划→实现→质量→测试→评审→发布' },
-  frontend: { name: '前端', color: '#ff4d4f', desc: '专注前端开发，包含视觉验证 Gate' },
-  backend: { name: '后端', color: '#1677ff', desc: '专注后端开发，跳过视觉验证 Gate' },
-  lite: { name: '轻量', color: '#faad14', desc: '快速开发，支持 Gate 入口跳转' },
-  refactor: { name: '重构', color: '#722ed1', desc: '定义边界→基线测试→执行重构→漂移检测→报告' },
-  hotfix: { name: '紧急热修复', color: '#cf1322', desc: '极速修复：声明→修复→验证→审计' },
-  migrate: { name: '框架迁移', color: '#531dab', desc: '规则验证→应用迁移→编译验证→自动修复Lint' },
-  evaluate: { name: '技术评估', color: '#006d75', desc: '定义标准→原型→指标→报告，不执行代码变更' },
-  debug: { name: '调试诊断', color: '#d46b08', desc: '收集→复现→调试→诊断→报告，不修改代码' },
-  research: { name: '深度研究', color: '#2f54eb', desc: '课题定义→信息收集→深度分析→假设验证→报告' },
-  release: { name: '发布', color: '#237804', desc: '环境检测→质量门→版本递增→发布执行→验证' },
-  ask: { name: '需求探询', color: '#eb2f96', desc: '4模式：Interview/Direct/Consensus/Review' },
-  simplify: { name: '代码简化', color: '#13c2c2', desc: '分析→简化→回归验证→报告，不改变功能' },
-  trace: { name: '因果追踪', color: '#fa8c16', desc: '问题框架→假设→证据→因果分析→解决方案' },
-  improve: { name: '自主改进', color: '#a0d911', desc: '目标→研究→计划→执行→评估迭代' },
+const PIPELINE_GRID: { key: string; name: string; color: string; desc: string; icon: React.ReactNode }[] = [
+  { key: 'full', name: '全流程', color: '#52c41a', desc: '需求→任务→计划→实现→质量→测试→评审→发布', icon: <RocketOutlined /> },
+  { key: 'frontend', name: '前端', color: '#ff4d4f', desc: '专注前端开发，含视觉验证', icon: <CodeOutlined /> },
+  { key: 'backend', name: '后端', color: '#1677ff', desc: '专注后端开发，跳过视觉验证', icon: <CodeOutlined /> },
+  { key: 'lite', name: '轻量', color: '#faad14', desc: '快速开发，支持Gate入口跳转', icon: <ThunderboltOutlined /> },
+  { key: 'refactor', name: '重构', color: '#722ed1', desc: '边界→基线→重构→漂移检测→报告', icon: <ToolOutlined /> },
+  { key: 'hotfix', name: '热修复', color: '#cf1322', desc: '声明→修复→验证→审计', icon: <BugOutlined /> },
+  { key: 'debug', name: '调试', color: '#d46b08', desc: '收集→复现→调试→诊断→报告', icon: <BugOutlined /> },
+  { key: 'research', name: '研究', color: '#2f54eb', desc: '课题→收集→分析→验证→报告', icon: <ExperimentOutlined /> },
+  { key: 'release', name: '发布', color: '#237804', desc: '检测→质量门→版本→发布→验证', icon: <DeploymentUnitOutlined /> },
+  { key: 'ask', name: '探询', color: '#eb2f96', desc: 'Interview/Direct/Consensus/Review', icon: <QuestionCircleOutlined /> },
+  { key: 'simplify', name: '简化', color: '#13c2c2', desc: '分析→简化→回归→报告', icon: <SyncOutlined /> },
+  { key: 'trace', name: '追踪', color: '#fa8c16', desc: '框架→假设→证据→分析→方案', icon: <AimOutlined /> },
+  { key: 'improve', name: '改进', color: '#a0d911', desc: '目标→研究→计划→执行→评估', icon: <BulbOutlined /> },
+  { key: 'migrate', name: '迁移', color: '#531dab', desc: '规则→迁移→编译→Lint', icon: <SyncOutlined /> },
+  { key: 'evaluate', name: '评估', color: '#006d75', desc: '标准→原型→指标→报告', icon: <DashboardOutlined /> },
+];
+
+const categoryIcons: Record<string, React.ReactNode> = {
+  workflow: <RocketOutlined />,
+  pipeline: <ThunderboltOutlined />,
+  session: <SafetyOutlined />,
+  test: <ExperimentOutlined />,
+  debug: <BugOutlined />,
+  release: <DeploymentUnitOutlined />,
+  review: <SearchOutlined />,
+  development: <CodeOutlined />,
+  requirements: <QuestionCircleOutlined />,
+  refactor: <ToolOutlined />,
+  simplification: <SyncOutlined />,
+  improvement: <BulbOutlined />,
+  platform: <CodeOutlined />,
+  trace: <AimOutlined />,
 };
 
-const CORE_RULES = [
-  '所有 Agent 启动时必须读取 AGENTS.md',
-  'Session 隔离：每个会话独立流水线状态',
-  'Gate 硬约束：操作前必须通过 gate_check',
-  '文档驱动：所有产物遵循 AGENTS.md 文档规范',
-];
+const categoryLabels: Record<string, string> = {
+  workflow: '工作流', pipeline: '流水线', session: '会话/清理',
+  test: '测试', debug: '调试', release: '发布', review: '审查',
+  development: '开发', requirements: '需求', refactor: '重构',
+  simplification: '简化', improvement: '改进', platform: '平台',
+  trace: '追踪', agent: '智能体', wiki: '知识库',
+};
 
 export default function Guide() {
   const [commandsData, setCommandsData] = useState<CommandsData | null>(null);
   const [commandsLoading, setCommandsLoading] = useState(true);
   const [commandsError, setCommandsError] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     api.commands()
@@ -45,100 +68,113 @@ export default function Guide() {
       .finally(() => setCommandsLoading(false));
   }, []);
 
-  // 按分类分组指令
-  const groupedCommands = (commandsData?.project?.commands || []).reduce<Record<string, CommandItem[]>>(
-    (acc, cmd) => {
-      const cat = cmd.category || '其他';
+  const groupedCommands = useMemo(() => {
+    const cmds = commandsData?.project?.commands || [];
+    const filtered = search
+      ? cmds.filter(c => c.name.includes(search) || c.description.includes(search))
+      : cmds;
+    return filtered.reduce<Record<string, CommandItem[]>>((acc, cmd) => {
+      const cat = cmd.category || 'other';
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(cmd);
       return acc;
-    },
-    {},
-  );
-
-  const categoryLabels: Record<string, string> = {
-    workflow: '工作流',
-    pipeline: '流水线',
-    session: '会话/清理',
-    agent: '智能体',
-    wiki: '知识库',
-    debug: '调试',
-    release: '发布',
-  };
+    }, {});
+  }, [commandsData, search]);
 
   return (
     <div style={{ height: '100%', overflow: 'auto', padding: '0 4px' }}>
+      {/* ── 标题 ── */}
       <Title level={4} style={{ marginTop: 0 }}>
         <ReadOutlined style={{ marginRight: 8 }} />使用指南
       </Title>
 
-      {/* ===== 快速入门 ===== */}
-      <Card size="small" style={{ marginBottom: 16 }}>
+      {/* ── 快速开始 ── */}
+      <Card size="small" style={{ marginBottom: 12 }}>
         <Title level={5} style={{ marginTop: 0 }}>
-          <RocketOutlined style={{ marginRight: 6 }} />快速开始
+          <PlayCircleOutlined style={{ marginRight: 6 }} />快速开始
         </Title>
-        <Paragraph style={{ marginBottom: 8 }}>
-          在 Claude Code 会话中发送以下命令启动 Jarvis 流水线：
-        </Paragraph>
-        <code style={{
-          display: 'block', background: 'var(--ant-color-fill-secondary)', padding: '8px 12px',
-          borderRadius: 6, fontSize: 13, marginBottom: 8,
-        }}>
-          /jarvis 我要做一个任务...
-        </code>
-        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 0 }}>
-          引擎会自动初始化会话、按 Gate 序列引导你完成全流程。
-        </Paragraph>
+        <Row gutter={[12, 8]}>
+          <Col xs={24} sm={12}>
+            <div style={{
+              background: 'var(--ant-color-primary-bg)',
+              borderRadius: 8, padding: '12px 16px', height: '100%',
+            }}>
+              <Text strong style={{ fontSize: 13 }}>不确定用什么？</Text>
+              <code style={{
+                display: 'block', marginTop: 6, padding: '6px 10px',
+                background: 'var(--ant-color-bg-container)', borderRadius: 4, fontSize: 13,
+              }}>/auto 我要做的任务...</code>
+              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+                自动检测任务类型，路由到最优流水线，跳过无关 Gate
+              </Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={12}>
+            <div style={{
+              background: 'var(--ant-color-fill-secondary)',
+              borderRadius: 8, padding: '12px 16px', height: '100%',
+            }}>
+              <Text strong style={{ fontSize: 13 }}>完整流程？</Text>
+              <code style={{
+                display: 'block', marginTop: 6, padding: '6px 10px',
+                background: 'var(--ant-color-bg-container)', borderRadius: 4, fontSize: 13,
+              }}>/jarvis 我要做一个完整的功能...</code>
+              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+                全流程 13 Gate 严格把关，适合中大型功能开发
+              </Text>
+            </div>
+          </Col>
+        </Row>
       </Card>
 
-      {/* ===== 核心约束 ===== */}
-      <Card size="small" style={{ marginBottom: 16 }}>
+      {/* ── 流水线类型 ── */}
+      <Card size="small" style={{ marginBottom: 12 }}>
         <Title level={5} style={{ marginTop: 0 }}>
-          <CheckCircleOutlined style={{ marginRight: 6 }} />核心约束
+          <ThunderboltOutlined style={{ marginRight: 6 }} />流水线类型（15种）
         </Title>
-        <List
-          size="small"
-          dataSource={CORE_RULES}
-          renderItem={item => (
-            <List.Item style={{ padding: '4px 0', border: 'none' }}>
-              <Tag color="blue" style={{ borderRadius: 4 }}>红线</Tag>
-              <Text style={{ fontSize: 13 }}>{item}</Text>
-            </List.Item>
-          )}
-        />
-        <Paragraph style={{ marginBottom: 0, marginTop: 8 }}>
-          <Link href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md" target="_blank">
-            <LinkOutlined /> 完整约束文档 AGENTS.md
-          </Link>
-        </Paragraph>
-      </Card>
-
-      {/* ===== 流水线类型 ===== */}
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Title level={5} style={{ marginTop: 0 }}>
-          <ThunderboltOutlined style={{ marginRight: 6 }} />流水线类型
-        </Title>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {Object.entries(PIPELINE_INFO).map(([key, info]) => (
-            <Tag
-              key={key}
-              color={info.color}
-              style={{ fontSize: 12, padding: '2px 10px', borderRadius: 12, margin: 0 }}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6 }}>
+          {PIPELINE_GRID.map(p => (
+            <div
+              key={p.key}
+              style={{
+                padding: '8px 10px', borderRadius: 8,
+                background: 'var(--ant-color-bg-container)',
+                border: `1px solid ${p.color}22`,
+                borderLeft: `3px solid ${p.color}`,
+                fontSize: 12,
+              }}
             >
-              {info.name}
-            </Tag>
+              <Text strong style={{ color: p.color, marginRight: 4 }}>{p.icon}</Text>
+              <Text strong style={{ fontSize: 13 }}>{p.name}</Text>
+              <Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 2, lineHeight: 1.3 }}>
+                {p.desc}
+              </Text>
+            </div>
           ))}
         </div>
-        <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-          更多细节见引擎 gates.ts PIPELINE_DEFS
-        </Paragraph>
       </Card>
 
-      {/* ===== 指令参考 ===== */}
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Title level={5} style={{ marginTop: 0 }}>
-          <CodeOutlined style={{ marginRight: 6 }} />指令参考 ({commandsData?.project?.commands?.length || 0} 条)
-        </Title>
+      {/* ── 指令参考 ── */}
+      <Card size="small">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Title level={5} style={{ margin: 0 }}>
+            <CodeOutlined style={{ marginRight: 6 }} />指令参考
+            {!commandsLoading && !commandsError && (
+              <Text type="secondary" style={{ fontSize: 12, marginLeft: 4, fontWeight: 400 }}>
+                ({commandsData?.project?.commands?.length || 0} 条)
+              </Text>
+            )}
+          </Title>
+          <Input
+            size="small"
+            placeholder="搜索指令..."
+            prefix={<SearchOutlined />}
+            style={{ width: 180 }}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            allowClear
+          />
+        </div>
         {commandsLoading ? (
           <div style={{ textAlign: 'center', padding: 20 }}><Spin size="small" /></div>
         ) : commandsError ? (
@@ -149,20 +185,27 @@ export default function Guide() {
             ghost
             items={Object.entries(groupedCommands).map(([cat, cmds]) => ({
               key: cat,
-              label: <Text strong style={{ fontSize: 13 }}>{categoryLabels[cat] || cat} ({cmds.length})</Text>,
+              label: (
+                <span>
+                  {categoryIcons[cat] || <CodeOutlined />}
+                  <Text strong style={{ fontSize: 13, marginLeft: 6 }}>
+                    {categoryLabels[cat] || cat}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>({cmds.length})</Text>
+                </span>
+              ),
               children: (
                 <List
                   size="small"
                   dataSource={cmds}
-                  renderItem={cmd => (
+                  renderItem={(cmd: CommandItem) => (
                     <List.Item style={{ padding: '6px 0', border: 'none' }}>
-                      <div style={{ flex: 1 }}>
-                        <Text code style={{ fontSize: 12, marginRight: 8 }}>/{cmd.name}</Text>
-                        <Text style={{ fontSize: 12 }}>{cmd.description}</Text>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text code style={{ fontSize: 12, whiteSpace: 'nowrap' }}>/{cmd.name}</Text>
+                        <Text style={{ fontSize: 12 }} ellipsis={{ tooltip: cmd.description }}>
+                          {cmd.description}
+                        </Text>
                       </div>
-                      <Tag style={{ fontSize: 10, margin: 0 }}>
-                        {PIPELINE_INFO[cmd.pipelineType]?.name || cmd.pipelineType}
-                      </Tag>
                     </List.Item>
                   )}
                 />
@@ -170,33 +213,6 @@ export default function Guide() {
             }))}
           />
         )}
-      </Card>
-
-      {/* ===== 更多资源 ===== */}
-      <Card size="small">
-        <Title level={5} style={{ marginTop: 0 }}>
-          <BookOutlined style={{ marginRight: 6 }} />更多资源
-        </Title>
-        <Paragraph style={{ marginBottom: 4 }}>
-          <Link href="/wiki">
-            <LinkOutlined /> 知识库 — 项目架构、设计决策、调试经验
-          </Link>
-        </Paragraph>
-        <Paragraph style={{ marginBottom: 4 }}>
-          <Link href="/commands">
-            <LinkOutlined /> 指令详情 — 所有可用 slash 命令
-          </Link>
-        </Paragraph>
-        <Paragraph style={{ marginBottom: 4 }}>
-          <Link href="/agents">
-            <LinkOutlined /> 智能体配置 — Agent 模型与策略管理
-          </Link>
-        </Paragraph>
-        <Paragraph style={{ marginBottom: 0 }}>
-          <Link href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases" target="_blank">
-            <LinkOutlined /> GitHub Release — 下载预构建包
-          </Link>
-        </Paragraph>
       </Card>
     </div>
   );
