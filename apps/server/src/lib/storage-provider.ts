@@ -231,6 +231,11 @@ export function buildStorageObjectUrl(
   config: StorageProviderConfig,
   objectKey: string
 ) {
+  // 本地测试媒体文件（种子数据中的 /test-media/ 路径）不拼接 CDN URL，
+  // 直接返回文件路径供前端通过本地静态资源访问。
+  if (objectKey.startsWith('/test-media/')) {
+    return objectKey;
+  }
   const resolvedKey = resolveObjectKey(config, objectKey);
   return `${config.publicBaseUrl}/${resolvedKey}`;
 }

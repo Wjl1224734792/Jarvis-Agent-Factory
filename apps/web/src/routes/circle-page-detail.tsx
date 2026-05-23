@@ -36,6 +36,113 @@ import {
 type PostDetailResponse = Awaited<ReturnType<typeof apiClient.getPostDetail>>;
 type PostDetail = PostDetailResponse['item'];
 
+// ── 圈子帖子 API 适配 ──
+
+/**
+ * 从圈子帖子的专属 API 获取帖子详情，并将响应映射为 PostDetail 兼容格式。
+ *
+ * 圈子帖子存储在独立的 circlePostsTable 中，其 API 响应结构与全局 postsTable
+ * 不同（缺少 engagement、comments 等）。此函数桥接该差异。
+ */
+async function fetchCirclePostDetail(
+  circleId: string,
+  postId: string,
+): Promise<{ item: Record<string, unknown> }> {
+  const url = `/api/v1/circles/${encodeURIComponent(circleId)}/posts/${encodeURIComponent(postId)}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({
+      message: '请求的内容不存在或已被移除',
+    }));
+    throw new Error(
+      (body as Record<string, unknown>).message as string ??
+        '请求的内容不存在或已被移除',
+    );
+  }
+  return res.json() as Promise<{ item: Record<string, unknown> }>;
+}
+
+/**
+ * 将圈子帖子 API 原始响应适配为 PostDetail 数据类型。
+ *
+ * 圈子帖子缺少 comment 列表、engagement/viewer 状态、declaration/source 等字段，
+ * 本函数提供安全的默认值，确保组件渲染不崩溃。
+ */
+function mapCirclePostToPostDetail(
+  rawItem: Record<string, unknown>,
+): PostDetailResponse {
+  const author = (rawItem.author ?? {}) as Record<string, unknown>;
+
+  // 圈子帖子 API 返回 images/videos 为 string[]（URL 列表），需适配为
+  // postImageSchema/postVideoSchema 要求的完整 File 对象形状。
+  const images = Array.isArray(rawItem.images)
+    ? (rawItem.images as string[]).map((url: string, idx: number) => ({
+        id: `circle-img-${idx}`,
+        url,
+        fileName: url.split('/').pop() ?? 'image',
+        mimeType: 'image/jpeg',
+        byteSize: 0,
+      }))
+    : [];
+  const videos = Array.isArray(rawItem.videos)
+    ? (rawItem.videos as string[]).map((url: string, idx: number) => ({
+        id: `circle-vid-${idx}`,
+        url,
+        fileName: url.split('/').pop() ?? 'video',
+        mimeType: 'video/mp4',
+        byteSize: 0,
+      }))
+    : [];
+
+  const authorRole =
+    (author.role as 'user' | 'admin' | undefined) ?? 'user';
+
+  return {
+    item: {
+      id: (rawItem.id as string) ?? '',
+      type: 'moment',
+      title: (rawItem.title as string) ?? '',
+      content: (rawItem.content as string) ?? '',
+      contentHtml: null,
+      status: 'published',
+      rejectionReason: null,
+      commentCount: Number(rawItem.commentCount) || 0,
+      viewCount: 0,
+      reportCount: 0,
+      createdAt: (rawItem.createdAt as string) ?? new Date().toISOString(),
+      updatedAt:
+        (rawItem.updatedAt as string) ?? (rawItem.createdAt as string) ?? new Date().toISOString(),
+      publishedAt: (rawItem.createdAt as string) ?? null,
+      author: {
+        id: (author.id as string) ?? '',
+        displayName: (author.displayName as string) ?? '',
+        avatarUrl: (author.avatarUrl as string) ?? null,
+        ipLocationLabel: null,
+        role: authorRole,
+      },
+      source: null,
+      declaration: null,
+      cover: null,
+      images,
+      videos,
+      contentCategory: null,
+      engagement: {
+        likeCount: Number(rawItem.likeCount) || 0,
+        favoriteCount: 0,
+        shareCount: 0,
+        viewer: {
+          isAuthor: false,
+          isFollowingAuthor: false,
+          hasLiked: false,
+          hasFavorited: false,
+          hasShared: false,
+        },
+      },
+      comments: [],
+    },
+  };
+}
+
 // ── 工具函数 ──
 
 function formatCount(value: number): string {
@@ -90,6 +197,8 @@ function PostDetailSkeleton() {
 
 interface CirclePostDetailContentProps {
   postId: string;
+  /** 圈子标识（slug 或 id）。传入时使用圈子帖子专属 API，否则回退到全局帖子 API。 */
+  circleId?: string | null;
 }
 
 /**
@@ -97,8 +206,14 @@ interface CirclePostDetailContentProps {
  *
  * 自包含数据获取、媒体轮播、作者信息、互动栏、评论列表和评论输入框。
  * 作为 x-slide-panel.tsx 的 children 内容注入。
+ *
+ * 当 circleId 不为空时，通过圈子帖子专属 API (/api/v1/circles/:circleId/posts/:postId)
+ * 获取数据；否则使用全局帖子 API。圈子帖子的响应会被适配为 PostDetail 格式。
  */
-export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps) {
+export function CirclePostDetailContent({
+  postId,
+  circleId,
+}: CirclePostDetailContentProps) {
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((s) => s.status);
   const currentUser = useAuthStore((s) => s.user);
@@ -112,8 +227,14 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
 
   // ── 数据获取 ──
   const noteQuery = useQuery({
-    queryKey: ['circle-post', postId, commentSort],
-    queryFn: () => apiClient.getPostDetail(postId, { commentSort }),
+    queryKey: ['circle-post', postId, commentSort, circleId],
+    queryFn: async () => {
+      if (circleId) {
+        const raw = await fetchCirclePostDetail(circleId, postId);
+        return mapCirclePostToPostDetail(raw.item) as PostDetailResponse;
+      }
+      return apiClient.getPostDetail(postId, { commentSort });
+    },
   });
 
   const selectedNote: PostDetail | null = noteQuery.data?.item ?? null;
@@ -160,7 +281,7 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
       .then((payload) => {
         // 乐观更新：将新评论插入到本地缓存
         queryClient.setQueryData<PostDetailResponse>(
-          ['circle-post', postId, commentSort],
+          ['circle-post', postId, commentSort, circleId],
           (old) => {
             if (!old) return old;
             return {

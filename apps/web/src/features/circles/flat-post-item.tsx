@@ -1,5 +1,5 @@
 import { HeartIcon, MessageCircleIcon, PlayIcon } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ProfileLink } from '@/components/profile-link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
@@ -84,6 +84,70 @@ function formatCount(value: number): string {
   return String(value);
 }
 
+// ── 可折叠文本 ──
+
+/**
+ * 支持超过指定行数后折叠的文本组件。
+ *
+ * 初始状态下使用 CSS line-clamp 限制行数，如果文本实际高度超过限制，
+ * 显示"展开"按钮；展开后不再截断并显示"收起"按钮。
+ */
+function CollapsibleText({
+  text,
+  maxLines = 3,
+}: {
+  text: string;
+  maxLines?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [needsCollapse, setNeedsCollapse] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      const style = getComputedStyle(el);
+      const lineHeight = parseFloat(style.lineHeight);
+      // 比较展开态的实际高度与行高限制，确定是否需要折叠
+      const fullHeight = el.scrollHeight;
+      setNeedsCollapse(fullHeight > lineHeight * maxLines + 1);
+    }
+  }, [text, maxLines]);
+
+  return (
+    <div>
+      <p
+        ref={textRef}
+        className="text-sm text-muted-foreground mt-0.5 leading-[1.35rem]"
+        style={
+          !expanded && needsCollapse
+            ? {
+                display: '-webkit-box',
+                WebkitLineClamp: maxLines,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }
+            : undefined
+        }
+      >
+        {text}
+      </p>
+      {needsCollapse ? (
+        <button
+          className="mt-0.5 text-xs text-primary hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((prev) => !prev);
+          }}
+          type="button"
+        >
+          {expanded ? '收起' : '展开'}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 // ── 组件 ──
 
 /**
@@ -99,10 +163,6 @@ const FlatPostItem = memo(function FlatPostItem({
   showSourceCircle = true,
   onPostClick,
 }: FlatPostItemProps) {
-  const previewImage = post.cover?.url ?? post.images[0]?.url ?? null;
-  const previewVideo = post.videos[0]?.url ?? null;
-  const hasMedia = Boolean(previewImage) || Boolean(previewVideo);
-
   /** 键盘事件处理：Enter/Space 触发点击，保持无障碍可访问性 */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -151,41 +211,51 @@ const FlatPostItem = memo(function FlatPostItem({
           </div>
         ) : null}
 
-        {/* 帖子标题 */}
-        <h2 className="font-semibold text-[0.92rem] leading-[1.35rem] line-clamp-2 text-foreground">
+        {/* 帖子标题：始终完整显示 */}
+        <h2 className="font-semibold text-[0.92rem] leading-[1.35rem] text-foreground">
           {post.title}
         </h2>
 
-        {/* 正文预览（最多 3 行截断） */}
+        {/* 正文预览：超过 3 行折叠，显示"展开/收起" */}
         {post.contentPreview ? (
-          <p className="text-sm text-muted-foreground line-clamp-3 mt-0.5 leading-[1.35rem]">
-            {post.contentPreview}
-          </p>
+          <CollapsibleText maxLines={3} text={post.contentPreview} />
         ) : null}
 
-        {/* 图片/视频缩略图（最大高度 256px） */}
-        {hasMedia ? (
+        {/* 视频：只显示第一个（上传时限制为一个视频） */}
+        {post.videos[0]?.url ? (
           <div className="mt-2 overflow-hidden rounded-xl">
-            {previewVideo ? (
-              <div className="relative">
-                <video
-                  className="w-full max-h-64 object-cover"
-                  muted
-                  playsInline
-                  preload="metadata"
-                  src={previewVideo}
-                />
-                <span className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white">
-                  <PlayIcon className="size-4 fill-current" />
-                </span>
-              </div>
-            ) : (
-              <img
-                alt={post.title}
+            <div className="relative">
+              <video
                 className="w-full max-h-64 object-cover"
-                src={previewImage!}
+                controls
+                muted
+                playsInline
+                preload="metadata"
+                src={post.videos[0].url}
               />
-            )}
+              <span className="pointer-events-none absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white">
+                <PlayIcon className="size-4 fill-current" />
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* 图片：2 列网格布局 */}
+        {post.images.length > 0 ? (
+          <div
+            className={`mt-2 overflow-hidden rounded-xl ${
+              post.images.length > 1 ? 'grid grid-cols-2 gap-1' : ''
+            }`}
+          >
+            {post.images.map((img, idx) => (
+              <img
+                key={img.url ?? idx}
+                alt={`${post.title} ${idx + 1}`}
+                className="w-full max-h-64 object-cover"
+                loading="lazy"
+                src={img.url ?? ''}
+              />
+            ))}
           </div>
         ) : null}
 

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { motion, type PanInfo } from 'framer-motion';
 import {
   Sheet,
@@ -29,6 +29,14 @@ export function XSlidePanel() {
   const isOpen = useSlidePanelStore(s => s.isOpen);
   const isClosing = useSlidePanelStore(s => s.isClosing);
   const close = useSlidePanelStore(s => s.close);
+
+  // 从 URL 路径中提取圈子 slug（当前圈子的唯一标识）。
+  // 当用户位于 /circles/:slug 时，将 slug 传递给 CirclePostDetailContent，
+  // 使其能通过圈子帖子的专属 API 获取帖子详情。
+  const circleId = useMemo(() => {
+    const match = window.location.pathname.match(/^\/circles\/([^/?]+)/);
+    return match ? match[1] : null;
+  }, [window.location.pathname]);
 
   // body 滚动锁定——cleanup 时检查 store 状态，避免其他面板实例仍打开时误恢复 overflow
   useEffect(() => {
@@ -95,7 +103,7 @@ export function XSlidePanel() {
           {/* 面板主体内容区——帖子详情 + 评论 */}
           <div className="flex-1 overflow-y-auto">
             {postId ? (
-              <CirclePostDetailContent postId={postId} />
+              <CirclePostDetailContent circleId={circleId} postId={postId} />
             ) : null}
           </div>
         </motion.div>
