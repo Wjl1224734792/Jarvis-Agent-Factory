@@ -124,7 +124,7 @@ const HomeFeedCard = memo(function HomeFeedCard({ item, index }: { item: HomeFee
           <img
             alt={item.title}
             className="h-[96px] w-full object-cover"
-            src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
+            src={item.cover?.url ?? item.images[0]?.url ?? getEditorialImage(item.id, index)}
           />
         </div>
       </Link>
@@ -181,12 +181,12 @@ export function HomePage() {
       ...fixedTabs.map((tab) => ({
         key: `fixed:${tab.id}`,
         label: tab.label,
-        state: { kind: "fixed", id: tab.id } as HomeTabState
+        state: { kind: "fixed", id: tab.id }
       })),
       ...contentCategories.map((item) => ({
         key: `category:${item.slug}`,
         label: item.name,
-        state: { kind: "category", slug: item.slug } as HomeTabState
+        state: { kind: "category", slug: item.slug }
       }))
     ],
     [contentCategories]

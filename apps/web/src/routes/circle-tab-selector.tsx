@@ -69,9 +69,9 @@ export function CircleTabSelector({
           onWheel={handleWheel}
         >
           {Array.from({ length: 6 }).map((_, index) => (
-            <div className="flex shrink-0 flex-col items-center gap-1" key={index}>
-              <Skeleton className="size-12 rounded-full" />
-              <Skeleton className="h-3 w-10" />
+            <div className="flex shrink-0 items-center gap-2" key={index}>
+              <Skeleton className="size-8 rounded-full" />
+              <Skeleton className="h-4 w-16" />
             </div>
           ))}
         </div>
@@ -93,8 +93,7 @@ export function CircleTabSelector({
         {circles.map((circle) => (
           <button
             className={cn(
-              "flex shrink-0 flex-col items-center gap-1 focus:outline-none",
-              "transition-transform hover:scale-105"
+              "flex shrink-0 items-center gap-2 focus:outline-none transition-transform hover:scale-105"
             )}
             key={circle.id}
             onClick={() => onSelect(circle.id)}
@@ -102,7 +101,7 @@ export function CircleTabSelector({
           >
             <div
               className={cn(
-                "flex size-12 items-center justify-center overflow-hidden rounded-full transition-all",
+                "flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-all",
                 selectedCircleId === circle.id
                   ? "ring-2 ring-primary"
                   : "ring-2 ring-transparent hover:ring-primary/30",
@@ -116,12 +115,12 @@ export function CircleTabSelector({
                   src={circle.coverImageUrl}
                 />
               ) : (
-                <span className="text-base font-bold">
+                <span className="text-sm font-bold">
                   {circle.name.charAt(0)}
                 </span>
               )}
             </div>
-            <span className="max-w-[3.5rem] truncate text-[0.7rem] leading-tight text-foreground/70">
+            <span className="truncate text-sm font-medium text-foreground/80">
               {circle.name}
             </span>
           </button>

@@ -1,35 +1,17 @@
 /**
- * 飞加项目海量测试数据生成脚本
+ * 飞加项目测试数据生成脚本
  *
- * 用途：向 PostgreSQL、Redis 和 MinIO 推送大量测试数据
+ * 用途：向 PostgreSQL、Redis 和对象存储推送测试数据
  * 使用：bun run packages/db/src/seed.test-data.ts
  *
- * 数据规模（v2 扩容版）：
- * - 用户：200 个
- * - 飞行器分类：6 个
- * - 品牌：40 个
- * - 飞行器型号：100 个
- * - 内容分类：5 个
- * - 帖子：500 个（文章 300 + 动态 200）
- * - 帖子评论：800 条
- * - 帖子互动：1,000 条
- * - 帖子评论点赞：300 条
- * - 飞行器评测：200 条
- * - 飞行器型号评论：200 条
- * - 飞行器型号互动：300 条
- * - 排行榜：20 个
- * - 排行榜项目：150 个
- * - 排行榜评论：60 条
- * - 排行榜项目评分：500 条
- * - 排行榜项目评论：120 条
- * - 用户关注：300 条
- * - 通知：400 条
- * - 会话：100 个
- * - 飞行器提交：50 个
- * - 品牌申请：20 个
- * - 设备：60 个
- * - 文件记录：350 个
- * - 各类举报：75 条
+ * 数据规模：
+ * - 用户：50 个（头像用 测试头像1.jpg/2.jpg 轮流分配）
+ * - 圈子：10 个（封面用 封面图1-4.webp 轮流）
+ * - 帖子：200 篇（文章 150 + 动态 50），封面用 封面图1-4.webp，内容图用 文章测试图.jpg
+ * - 机型：30 个（封面用 封面图1-4.webp）
+ * - 榜单：5 个，每个 10 个条目（封面用 封面图1-4.webp）
+ * - 评论：每个帖子 3-5 条（约 600-1000 条）
+ * - 所有媒体文件引用路径：/docs/tests_img-video/文件名
  */
 
 /* eslint-disable no-console */
@@ -40,39 +22,27 @@ import bcrypt from "bcrypt";
 import { db } from "./client.js";
 import {
   aircraftCategoriesTable,
-  aircraftModelCommentsTable,
-  aircraftModelInteractionsTable,
   aircraftModelsTable,
-  aircraftReviewsTable,
-  aircraftSubmissionsTable,
-  brandApplicationsTable,
   brandsTable,
+  circlesTable,
+  circleMembersTable,
+  circlePostsTable,
   contentCategoriesTable,
-  devicesTable,
   filesTable,
   notificationsTable,
-  postCommentLikesTable,
-  postCommentReportsTable,
   postCommentsTable,
   postInteractionsTable,
-  postReportsTable,
   postsTable,
+  powerTypesTable,
   rankingCommentsTable,
-  rankingReportsTable,
   rankingsTable,
-  ratingTargetCommentsTable,
-  ratingTargetCommentReportsTable,
   ratingTargetRatingsTable,
-  ratingTargetReportsTable,
   ratingTargetsTable,
-  sessionsTable,
+  rolesTable,
   siteSettingsTable,
   userFollowsTable,
   userSettingsTable,
   usersTable,
-  circlesTable,
-  circleMembersTable,
-  circlePostsTable,
 } from "./schema.js";
 import { sql } from "drizzle-orm";
 import {
@@ -81,7 +51,7 @@ import {
   uploadSeedStorageObjects,
   type SeedStorageObject
 } from "./seed.storage.js";
-import { hashVerificationCode } from "./helpers.js";
+import { hashVerificationCode, createId } from "./helpers.js";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -151,7 +121,6 @@ function buildUniqueRows<T>(
     if (keys.has(entry.key)) {
       continue;
     }
-
     keys.add(entry.key);
     rows.push(entry.value);
   }
@@ -164,7 +133,6 @@ function buildUniqueRows<T>(
 
   return rows;
 }
-
 
 // ==================== 数据常量 ====================
 
@@ -181,177 +149,63 @@ const USER_DISPLAY_NAMES = [
   "低空旅游达人", "飞行器测评师", "航拍摄影师", "飞行安全官", "无人机维修师",
   "飞行数据分析师", "航拍剪辑师", "飞行器设计师", "飞行模拟器玩家", "低空法规研究员",
   "无人机赛事解说", "飞行气象员", "航拍后期师", "飞行器试飞员", "低空交通规划师",
-  "云端摄影师", "星河飞行者", "极光航拍", "海风飞手", "城市探索家",
-  "山海飞行者", "云端漫步", "雷雨飞行者", "破风飞行", "极速飞手",
-  "暗夜飞行者", "晨光航拍", "暮色飞行", "蓝天守望者", "飞越地平线",
-  "云中漫步", "天际漫游者", "风之翼", "光影飞行者", "时空穿梭者",
-  "飞行梦想家", "航迹记录者", "云端守护者", "追风少年", "天际追踪者",
-  "云海飞行家", "蓝天使者", "星际航拍", "极速穿越者", "空中画家",
-  "飞行画家", "航空摄影师", "旋翼达人", "飞行探险家", "天际航拍师",
-  "低空摄影师", "云中鸟", "飞行诗人", "航拍摄像师", "天空艺术",
-  "云海漫游", "飞鹰航拍", "极光飞行者", "飞行哲学家", "天空旅行家",
-  "风行者航拍", "飞行狂热者", "航拍观察家", "飞行顾问", "低空玩家",
-  "快门飞行者", "天际艺术", "云上飞手", "飞行导航家", "低空摄手",
-  "飞沙走石", "云游四方", "飞行科学家", "极客飞手", "航拍创客",
-  "无人机极客", "飞行程序员", "数据飞行", "开源飞手", "DIY飞行家",
-  "飞行测评君", "新品速递", "飞行开箱", "真实体验", "深度测评",
-  "权威评测", "专业测评师", "飞行对比", "购机指南", "飞行情报局",
-  "行业观察家", "飞行市场", "前沿科技", "未来飞行", "创新飞行",
-  "绿色飞行", "新能源飞行", "可持续飞行", "碳中性航空", "环保飞行者",
-  "低空经济师", "空域管理", "政策解读", "法规咨询", "合规飞行",
-  "飞行安全专家", "风险管理", "应急飞行", "安全保障", "飞行保险",
-  "飞行教育者", "飞行学院", "考证指导", "飞行培训", "新手导航",
-  "飞行创业者", "低空商业", "飞行投资", "产业观察", "创业飞行",
-  "飞行艺术家", "空中影像", "光影航拍", "视觉飞行", "创意航拍",
-  "飞行故事家", "航拍纪录片", "飞行Vlog", "内容创作", "飞行自媒体",
-  "社区达人", "飞行版主", "热心飞友", "飞行志愿者", "社区建设者",
-  "元老飞手", "十年飞行", "资深玩家", "飞行先驱", "航拍前辈",
-  "飞行达人秀", "航拍比赛", "飞行竞技", "无人机竞速", "飞行挑战",
-  "国际飞手", "环球航拍", "世界飞行", "跨境飞行", "全球视角",
 ];
 
-const CATEGORY_IDS: string[] = [];
-const CATEGORY_DATA = [
-  { slug: "multirotor", name: "多旋翼" },
-  { slug: "fixed-wing", name: "固定翼" },
-  { slug: "evtol", name: "eVTOL" },
-  { slug: "helicopter", name: "直升机" },
-  { slug: "hybrid-vtol", name: "混合垂直起降" },
-  { slug: "personal-air-vehicle", name: "个人飞行器" },
-];
-
-const BRAND_IDS: string[] = [];
 const BRAND_DATA = [
   { slug: "dji", name: "DJI 大疆", categoryIdx: 0 },
   { slug: "autel", name: "Autel 道通", categoryIdx: 0 },
   { slug: "hubsan", name: "Hubsan 哈博森", categoryIdx: 0 },
   { slug: "fimi", name: "FIMI 飞米", categoryIdx: 0 },
-  { slug: "potensic", name: "Potensic", categoryIdx: 0 },
+  { slug: "ehang", name: "EHang 亿航", categoryIdx: 1 },
+  { slug: "joby", name: "Joby Aviation", categoryIdx: 1 },
+  { slug: "volocopter", name: "Volocopter", categoryIdx: 1 },
+  { slug: "lilium", name: "Lilium", categoryIdx: 1 },
+  { slug: "robinson", name: "Robinson 罗宾逊", categoryIdx: 2 },
+  { slug: "cirrus", name: "Cirrus 西锐", categoryIdx: 3 },
+  { slug: "embraer", name: "Embraer 巴航工业", categoryIdx: 3 },
+  { slug: "xpeng-aero", name: "小鹏汇天", categoryIdx: 1 },
+  { slug: "auto-flight", name: "峰飞航空", categoryIdx: 1 },
   { slug: "parrot", name: "Parrot 派诺特", categoryIdx: 0 },
   { slug: "skydio", name: "Skydio", categoryIdx: 0 },
-  { slug: "yuneec", name: "Yuneec 昊翔", categoryIdx: 0 },
-  { slug: "ryze", name: "Ryze 睿炽", categoryIdx: 0 },
-  { slug: "zerotech", name: "ZeroTech 零度", categoryIdx: 0 },
-  { slug: "ehang", name: "EHang 亿航", categoryIdx: 2 },
-  { slug: "joby", name: "Joby Aviation", categoryIdx: 2 },
-  { slug: "volocopter", name: "Volocopter", categoryIdx: 2 },
-  { slug: "lilium", name: "Lilium", categoryIdx: 2 },
-  { slug: "archer", name: "Archer Aviation", categoryIdx: 2 },
-  { slug: "wisk", name: "Wisk Aero", categoryIdx: 2 },
-  { slug: "beta", name: "Beta Technologies", categoryIdx: 2 },
-  { slug: "supernal", name: "Supernal", categoryIdx: 2 },
-  { slug: "robinson", name: "Robinson 罗宾逊", categoryIdx: 3 },
-  { slug: "airbus-heli", name: "Airbus Helicopters", categoryIdx: 3 },
-  { slug: "bell", name: "Bell 贝尔", categoryIdx: 3 },
-  { slug: "leonardo", name: "Leonardo 莱昂纳多", categoryIdx: 3 },
-  { slug: "sikorsky", name: "Sikorsky 西科斯基", categoryIdx: 3 },
-  { slug: "cirrus", name: "Cirrus 西锐", categoryIdx: 1 },
-  { slug: "embraer", name: "Embraer 巴航工业", categoryIdx: 1 },
-  { slug: "textron", name: "Textron Aviation", categoryIdx: 1 },
-  { slug: "pipistrel", name: "Pipistrel 蝙蝠", categoryIdx: 1 },
-  { slug: "diamond", name: "Diamond 钻石", categoryIdx: 1 },
-  { slug: "xpeng-aero", name: "小鹏汇天", categoryIdx: 2 },
-  { slug: "auto-flight", name: "峰飞航空", categoryIdx: 2 },
-  { slug: "tcab", name: "TCAB 太力", categoryIdx: 2 },
-  { slug: "vertical", name: "Vertical Aerospace", categoryIdx: 2 },
-  { slug: "aerofugia", name: "沃飞长空", categoryIdx: 2 },
-  { slug: "shangfeng", name: "上飞航空", categoryIdx: 5 },
-  { slug: "jetx", name: "JetX 捷行", categoryIdx: 5 },
-  { slug: "skyvue", name: "SkyVue 天景", categoryIdx: 4 },
-  { slug: "pal-v", name: "PAL-V", categoryIdx: 4 },
-  { slug: "aero-mobil", name: "AeroMobil", categoryIdx: 4 },
-  { slug: "samad", name: "Samad Aerospace", categoryIdx: 2 },
-  { slug: "heaviside", name: "Heaviside 灵翼", categoryIdx: 2 },
 ];
 
-const MODEL_IDS: string[] = [];
 const MODEL_DATA = [
-  { slug: "mini-4-pro", name: "DJI Mini 4 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 18, speed: 58, cruiseSpeed: 35, weight: 249, wingspan: 245, len: 150, ht: 60, altitude: 4000, climbRate: 5, windResist: "Level 5", motor: "无刷电机", battery: "Li-ion", batteryCap: 3850, batteryVolt: "7.4V", batteryEgy: 28, chargeTime: 70, propSize: "3inch", obstacle: "全向", gnss: "GPS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "1/1.3\"", pixels: "48MP", videoRes: "4K/60fps", aperture: "f/1.7", iso: "100-6400", transSys: "O4", transRange: 10000, certType: "FAA Part 107", noise: 65, material: "碳纤维复合材料" },
-  { slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 13888, priceMax: 17688, flight: 43, range: 28, speed: 75, cruiseSpeed: 50, weight: 958, wingspan: 350, len: 220, ht: 110, altitude: 6000, climbRate: 8, windResist: "Level 6", motor: "无刷电机", battery: "Li-Po", batteryCap: 5000, batteryVolt: "15.4V", batteryEgy: 77, chargeTime: 90, propSize: "5inch", obstacle: "全向+LiDAR", gnss: "GPS+GLONASS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "4/3\"", pixels: "50MP", videoRes: "6K/60fps", aperture: "f/2.0", iso: "100-12800", transSys: "O4+", transRange: 15000, certType: "CAAC", noise: 72, material: "碳纤维+铝合金" },
-  { slug: "air-3", name: "DJI Air 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 6988, priceMax: 9988, flight: 46, range: 20, speed: 68, cruiseSpeed: 45, weight: 720, wingspan: 310, len: 190, ht: 90, altitude: 5000, climbRate: 6, windResist: "Level 5", motor: "无刷电机", battery: "Li-ion", batteryCap: 4241, batteryVolt: "14.4V", batteryEgy: 61, chargeTime: 80, propSize: "5inch", obstacle: "全向", gnss: "GPS+BeiDou+Galileo", ip: "IP43", opTemp: "0°C~40°C", sensorSize: "1\"", pixels: "48MP", videoRes: "4K/120fps", aperture: "f/1.7", iso: "100-6400", transSys: "O4", transRange: 12000, certType: "FAA Part 107", noise: 68, material: "碳纤维复合材料" },
-  { slug: "inspire-3", name: "DJI Inspire 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 109999, priceMax: 139999, flight: 28, range: 15, speed: 94, cruiseSpeed: 60, weight: 3995, wingspan: 520, len: 350, ht: 180, altitude: 7000, climbRate: 10, windResist: "Level 6", motor: "无刷电机×4", battery: "Li-Po", batteryCap: 8500, batteryVolt: "22.2V", batteryEgy: 189, chargeTime: 120, propSize: "10inch", obstacle: "全向+LiDAR", gnss: "GPS+GLONASS+BeiDou+Galileo", ip: "IP55", opTemp: "-10°C~40°C", sensorSize: "4/3\"", pixels: "50MP", videoRes: "8K/25fps", aperture: "f/2.0", iso: "100-25600", transSys: "O4+", transRange: 15000, certType: "CAAC", noise: 80, material: "碳纤维+钛合金" },
-  { slug: "matrice-350", name: "DJI Matrice 350 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 59999, priceMax: 79999, flight: 55, range: 20, speed: 82, cruiseSpeed: 50, weight: 6300, wingspan: 650, len: 420, ht: 220, altitude: 7000, climbRate: 6, windResist: "Level 7", motor: "无刷电机×6", battery: "Li-Po", batteryCap: 12000, batteryVolt: "52.2V", batteryEgy: 626, chargeTime: 180, propSize: "12inch", obstacle: "全向+LiDAR+RTK", gnss: "GPS+GLONASS+BeiDou+RTK", ip: "IP55", opTemp: "-20°C~50°C", sensorSize: "1\"", pixels: "20MP", videoRes: "4K/30fps", aperture: "f/2.8", iso: "100-25600", transSys: "O4 Enterprise", transRange: 15000, certType: "CAAC", noise: 85, material: "碳纤维复合材料" },
+  { slug: "mini-4-pro", name: "DJI Mini 4 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 18, speed: 58, weight: 249 },
+  { slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 13888, priceMax: 17688, flight: 43, range: 28, speed: 75, weight: 958 },
+  { slug: "air-3", name: "DJI Air 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 6988, priceMax: 9988, flight: 46, range: 20, speed: 68, weight: 720 },
+  { slug: "inspire-3", name: "DJI Inspire 3", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 109999, priceMax: 139999, flight: 28, range: 15, speed: 94, weight: 3995 },
+  { slug: "matrice-350", name: "DJI Matrice 350 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 59999, priceMax: 79999, flight: 55, range: 20, speed: 82, weight: 6300 },
+  { slug: "dji-fpv-2", name: "DJI FPV 2", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4299, priceMax: 6299, flight: 20, range: 12, speed: 140, weight: 410 },
+  { slug: "dji-mini-3-pro", name: "DJI Mini 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 3999, priceMax: 5499, flight: 34, range: 18, speed: 57, weight: 249 },
+  { slug: "dji-mavic-3-classic", name: "DJI Mavic 3 Classic", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 10499, priceMax: 12888, flight: 46, range: 30, speed: 75, weight: 895 },
   { slug: "evo-lite-plus", name: "Autel EVO Lite+", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 7299, priceMax: 8599, flight: 40, range: 24, speed: 68, weight: 835 },
   { slug: "evo-nano-plus", name: "Autel EVO Nano+", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 4299, priceMax: 5499, flight: 28, range: 16, speed: 54, weight: 249 },
   { slug: "evo-max-4t", name: "Autel EVO Max 4T", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 42, range: 20, speed: 72, weight: 1150 },
-  { slug: "zino-mini-pro", name: "Hubsan Zino Mini Pro", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 3999, flight: 40, range: 10, speed: 56, weight: 249 },
-  { slug: "zino-plus", name: "Hubsan Zino Plus SE", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 3499, priceMax: 4499, flight: 30, range: 9, speed: 60, weight: 595 },
-  { slug: "fimi-x8se", name: "FIMI X8 SE 2022", brandIdx: 3, catIdx: 0, power: "electric", priceMin: 3999, priceMax: 5499, flight: 35, range: 12, speed: 65, weight: 795 },
-  { slug: "fimi-palm-2", name: "FIMI Palm 2", brandIdx: 3, catIdx: 0, power: "electric", priceMin: 1999, priceMax: 2499, flight: 0, range: 0, speed: 0, weight: 125 },
-  { slug: "potensic-atom", name: "Potensic Atom", brandIdx: 4, catIdx: 0, power: "electric", priceMin: 1999, priceMax: 2999, flight: 31, range: 4, speed: 50, weight: 374 },
-  { slug: "eh216-s", name: "EHang EH216-S", brandIdx: 5, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 25, range: 35, speed: 130, weight: null },
-  { slug: "eh2160", name: "EHang EH2160", brandIdx: 5, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 50, speed: 150, weight: null },
-  { slug: "joby-s4", name: "Joby S4", brandIdx: 6, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 240, speed: 320, weight: null },
-  { slug: "voloconnect", name: "Volocopter VoloConnect", brandIdx: 7, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 80, speed: 180, weight: null },
-  { slug: "lilium-jet", name: "Lilium Jet", brandIdx: 8, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 60, range: 300, speed: 280, weight: null },
-  { slug: "archer-midnight", name: "Archer Midnight", brandIdx: 9, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 96, speed: 240, weight: null },
-  { slug: "r44", name: "Robinson R44", brandIdx: 10, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 560, speed: 220, weight: null },
-  { slug: "r66", name: "Robinson R66", brandIdx: 10, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 150, range: 600, speed: 240, weight: null },
-  { slug: "h145", name: "Airbus H145", brandIdx: 11, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 680, speed: 280, weight: null },
-  { slug: "bell-505", name: "Bell 505 Jet Ranger", brandIdx: 12, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 165, range: 540, speed: 230, weight: null },
-  { slug: "vision-jet", name: "Cirrus Vision Jet G2+", brandIdx: 13, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 2300, speed: 576, weight: null },
-  { slug: "phenom-300e", name: "Embraer Phenom 300E", brandIdx: 14, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 3700, speed: 860, weight: null },
-  { slug: "xpeng-x3", name: "小鹏汇天陆地航母", brandIdx: 16, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 50, speed: 130, weight: null },
-  { slug: "autoflight-prosperity", name: "峰飞盛世龙", brandIdx: 17, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 250, speed: 200, weight: null },
-  { slug: "tcab-transition", name: "太力 Transition", brandIdx: 18, catIdx: 2, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 800, speed: 180, weight: null },
-  { slug: "va-x4", name: "Vertical VA-X4", brandIdx: 19, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 160, speed: 320, weight: null },
-  { slug: "dji-agras-t50", name: "DJI Agras T50", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 69999, priceMax: 89999, flight: 20, range: 5, speed: 36, weight: 40000 },
-  { slug: "dji-mavic-3-classic", name: "DJI Mavic 3 Classic", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 10499, priceMax: 12888, flight: 46, range: 30, speed: 75, weight: 895 },
-  { slug: "dji-mini-3-pro", name: "DJI Mini 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 3999, priceMax: 5499, flight: 34, range: 18, speed: 57, weight: 249 },
-  { slug: "dji-phantom-4-rtk", name: "DJI Phantom 4 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 29999, priceMax: 42999, flight: 30, range: 7, speed: 72, weight: 1391 },
   { slug: "autel-evo-ii-pro", name: "Autel EVO II Pro V3", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 11999, priceMax: 15999, flight: 40, range: 25, speed: 72, weight: 1190 },
-  { slug: "hubsan-ace-pro", name: "Hubsan Ace Pro", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 3499, priceMax: 4499, flight: 32, range: 10, speed: 58, weight: 460 },
-  { slug: "parrot-anafi-ai", name: "Parrot Anafi Ai", brandIdx: 5, catIdx: 0, power: "electric", priceMin: 24999, priceMax: 34999, flight: 32, range: 20, speed: 60, weight: 898 },
-  { slug: "skydio-x10", name: "Skydio X10", brandIdx: 6, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 40, range: 12, speed: 72, weight: 1490 },
-  { slug: "yuneec-h520e", name: "Yuneec H520E", brandIdx: 7, catIdx: 0, power: "electric", priceMin: 32999, priceMax: 44999, flight: 28, range: 8, speed: 45, weight: 2245 },
-  { slug: "ryze-tello", name: "Ryze Tello", brandIdx: 8, catIdx: 0, power: "electric", priceMin: 699, priceMax: 999, flight: 13, range: 0, speed: 28, weight: 80 },
-  { slug: "zerotech-dobby", name: "ZeroTech Dobby", brandIdx: 9, catIdx: 0, power: "electric", priceMin: 1799, priceMax: 2399, flight: 9, range: 0, speed: 25, weight: 199 },
-  { slug: "wisk-cora", name: "Wisk Cora", brandIdx: 15, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 100, speed: 180, weight: null },
-  { slug: "beta-alia-250", name: "Beta Alia-250", brandIdx: 16, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 60, range: 463, speed: 275, weight: null },
-  { slug: "supernal-sa1", name: "Supernal SA-1", brandIdx: 17, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 96, speed: 260, weight: null },
-  { slug: "leonardo-aw609", name: "Leonardo AW609", brandIdx: 21, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 1389, speed: 509, weight: null },
-  { slug: "sikorsky-s76", name: "Sikorsky S-76D", brandIdx: 22, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 150, range: 760, speed: 287, weight: null },
-  { slug: "pipistrel-panthera", name: "Pipistrel Panthera", brandIdx: 26, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 1850, speed: 370, weight: 1315 },
-  { slug: "diamond-da62", name: "Diamond DA62", brandIdx: 27, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 2350, speed: 350, weight: null },
-  { slug: "aerofugia-ae200", name: "沃飞长空 AE200", brandIdx: 32, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 200, speed: 250, weight: null },
-  { slug: "shangfeng-sf1", name: "上飞航空 SF-1", brandIdx: 33, catIdx: 5, power: "electric", priceMin: null, priceMax: null, flight: 25, range: 50, speed: 120, weight: null },
-  { slug: "jetx-j1", name: "JetX J1", brandIdx: 34, catIdx: 5, power: "electric", priceMin: null, priceMax: null, flight: 20, range: 40, speed: 100, weight: null },
-  { slug: "skyvue-x1", name: "SkyVue X1", brandIdx: 35, catIdx: 4, power: "hybrid", priceMin: null, priceMax: null, flight: 90, range: 500, speed: 180, weight: null },
-  { slug: "pal-v-liberty", name: "PAL-V Liberty", brandIdx: 36, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 500, speed: 180, weight: null },
-  { slug: "aero-mobil-am4", name: "AeroMobil AM4", brandIdx: 37, catIdx: 4, power: "hybrid", priceMin: null, priceMax: null, flight: 200, range: 740, speed: 260, weight: null },
-  { slug: "samad-starling", name: "Samad Starling", brandIdx: 38, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 80, speed: 220, weight: null },
-  { slug: "heaviside-hx1", name: "Heaviside HX-1", brandIdx: 39, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 50, range: 160, speed: 290, weight: null },
-  { slug: "dji-fpv-2", name: "DJI FPV 2", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4299, priceMax: 6299, flight: 20, range: 12, speed: 140, weight: 410 },
-  { slug: "autel-dragonfish", name: "Autel Dragonfish", brandIdx: 1, catIdx: 1, power: "electric", priceMin: 89999, priceMax: 139999, flight: 120, range: 30, speed: 108, weight: 4600 },
-  { slug: "parrot-disco", name: "Parrot Disco", brandIdx: 5, catIdx: 1, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 12, speed: 80, weight: 750 },
-  { slug: "eh216-l", name: "EHang EH216-L", brandIdx: 10, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 60, speed: 150, weight: null },
-  { slug: "bell-429", name: "Bell 429 GlobalRanger", brandIdx: 20, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 760, speed: 280, weight: null },
-  { slug: "pipistrel-velis", name: "Pipistrel Velis Electro", brandIdx: 26, catIdx: 1, power: "electric", priceMin: 299999, priceMax: 399999, flight: 50, range: 180, speed: 180, weight: 600 },
-  { slug: "volocopter-volocity", name: "Volocopter VoloCity", brandIdx: 12, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 20, range: 35, speed: 110, weight: null },
-  { slug: "archer-maker", name: "Archer Maker", brandIdx: 14, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 80, speed: 240, weight: null },
-  { slug: "skydio-s2", name: "Skydio S2+", brandIdx: 6, catIdx: 0, power: "electric", priceMin: 29999, priceMax: 39999, flight: 27, range: 6, speed: 58, weight: 800 },
-  { slug: "yuneec-typhoon-h3", name: "Yuneec Typhoon H3", brandIdx: 7, catIdx: 0, power: "electric", priceMin: 8999, priceMax: 12999, flight: 25, range: 10, speed: 70, weight: 1950 },
-  { slug: "dji-matrice-30", name: "DJI Matrice 30", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 41, range: 15, speed: 82, weight: 3998 },
-  { slug: "dji-matrice-300", name: "DJI Matrice 300 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 79999, priceMax: 109999, flight: 55, range: 15, speed: 82, weight: 4700 },
-  { slug: "diamond-da40", name: "Diamond DA40 NG", brandIdx: 27, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 1300, speed: 280, weight: 1280 },
-  { slug: "textron-latitude", name: "Textron Citation Latitude", brandIdx: 25, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 5000, speed: 890, weight: null },
-  { slug: "embraer-praetor", name: "Embraer Praetor 600", brandIdx: 24, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 7400, speed: 863, weight: null },
-  { slug: "fimi-x8pro", name: "FIMI X8 Pro", brandIdx: 3, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 40, range: 15, speed: 68, weight: 820 },
-  { slug: "potensic-dreamer", name: "Potensic Dreamer Pro", brandIdx: 4, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 3999, flight: 30, range: 8, speed: 55, weight: 650 },
-  { slug: "xpeng-x2", name: "小鹏汇天旅航者X2", brandIdx: 28, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 75, speed: 130, weight: null },
-  { slug: "autoflight-v1500", name: "峰飞 V1500M", brandIdx: 29, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 50, range: 200, speed: 200, weight: null },
-  { slug: "robinson-r22", name: "Robinson R22 Beta", brandIdx: 18, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 370, speed: 180, weight: 635 },
-  { slug: "airbus-h125", name: "Airbus H125", brandIdx: 19, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 630, speed: 260, weight: null },
-  { slug: "hubsan-h501s", name: "Hubsan H501S", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 1399, priceMax: 1799, flight: 20, range: 5, speed: 55, weight: 410 },
-  { slug: "zerotech-falcon", name: "ZeroTech Falcon", brandIdx: 9, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 4199, flight: 28, range: 6, speed: 60, weight: 550 },
-  { slug: "vertical-va1x", name: "Vertical VA-1X", brandIdx: 31, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 160, speed: 320, weight: null },
-  { slug: "lilium-jet-7", name: "Lilium Jet 7-Seater", brandIdx: 13, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 70, range: 250, speed: 280, weight: null },
+  { slug: "zino-mini-pro", name: "Hubsan Zino Mini Pro", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 3999, flight: 40, range: 10, speed: 56, weight: 249 },
+  { slug: "fimi-x8se", name: "FIMI X8 SE 2022", brandIdx: 3, catIdx: 0, power: "electric", priceMin: 3999, priceMax: 5499, flight: 35, range: 12, speed: 65, weight: 795 },
+  { slug: "parrot-anafi-ai", name: "Parrot Anafi Ai", brandIdx: 13, catIdx: 0, power: "electric", priceMin: 24999, priceMax: 34999, flight: 32, range: 20, speed: 60, weight: 898 },
+  { slug: "skydio-x10", name: "Skydio X10", brandIdx: 14, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 40, range: 12, speed: 72, weight: 1490 },
+  { slug: "eh216-s", name: "EHang EH216-S", brandIdx: 4, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 25, range: 35, speed: 130, weight: null },
+  { slug: "joby-s4", name: "Joby S4", brandIdx: 5, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 240, speed: 320, weight: null },
+  { slug: "voloconnect", name: "Volocopter VoloConnect", brandIdx: 6, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 80, speed: 180, weight: null },
+  { slug: "lilium-jet", name: "Lilium Jet", brandIdx: 7, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 60, range: 300, speed: 280, weight: null },
+  { slug: "xpeng-x3", name: "小鹏汇天陆地航母", brandIdx: 11, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 50, speed: 130, weight: null },
+  { slug: "autoflight-prosperity", name: "峰飞盛世龙", brandIdx: 12, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 250, speed: 200, weight: null },
+  { slug: "r44", name: "Robinson R44", brandIdx: 8, catIdx: 2, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 560, speed: 220, weight: null },
+  { slug: "vision-jet", name: "Cirrus Vision Jet G2+", brandIdx: 9, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 2300, speed: 576, weight: null },
+  { slug: "phenom-300e", name: "Embraer Phenom 300E", brandIdx: 10, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 3700, speed: 860, weight: null },
+  { slug: "dji-agras-t50", name: "DJI Agras T50", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 69999, priceMax: 89999, flight: 20, range: 5, speed: 36, weight: 40000 },
+  { slug: "autel-dragonfish", name: "Autel Dragonfish", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 89999, priceMax: 139999, flight: 120, range: 30, speed: 108, weight: 4600 },
+  { slug: "eh216-l", name: "EHang EH216-L", brandIdx: 4, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 60, speed: 150, weight: null },
+  { slug: "wisk-cora", name: "Wisk Cora", brandIdx: 5, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 100, speed: 180, weight: null },
+  { slug: "aerofugia-ae200", name: "沃飞长空 AE200", brandIdx: 5, catIdx: 1, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 200, speed: 250, weight: null },
 ];
 
-const CONTENT_CAT_IDS: string[] = [];
-const CONTENT_CAT_DATA = [
+const CONTENT_CATEGORY_DATA = [
   { slug: "news", name: "资讯" },
-  { slug: "review", name: "评测" },
+  { slug: "tech", name: "技术" },
+  { slug: "review", name: "测评" },
   { slug: "guide", name: "指南" },
 ];
 
@@ -432,6 +286,7 @@ const MOMENT_TITLES = [
   "瀑布航拍", "梯田飞行", "雪山攀登伴飞",
   "湖畔落日", "工业区巡查", "高速路况监测",
   "体育赛事航拍", "烟花表演记录", "热气球伴飞",
+  "夜间灯光秀航拍",
 ];
 
 const REVIEW_CONTENTS = [
@@ -481,24 +336,14 @@ const RANKING_TITLES = [
   "eVTOL 飞行器技术实力榜",
   "专业级航拍设备排行",
   "最具性价比无人机排行",
-  "长续航飞行器排行",
-  "便携无人机精选榜",
-  "行业应用无人机排行",
-  "穿越机性能排行",
-  "低空出行飞行器展望榜",
 ];
 
 const RANKING_DESCS = [
-  "综合画质、续航、便携性等多维度評选出的年度最佳航拍无人机",
+  "综合画质、续航、便携性等多维度评选出的年度最佳航拍无人机",
   "适合新手入门的高性价比无人机推荐",
   "基于技术参数和试飞数据的 eVTOL 飞行器排名",
   "面向专业摄影师和影视制作团队的高端设备排行",
   "在性能和价格之间取得最佳平衡的无人机推荐",
-  "续航能力最强的飞行器排行，适合长距离任务",
-  "折叠后体积最小、重量最轻的便携无人机精选",
-  "在农业、巡检、测绘等行业应用中的优秀无人机",
-  "速度和操控性能最强的穿越机排行",
-  "未来低空出行领域最具潜力的飞行器展望",
 ];
 
 const RANKING_ITEM_TITLES = [
@@ -512,35 +357,6 @@ const RANKING_ITEM_TITLES = [
   "图传稳定，信号覆盖广",
   "噪音低，适合城市飞行",
   "载重能力强，适合行业应用",
-];
-
-const SUBMISSION_NAMES = [
-  "新型农业植保无人机",
-  "城市物流配送飞行器",
-  "应急救援无人机",
-  "电力巡检专用无人机",
-  "测绘建模飞行器",
-  "消防灭火无人机",
-  "海洋监测飞行器",
-  "森林防火巡逻机",
-  "交通监控无人机",
-  "环境监测飞行器",
-  "快递配送多旋翼",
-  "医疗物资运输机",
-  "建筑工地巡检无人机",
-  "景区观光飞行器",
-  "通信中继无人机",
-];
-
-const REPORT_REASONS = [
-  "内容不相关",
-  "虚假信息",
-  "不当言论",
-  "侵犯版权",
-  "广告推广",
-  "恶意攻击",
-  "重复发布",
-  "违规内容",
 ];
 
 const BIO_TEXTS = [
@@ -566,7 +382,7 @@ const FILE_KEYS: string[] = [];
 // ==================== Object Storage ====================
 
 async function seedObjectStorage() {
-  console.log("\n📦 开始推送对象存储测试数据...");
+  console.log("\n 开始推送对象存储测试数据...");
 
   const config = resolveSeedStorageConfig();
   FILE_KEYS.length = 0;
@@ -579,25 +395,24 @@ async function seedObjectStorage() {
     cover3: loadSeedAsset("封面图3.webp"),
     cover4: loadSeedAsset("封面图4.webp"),
     articleImg: loadSeedAsset("文章测试图.jpg"),
-    video: loadSeedAsset("测试视频.mp4"),
   };
+
+  const covers = [assets.cover1, assets.cover2, assets.cover3, assets.cover4];
 
   const categories: Array<{
     prefix: string;
     count: number;
-    type: "image/jpeg" | "image/webp" | "video/mp4";
+    type: "image/jpeg" | "image/webp";
     ext: string;
     dataList: Buffer[];
   }> = [
     { prefix: "avatars", count: 50, type: "image/jpeg", ext: "jpg", dataList: [assets.avatar1, assets.avatar2] },
-    { prefix: "posts/articles", count: 30, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
-    { prefix: "posts/moments", count: 30, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
-    { prefix: "posts/videos", count: 10, type: "video/mp4", ext: "mp4", dataList: [assets.video] },
-    { prefix: "rankings/covers", count: 10, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
-    { prefix: "rankings/items", count: 50, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
-    { prefix: "models/covers", count: 30, type: "image/webp", ext: "webp", dataList: [assets.cover1, assets.cover2, assets.cover3, assets.cover4] },
-    { prefix: "submissions/covers", count: 15, type: "image/jpeg", ext: "jpg", dataList: [assets.avatar1] },
-    { prefix: "reports/evidence", count: 10, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
+    { prefix: "posts/covers", count: 200, type: "image/webp", ext: "webp", dataList: covers },
+    { prefix: "posts/content", count: 200, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
+    { prefix: "models/covers", count: 30, type: "image/webp", ext: "webp", dataList: covers },
+    { prefix: "circles/covers", count: 10, type: "image/webp", ext: "webp", dataList: covers },
+    { prefix: "rankings/covers", count: 5, type: "image/webp", ext: "webp", dataList: covers },
+    { prefix: "rankings/items", count: 50, type: "image/webp", ext: "webp", dataList: covers },
   ];
 
   const objects: SeedStorageObject[] = [];
@@ -616,13 +431,13 @@ async function seedObjectStorage() {
   const total = objects.length;
   await uploadSeedStorageObjects(config, objects);
 
-  console.log(`  ✅ ${config.provider} 推送完成，共 ${total} 个文件`);
+  console.log(`  ${config.provider} 推送完成，共 ${total} 个文件`);
 }
 
 // ==================== Redis ====================
 
 async function seedRedis() {
-  console.log("\n🗄️ 开始推送 Redis 测试数据...");
+  console.log("\n 开始推送 Redis 测试数据...");
 
   const client = createClient({
     url: process.env.REDIS_URL?.trim() || "redis://localhost:6379/0",
@@ -632,7 +447,6 @@ async function seedRedis() {
   try {
     const codeHashSecret = resolveSeedAuthCodeHashSecret();
 
-    // 验证码
     await client.set("captcha:test_captcha_001", JSON.stringify({
       challengeId: "test_captcha_001",
       codeHash: hashVerificationCode({
@@ -643,19 +457,7 @@ async function seedRedis() {
       }),
       attempts: 0
     }), { EX: 300 });
-    await client.set("captcha:test_captcha_002", JSON.stringify({
-      challengeId: "test_captcha_002",
-      codeHash: hashVerificationCode({
-        code: "ABCD",
-        purpose: "captcha",
-        subject: "test_captcha_002",
-        secret: codeHashSecret
-      }),
-      attempts: 0
-    }), { EX: 300 });
-    console.log("  ✓ 图形验证码: 2 组");
 
-    // 短信验证码
     await client.set("sms:13800138000", JSON.stringify({
       requestId: "test_sms_001",
       phone: "13800138000",
@@ -667,45 +469,26 @@ async function seedRedis() {
       }),
       attempts: 0
     }), { EX: 300 });
-    await client.set("sms:13800138001", JSON.stringify({
-      requestId: "test_sms_002",
-      phone: "13800138001",
-      codeHash: hashVerificationCode({
-        code: "666666",
-        purpose: "sms",
-        subject: "13800138001",
-        secret: codeHashSecret
-      }),
-      attempts: 0
-    }), { EX: 300 });
-    console.log("  ✓ 短信验证码: 2 组");
 
-    // 待注册
     await client.set("reg:test_reg_001", JSON.stringify({
       registrationToken: "test_reg_001", phone: "13900139000",
       suggestedDisplayName: "新飞友", clientIp: "127.0.0.1", userAgent: "TestApp/1.0", deviceLabel: "Test Device",
     }), { EX: 600 });
-    console.log("  ✓ 待注册令牌: 1 组");
 
-    // 热门缓存
     await client.set("feed:hot-circle", JSON.stringify(
-      Array.from({ length: 12 }, (_, i) => ({
-        id: `circle-${i + 1}`, title: pick(["dawn-training", "harbor-route", "mavic-review", "autel-canyon", "endurance-board", "delta-checkin", "grassland-log", "ranking-3d", "mini-qa", "night-show", "custom-ranking", "joby-note"]),
-        mediaPath: FILE_KEYS[i % FILE_KEYS.length], heat: 100 - i * 7,
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `circle-${i + 1}`, title: `circle-${i + 1}`,
+        mediaPath: FILE_KEYS[550 + i % 10] ?? FILE_KEYS[0], heat: 100 - i * 7,
       }))
     ));
     await client.set("feed:hot-models", JSON.stringify(
       MODEL_DATA.slice(0, 10).map((m, i) => ({ slug: m.slug, name: m.name, heat: 98 - i * 5 }))
     ));
     await client.set("feed:hot-rankings", JSON.stringify(
-      Array.from({ length: 5 }, (_, i) => ({ id: `ranking-${i + 1}`, title: RANKING_TITLES[i], heat: 95 - i * 8 }))
+      RANKING_TITLES.map((title, i) => ({ id: `ranking-${i + 1}`, title, heat: 95 - i * 8 }))
     ));
-    await client.set("feed:hero-media", JSON.stringify(
-      FILE_KEYS.slice(0, 5).map((k, i) => ({ id: `hero-${i + 1}`, path: k, url: "" }))
-    ));
-    console.log("  ✓ 热门缓存: 4 组");
 
-    console.log("  ✅ Redis 推送完成");
+    console.log("  Redis 推送完成");
   } finally {
     await client.disconnect();
   }
@@ -713,10 +496,16 @@ async function seedRedis() {
 
 // ==================== PostgreSQL ====================
 
-async function seedPostgreSQL() {
-  console.log("\n🐘 开始推送 PostgreSQL 测试数据...");
+const CATEGORY_IDS: string[] = [];
+const BRAND_IDS: string[] = [];
+const MODEL_IDS: string[] = [];
+const CONTENT_CAT_IDS: string[] = [];
+const CIRCLE_IDS: string[] = [];
 
-  console.log("  🧹 清理已有测试数据...");
+async function seedPostgreSQL() {
+  console.log("\n 开始推送 PostgreSQL 测试数据...");
+
+  console.log("   清理已有测试数据...");
   await db.execute(sql.raw(
     `TRUNCATE TABLE "rating_target_comment_likes", "rating_target_comments", "rating_target_comment_reports",
       "rating_target_ratings", "rating_target_reports", "rating_targets", "ranking_comment_likes",
@@ -726,14 +515,15 @@ async function seedPostgreSQL() {
       "aircraft_model_comment_reports", "aircraft_model_interactions", "aircraft_model_reports",
       "aircraft_reviews", "aircraft_review_likes", "aircraft_review_reports",
       "aircraft_submissions", "brand_applications", "aircraft_models", "brands",
-      "content_categories", "aircraft_categories", "files", "user_follows",
-      "notifications", "user_settings", "sessions", "devices", "users"
+      "content_categories", "aircraft_categories", "power_types", "files", "user_follows",
+      "notifications", "user_settings", "sessions", "devices", "site_settings",
+      "roles", "circle_posts", "circle_members", "circles", "users"
       RESTART IDENTITY CASCADE;`
   ));
-  console.log("  ✓ 清理完成");
+  console.log("  清理完成");
 
-  // 1. 用户 (200)
-  console.log("  👥 创建 200 个用户...");
+  // 1. 用户 (50)
+  console.log("   创建 50 个用户...");
   const adminPasswordHash = await hashPassword("Admin#123");
   const users = [
     { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "admin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
@@ -744,7 +534,6 @@ async function seedPostgreSQL() {
       avatarFileId: null, bio: pick(BIO_TEXTS),
     })),
   ];
-  // 确保手机号唯一
   const usedPhones = new Set<string>();
   for (const u of users) {
     if (u.phone) {
@@ -758,35 +547,59 @@ async function seedPostgreSQL() {
   }
 
   await db.insert(usersTable).values(users);
-  console.log(`  ✓ 用户: ${users.length} 个 (管理员 1 + 普通用户 ${users.length - 1})`);
-
-  // 2. 用户设置
-  console.log("  ⚙️ 创建用户设置...");
   const adminId = USER_IDS[0];
   const regularUsers = USER_IDS.slice(1);
-  await db.insert(userSettingsTable).values(
-    regularUsers.slice(0, 120).map((userId) => ({
-      id: uid("setting"), userId,
-      profileVisibility: pick(["public", "community", "private"]),
-      notifyComments: Math.random() > 0.3,
-      notifyMentions: Math.random() > 0.4,
-      sessionAlerts: Math.random() > 0.2,
-      emailDigest: Math.random() > 0.7,
-    }))
-  );
-  console.log("  ✓ 用户设置: 120 个");
+  console.log(`  用户: ${users.length} 个 (管理员 1 + 普通用户 ${users.length - 1})`);
 
-  // 3. 飞行器分类 (6)
-  console.log("  📂 创建飞行器分类...");
-  for (const c of CATEGORY_DATA) {
+  // 2. 角色
+  console.log("   创建角色...");
+  await db.insert(rolesTable).values([
+    { name: "super_admin", label: "超级管理员", permissions: ["*"], description: "拥有系统全部权限" },
+    { name: "editor", label: "内容编辑", permissions: ["content:*", "overview:view"], description: "负责内容创建与编辑" },
+    { name: "moderator", label: "审核员", permissions: ["moderation:*", "overview:view"], description: "负责内容审核与社区管理" },
+    { name: "operator", label: "运营专员", permissions: ["operations:*", "overview:view"], description: "负责运营活动与数据管理" },
+  ]);
+  const testPwd = await hashPassword("Test#123");
+  await db.insert(usersTable).values([
+    { id: createId("user"), role: "editor", displayName: "内容编辑测试", phone: "13900139001", account: "editor", passwordHash: testPwd },
+    { id: createId("user"), role: "moderator", displayName: "审核员测试", phone: "13900139002", account: "moderator", passwordHash: testPwd },
+    { id: createId("user"), role: "operator", displayName: "运营专员测试", phone: "13900139003", account: "operator", passwordHash: testPwd },
+  ]);
+
+  // 3. 内容分类 (4)
+  console.log("   创建内容分类...");
+  for (const c of CONTENT_CATEGORY_DATA) {
+    const id = uid("ccat");
+    CONTENT_CAT_IDS.push(id);
+    await db.insert(contentCategoriesTable).values({ id, slug: c.slug, name: c.name, sortOrder: CONTENT_CATEGORY_DATA.indexOf(c) + 1, isEnabled: true });
+  }
+  console.log(`  内容分类: ${CONTENT_CAT_IDS.length} 个`);
+
+  // 4. 飞行器分类 (4)
+  console.log("   创建飞行器分类...");
+  const aircraftCatData = [
+    { slug: "drone", name: "无人机" },
+    { slug: "evtol", name: "电动垂直起降" },
+    { slug: "helicopter", name: "直升机" },
+    { slug: "business-jet", name: "公务机" },
+  ];
+  for (const c of aircraftCatData) {
     const id = uid("cat");
     CATEGORY_IDS.push(id);
-    await db.insert(aircraftCategoriesTable).values({ id, slug: c.slug, name: c.name, sortOrder: CATEGORY_DATA.indexOf(c) + 1 });
+    await db.insert(aircraftCategoriesTable).values({ id, slug: c.slug, name: c.name, sortOrder: aircraftCatData.indexOf(c) + 1, isEnabled: true });
   }
-  console.log(`  ✓ 分类: ${CATEGORY_IDS.length} 个`);
 
-  // 4. 品牌 (20)
-  console.log("  🏷️ 创建品牌...");
+  // 5. 动力类型 (4)
+  console.log("   创建动力类型...");
+  await db.insert(powerTypesTable).values([
+    { id: "seed_pwt_electric", slug: "electric", name: "电动", sortOrder: 1, isEnabled: true },
+    { id: "seed_pwt_fuel", slug: "fuel", name: "燃油", sortOrder: 2, isEnabled: true },
+    { id: "seed_pwt_hybrid", slug: "hybrid", name: "混动", sortOrder: 3, isEnabled: true },
+    { id: "seed_pwt_other", slug: "other", name: "其他", sortOrder: 4, isEnabled: true },
+  ]);
+
+  // 6. 品牌 (15)
+  console.log("   创建品牌...");
   for (const b of BRAND_DATA) {
     const id = uid("brand");
     BRAND_IDS.push(id);
@@ -794,13 +607,14 @@ async function seedPostgreSQL() {
       id, slug: b.slug, name: b.name,
       categoryId: CATEGORY_IDS[b.categoryIdx],
       sortOrder: BRAND_DATA.indexOf(b) + 1,
+      isEnabled: true,
     });
   }
-  console.log(`  ✓ 品牌: ${BRAND_IDS.length} 个`);
+  console.log(`  品牌: ${BRAND_IDS.length} 个`);
 
-  // 5. 飞行器型号 (100)
-  console.log("  ✈️ 创建飞行器型号...");
-  const lifecycleStatuses = ["concept", "development", "testing", "unreleased", "released", "not_in_market", "marketed"] as const;
+  // 7. 机型 (30)
+  console.log("   创建 30 个机型...");
+  const lifecycleStatuses = ["concept", "development", "testing", "released", "marketed"] as const;
   for (const m of MODEL_DATA) {
     const id = uid("model");
     MODEL_IDS.push(id);
@@ -812,240 +626,378 @@ async function seedPostgreSQL() {
       powerType: m.power,
       lifecycleStatus: pick(lifecycleStatuses),
       summary: pick(["经典机型，性能稳定", "新一代飞行器代表", "市场热门机型", "技术创新典范", "行业标杆产品"]),
-      description: `${m.name} 是一款${m.power === "electric" ? "电动" : "燃油"}飞行器，${m.flight ? `续航 ${m.flight} 分钟` : ""}，${m.range ? `航程 ${m.range} 公里` : ""}，${m.speed ? `最高时速 ${m.speed} km/h` : ""}。`,
+      description: `${m.name} 是一款${m.power === "electric" ? "电动" : "燃油"}飞行器，${m.flight ? `续航 ${m.flight} 分钟` : ""}。`,
       priceMin: m.priceMin, priceMax: m.priceMax,
       maxFlightTimeMinutes: m.flight || null,
       maxRangeKilometers: m.range || null,
       maxSpeedKph: m.speed || null,
-      cruiseSpeedKph: (m as Record<string, unknown>).cruiseSpeed as number || null,
       takeoffWeightGrams: m.weight || null,
-      wingspanMm: (m as Record<string, unknown>).wingspan as number || null,
-      lengthMm: (m as Record<string, unknown>).len as number || null,
-      heightMm: (m as Record<string, unknown>).ht as number || null,
-      maxAltitudeM: (m as Record<string, unknown>).altitude as number || null,
-      climbRateMs: (m as Record<string, unknown>).climbRate as number || null,
-      windResistance: (m as Record<string, unknown>).windResist as string || null,
-      motorType: (m as Record<string, unknown>).motor as string || null,
-      batteryType: (m as Record<string, unknown>).battery as string || null,
-      batteryCapacityMah: (m as Record<string, unknown>).batteryCap as number || null,
-      batteryVoltage: (m as Record<string, unknown>).batteryVolt as string || null,
-      batteryEnergyWh: (m as Record<string, unknown>).batteryEgy as number || null,
-      chargeTimeMinutes: (m as Record<string, unknown>).chargeTime as number || null,
-      propellerSize: (m as Record<string, unknown>).propSize as string || null,
-      obstacleAvoidance: (m as Record<string, unknown>).obstacle as string || null,
-      gnssType: (m as Record<string, unknown>).gnss as string || null,
-      ipRating: (m as Record<string, unknown>).ip as string || null,
-      operatingTemperature: (m as Record<string, unknown>).opTemp as string || null,
-      cameraSensorSize: (m as Record<string, unknown>).sensorSize as string || null,
-      cameraPixels: (m as Record<string, unknown>).pixels as string || null,
-      videoResolution: (m as Record<string, unknown>).videoRes as string || null,
-      lensAperture: (m as Record<string, unknown>).aperture as string || null,
-      isoRange: (m as Record<string, unknown>).iso as string || null,
-      transmissionSystem: (m as Record<string, unknown>).transSys as string || null,
-      transmissionRangeM: (m as Record<string, unknown>).transRange as number || null,
-      certificationType: (m as Record<string, unknown>).certType as string || null,
-      noiseLevelDb: (m as Record<string, unknown>).noise as number || null,
-      materialType: (m as Record<string, unknown>).material as string || null,
       coverImageFileId: null,
       galleryImageFileIds: "[]",
       videoFileId: null,
-      reportCount: randInt(0, 3),
+      reportCount: 0,
       viewCount: randInt(0, 5000),
-      isPublished: Math.random() > 0.1,
+      isPublished: true,
     });
   }
-  console.log(`  ✓ 型号: ${MODEL_IDS.length} 个`);
+  console.log(`  机型: ${MODEL_IDS.length} 个`);
 
-  // 6. 内容分类 (5)
-  console.log("  📑 创建内容分类...");
-  for (const c of CONTENT_CAT_DATA) {
-    const id = uid("ccat");
-    CONTENT_CAT_IDS.push(id);
-    await db.insert(contentCategoriesTable).values({ id, slug: c.slug, name: c.name, sortOrder: CONTENT_CAT_DATA.indexOf(c) + 1 });
-  }
-  console.log(`  ✓ 内容分类: ${CONTENT_CAT_IDS.length} 个`);
+  // 8. 文件记录（头像、封面、内容图）
+  console.log("   创建文件记录...");
+  const fileEntries: Array<{
+    id: string; ownerId: string; postId: string | null; bizType: string;
+    mediaKind: string; objectKey: string; filename: string;
+    contentType: string; size: number;
+  }> = [];
 
-  // 7. 文件记录 (80+)
-  console.log("  📁 创建文件记录...");
-  const fileIds: string[] = [];
-  const fileEntries = [];
   const storage = resolveSeedStorageConfig();
-  for (let i = 0; i < FILE_KEYS.length; i++) {
+
+  // 头像文件记录
+  const avatarFileIds: string[] = [];
+  for (let i = 0; i < 50; i++) {
     const fileId = uid("file");
-    fileIds.push(fileId);
-    const key = FILE_KEYS[i];
-    const isVideo = key.endsWith(".mp4");
-    const bizType = key.includes("ranking-cover") ? "ranking-cover-image"
-      : key.includes("ranking/items") ? "ranking-item-image"
-      : key.includes("models") ? "aircraft-cover-image"
-      : key.includes("submissions") ? "aircraft-cover-image"
-      : key.includes("videos") ? "post-video"
-      : "post-image";
+    avatarFileIds.push(fileId);
+    const key = `test/avatars/avatar-${String(i + 1).padStart(3, "0")}.jpg`;
+    fileEntries.push({
+      id: fileId, ownerId: USER_IDS[i], postId: null,
+      bizType: "avatar", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, key),
+      filename: i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg",
+      contentType: "image/jpeg", size: i % 2 === 0 ? 50000 : 48000,
+    });
+  }
+
+  // 机型封面文件记录
+  const modelCoverFileIds: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const fileId = uid("file");
+    modelCoverFileIds.push(fileId);
+    const key = `test/models/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
+    fileEntries.push({
+      id: fileId, ownerId: pick(regularUsers), postId: null,
+      bizType: "aircraft-cover-image", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, key),
+      filename: `封面图${(i % 4) + 1}.webp`,
+      contentType: "image/webp", size: 100000,
+    });
+  }
+
+  // 圈子封面文件记录
+  const circleCoverFileIds: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const fileId = uid("file");
+    circleCoverFileIds.push(fileId);
+    const key = `test/circles/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
+    fileEntries.push({
+      id: fileId, ownerId: adminId, postId: null,
+      bizType: "circle-cover-image", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, key),
+      filename: `封面图${(i % 4) + 1}.webp`,
+      contentType: "image/webp", size: 100000,
+    });
+  }
+
+  // 帖子封面和内容图文件记录（稍后在创建帖子时填充 postId）
+  const postCoverFileIds: string[] = [];
+  const postContentFileIds: string[] = [];
+  for (let i = 0; i < 200; i++) {
+    const coverFileId = uid("file");
+    const contentFileId = uid("file");
+    postCoverFileIds.push(coverFileId);
+    postContentFileIds.push(contentFileId);
+
+    const coverKey = `test/posts/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
+    const contentKey = `test/posts/content/content-${String(i + 1).padStart(3, "0")}.jpg`;
 
     fileEntries.push({
-      id: fileId,
-      ownerId: pick(USER_IDS),
-      postId: null,
-      bizType,
-      mediaKind: isVideo ? "video" : "image",
+      id: coverFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
+      bizType: "post-image", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, coverKey),
+      filename: `封面图${(i % 4) + 1}.webp`,
+      contentType: "image/webp", size: 100000,
+    });
+    fileEntries.push({
+      id: contentFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
+      bizType: "post-image", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, contentKey),
+      filename: "文章测试图.jpg",
+      contentType: "image/jpeg", size: 200000,
+    });
+  }
+
+  // 榜单封面和条目文件记录
+  const rankingCoverFileIds: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const fileId = uid("file");
+    rankingCoverFileIds.push(fileId);
+    const key = `test/rankings/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
+    fileEntries.push({
+      id: fileId, ownerId: adminId, postId: null,
+      bizType: "ranking-cover-image", mediaKind: "image",
       ...buildSeedStorageRecord(storage, key),
-      filename: key.split("/").pop() || "file",
-      contentType: isVideo ? "video/mp4" : key.endsWith(".webp") ? "image/webp" : "image/jpeg",
-      size: isVideo ? randInt(1000000, 50000000) : randInt(50000, 5000000),
+      filename: `封面图${(i % 4) + 1}.webp`,
+      contentType: "image/webp", size: 100000,
+    });
+  }
+
+  const rankingItemFileIds: string[] = [];
+  for (let i = 0; i < 50; i++) {
+    const fileId = uid("file");
+    rankingItemFileIds.push(fileId);
+    const key = `test/rankings/items/items-${String(i + 1).padStart(3, "0")}.webp`;
+    fileEntries.push({
+      id: fileId, ownerId: adminId, postId: null,
+      bizType: "ranking-item-image", mediaKind: "image",
+      ...buildSeedStorageRecord(storage, key),
+      filename: `封面图${(i % 4) + 1}.webp`,
+      contentType: "image/webp", size: 80000,
+    });
+  }
+
+  // 批量插入文件记录
+  for (let i = 0; i < fileEntries.length; i += 50) {
+    await db.insert(filesTable).values(fileEntries.slice(i, i + 50).map(f => ({
+      ...f,
+      etag: null,
       status: "uploaded",
       currentAuditStatus: "passed",
       visibility: "public",
       createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
       uploadedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
+      deletedAt: null,
+    })));
   }
-
-  // 批量插入，每次 50 条
-  for (let i = 0; i < fileEntries.length; i += 50) {
-    await db.insert(filesTable).values(fileEntries.slice(i, i + 50));
-  }
-  console.log(`  ✓ 文件记录: ${fileEntries.length} 个`);
+  console.log(`  文件记录: ${fileEntries.length} 个`);
 
   // 更新用户头像
-  const avatarFileIds = fileEntries.filter(f => f.objectKey.includes("avatars")).map(f => f.id);
   for (let i = 0; i < Math.min(avatarFileIds.length, regularUsers.length); i++) {
     await db.update(usersTable).set({ avatarFileId: avatarFileIds[i] }).where(sql`id = ${regularUsers[i]}`);
   }
   await db.update(usersTable).set({ avatarFileId: avatarFileIds[0] || null }).where(sql`id = ${adminId}`);
-  console.log("  ✓ 用户头像已关联");
+  console.log("  用户头像已关联");
 
-  // 更新飞行器型号封面图
-  const modelCoverFileIds = fileEntries
-    .filter(f => f.objectKey.includes("models/covers"))
-    .map(f => f.id);
+  // 更新机型封面
   for (let i = 0; i < Math.min(modelCoverFileIds.length, MODEL_IDS.length); i++) {
-    await db
-      .update(aircraftModelsTable)
-      .set({ coverImageFileId: modelCoverFileIds[i % modelCoverFileIds.length] })
-      .where(sql`id = ${MODEL_IDS[i]}`);
+    await db.update(aircraftModelsTable).set({ coverImageFileId: modelCoverFileIds[i] }).where(sql`id = ${MODEL_IDS[i]}`);
   }
-  console.log(`  ✓ 型号封面图已关联: ${Math.min(modelCoverFileIds.length, MODEL_IDS.length)} 个`);
+  console.log("  机型封面已关联");
 
-  // 8. 帖子 (500: 300 文章 + 200 动态)
-  console.log("  📝 创建帖子...");
-  const articlePostIds: string[] = [];
-  const momentPostIds: string[] = [];
-  const allMomentIds: string[] = [];
-  const pendingPostIds: string[] = [];
-  const rejectedPostIds: string[] = [];
-  const allPostIds: string[] = [];
+  // 9. 圈子 (10)
+  console.log("   创建 10 个圈子...");
+  const circleSeeds = [
+    { slug: "drone-enthusiasts", name: "航模发烧友", desc: "热爱航模飞行的爱好者聚集地", joinMode: "free" as const },
+    { slug: "fpv-racing", name: "FPV竞速圈", desc: "穿越机竞速与技巧交流", joinMode: "free" as const },
+    { slug: "aerial-photography", name: "航拍摄影", desc: "分享航拍作品与摄影技巧", joinMode: "free" as const },
+    { slug: "diy-build", name: "DIY装机", desc: "自组无人机方案与调试交流", joinMode: "free" as const },
+    { slug: "industry-application", name: "行业应用", desc: "测绘/巡检/植保等工业应用讨论", joinMode: "audit" as const },
+    { slug: "evtol-news", name: "eVTOL前沿", desc: "eVTOL飞行器技术与资讯", joinMode: "free" as const },
+    { slug: "flight-training", name: "飞行训练", desc: "飞行技术培训与考证指导", joinMode: "free" as const },
+    { slug: "aerial-video", name: "航拍视频", desc: "航拍视频创作与后期制作", joinMode: "free" as const },
+    { slug: "drone-racing", name: "竞速赛事", desc: "无人机竞速赛事信息与交流", joinMode: "free" as const },
+    { slug: "low-altitude", name: "低空经济", desc: "低空经济政策与产业发展", joinMode: "audit" as const },
+  ];
 
-  const posts = [];
-  for (let i = 0; i < 300; i++) {
-    const id = uid("post");
-    const authorId = pick(regularUsers);
-    const status = i < 240 ? "published" : i < 270 ? "pending" : "rejected";
-    const catId = pick(CONTENT_CAT_IDS);
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const publishedAt = status === "published" ? createdAt : null;
-
-    if (status === "published") articlePostIds.push(id);
-    if (status === "pending") pendingPostIds.push(id);
-    if (status === "rejected") rejectedPostIds.push(id);
-    allPostIds.push(id);
-
-    posts.push({
-      id, authorId, type: "article" as const,
-      title: ARTICLE_TITLES[i % ARTICLE_TITLES.length],
-      content: `这是第 ${i + 1} 篇测试文章的正文内容。${REVIEW_CONTENTS[i % REVIEW_CONTENTS.length]}`,
-      contentHtml: `<p>${ARTICLE_TITLES[i % ARTICLE_TITLES.length]}</p><p>${REVIEW_CONTENTS[i % REVIEW_CONTENTS.length]}</p>`,
-      contentPlainText: ARTICLE_TITLES[i % ARTICLE_TITLES.length] + " " + REVIEW_CONTENTS[i % REVIEW_CONTENTS.length],
-      contentCategoryId: catId,
-      status, rejectionReason: status === "rejected" ? pick(REPORT_REASONS) : null,
-      commentCount: randInt(0, 15),
-      reportCount: status !== "published" ? randInt(0, 3) : 0,
-      likeCount: randInt(0, 80),
-      favoriteCount: randInt(0, 40),
-      shareCount: randInt(0, 15),
-      createdAt, updatedAt: createdAt, publishedAt,
+  for (let i = 0; i < circleSeeds.length; i++) {
+    const c = circleSeeds[i];
+    const id = uid("circle");
+    CIRCLE_IDS.push(id);
+    await db.insert(circlesTable).values({
+      id, slug: c.slug, name: c.name, description: c.desc,
+      coverImageFileId: circleCoverFileIds[i],
+      ownerId: adminId, joinMode: c.joinMode,
+      memberCount: randInt(5, 30), postCount: 20,
     });
+    await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: adminId, role: "owner" });
+    const memberCount = randInt(3, 8);
+    const members = new Set<string>();
+    for (let j = 0; j < memberCount; j++) {
+      const memberId = pick(regularUsers);
+      if (members.has(memberId)) continue;
+      members.add(memberId);
+      await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: memberId, role: "member" }).onConflictDoNothing();
+    }
   }
+  console.log(`  圈子: ${CIRCLE_IDS.length} 个`);
+
+  // 10. 帖子 (200: 150 文章 + 50 动态)
+  console.log("   创建 200 篇帖子...");
+  const allPostIds: string[] = [];
+  const posts: Array<Record<string, unknown>> = [];
 
   for (let i = 0; i < 200; i++) {
     const id = uid("post");
-    const authorId = pick(regularUsers);
-    const status = i < 170 ? "published" : i < 190 ? "pending" : "hidden";
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-
-    if (status === "published") momentPostIds.push(id);
-    if (status === "pending") pendingPostIds.push(id);
     allPostIds.push(id);
-    allMomentIds.push(id);
+    const authorId = pick(regularUsers);
+    const isArticle = i < 150;
+    const catId = isArticle ? CONTENT_CAT_IDS[i % CONTENT_CAT_IDS.length] : null;
+    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
+    const status = "published";
 
     posts.push({
-      id, authorId, type: "moment" as const,
-      title: `${pick(USER_DISPLAY_NAMES.slice(0, 40))}的${MOMENT_TITLES[i % MOMENT_TITLES.length]}`,
-      content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length] + ` 今天天气不错，飞了一圈。`,
-      contentPlainText: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length] + ` 今天天气不错，飞了一圈。`,
-      contentCategoryId: null,
-      status, rejectionReason: null,
-      commentCount: randInt(0, 8),
+      id, authorId,
+      type: isArticle ? "article" : "moment",
+      title: isArticle ? ARTICLE_TITLES[i % ARTICLE_TITLES.length] : `${pick(USER_DISPLAY_NAMES.slice(0, 20))}的${MOMENT_TITLES[(i - 150) % MOMENT_TITLES.length]}`,
+      content: isArticle ? `这是第 ${i + 1} 篇测试文章的正文内容。${REVIEW_CONTENTS[i % REVIEW_CONTENTS.length]}` : `${COMMENT_CONTENTS[i % COMMENT_CONTENTS.length]} 今天天气不错，飞了一圈。`,
+      contentHtml: isArticle ? `<p>${ARTICLE_TITLES[i % ARTICLE_TITLES.length]}</p><p>${REVIEW_CONTENTS[i % REVIEW_CONTENTS.length]}</p>` : null,
+      contentPlainText: isArticle ? `${ARTICLE_TITLES[i % ARTICLE_TITLES.length]} ${REVIEW_CONTENTS[i % REVIEW_CONTENTS.length]}` : `${COMMENT_CONTENTS[i % COMMENT_CONTENTS.length]} 今天天气不错，飞了一圈。`,
+      contentCategoryId: catId,
+      coverImageFileId: postCoverFileIds[i],
+      status,
+      rejectionReason: null,
+      commentCount: randInt(3, 5),
       reportCount: 0,
-      likeCount: randInt(0, 40),
-      favoriteCount: randInt(0, 20),
-      shareCount: randInt(0, 8),
-      createdAt, updatedAt: createdAt, publishedAt: status === "published" ? createdAt : null,
+      likeCount: randInt(0, 80),
+      favoriteCount: randInt(0, 40),
+      shareCount: randInt(0, 15),
+      viewCount: randInt(0, 2000),
+      createdAt, updatedAt: createdAt, publishedAt: createdAt,
     });
   }
 
   for (let i = 0; i < posts.length; i += 50) {
     await db.insert(postsTable).values(posts.slice(i, i + 50));
   }
-  console.log(`  ✓ 帖子: ${posts.length} 个 (文章 300 + 动态 200)`);
+  console.log(`  帖子: ${posts.length} 个 (文章 150 + 动态 50)`);
 
-  // 关联帖子图片（文章优先关联图片作为内容插图）
-  // 文章和动态封面不关联种子图片，前端自动使用 aviation-media.ts 兜底图（picsum.photos）
+  // 关联帖子图片文件记录的 postId
+  for (let i = 0; i < 200; i++) {
+    await db.update(filesTable).set({ postId: allPostIds[i] }).where(sql`id = ${postCoverFileIds[i]}`);
+    await db.update(filesTable).set({ postId: allPostIds[i] }).where(sql`id = ${postContentFileIds[i]}`);
+  }
+  console.log("  帖子图片已关联");
 
-  // 9. 帖子评论 (800)
-  console.log("  💬 创建帖子评论...");
-  const postComments = [];
-  const commentIds: string[] = [];
-  for (let i = 0; i < 800; i++) {
-    const id = uid("pcomment");
-    commentIds.push(id);
-    const postId = pick(allPostIds);
-    const authorId = pick(regularUsers);
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 100 && Math.random() > 0.6;
-    const parentCommentId = isReply ? pick(commentIds.slice(0, Math.min(100, commentIds.length))) : null;
+  // 11. 评论 (每个帖子 3-5 条)
+  console.log("   创建帖子评论...");
+  const commentEntries: Array<Record<string, unknown>> = [];
+  const commentIdsByPost = new Map<string, string[]>();
 
-    postComments.push({
-      id, postId, authorId,
-      parentCommentId,
-      replyToCommentId: parentCommentId,
-      replyToUserId: parentCommentId ? pick(regularUsers) : null,
+  for (let i = 0; i < 200; i++) {
+    const postId = allPostIds[i];
+    const commentCount = randInt(3, 5);
+    const postCommentIds: string[] = [];
+
+    for (let j = 0; j < commentCount; j++) {
+      const id = uid("pcomment");
+      postCommentIds.push(id);
+      const isReply = j > 0 && Math.random() > 0.6;
+      const parentCommentId = isReply && postCommentIds.length > 1
+        ? postCommentIds[Math.floor(Math.random() * (postCommentIds.length - 1))]
+        : null;
+
+      commentEntries.push({
+        id, postId,
+        authorId: pick(regularUsers),
+        parentCommentId,
+        replyToCommentId: parentCommentId,
+        replyToUserId: parentCommentId ? pick(regularUsers) : null,
+        content: COMMENT_CONTENTS[(i * 5 + j) % COMMENT_CONTENTS.length],
+        status: "visible",
+        likeCount: randInt(0, 20),
+        reportCount: 0,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      });
+    }
+    commentIdsByPost.set(postId, postCommentIds);
+  }
+
+  for (let i = 0; i < commentEntries.length; i += 50) {
+    await db.insert(postCommentsTable).values(commentEntries.slice(i, i + 50));
+  }
+  console.log(`  评论: ${commentEntries.length} 条`);
+
+  // 12. 榜单 (5 个，每个 10 个条目)
+  console.log("   创建 5 个榜单...");
+  const rankingIds: string[] = [];
+
+  for (let i = 0; i < 5; i++) {
+    const id = uid("ranking");
+    rankingIds.push(id);
+    await db.insert(rankingsTable).values({
+      id,
+      authorId: adminId,
+      type: i === 0 ? "official" : "community",
+      title: RANKING_TITLES[i],
+      description: RANKING_DESCS[i],
+      status: "published",
+      rejectionReason: null,
+      coverImageFileId: rankingCoverFileIds[i],
+      itemAddPolicy: "owner",
+      commentCount: randInt(0, 10),
+      reportCount: 0,
+      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+    });
+
+    for (let j = 0; j < 10; j++) {
+      const itemIdx = i * 10 + j;
+      const modelIdx = itemIdx % MODEL_DATA.length;
+      await db.insert(ratingTargetsTable).values({
+        id: uid("rtarget"),
+        rankingId: id,
+        authorId: adminId,
+        linkedModelId: MODEL_IDS[modelIdx],
+        status: "published",
+        rejectionReason: null,
+        rank: j + 1,
+        title: `${MODEL_DATA[modelIdx].name} - ${RANKING_ITEM_TITLES[j]}`,
+        summary: RANKING_ITEM_TITLES[j],
+        imageFileId: rankingItemFileIds[itemIdx],
+        brandName: BRAND_DATA[MODEL_DATA[modelIdx].brandIdx].name,
+        commentCount: randInt(0, 5),
+        likeCount: randInt(0, 25),
+        reportCount: 0,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      });
+    }
+
+    await db.insert(rankingCommentsTable).values({
+      id: uid("rcomment"),
+      rankingId: id,
+      authorId: pick(regularUsers),
       content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length],
-      status: pick(["visible", "visible", "visible", "hidden"]),
-      likeCount: randInt(0, 20),
-      reportCount: randInt(0, 2),
-      createdAt, updatedAt: createdAt,
+      status: "visible",
+      likeCount: randInt(0, 10),
+      reportCount: 0,
+      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
     });
   }
-  for (let i = 0; i < postComments.length; i += 50) {
-    await db.insert(postCommentsTable).values(postComments.slice(i, i + 50));
-  }
-  console.log(`  ✓ 帖子评论: ${postComments.length} 条`);
+  console.log(`  榜单: ${rankingIds.length} 个，共 ${rankingIds.length * 10} 个条目`);
 
-  // 10. 帖子互动 (1000)
-  console.log("  ❤️ 创建帖子互动...");
-  const types = ["like", "favorite", "share"] as const;
-  const interactions = buildUniqueRows(1000, () => {
+  // 13. 用户关注 (100)
+  console.log("   创建用户关注...");
+  const follows = buildUniqueRows(100, () => {
+    const follower = pick(regularUsers);
+    const followee = pick(regularUsers);
+    return {
+      key: `${follower}-${followee}`,
+      value: {
+        id: uid("follow"),
+        followerId: follower,
+        followeeId: followee,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
+  for (let i = 0; i < follows.length; i += 50) {
+    await db.insert(userFollowsTable).values(follows.slice(i, i + 50));
+  }
+  console.log(`  用户关注: ${follows.length} 条`);
+
+  // 14. 帖子互动 (500)
+  console.log("   创建帖子互动...");
+  const interactionTypes = ["like", "favorite", "share"] as const;
+  const interactions = buildUniqueRows(500, () => {
     const postId = pick(allPostIds);
     const userId = pick(regularUsers);
-    const type = pick(types);
-
+    const type = pick(interactionTypes);
     return {
       key: `${postId}:${userId}:${type}`,
       value: {
         id: uid("pinter"),
-        postId,
-        userId,
-        type,
+        postId, userId, type,
         createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
       }
     };
@@ -1053,629 +1005,33 @@ async function seedPostgreSQL() {
   for (let i = 0; i < interactions.length; i += 50) {
     await db.insert(postInteractionsTable).values(interactions.slice(i, i + 50));
   }
-  console.log(`  ✓ 帖子互动: ${interactions.length} 条`);
+  console.log(`  帖子互动: ${interactions.length} 条`);
 
-  // 11. 帖子评论点赞 (300)
-  console.log("  👍 创建帖子评论点赞...");
-  const commentLikes = buildUniqueRows(300, () => {
-    const commentId = pick(commentIds);
-    const userId = pick(regularUsers);
-
-    return {
-      key: `${commentId}:${userId}`,
-      value: {
-        id: uid("clike"),
-        commentId,
-        userId,
-        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      }
-    };
-  });
-  for (let i = 0; i < commentLikes.length; i += 50) {
-    await db.insert(postCommentLikesTable).values(commentLikes.slice(i, i + 50));
-  }
-  console.log(`  ✓ 帖子评论点赞: ${commentLikes.length} 条`);
-
-  // 12. 飞行器评测 (200)
-  console.log("  ⭐ 创建飞行器评测...");
-  let reviewIndex = 0;
-  const reviews = buildUniqueRows(200, () => {
-    const id = uid("review");
-    const modelId = pick(MODEL_IDS);
-    const userId = pick(regularUsers);
-    const currentIndex = reviewIndex;
-    reviewIndex += 1;
-
-    return {
-      key: `${modelId}:${userId}`,
-      value: {
-        id,
-        modelId,
-        userId,
-        rating: randInt(1, 5),
-        content: REVIEW_CONTENTS[currentIndex % REVIEW_CONTENTS.length],
-        status: pick(["visible", "visible", "visible", "hidden"]),
+  // 15. 圈子帖子 (每个圈子 5 条)
+  console.log("   创建圈子帖子...");
+  const circlePostTitles = ["新人报到", "分享航拍作品", "求推荐入门机型", "FPV飞行记录", "DIY装机分享", "航拍调色教程", "避障实测", "远航挑战"];
+  const circlePostContents = ["详细内容见图片", "和大家分享飞行体验", "欢迎交流讨论", "今天飞了一把，感觉不错", "新手求指导"];
+  let circlePostCount = 0;
+  for (const circleId of CIRCLE_IDS) {
+    for (let j = 0; j < 5; j++) {
+      await db.insert(circlePostsTable).values({
+        id: uid("cp"),
+        circleId,
+        authorId: j === 0 ? adminId : pick(regularUsers),
+        title: circlePostTitles[circlePostCount % circlePostTitles.length],
+        content: circlePostContents[circlePostCount % circlePostContents.length],
+        images: "[]", videos: "[]",
+        hotScore: randInt(10, 200),
         likeCount: randInt(0, 30),
-        reportCount: randInt(0, 2),
-        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      }
-    };
-  });
-  for (let i = 0; i < reviews.length; i += 50) {
-    await db.insert(aircraftReviewsTable).values(reviews.slice(i, i + 50));
-  }
-  console.log(`  ✓ 飞行器评测: ${reviews.length} 条`);
-
-  // 13. 飞行器型号评论 (200)
-  console.log("  🗣️ 创建飞行器型号评论...");
-  const modelCommentIds: string[] = [];
-  const modelComments = [];
-  for (let i = 0; i < 200; i++) {
-    const id = uid("mcomment");
-    modelCommentIds.push(id);
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 60 && Math.random() > 0.6;
-    const parentId = isReply ? pick(modelCommentIds.slice(0, Math.min(60, modelCommentIds.length))) : null;
-    modelComments.push({
-      id,
-      modelId: pick(MODEL_IDS),
-      authorId: pick(regularUsers),
-      parentCommentId: parentId,
-      replyToCommentId: parentId,
-      replyToUserId: parentId ? pick(regularUsers) : null,
-      content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length],
-      status: "visible",
-      likeCount: randInt(0, 15),
-      reportCount: randInt(0, 1),
-      createdAt, updatedAt: createdAt,
-    });
-  }
-  for (let i = 0; i < modelComments.length; i += 50) {
-    await db.insert(aircraftModelCommentsTable).values(modelComments.slice(i, i + 50));
-  }
-  console.log(`  ✓ 飞行器型号评论: ${modelComments.length} 条`);
-
-  // 14. 飞行器型号互动 (300)
-  console.log("  📌 创建飞行器型号互动...");
-  const modelInteractionTypes = ["favorite", "viewed", "compared"] as const;
-  const modelInteractions = buildUniqueRows(300, () => {
-    const modelId = pick(MODEL_IDS);
-    const userId = pick(regularUsers);
-    const type = pick(modelInteractionTypes);
-
-    return {
-      key: `${modelId}:${userId}:${type}`,
-      value: {
-        id: uid("minter"),
-        modelId,
-        userId,
-        type,
-        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      }
-    };
-  });
-  for (let i = 0; i < modelInteractions.length; i += 50) {
-    await db.insert(aircraftModelInteractionsTable).values(modelInteractions.slice(i, i + 50));
-  }
-  console.log(`  ✓ 飞行器型号互动: ${modelInteractions.length} 条`);
-
-  // 15. 排行榜 (20)
-  console.log("  🏆 创建排行榜...");
-  const rankingIds: string[] = [];
-  const rankingCoverFiles = fileEntries.filter(f => f.bizType === "ranking-cover-image");
-  for (let i = 0; i < 20; i++) {
-    const id = uid("ranking");
-    rankingIds.push(id);
-    await db.insert(rankingsTable).values({
-      id,
-      authorId: pick(regularUsers),
-      type: pick(["community", "community", "official"]),
-      title: RANKING_TITLES[i % RANKING_TITLES.length],
-      description: RANKING_DESCS[i % RANKING_DESCS.length],
-      status: pick(["published", "published", "published", "pending"]),
-      rejectionReason: null,
-      coverImageFileId: rankingCoverFiles[i % rankingCoverFiles.length]?.id || null,
-      itemAddPolicy: pick(["owner", "anyone", "moderated"]),
-      commentCount: randInt(0, 10),
-      reportCount: randInt(0, 2),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  console.log(`  ✓ 排行榜: ${rankingIds.length} 个`);
-
-  // 16. 排行榜项目 (150)
-  console.log("  📊 创建排行榜项目...");
-  const rankingItemIds: string[] = [];
-  const rankingItemFiles = fileEntries.filter(f => f.bizType === "ranking-item-image");
-  const rankingItems = [];
-  for (let i = 0; i < 150; i++) {
-    const id = uid("rtarget");
-    rankingItemIds.push(id);
-    rankingItems.push({
-      id,
-      rankingId: rankingIds[i % rankingIds.length],
-      authorId: pick(regularUsers),
-      linkedModelId: Math.random() > 0.3 ? pick(MODEL_IDS) : null,
-      status: pick(["published", "published", "published", "pending"]),
-      rejectionReason: null,
-      rank: (i % 10) + 1,
-      title: `${pick(MODEL_DATA).name} ${RANKING_ITEM_TITLES[i % RANKING_ITEM_TITLES.length]}`,
-      summary: RANKING_ITEM_TITLES[i % RANKING_ITEM_TITLES.length],
-      imageFileId: rankingItemFiles[i % rankingItemFiles.length]?.id || null,
-      brandName: pick(BRAND_DATA).name,
-      commentCount: randInt(0, 8),
-      likeCount: randInt(0, 25),
-      reportCount: randInt(0, 1),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  for (let i = 0; i < rankingItems.length; i += 50) {
-    await db.insert(ratingTargetsTable).values(rankingItems.slice(i, i + 50));
-  }
-  console.log(`  ✓ 排行榜项目: ${rankingItems.length} 个`);
-
-  // 17. 排行榜评论 (60)
-  console.log("  🗨️ 创建排行榜评论...");
-  const rankingComments = [];
-  for (let i = 0; i < 60; i++) {
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    rankingComments.push({
-      id: uid("rcomment"),
-      rankingId: pick(rankingIds),
-      authorId: pick(regularUsers),
-      content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length],
-      status: "visible",
-      likeCount: randInt(0, 10),
-      reportCount: randInt(0, 1),
-      createdAt, updatedAt: createdAt,
-    });
-  }
-  for (let i = 0; i < rankingComments.length; i += 50) {
-    await db.insert(rankingCommentsTable).values(rankingComments.slice(i, i + 50));
-  }
-  console.log(`  ✓ 排行榜评论: ${rankingComments.length} 条`);
-
-  // 18. 排行榜项目评分 (500)
-  console.log("  🔢 创建排行榜项目评分...");
-  const ratings = buildUniqueRows(500, () => {
-    const ratingTargetId = pick(rankingItemIds);
-    const userId = pick(regularUsers);
-
-    return {
-      key: `${ratingTargetId}:${userId}`,
-      value: {
-        id: uid("rating"),
-        ratingTargetId,
-        userId,
-        rating: randInt(1, 5),
-        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      }
-    };
-  });
-  for (let i = 0; i < ratings.length; i += 50) {
-    await db.insert(ratingTargetRatingsTable).values(ratings.slice(i, i + 50));
-  }
-  console.log(`  ✓ 排行榜项目评分: ${ratings.length} 条`);
-
-  // 19. 排行榜项目评论 (120)
-  console.log("  💬 创建排行榜项目评论...");
-  const rtComments = [];
-  const rtCommentIds: string[] = [];
-  for (let i = 0; i < 120; i++) {
-    const id = uid("rtcomment");
-    rtCommentIds.push(id);
-    const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 30 && Math.random() > 0.6;
-    const parentId = isReply ? pick(rtCommentIds.slice(0, Math.min(30, rtCommentIds.length))) : null;
-    rtComments.push({
-      id,
-      ratingTargetId: pick(rankingItemIds),
-      authorId: pick(regularUsers),
-      parentCommentId: parentId,
-      replyToCommentId: parentId,
-      replyToUserId: parentId ? pick(regularUsers) : null,
-      content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length],
-      rating: randInt(1, 5),
-      status: "visible",
-      likeCount: randInt(0, 10),
-      reportCount: randInt(0, 1),
-      createdAt, updatedAt: createdAt,
-    });
-  }
-  for (let i = 0; i < rtComments.length; i += 50) {
-    await db.insert(ratingTargetCommentsTable).values(rtComments.slice(i, i + 50));
-  }
-  console.log(`  ✓ 排行榜项目评论: ${rtComments.length} 条`);
-
-  // 20. 用户关注 (300)
-  console.log("  👥 创建用户关注...");
-  const follows = [];
-  const followSet = new Set<string>();
-  let followCount = 0;
-  while (followCount < 300) {
-    const follower = pick(regularUsers);
-    const followee = pick(regularUsers);
-    if (follower === followee) continue;
-    const key = `${follower}-${followee}`;
-    if (followSet.has(key)) continue;
-    followSet.add(key);
-    follows.push({
-      id: uid("follow"),
-      followerId: follower,
-      followeeId: followee,
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-    followCount++;
-  }
-  for (let i = 0; i < follows.length; i += 50) {
-    await db.insert(userFollowsTable).values(follows.slice(i, i + 50));
-  }
-  console.log(`  ✓ 用户关注: ${follows.length} 条`);
-
-  // 21. 通知 (400)
-  console.log("  🔔 创建通知...");
-  const notifications = [];
-  const notifTypes = [
-    "followed",
-    "post_commented",
-    "comment_replied",
-    "post_liked",
-    "post_favorited",
-    "post_status_changed",
-    "aircraft_submission_status_changed",
-    "brand_application_status_changed"
-  ] as const;
-  for (let i = 0; i < 400; i++) {
-    const type = pick(notifTypes);
-    const postId = Math.random() > 0.5 ? pick(allPostIds) : null;
-    const commentId = Math.random() > 0.6 ? pick(commentIds) : null;
-    const actorId = type.endsWith("_changed") ? null : pick(regularUsers);
-    const category =
-      type === "followed"
-        ? "new_followers"
-        : type === "post_liked" || type === "post_favorited"
-          ? "likes_and_favorites"
-          : type === "post_commented" || type === "comment_replied"
-            ? "comments_and_mentions"
-            : "system";
-    const targetType =
-      type === "followed"
-        ? "user"
-        : type === "aircraft_submission_status_changed"
-          ? "aircraft_submission"
-          : type === "brand_application_status_changed"
-            ? "brand_application"
-            : type === "post_status_changed"
-              ? "status"
-              : "post";
-    const targetId =
-      targetType === "user"
-        ? actorId ?? pick(regularUsers)
-        : targetType === "aircraft_submission"
-          ? uid("submission_target")
-          : targetType === "brand_application"
-            ? uid("brand_app_target")
-            : postId ?? pick(allPostIds);
-    notifications.push({
-      id: uid("notif"),
-      userId: pick(regularUsers),
-      actorId,
-      category,
-      type,
-      targetType,
-      targetId,
-      targetTitle:
-        targetType === "user"
-          ? "新关注飞友"
-          : targetType === "brand_application"
-            ? "品牌申请状态"
-            : targetType === "aircraft_submission"
-              ? "机型投稿状态"
-              : "相关内容",
-      targetStatus: type.endsWith("_changed") ? pick(["pending", "approved", "rejected", "published"]) : null,
-      title: type.endsWith("_changed") ? "系统消息" : "互动提醒",
-      summary: type.endsWith("_changed") ? "内容状态已更新" : "你收到了一条新的互动消息",
-      preview: commentId ? "这是一条测试评论预览" : null,
-      metadata: JSON.stringify({
-        href:
-          targetType === "user"
-            ? `/users/${targetId}`
-            : targetType === "post" || targetType === "status"
-              ? `/posts/${targetId}`
-              : null
-      }),
-      postId,
-      commentId,
-      isRead: Math.random() > 0.6,
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  for (let i = 0; i < notifications.length; i += 50) {
-    await db.insert(notificationsTable).values(notifications.slice(i, i + 50));
-  }
-  console.log(`  ✓ 通知: ${notifications.length} 条`);
-
-  // 22. 会话 (100)
-  console.log("  🔑 创建会话...");
-  const sessions = [];
-  const scopes = ["web", "app"] as const;
-  const devices = ["Chrome on Windows", "Safari on macOS", "FeijiaApp iOS", "FeijiaApp Android", "Firefox on Linux", "Edge on Windows"];
-  for (let i = 0; i < 100; i++) {
-    sessions.push({
-      id: `sess_${createSecretToken(24)}`,
-      userId: pick(USER_IDS),
-      scope: pick(scopes),
-      clientIp: `${randInt(1, 255)}.${randInt(0, 255)}.${randInt(0, 255)}.${randInt(1, 255)}`,
-      userAgent: `Mozilla/5.0 (${pick(devices)})`,
-      deviceLabel: pick(devices),
-      refreshTokenHash: hashToken(createSecretToken(32)),
-      refreshExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      accessExpiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
-    });
-  }
-  for (let i = 0; i < sessions.length; i += 50) {
-    await db.insert(sessionsTable).values(sessions.slice(i, i + 50));
-  }
-  console.log(`  ✓ 会话: ${sessions.length} 个`);
-
-  // 23. 飞行器提交 (50)
-  console.log("  📤 创建飞行器提交...");
-  const submissionCoverFiles = fileEntries.filter(f => f.bizType === "aircraft-cover-image");
-  const submissions = [];
-  const statuses = ["submitted", "submitted", "submitted", "approved", "approved", "rejected"] as const;
-  for (let i = 0; i < 50; i++) {
-    const status = pick(statuses);
-    submissions.push({
-      id: uid("submission"),
-      authorId: pick(regularUsers),
-      status,
-      categoryId: pick(CATEGORY_IDS),
-      brandId: Math.random() > 0.3 ? pick(BRAND_IDS) : null,
-      proposedBrandName: Math.random() > 0.7 ? "新品牌" + (i + 1) : null,
-      modelName: SUBMISSION_NAMES[i % SUBMISSION_NAMES.length],
-      powerType: pick(["electric", "fuel", "hybrid"]),
-      summary: `测试提交：${SUBMISSION_NAMES[i % SUBMISSION_NAMES.length]}`,
-      description: `这是第 ${i + 1} 个测试提交，状态为 ${status}。`,
-      rejectionReason: status === "rejected" ? pick(REPORT_REASONS) : null,
-      coverImageFileId: submissionCoverFiles[i % submissionCoverFiles.length]?.id || null,
-      galleryImageFileIds: JSON.stringify(submissionCoverFiles.slice(i % submissionCoverFiles.length, (i % submissionCoverFiles.length) + 2).map(f => f.id)),
-      videoFileId: null,
-      priceMin: randInt(1000, 100000),
-      priceMax: randInt(100000, 500000),
-      maxFlightTimeMinutes: randInt(15, 60),
-      maxRangeKilometers: randInt(5, 50),
-      maxSpeedKph: randInt(40, 150),
-      cruiseSpeedKph: randInt(20, 80),
-      takeoffWeightGrams: randInt(200, 5000),
-      wingspanMm: randInt(200, 2000),
-      lengthMm: randInt(150, 3000),
-      heightMm: randInt(50, 800),
-      maxAltitudeM: randInt(100, 6000),
-      climbRateMs: randInt(2, 15),
-      windResistance: pick(["Level 4", "Level 5", "Level 6", null]),
-      motorType: pick(["无刷电机", "外转子无刷", null]),
-      batteryType: pick(["Li-ion", "Li-Po", "Semi-solid-state", null]),
-      batteryCapacityMah: randInt(1500, 12000),
-      batteryVoltage: pick(["7.4V", "11.1V", "14.8V", "22.2V", null]),
-      batteryEnergyWh: randInt(15, 100),
-      chargeTimeMinutes: randInt(30, 180),
-      propellerSize: pick(["5inch", "7inch", "10inch", null]),
-      obstacleAvoidance: pick(["前+下", "全向", "全向+LiDAR", null]),
-      gnssType: pick(["GPS+GLONASS", "GPS+BeiDou+Galileo", null]),
-      ipRating: pick(["IP43", "IP55", null]),
-      operatingTemperature: pick(["-10°C~40°C", "0°C~40°C", null]),
-      cameraSensorSize: pick(["1/2\"", "1/1.3\"", "1\"", "4/3\"", null]),
-      cameraPixels: pick(["12MP", "48MP", "50MP", null]),
-      videoResolution: pick(["4K/30fps", "4K/60fps", "6K/60fps", null]),
-      lensAperture: pick(["f/1.7", "f/1.8", "f/2.0", "f/2.8", null]),
-      isoRange: pick(["100-3200", "100-6400", "100-12800", null]),
-      transmissionSystem: pick(["O2", "O3", "O4", null]),
-      transmissionRangeM: randInt(2000, 15000),
-      certificationType: pick(["FAA Part 107", "CAAC", null]),
-      noiseLevelDb: randInt(55, 85),
-      materialType: pick(["碳纤维复合材料", "铝合金+碳纤维", "工程塑料", null]),
-      approvedModelId: status === "approved" ? pick(MODEL_IDS) : null,
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  for (let i = 0; i < submissions.length; i += 50) {
-    await db.insert(aircraftSubmissionsTable).values(submissions.slice(i, i + 50));
-  }
-  console.log(`  ✓ 飞行器提交: ${submissions.length} 个`);
-
-  // 24. 举报数据
-  console.log("  🚩 创建举报数据...");
-  // 帖子举报 (15)
-  const reportablePostIds = [...pendingPostIds, ...rejectedPostIds, ...allPostIds.slice(0, 10)];
-  const postReports = buildUniqueRows(15, () => {
-    const postId = pick(reportablePostIds);
-    const reporterId = pick(regularUsers);
-
-    return {
-      key: `${postId}:${reporterId}`,
-      value: {
-        id: uid("preport"),
-        postId,
-        reporterId,
-        reason: pick(REPORT_REASONS),
-        imageFileIds: JSON.stringify([]),
-      }
-    };
-  });
-  for (let i = 0; i < postReports.length; i += 50) {
-    await db.insert(postReportsTable).values(postReports.slice(i, i + 50));
-  }
-
-  // 帖子评论举报 (10)
-  const postCommentReports = buildUniqueRows(10, () => {
-    const commentId = pick(commentIds);
-    const reporterId = pick(regularUsers);
-
-    return {
-      key: `${commentId}:${reporterId}`,
-      value: {
-        id: uid("pcreport"),
-        commentId,
-        reporterId,
-        reason: pick(REPORT_REASONS),
-        imageFileIds: JSON.stringify([]),
-      }
-    };
-  });
-  for (let i = 0; i < postCommentReports.length; i += 50) {
-    await db.insert(postCommentReportsTable).values(postCommentReports.slice(i, i + 50));
-  }
-
-  // 排行榜举报 (5)
-  const rankingReports = buildUniqueRows(5, () => {
-    const rankingId = pick(rankingIds);
-    const reporterId = pick(regularUsers);
-
-    return {
-      key: `${rankingId}:${reporterId}`,
-      value: {
-        id: uid("rreport"),
-        rankingId,
-        reporterId,
-        reason: pick(REPORT_REASONS),
-        imageFileIds: JSON.stringify([]),
-      }
-    };
-  });
-  for (let i = 0; i < rankingReports.length; i += 50) {
-    await db.insert(rankingReportsTable).values(rankingReports.slice(i, i + 50));
-  }
-
-  // 排行榜项目举报 (5)
-  const rtReports = buildUniqueRows(5, () => {
-    const ratingTargetId = pick(rankingItemIds);
-    const reporterId = pick(regularUsers);
-
-    return {
-      key: `${ratingTargetId}:${reporterId}`,
-      value: {
-        id: uid("rtreport"),
-        ratingTargetId,
-        reporterId,
-        reason: pick(REPORT_REASONS),
-        imageFileIds: JSON.stringify([]),
-      }
-    };
-  });
-  for (let i = 0; i < rtReports.length; i += 50) {
-    await db.insert(ratingTargetReportsTable).values(rtReports.slice(i, i + 50));
-  }
-
-  // 排行榜项目评论举报 (5)
-  const rtCommentReports = buildUniqueRows(5, () => {
-    const commentId = pick(rtCommentIds);
-    const reporterId = pick(regularUsers);
-
-    return {
-      key: `${commentId}:${reporterId}`,
-      value: {
-        id: uid("rtcreport"),
-        commentId,
-        reporterId,
-        reason: pick(REPORT_REASONS),
-        imageFileIds: JSON.stringify([]),
-      }
-    };
-  });
-  for (let i = 0; i < rtCommentReports.length; i += 50) {
-    await db.insert(ratingTargetCommentReportsTable).values(rtCommentReports.slice(i, i + 50));
-  }
-
-  console.log("  ✓ 举报数据: 帖子 15 + 评论 10 + 排行榜 5 + 项目 5 + 项目评论 5");
-
-  // 25. 品牌申请 (20)
-  console.log("  🏷️ 创建品牌申请...");
-  const brandAppStatuses = ["pending", "approved", "rejected"] as const;
-  for (let i = 0; i < 20; i++) {
-    const status = pick(brandAppStatuses);
-    await db.insert(brandApplicationsTable).values({
-      id: uid("brandapp"),
-      applicantId: pick(regularUsers),
-      status,
-      slug: `test-brand-app-${i + 1}`,
-      name: `测试品牌申请 ${i + 1}`,
-      logoUrl: null,
-      description: `${status === "approved" ? "已通过" : status === "rejected" ? "已驳回" : "待审核"}的测试品牌申请。`,
-      rejectionReason: status === "rejected" ? pick(REPORT_REASONS) : null,
-      approvedBrandId: status === "approved" ? pick(BRAND_IDS) : null,
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  console.log("  ✓ 品牌申请: 20 个");
-
-  // 26. 设备 (60)
-  console.log("  📱 创建设备...");
-  const deviceTypes = ["ios", "android", "web"] as const;
-  const deviceLabels = ["iPhone 15 Pro", "Samsung Galaxy S24", "Google Pixel 9", "iPad Pro M4", "MacBook Pro M3", "Windows Desktop"];
-  for (let i = 0; i < 60; i++) {
-    await db.insert(devicesTable).values({
-      id: uid("device"),
-      userId: pick(USER_IDS),
-      deviceType: pick(deviceTypes),
-      deviceLabel: pick(deviceLabels),
-      pushToken: `test-push-token-${crypto.randomUUID()}`,
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
-  console.log("  ✓ 设备: 60 个");
-
-  // 27. 圈子 (5)
-  console.log("  🔵 创建圈子...");
-  const circleSeeds = [
-    { slug: "drone-enthusiasts", name: "航模发烧友", desc: "热爱航模飞行的爱好者聚集地", joinMode: "free" as const },
-    { slug: "fpv-racing", name: "FPV竞速圈", desc: "穿越机竞速与技巧交流", joinMode: "free" as const },
-    { slug: "aerial-photography", name: "航拍摄影", desc: "分享航拍作品与摄影技巧", joinMode: "free" as const },
-    { slug: "diy-build", name: "DIY装机", desc: "自组无人机方案与调试交流", joinMode: "free" as const },
-    { slug: "industry-application", name: "行业应用", desc: "测绘/巡检/植保等工业应用讨论", joinMode: "audit" as const },
-  ];
-  const CIRCLE_IDS: string[] = [];
-  for (const c of circleSeeds) {
-    const id = uid("circle");
-    CIRCLE_IDS.push(id);
-    await db.insert(circlesTable).values({
-      id, slug: c.slug, name: c.name, description: c.desc,
-      ownerId: adminId, joinMode: c.joinMode,
-      memberCount: randInt(5, 30), postCount: randInt(2, 10),
-    });
-    // 圈主
-    await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: adminId, role: "owner" });
-    // 随机成员
-    for (let j = 0; j < randInt(3, 15); j++) {
-      await db.insert(circleMembersTable).values({ id: uid("cm"), circleId: id, userId: pick(regularUsers), role: "member" });
+        commentCount: randInt(0, 8),
+      });
+      circlePostCount++;
     }
   }
-  console.log("  ✓ 圈子: 5 个");
+  console.log(`  圈子帖子: ${circlePostCount} 个`);
 
-  // 28. 圈子帖子 (25)
-  console.log("  📝 创建圈子帖子...");
-  for (let i = 0; i < 25; i++) {
-    const circleId = pick(CIRCLE_IDS);
-    await db.insert(circlePostsTable).values({
-      id: uid("cp"), circleId, authorId: pick(USER_IDS),
-      title: pick(["新人报到", "分享我的航拍作品", "求推荐入门机型", "今天飞了一把FPV", "DIY装机记录", "航拍后期调色教程", "避障功能实测", "远航里程挑战"]),
-      content: pick(["详细内容见图片", "和大家分享飞行体验", "欢迎交流讨论"]),
-      images: "[]", videos: "[]", hotScore: randInt(10, 200),
-      likeCount: randInt(0, 30), commentCount: randInt(0, 8),
-    });
-  }
-  console.log("  ✓ 圈子帖子: 25 个");
-
-  // 29. 站点设置
-  console.log("  ⚙️ 创建站点设置...");
+  // 16. 站点设置
+  console.log("   创建站点设置...");
   await db.insert(siteSettingsTable).values({
     id: uid("site"),
     postModerationEnabled: true,
@@ -1688,18 +1044,29 @@ async function seedPostgreSQL() {
     brandModerationEnabled: true,
     modelModerationEnabled: true,
     ratingTargetModerationEnabled: true,
-    moderationModes: "{}",
   });
-  console.log("  ✓ 站点设置: 1 个");
 
-  console.log("\n  ✅ PostgreSQL 推送完成！");
+  // 17. 用户设置
+  console.log("   创建用户设置...");
+  await db.insert(userSettingsTable).values(
+    regularUsers.slice(0, 30).map((userId) => ({
+      id: uid("setting"), userId,
+      profileVisibility: pick(["public", "community", "private"]),
+      notifyComments: Math.random() > 0.3,
+      notifyMentions: Math.random() > 0.4,
+      sessionAlerts: Math.random() > 0.2,
+      emailDigest: Math.random() > 0.7,
+    }))
+  );
+
+  console.log("\n  PostgreSQL 推送完成！");
 }
 
 // ==================== 主函数 ====================
 
 export async function seedMockTestDataDatabase() {
   const storage = resolveSeedStorageConfig();
-  console.log("🚀 飞加项目海量测试数据生成脚本");
+  console.log("飞加项目测试数据生成脚本");
   console.log("================================");
 
   await seedObjectStorage();
@@ -1707,20 +1074,20 @@ export async function seedMockTestDataDatabase() {
   await seedPostgreSQL();
 
   console.log("\n================================");
-  console.log("🎉 测试数据生成完成！");
-  console.log("\n📋 测试账号:");
+  console.log("测试数据生成完成！");
+  console.log("\n测试账号:");
   console.log("  管理员: admin / Admin#123");
-  console.log("  普通用户: 200 个 (手机号 138 开头，短信登录)");
-  console.log("\n🔑 Redis 测试数据:");
+  console.log("  普通用户: 50 个 (手机号 138 开头，短信登录)");
+  console.log("\nRedis 测试数据:");
   console.log("  图形验证码: test_captcha_001 (code: TEST01)");
   console.log("  短信验证码: 13800138000 (code: 888888)");
   console.log("  注册令牌: test_reg_001");
-  console.log(`\n📦 Storage: ${storage.provider} / ${storage.bucket} bucket, test/ 前缀`);
+  console.log(`\nStorage: ${storage.provider} / ${storage.bucket} bucket, test/ 前缀`);
 }
 
 if (import.meta.main) {
   void seedMockTestDataDatabase().catch((error) => {
-    console.error("\n❌ 测试数据生成失败:", error);
+    console.error("\n测试数据生成失败:", error);
     process.exit(1);
   });
 }

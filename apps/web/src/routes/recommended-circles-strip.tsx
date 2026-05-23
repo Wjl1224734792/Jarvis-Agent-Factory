@@ -36,9 +36,9 @@ interface RecommendedCircle {
 
 function SkeletonCard() {
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
-      <Skeleton className="size-12 rounded-full" />
-      <Skeleton className="h-3 w-10" />
+    <div className="flex shrink-0 items-center gap-2">
+      <Skeleton className="size-8 rounded-full" />
+      <Skeleton className="h-4 w-16" />
     </div>
   );
 }
@@ -101,14 +101,14 @@ export function RecommendedCirclesStrip() {
       >
         {circles.map((circle) => (
           <button
-            className="flex shrink-0 flex-col items-center gap-1 focus:outline-none"
+            className="flex shrink-0 items-center gap-2 focus:outline-none transition-transform hover:scale-105"
             key={circle.id}
             onClick={() => handleClick(circle)}
             type="button"
           >
             <div
               className={cn(
-                "flex size-12 items-center justify-center overflow-hidden rounded-full transition-transform hover:scale-105",
+                "flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full",
                 !circle.coverImageUrl && resolveColorClass(circle.slug)
               )}
             >
@@ -119,12 +119,12 @@ export function RecommendedCirclesStrip() {
                   src={circle.coverImageUrl}
                 />
               ) : (
-                <span className="text-base font-bold">
+                <span className="text-sm font-bold">
                   {circle.name.charAt(0)}
                 </span>
               )}
             </div>
-            <span className="max-w-[3.5rem] truncate text-[0.7rem] leading-tight text-foreground/70">
+            <span className="truncate text-sm font-medium text-foreground/80">
               {circle.name}
             </span>
           </button>
