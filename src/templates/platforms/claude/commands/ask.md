@@ -1,15 +1,25 @@
 ---
 name: ask
-description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束
+description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束。支持 --* 标志位指定模式。
 model: deepseek-v4-pro
 effort: max
-argument-hint: [需求/想法/计划/指令]
+argument-hint: [--interview|--direct|--consensus|--review] <需求/想法/计划/指令>
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
-version: "4.3.8"
-updated: "2026-05-19"
+version: "4.3.9"
+updated: "2026-05-23"
 ---
 
-# 需求探询（4 模式自适应 · 文档驱动）
+# 需求探询（4 模式自适应 · 文档驱动 · Flag 可控）
+
+## 快速参考
+
+| Flag | 模式 | 适用场景 |
+|------|------|---------|
+| `--interview` | Interview | 深度访谈，模糊想法逐步澄清 |
+| `--direct` | Direct | 快速分析，需求已明确直接产出 |
+| `--consensus` | Consensus | 共识审查，多方审查验证计划/方案 |
+| `--review` | Review | 流程优化，改进现有指令/流程编排 |
+| *(无 flag)* | 自动判定 | 根据输入清晰度自动选择最优模式 |
 
 立即执行以下初始化步骤：
 
@@ -52,7 +62,20 @@ Skill("spec-driven-development")
 
 ### 步骤
 
-1. **解析用户输入**——评估输入清晰度：
+1. **解析 Flag**——从用户输入中提取 `--*` 标志位：
+
+   ```
+   解析规则：扫描 ARGUMENTS，按第一个匹配的 flag 确定模式。
+   --interview → Interview 模式
+   --direct    → Direct 模式
+   --consensus → Consensus 模式
+   --review    → Review 模式
+   (无 flag)   → 自动判定（进入步骤 2）
+   ```
+
+   匹配到 flag 后，将其从提示词中移除，剩余部分作为需求文本。**直接跳到步骤 3 进入对应模式，跳过步骤 2 的自动判定。**
+
+2. **（仅无 flag 时）解析用户输入**——评估输入清晰度，自动判定模式：
 
    | 信号 | 含义 | 倾向模式 |
    |------|------|---------|
@@ -62,7 +85,7 @@ Skill("spec-driven-development")
    | "优化这个指令"/"审查流程编排" | 改进现有方案 | **Review** |
    | 用户显式指定模式 | 按用户选择 | 直接进入指定模式 |
 
-2. **模式判定**——若用户未显式指定，根据上表判定并输出一句话理由。
+   输出模式判定及一句话理由。
 
 3. **按模式执行 K0 摄入**：
 

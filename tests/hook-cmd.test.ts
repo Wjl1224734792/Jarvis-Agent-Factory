@@ -17,6 +17,7 @@ import { hookCommand } from '../src/hook.js';
 describe('hookCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetch.mockReset();
   });
 
   // ================================================================
@@ -121,34 +122,26 @@ describe('hookCommand', () => {
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Gate A'));
     });
 
-    it('9 | Gate C-impl：spawn_impl 允许 + enforce 通过 → exit(0)', async () => {
+    it('9 | Gate C-impl：spawn_impl 在允许列表中 → exit(0)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           sessions: [{ session_id: 's1', current_gate: 'Gate C-impl', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ gate: 'Gate C-impl', allowed: true, artifacts: ['doc.md'], checkpoints: [] })
-      });
       await hookCommand(['gate-check']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it('10 | Gate C：spawn_impl 允许 但 enforce 失败 → exit(1)', async () => {
+    it('10 | Gate C：spawn_impl 也在允许列表中 → exit(0)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           sessions: [{ session_id: 's1', current_gate: 'Gate C', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ gate: 'Gate C', allowed: false, artifacts: [], checkpoints: [] })
-      });
       await hookCommand(['gate-check']);
-      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 

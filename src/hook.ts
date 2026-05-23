@@ -73,14 +73,14 @@ export async function hookCommand(args) {
         process.exit(1);
       }
 
-      // 默认：无 --operation（如 Agent hook）→ 检查 spawn_impl 作为 Agent 操作基线
+      // 默认：无 --operation（如 Agent hook）→ 检查 spawn_impl 是否在允许列表中
+      // 仅检查操作权限，不调用 enforce（与 MCP gate_check 行为一致）
       const ops = GATE_OPERATIONS[current] || { allow: [], deny: [] };
       if (ops.allow.includes('spawn_impl')) {
-        const g = await api(`/api/gate/${encodeURIComponent(current)}/enforce?session_id=${session.session_id}`);
-        if (g.allowed) { console.log(`✅ ${current} — OK (${session.pipeline_name})`); process.exit(0); }
-        else { console.log(`🚫 ${current} BLOCKED — ${g.artifacts?.length ? 'missing artifacts' : 'checkpoint required'} (${session.pipeline_name})`); process.exit(1); }
+        console.log(`✅ ${current}: spawn_impl 允许执行 (${session.pipeline_name})`);
+        process.exit(0);
       } else {
-        console.log(`🚫 ${current}: Agent 操作被禁止 (${session.pipeline_name})`);
+        console.log(`🚫 ${current}: Agent spawn 被禁止 (${session.pipeline_name})`);
         console.log(`  允许的操作: ${ops.allow.join(', ')}`);
         process.exit(1);
       }
