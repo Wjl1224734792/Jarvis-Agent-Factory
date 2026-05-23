@@ -268,7 +268,7 @@ export const circlesRepo = {
       })
       .from(circlePostsTable)
       .innerJoin(usersTable, eq(circlePostsTable.authorId, usersTable.id))
-      .where(eq(circlePostsTable.circleId, circleId))
+      .where(and(eq(circlePostsTable.circleId, circleId), eq(circlePostsTable.status, "published")))
       .orderBy(orderBy)
       .limit(filters.limit ?? 20)
       .offset(filters.offset ?? 0);
@@ -281,6 +281,7 @@ export const circlesRepo = {
     content: string | null;
     images: string[];
     videos: string[];
+    status?: string;
   }) {
     const id = createId("cp");
     await db.insert(circlePostsTable).values({
@@ -291,6 +292,7 @@ export const circlesRepo = {
       content: input.content,
       images: JSON.stringify(input.images),
       videos: JSON.stringify(input.videos),
+      status: input.status,
     });
     await db
       .update(circlesTable)
@@ -391,7 +393,7 @@ export const circlesRepo = {
       })
       .from(circlePostCommentsTable)
       .innerJoin(usersTable, eq(circlePostCommentsTable.authorId, usersTable.id))
-      .where(eq(circlePostCommentsTable.postId, postId))
+      .where(and(eq(circlePostCommentsTable.postId, postId), eq(circlePostCommentsTable.status, "visible")))
       .orderBy(asc(circlePostCommentsTable.createdAt));
   },
 
@@ -401,6 +403,7 @@ export const circlesRepo = {
     content: string;
     parentCommentId?: string | null;
     replyToUserId?: string | null;
+    status?: string;
   }) {
     const id = createId("cc");
     await db.insert(circlePostCommentsTable).values({
@@ -410,6 +413,7 @@ export const circlesRepo = {
       content: input.content,
       parentCommentId: input.parentCommentId ?? null,
       replyToUserId: input.replyToUserId ?? null,
+      status: input.status,
     });
     await db
       .update(circlePostsTable)
@@ -427,6 +431,9 @@ export const circlesRepo = {
     offset?: number;
   }) {
     const conditions: ReturnType<typeof eq>[] = [];
+
+    // 只显示已发布的帖子
+    conditions.push(eq(circlePostsTable.status, "published"));
 
     // "最新" Tab: 匿名用户返回空数组
     if (filters.tab === "latest" && !filters.currentUserId) {

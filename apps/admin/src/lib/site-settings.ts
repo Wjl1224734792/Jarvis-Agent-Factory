@@ -11,7 +11,7 @@ type SiteSettingsLike = Partial<SiteSettings> | null | undefined;
 export const DEFAULT_MODERATION_MODES = {
   article: "ai",
   moment: "ai",
-  comment: "manual",
+  comment: "ai",
   review: "manual",
   brand: "ai",
   model: "ai",

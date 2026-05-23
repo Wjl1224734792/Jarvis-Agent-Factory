@@ -128,7 +128,7 @@ export function RatingTargetsPage() {
     [itemsQuery.data?.items]
   );
 
-  async function updateModeration(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
@@ -139,12 +139,12 @@ export function RatingTargetsPage() {
 
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          ratingTargetModerationEnabled: enabled
+          moderationModes: { ratingTarget: mode }
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), itemsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新评分对象审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新评分对象审核模式失败");
     } finally {
       setIsSavingSettings(false);
     }
@@ -211,14 +211,11 @@ export function RatingTargetsPage() {
         <AdminModerationCard
           aiCopy="新评分对象会先进入 AI 审核；仍需人工处理的对象会继续留在当前队列。"
           description="当前页只展示现有状态流转、举报数量和队列规模。"
-          enabled={siteSettingsQuery.data?.item.ratingTargetModerationEnabled ?? true}
+          mode={siteSettingsQuery.data?.item.moderationModes.ratingTarget ?? "ai"}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           manualCopy="新评分对象会直接进入人工审核队列，不再按“自动发布”理解。"
-          onDisable={() => {
-            void updateModeration(false);
-          }}
-          onEnable={() => {
-            void updateModeration(true);
+          onModeChange={(mode) => {
+            void handleModerationModeChange(mode);
           }}
           pendingCount={(itemsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
           traceHint={MODERATION_TRACE_PLACEHOLDER}

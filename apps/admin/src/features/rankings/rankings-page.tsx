@@ -130,7 +130,7 @@ export function RankingsPage() {
     [communityFilter, filteredCommunityItems.length, filteredOfficialItems.length]
   );
 
-  async function updateModerationSetting(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     const current = siteSettingsQuery.data?.item;
     if (!current) {
       return;
@@ -141,12 +141,12 @@ export function RankingsPage() {
     try {
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          rankingModerationEnabled: enabled
+          moderationModes: { ranking: mode }
         })
       );
       await siteSettingsQuery.refetch();
     } catch (reason: unknown) {
-      setActionError(reason instanceof Error ? reason.message : "更新榜单审核开关失败");
+      setActionError(reason instanceof Error ? reason.message : "更新榜单审核模式失败");
     } finally {
       setIsUpdatingSetting(false);
     }
@@ -275,14 +275,11 @@ export function RankingsPage() {
           <AdminModerationCard
             aiCopy="新社区榜单会先进入 AI 审核；仍需人工处理的对象会继续留在当前审核页。"
             description="当前页的社区榜单状态按筛选逐次加载，先展示可核对的筛选结果和队列规模。"
-            enabled={siteSettingsQuery.data?.item.rankingModerationEnabled ?? true}
+            mode={siteSettingsQuery.data?.item.moderationModes.ranking ?? "manual"}
             loading={isUpdatingSetting || siteSettingsQuery.isFetching}
             manualCopy="新社区榜单会直接进入人工审核队列，不再按“自动通过”理解。"
-            onDisable={() => {
-              void updateModerationSetting(false);
-            }}
-            onEnable={() => {
-              void updateModerationSetting(true);
+            onModeChange={(mode) => {
+              void handleModerationModeChange(mode);
             }}
             pendingCount={filteredCommunityItems.length}
             queueLabel={communityFilter === "pending" ? "当前待处理" : "当前筛选结果"}

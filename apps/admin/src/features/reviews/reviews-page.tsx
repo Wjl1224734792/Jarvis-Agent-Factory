@@ -124,7 +124,7 @@ export function ReviewsPage() {
     [reviewsQuery.data?.items]
   );
 
-  async function updateModeration(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
@@ -135,12 +135,12 @@ export function ReviewsPage() {
 
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          reviewModerationEnabled: enabled
+          moderationModes: { review: mode }
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), reviewsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新评测审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新评测审核模式失败");
     } finally {
       setIsSavingSettings(false);
     }
@@ -190,14 +190,11 @@ export function ReviewsPage() {
         <AdminModerationCard
           aiCopy="新评测会先进入 AI 审核；仍需人工处理的对象会继续停留在当前待审队列。"
           description="切换后只影响新的评测提交，现有列表继续展示最终状态。"
-          enabled={siteSettingsQuery.data?.item.reviewModerationEnabled ?? true}
+          mode={siteSettingsQuery.data?.item.moderationModes.review ?? "ai"}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           manualCopy="新评测会直接进入人工审核队列，不再按“自动通过”语义处理。"
-          onDisable={() => {
-            void updateModeration(false);
-          }}
-          onEnable={() => {
-            void updateModeration(true);
+          onModeChange={(mode) => {
+            void handleModerationModeChange(mode);
           }}
           pendingCount={(reviewsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
           traceHint={MODERATION_TRACE_PLACEHOLDER}

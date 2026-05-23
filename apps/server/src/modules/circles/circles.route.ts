@@ -371,7 +371,8 @@ adminCirclesRoute.get(API_ROUTES.adminCircles.posts, requireRole("super_admin", 
 
 adminCirclesRoute.put(API_ROUTES.adminCircles.postStatus(":postId"), requireRole("super_admin", "moderator"), async (context) => {
   const body = adminCirclePostStatusInputSchema.parse(await context.req.json());
-  const ok = await circlesService.updatePostStatus(context.req.param("postId")!, body.status);
+  const adminId = context.var.currentUser?.id;
+  const ok = await circlesService.updatePostStatus(context.req.param("postId")!, body.status, adminId);
   if (!ok) return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   return context.json({ success: true });
 });
@@ -394,7 +395,8 @@ adminCirclesRoute.get(API_ROUTES.adminCircles.comments, requireRole("super_admin
 
 adminCirclesRoute.put(API_ROUTES.adminCircles.commentStatus(":commentId"), requireRole("super_admin", "moderator"), async (context) => {
   const body = adminCircleCommentStatusInputSchema.parse(await context.req.json());
-  const ok = await circlesService.updateCommentStatus(context.req.param("commentId")!, body.status);
+  const adminId = context.var.currentUser?.id;
+  const ok = await circlesService.updateCommentStatus(context.req.param("commentId")!, body.status, adminId);
   if (!ok) return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
   return context.json({ success: true });
 });

@@ -38,12 +38,22 @@ export async function evaluateTextModeration(input: {
     };
   }
 
-  const auditRecord = await qiniuAuditService.reviewText({
-    domain: input.domain,
-    entityId: input.entityId,
-    text: input.text,
-    mode: input.mode === "automatic" ? "automatic" : "ai"
-  });
+  let auditRecord;
+  try {
+    auditRecord = await qiniuAuditService.reviewText({
+      domain: input.domain,
+      entityId: input.entityId,
+      text: input.text,
+      mode: input.mode === "automatic" ? "automatic" : "ai"
+    });
+  } catch {
+    // 超时或网络异常：降级为 manual_review，不抛异常
+    return {
+      action: input.mode === "ai" ? ("manual_review" as TextModerationAction) : ("reject" as TextModerationAction),
+      auditRecord: null,
+      rejectionReason: input.mode === "ai" ? null : "审核服务暂时不可用，请稍后重试。"
+    };
+  }
 
   const status = auditRecord?.status;
   if (status === "passed") {

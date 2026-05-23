@@ -95,7 +95,8 @@ async function postAuditRequest(url: string, body: Record<string, unknown>) {
       Authorization: buildAuthHeader(url, serializedBody),
       "Content-Type": "application/json"
     },
-    body: serializedBody
+    body: serializedBody,
+    signal: AbortSignal.timeout(10_000)
   });
 
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;

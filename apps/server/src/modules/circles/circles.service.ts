@@ -1,4 +1,5 @@
 import { circlesRepo } from "./circles.repo";
+import { auditsRepo } from "../audits/audits.repo";
 import { resolvePublicUploadedFileUrl } from "../uploads/uploads.helpers";
 import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
@@ -149,15 +150,20 @@ export const circlesService = {
     images: string[];
     videos: string[];
   }) {
-    const id = await circlesRepo.createPost(input);
-    const mode = await siteSettingsService.getCirclePostModerationMode();
-    const result = await evaluateTextModeration({
-      mode,
-      domain: "circle_post",
-      entityId: id,
-      text: `${input.title}\n${input.content ?? ""}`,
-    });
-    if (result.action === "reject") {
+    // 先入库为待审核状态
+    const id = await circlesRepo.createPost({ ...input, status: "pending_review" });
+    try {
+      const mode = await siteSettingsService.getCirclePostModerationMode();
+      const result = await evaluateTextModeration({
+        mode,
+        domain: "circle_post",
+        entityId: id,
+        text: `${input.title}\n${input.content ?? ""}`,
+      });
+      // 审核通过：发布；审核未通过/需人工审核：隐藏
+      await circlesRepo.updatePostStatus(id, result.action === "approve" ? "published" : "hidden");
+    } catch {
+      // 审核异常：降级为隐藏，不泄露未审核内容
       await circlesRepo.updatePostStatus(id, "hidden");
     }
     return id;
@@ -216,7 +222,8 @@ export const circlesService = {
     parentCommentId?: string | null;
     replyToUserId?: string | null;
   }) {
-    const id = await circlesRepo.createComment(input);
+    // 先入库为待审核状态
+    const id = await circlesRepo.createComment({ ...input, status: "pending_review" });
     await circlesRepo.updatePostHotScore(input.postId);
 
     // 通知帖子作者（非自己评论自己）
@@ -242,14 +249,18 @@ export const circlesService = {
       });
     }
 
-    const mode = await siteSettingsService.getCircleCommentModerationMode();
-    const result = await evaluateTextModeration({
-      mode,
-      domain: "circle_comment",
-      entityId: id,
-      text: input.content,
-    });
-    if (result.action === "reject") {
+    try {
+      const mode = await siteSettingsService.getCircleCommentModerationMode();
+      const result = await evaluateTextModeration({
+        mode,
+        domain: "circle_comment",
+        entityId: id,
+        text: input.content,
+      });
+      // 审核通过：可见；审核未通过/需人工审核：隐藏
+      await circlesRepo.updateCommentStatus(id, result.action === "approve" ? "visible" : "hidden");
+    } catch {
+      // 审核异常：降级为隐藏，不泄露未审核内容
       await circlesRepo.updateCommentStatus(id, "hidden");
     }
     return id;
@@ -438,7 +449,7 @@ export const circlesService = {
     );
   },
 
-  async updatePostStatus(postId: string, status: string) {
+  async updatePostStatus(postId: string, status: string, adminId?: string) {
     const result = await circlesRepo.updatePostStatus(postId, status);
     const post = await circlesRepo.findPostById(postId);
     if (post) {
@@ -451,10 +462,22 @@ export const circlesService = {
         target: { type: "post", id: postId, title: post.title, status }
       });
     }
+    // Admin 手动审核写审计日志
+    if (adminId) {
+      await auditsRepo.create({
+        domain: "circle_post",
+        entityId: postId,
+        contentType: "text",
+        mode: "manual",
+        status: status === "published" ? "manual_passed" : "manual_rejected",
+        reviewedBy: adminId,
+        resolvedAt: new Date(),
+      });
+    }
     return result;
   },
 
-  async updateCommentStatus(commentId: string, status: string) {
+  async updateCommentStatus(commentId: string, status: string, adminId?: string) {
     const result = await circlesRepo.updateCommentStatus(commentId, status);
     const comment = await circlesRepo.findCommentById(commentId);
     if (comment) {
@@ -466,6 +489,18 @@ export const circlesService = {
         title: "圈子评论审核结果",
         summary: `你的圈子评论审核结果：${statusLabel}`,
         target: { type: "comment", id: commentId, title: post?.title ?? "圈子帖子", status }
+      });
+    }
+    // Admin 手动审核写审计日志
+    if (adminId) {
+      await auditsRepo.create({
+        domain: "circle_comment",
+        entityId: commentId,
+        contentType: "text",
+        mode: "manual",
+        status: status === "visible" ? "manual_passed" : "manual_rejected",
+        reviewedBy: adminId,
+        resolvedAt: new Date(),
       });
     }
     return result;

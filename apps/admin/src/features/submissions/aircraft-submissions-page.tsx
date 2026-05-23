@@ -176,7 +176,7 @@ export function AircraftSubmissionsPage() {
     }
   }
 
-  async function updateModeration(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
@@ -187,12 +187,12 @@ export function AircraftSubmissionsPage() {
 
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          modelModerationEnabled: enabled
+          moderationModes: { model: mode }
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), submissionsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新投稿审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新投稿审核模式失败");
     } finally {
       setIsSavingSettings(false);
     }
@@ -243,14 +243,11 @@ export function AircraftSubmissionsPage() {
         <AdminModerationCard
           aiCopy="新投稿会先进入 AI 审核；仍需人工处理的对象会继续保留在当前队列。"
           description="当前页先展示已接入的状态流转与队列数量。"
-          enabled={siteSettingsQuery.data?.item.modelModerationEnabled ?? true}
+          mode={siteSettingsQuery.data?.item.moderationModes.model ?? "ai"}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           manualCopy="新投稿会直接保持 submitted 状态，等待人工审核。"
-          onDisable={() => {
-            void updateModeration(false);
-          }}
-          onEnable={() => {
-            void updateModeration(true);
+          onModeChange={(mode) => {
+            void handleModerationModeChange(mode);
           }}
           pendingCount={(submissionsQuery.data?.items ?? []).filter((item) => item.status === "submitted").length}
           traceHint={MODERATION_TRACE_PLACEHOLDER}

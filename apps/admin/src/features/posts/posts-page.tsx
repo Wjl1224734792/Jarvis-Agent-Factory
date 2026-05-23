@@ -172,7 +172,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       });
   }
 
-  async function updateModeration(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
@@ -185,28 +185,27 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         buildSiteSettingsUpdate(
           current,
           isArticleMode
-            ? { articleModerationEnabled: enabled }
+            ? { moderationModes: { article: mode } }
             : props.contentType === "moment"
-              ? { momentModerationEnabled: enabled }
+              ? { moderationModes: { moment: mode } }
               : {
-                  articleModerationEnabled: enabled,
-                  momentModerationEnabled: enabled
+                  moderationModes: { article: mode, moment: mode }
                 }
         )
       );
       await Promise.all([siteSettingsQuery.refetch(), postsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新审核模式失败");
     } finally {
       setIsSavingSettings(false);
     }
   }
 
-  const moderationEnabled = isArticleMode
-    ? (siteSettingsQuery.data?.item.articleModerationEnabled ?? true)
+  const moderationMode = isArticleMode
+    ? (siteSettingsQuery.data?.item.moderationModes.article ?? "ai")
     : props.contentType === "moment"
-      ? (siteSettingsQuery.data?.item.momentModerationEnabled ?? true)
-      : (siteSettingsQuery.data?.item.postModerationEnabled ?? true);
+      ? (siteSettingsQuery.data?.item.moderationModes.moment ?? "ai")
+      : "ai";
 
   return (
     <AdminPage
@@ -253,14 +252,11 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         <AdminModerationCard
           aiCopy={`新${isArticleMode ? "文章" : "动态"}会先进入 AI 审核；仍需人工处理的对象会留在当前队列。`}
           description="当前页只展示现有状态流转和队列数量，不额外伪造 AI 明细。"
-          enabled={moderationEnabled}
+          mode={moderationMode}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           manualCopy={`新${isArticleMode ? "文章" : "动态"}会直接进入人工审核队列，不再按“自动通过”理解。`}
-          onDisable={() => {
-            void updateModeration(false);
-          }}
-          onEnable={() => {
-            void updateModeration(true);
+          onModeChange={(mode) => {
+            void handleModerationModeChange(mode);
           }}
           pendingCount={items.filter((item) => item.status === "pending").length}
           traceHint={MODERATION_TRACE_PLACEHOLDER}

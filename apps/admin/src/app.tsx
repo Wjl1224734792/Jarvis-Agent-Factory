@@ -316,6 +316,18 @@ const router = createBrowserRouter([
                 icon: <ReadOutlined />
               },
               {
+                title: "圈子帖子审核",
+                description: "飞友圈帖子独立审核入口，和动态审核分离。",
+                to: ADMIN_ROUTE_PATHS.moderationCirclePosts,
+                icon: <InboxOutlined />
+              },
+              {
+                title: "圈子评论审核",
+                description: "飞友圈评论独立审核入口，和普通评论审核分离。",
+                to: ADMIN_ROUTE_PATHS.moderationCircleComments,
+                icon: <CommentOutlined />
+              },
+              {
                 title: "评论审核",
                 description: "评论与回复统一治理，单独处理违规内容。",
                 to: ADMIN_ROUTE_PATHS.moderationComments,

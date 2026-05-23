@@ -164,7 +164,7 @@ export function BrandApplicationsPage() {
     }
   }
 
-  async function updateModeration(enabled: boolean) {
+  async function handleModerationModeChange(mode: "manual" | "ai" | "automatic") {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
@@ -175,12 +175,12 @@ export function BrandApplicationsPage() {
 
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          brandModerationEnabled: enabled
+          moderationModes: { brand: mode }
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), applicationsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "Failed to update moderation setting.");
+      setSettingsError(reason instanceof Error ? reason.message : "Failed to update moderation mode.");
     } finally {
       setIsSavingSettings(false);
     }
@@ -233,16 +233,13 @@ export function BrandApplicationsPage() {
           description="当前页先展示已接入的状态流转与队列数量。"
           aiCopy="新品牌申请会先进入 AI 审核；仍需人工处理的对象会继续停留在当前队列。"
           manualCopy="新品牌申请会直接进入人工审核队列，不再按“自动通过”理解。"
-          enabled={siteSettingsQuery.data?.item.brandModerationEnabled ?? true}
+          mode={siteSettingsQuery.data?.item.moderationModes.brand ?? "ai"}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           pendingCount={(applicationsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
           traceHint={MODERATION_TRACE_PLACEHOLDER}
           traceItems={traceItems}
-          onEnable={() => {
-            void updateModeration(true);
-          }}
-          onDisable={() => {
-            void updateModeration(false);
+          onModeChange={(mode) => {
+            void handleModerationModeChange(mode);
           }}
         />
       </AdminPanel>
