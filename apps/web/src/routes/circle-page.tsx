@@ -121,6 +121,8 @@ export function CirclePage() {
   // ── 帖子点击回调 → 打开 SlidePanel ──
   // postId → circleSlug 映射，由 renderItem 回调填充
   const postCircleMapRef = useRef(new Map<string, string>());
+  // 上一个帖子的圈子 ID——用于圈子头行去重
+  const lastCircleIdRef = useRef<string | null>(null);
 
   function handlePostClick(postId: string) {
     const circleSlug = postCircleMapRef.current.get(postId) ?? null;
@@ -230,25 +232,32 @@ export function CirclePage() {
           </Alert>
         ) : null}
 
-        {/* ── 加载骨架屏（与 FlatPostItem 卡片外观一致） ── */}
+        {/* ── 加载骨架屏（与 FlatPostItem 新布局一致） ── */}
         {isFeedLoading ? (
           <div>
             {Array.from({ length: 5 }).map((_, i) => (
               <div
-                className="flex w-full gap-3 px-4 py-3"
+                className="w-full border-b border-border/40"
                 key={i}
               >
-                <Skeleton className="size-10 shrink-0 rounded-full" />
-                <div className="flex-1 space-y-2 pt-0.5">
+                {/* 圈子头行占位 */}
+                <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                  <Skeleton className="size-5 shrink-0 rounded-full" />
                   <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                  <div className="flex items-center gap-3 pt-1">
-                    <Skeleton className="h-3 w-14" />
-                    <Skeleton className="h-3 w-10" />
-                    <Skeleton className="h-3 w-10" />
-                    <Skeleton className="h-3 w-16" />
+                </div>
+                {/* 帖子内容占位 */}
+                <div className="flex w-full gap-3 px-4 py-3">
+                  <Skeleton className="size-10 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-2 pt-0.5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                    <div className="flex items-center gap-3 pt-1">
+                      <Skeleton className="h-3 w-14" />
+                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -321,8 +330,13 @@ export function CirclePage() {
                 if (item.circle?.slug) {
                   postCircleMapRef.current.set(item.id, item.circle.slug);
                 }
+                // 圈子头行去重：连续同一圈子不重复显示
+                const currentCircleId = item.circle?.id ?? null;
+                const hideHeader = currentCircleId !== null && currentCircleId === lastCircleIdRef.current;
+                lastCircleIdRef.current = currentCircleId;
                 return (
                   <FlatPostItem
+                    hideCircleHeader={hideHeader}
                     key={item.id}
                     onPostClick={handlePostClick}
                     post={item}

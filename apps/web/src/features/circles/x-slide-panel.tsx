@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { motion, type PanInfo } from 'framer-motion';
 import {
   Sheet,
@@ -30,6 +30,53 @@ export function XSlidePanel() {
   const isOpen = useSlidePanelStore(s => s.isOpen);
   const isClosing = useSlidePanelStore(s => s.isClosing);
   const close = useSlidePanelStore(s => s.close);
+
+  // ── 左侧拖拽调整宽度 ──
+  const [panelWidth, setPanelWidth] = useState(420);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(420);
+
+  /** 开始拖拽——记录起始位置和当前宽度 */
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      dragStartXRef.current = clientX;
+      dragStartWidthRef.current = panelWidth;
+    },
+    [panelWidth],
+  );
+
+  // 监听 document 级别的 mousemove/touchmove/mouseup/touchend
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const delta = clientX - dragStartXRef.current;
+      // 向左拖（delta < 0）→ 面板变宽；向右拖（delta > 0）→ 面板变窄
+      const newWidth = Math.min(800, Math.max(320, dragStartWidthRef.current - delta));
+      setPanelWidth(newWidth);
+    };
+
+    const handleEnd = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchend', handleEnd);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging]);
 
   // body 滚动锁定——cleanup 时检查 store 状态，避免其他面板实例仍打开时误恢复 overflow
   useEffect(() => {
@@ -63,10 +110,23 @@ export function XSlidePanel() {
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) close(); }}>
       <SheetContent
-        className="w-screen md:w-[420px] p-0"
+        className="w-screen max-w-none p-0 relative"
         showCloseButton={false}
         side="right"
+        style={{ width: typeof window !== 'undefined' && window.innerWidth >= 768 ? panelWidth : undefined }}
       >
+        {/* 拖拽调整宽度时的全屏遮罩，防止 Framer Motion 拦截事件 */}
+        {isDragging ? (
+          <div className="fixed inset-0 z-50 cursor-col-resize select-none" />
+        ) : null}
+
+        {/* 左侧拖拽手柄——仅桌面端可见 */}
+        <div
+          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-1.5 h-12 rounded-full bg-border hover:bg-primary/50 cursor-col-resize items-center justify-center transition-colors"
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+        />
+
         {/* Framer Motion 拖拽层包裹整个面板内容 */}
         <motion.div
           className="flex h-full flex-col"

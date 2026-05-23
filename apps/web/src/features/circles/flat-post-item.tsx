@@ -67,6 +67,8 @@ interface FlatPostItemProps {
   showSourceCircle?: boolean;
   /** 点击回调（TASK-004 SlidePanel 使用） */
   onPostClick?: (postId: string) => void;
+  /** 隐藏顶部圈子头行（用于连续同一圈子帖子去重） */
+  hideCircleHeader?: boolean;
 }
 
 // ── 工具函数 ──
@@ -168,15 +170,16 @@ function CollapsibleText({
 /**
  * 贴吧式扁平列表帖子项。
  *
- * 渲染结构：来源圈子头像+名称（showSourceCircle=true 时）
- * → 标题 → 正文截断 → 图片/视频缩略图 → 底部互动栏
+ * 渲染结构：圈子头行（图标+圈子名，hideCircleHeader=true 时隐藏）
+ * → 作者头像+标题 → 正文截断 → 图片/视频缩略图 → 底部互动栏
  *
  * 无卡片包裹，使用 border-b 分隔。
  */
 const FlatPostItem = memo(function FlatPostItem({
   post,
-  showSourceCircle = true,
+  showSourceCircle: _showSourceCircle = true,
   onPostClick,
+  hideCircleHeader,
 }: FlatPostItemProps) {
   /** 举报按钮触发器引用——点击后打开 ReportActionSheet */
   const reportTriggerRef = useRef<HTMLButtonElement>(null);
@@ -206,140 +209,151 @@ const FlatPostItem = memo(function FlatPostItem({
   }, []);
 
   return (
-    <div
-      className="flex w-full gap-3 px-4 py-3 text-left bg-white rounded-lg shadow-sm border-b border-border/40 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => onPostClick?.(post.id)}
-      onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
-    >
-      {/* 来源圈子头像（showSourceCircle=true 时显示圈子头像，否则显示作者头像） */}
-      <Avatar className="size-10 shrink-0 mt-0.5" size="sm">
-        <AvatarImage
-          alt={showSourceCircle ? (post.circle?.name ?? '') : post.author.displayName}
-          src={resolveUserAvatarSrc(post.author.avatarUrl)}
-        />
-        <AvatarFallback>
-          {(showSourceCircle ? post.circle?.name : post.author.displayName)?.slice(0, 1) ?? ''}
-        </AvatarFallback>
-      </Avatar>
-
-      <div className="flex-1 min-w-0">
-        {/* 来源圈子标记 */}
-        {showSourceCircle && post.circle ? (
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-xs text-primary font-medium truncate">
-              {post.circle.name}
-            </span>
-          </div>
-        ) : null}
-
-        {/* 帖子标题：始终完整显示 */}
-        <h2 className="font-semibold text-[0.92rem] leading-[1.35rem] text-foreground">
-          {post.title}
-        </h2>
-
-        {/* 正文预览：超过 3 行折叠，显示"展开/收起" */}
-        {post.contentPreview ? (
-          <CollapsibleText maxLines={3} text={post.contentPreview} />
-        ) : null}
-
-        {/* 视频：只显示第一个（上传时限制为一个视频） */}
-        {post.videos[0]?.url ? (
-          <div className="mt-2 overflow-hidden rounded-xl">
-            <div className="relative">
-              <video
-                className="w-full max-h-64 object-cover"
-                controls
-                muted
-                playsInline
-                preload="metadata"
-                src={post.videos[0].url}
-              />
-              <span className="pointer-events-none absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white">
-                <PlayIcon className="size-4 fill-current" />
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* 图片：2 列网格布局 */}
-        {post.images.length > 0 ? (
-          <div
-            className={`mt-2 overflow-hidden rounded-xl ${
-              post.images.length > 1 ? 'grid grid-cols-2 gap-1' : ''
-            }`}
-          >
-            {post.images.map((img, idx) => (
-              <img
-                key={img.url ?? idx}
-                alt={`${post.title} ${idx + 1}`}
-                className="w-full max-h-64 object-cover"
-                loading="lazy"
-                src={img.url ?? ''}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {/* 底部信息栏：作者 | 来源 | 评论数 | 时间 */}
-        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-          <span onClick={handleProfileLinkClick}>
-            <ProfileLink className="truncate hover:text-foreground" userId={post.author.id}>
-              {post.author.displayName}
-            </ProfileLink>
+    <div className="w-full border-b border-border/40">
+      {/* 圈子头行——仅在 post.circle 存在且未隐藏时显示 */}
+      {post.circle && !hideCircleHeader ? (
+        <div
+          className="flex items-center gap-2 px-4 pt-3 pb-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Avatar className="size-5 shrink-0">
+            <AvatarFallback>
+              {post.circle.name?.slice(0, 1) ?? ''}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {post.circle.name}
           </span>
-          {post.source ? (
-            <span className="truncate text-muted-foreground/70">
-              来自{post.source.label}
-            </span>
-          ) : null}
-          <span className="inline-flex items-center gap-1 shrink-0">
-            <MessageCircleIcon className="size-3" />
-            {formatCount(post.engagement.commentCount ?? 0)}
-          </span>
-          <span className="shrink-0">{relativeTime(post.createdAt)}</span>
         </div>
+      ) : null}
 
-        {/* 互动操作栏：点赞 | 收藏 | 分享 | 举报 */}
-        <PostInteractionBar
-          authorId={post.author.id}
-          compact
-          favoriteCount={post.engagement.favoriteCount}
-          hideFollow
-          iconOnly
-          isPublished
-          likeCount={post.engagement.likeCount}
-          onReport={post.circleId ? handleReport : undefined}
-          plain
-          postId={post.id}
-          shareCount={post.engagement.shareCount}
-          viewer={post.engagement.viewer}
-        />
-
-        {/* 举报弹窗（由 PostInteractionBar 举报按钮触发） */}
-        {post.circleId ? (
-          <ReportActionSheet
-            description="请填写举报理由，并至少上传 1 张证据图。"
-            onSubmit={async (input) => {
-              const circleId = post.circleId;
-              if (!circleId) return;
-              await apiClient.reportCirclePost(circleId, post.id, {
-                reason: input.reason,
-                imageFileIds: input.imageIds,
-              });
-              toast.success('举报已提交，感谢反馈');
-            }}
-            title="举报帖子"
-            trigger={
-              <button
-                ref={reportTriggerRef}
-                className="hidden"
-                type="button"
-              />
-            }
+      {/* 帖子内容区 */}
+      <div
+        className="flex w-full gap-3 px-4 py-3 text-left cursor-pointer hover:bg-accent/50 transition-colors"
+        onClick={() => onPostClick?.(post.id)}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+      >
+        {/* 作者头像 */}
+        <Avatar className="size-10 shrink-0 mt-0.5" size="sm">
+          <AvatarImage
+            alt={post.author.displayName}
+            src={resolveUserAvatarSrc(post.author.avatarUrl)}
           />
-        ) : null}
+          <AvatarFallback>
+            {post.author.displayName?.slice(0, 1) ?? ''}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="flex-1 min-w-0">
+          {/* 帖子标题：始终完整显示 */}
+          <h2 className="font-semibold text-[0.92rem] leading-[1.35rem] text-foreground">
+            {post.title}
+          </h2>
+
+          {/* 正文预览：超过 3 行折叠，显示"展开/收起" */}
+          {post.contentPreview ? (
+            <CollapsibleText maxLines={3} text={post.contentPreview} />
+          ) : null}
+
+          {/* 视频：只显示第一个（上传时限制为一个视频） */}
+          {post.videos[0]?.url ? (
+            <div className="mt-2 overflow-hidden rounded-xl">
+              <div className="relative">
+                <video
+                  className="w-full max-h-64 object-cover"
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  src={post.videos[0].url}
+                />
+                <span className="pointer-events-none absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white">
+                  <PlayIcon className="size-4 fill-current" />
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {/* 图片：2 列网格布局 */}
+          {post.images.length > 0 ? (
+            <div
+              className={`mt-2 overflow-hidden rounded-xl ${
+                post.images.length > 1 ? 'grid grid-cols-2 gap-1' : ''
+              }`}
+            >
+              {post.images.map((img, idx) => (
+                <img
+                  key={img.url ?? idx}
+                  alt={`${post.title} ${idx + 1}`}
+                  className="w-full max-h-64 object-cover"
+                  loading="lazy"
+                  src={img.url ?? ''}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {/* 底部信息栏：作者 | 来源 | 评论数 | 时间 */}
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+            <span onClick={handleProfileLinkClick}>
+              <ProfileLink className="truncate hover:text-foreground" userId={post.author.id}>
+                {post.author.displayName}
+              </ProfileLink>
+            </span>
+            {post.source ? (
+              <span className="truncate text-muted-foreground/70">
+                来自{post.source.label}
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <MessageCircleIcon className="size-3" />
+              {formatCount(post.engagement.commentCount ?? 0)}
+            </span>
+            <span className="shrink-0">{relativeTime(post.createdAt)}</span>
+          </div>
+
+          {/* 互动操作栏：点赞 | 收藏 | 分享 | 举报 */}
+          <PostInteractionBar
+            authorId={post.author.id}
+            compact
+            favoriteCount={post.engagement.favoriteCount}
+            hideFollow
+            iconOnly
+            isPublished
+            likeCount={post.engagement.likeCount}
+            onReport={post.circleId ? handleReport : undefined}
+            plain
+            postId={post.id}
+            shareCount={post.engagement.shareCount}
+            viewer={post.engagement.viewer}
+          />
+
+          {/* 举报弹窗（由 PostInteractionBar 举报按钮触发） */}
+          {post.circleId ? (
+            <ReportActionSheet
+              description="请填写举报理由，并至少上传 1 张证据图。"
+              onSubmit={async (input) => {
+                const circleId = post.circleId;
+                if (!circleId) return;
+                await apiClient.reportCirclePost(circleId, post.id, {
+                  reason: input.reason,
+                  imageFileIds: input.imageIds,
+                });
+                toast.success('举报已提交，感谢反馈');
+              }}
+              title="举报帖子"
+              trigger={
+                <button
+                  ref={reportTriggerRef}
+                  className="hidden"
+                  type="button"
+                />
+              }
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );
