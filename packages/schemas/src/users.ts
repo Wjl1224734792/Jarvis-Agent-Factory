@@ -1,13 +1,15 @@
 import { z } from "zod";
 import {
-  authRoleSchema,
   paginationMetaSchema,
   paginationQuerySchema
 } from "./auth";
 
 export const userStatusSchema = z.enum(["active", "banned"]);
 export const adminUserStatusFilterSchema = z.enum(["all", "active", "banned"]).default("all");
-export const adminUserRoleFilterSchema = z.enum(["all", "user", "admin"]).default("all");
+
+/** 数据库用户角色枚举（含管理员扩展角色） */
+export const adminUserRoleSchema = z.enum(["user", "admin", "super_admin", "editor", "moderator", "operator"]);
+export const adminUserRoleFilterSchema = z.enum(["all", "user", "admin", "super_admin", "editor", "moderator", "operator"]).default("all");
 
 export const adminUserListQuerySchema = paginationQuerySchema.extend({
   keyword: z.string().trim().max(100).optional(),
@@ -33,7 +35,7 @@ export const adminUserListItemSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().trim().min(1),
   avatarUrl: z.string().trim().min(1).nullable(),
-  role: authRoleSchema,
+  role: adminUserRoleSchema,
   status: userStatusSchema,
   phone: z.string().trim().min(1).nullable(),
   phoneMasked: z.string().trim().min(1).nullable(),

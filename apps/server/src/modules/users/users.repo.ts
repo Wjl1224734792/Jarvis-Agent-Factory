@@ -2,7 +2,7 @@ import { dbPool } from "@feijia/db";
 import type { AdminBanUserInput, AdminUserListQuery } from "@feijia/schemas";
 
 type UserStatus = "active" | "banned";
-type UserRole = "user" | "admin";
+type UserRole = "user" | "admin" | "super_admin" | "editor" | "moderator" | "operator";
 type SessionScope = "web" | "admin" | "app";
 
 export type AdminUserRow = {
