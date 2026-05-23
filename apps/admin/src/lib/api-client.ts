@@ -586,6 +586,9 @@ const rawApiClient = {
       mode
     });
   },
+  getAiFeatures() {
+    return getJson<{ features: { format: boolean } }>(API_ROUTES.ai.features);
+  },
   listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
     return sharedClient.listAdminRatingTargets(status);
   },

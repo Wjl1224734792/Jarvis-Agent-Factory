@@ -15,6 +15,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { AiFormatButton } from "../ai/ai-format-button";
 import { ImportFileButton } from "../ai/import-file-button";
+import { useAiFeatures } from "../ai/use-ai-features";
 import {
   buildOfficialArticleDocument,
   parseOfficialArticleDocument,
@@ -176,6 +177,7 @@ export function OfficialArticleEditorPage() {
   const watchedDeclaration = Form.useWatch("declaration", form) ?? "";
 
   const mediaManager = useMemo(() => createMediaManager(), []);
+  const { format: aiFormatEnabled } = useAiFeatures();
 
   /** 将解析后的 HTML 注入 wangEditor */
   const handleImportHtml = useCallback((html: string) => {
@@ -736,7 +738,7 @@ export function OfficialArticleEditorPage() {
 
             <div className="admin-official-article-editor__ai-toolbar" style={{ marginBottom: 8 }}>
               <Space size="small">
-                <AiFormatButton editor={editorInstance} />
+                {aiFormatEnabled ? <AiFormatButton editor={editorInstance} /> : null}
                 <ImportFileButton
                   disabled={!editorInstance}
                   onImport={handleImportHtml}
