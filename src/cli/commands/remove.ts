@@ -85,18 +85,16 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
     return;
   }
 
-  // 引擎数据清理需确认（安全保护）
+  // 引擎数据清理需确认（安全保护）：仅阻止引擎数据，配置清理正常进行
+  const engineForced = cleanEngine && (force || dryRun);
   if (cleanEngine && !force && !dryRun) {
-    console.log(`\n⚠️  --engine 将删除 .jarvis/ 目录下所有引擎数据：`);
-    printEngineData(target, isGlobal);
-    console.log(`\n这包括 SQLite 数据库、产物文档、归档记录等不可恢复的数据。`);
-    console.log(`如需继续，请添加 --force 标志。\n`);
-    return;
+    console.log(`\n⚠️  --engine 需配合 --force 使用（不可逆操作保护）`);
+    console.log(`   .jarvis/ 引擎数据不会被删除，只清理配置。\n`);
   }
 
   const mode = dryRun ? '🔍 DRY RUN' : '🗑';
   const scope = isGlobal ? '~ (全局)' : target;
-  const what = cleanEngine ? 'configs + engine data' : 'configs';
+  const what = engineForced ? 'configs + engine data' : 'configs';
   console.log(`\n${mode} Removing jarvis ${what} — ${scope}\n`);
 
   let totalRemoved = 0;
@@ -124,13 +122,13 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
     removeJarvisMcp(name, target, isGlobal, dryRun);
   }
 
-  // 清理引擎数据（需显式 --engine）
-  if (cleanEngine) {
+  // 清理引擎数据（需显式 --engine --force）
+  if (engineForced) {
     totalRemoved += removeEngineData(target, isGlobal, dryRun);
   }
 
   // 清理 hash 记录文件本身（引擎数据清理时一并处理）
-  if (!cleanEngine && !dryRun && existsSync(hashFilePath)) {
+  if (!engineForced && !dryRun && existsSync(hashFilePath)) {
     rmSync(hashFilePath);
     console.log(`  - ${hashFilePath}`);
     totalRemoved++;
