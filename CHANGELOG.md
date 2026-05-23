@@ -4,6 +4,11 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.14] - 2026-05-24
+
+### Fixed
+- **安全审查修复**：`pipeline_resume` 添加 run 所有权验证（防跨会话恢复注入）；`migrateSession` 6个UPDATE包裹在事务中（防半迁移状态）
+
 ## [4.7.13] - 2026-05-24
 
 ### Fixed
