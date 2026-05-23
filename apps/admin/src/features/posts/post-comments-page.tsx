@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Empty, Input, Segmented, Select, Space, Table, Tag, Button } from "antd";
+import { Empty, Input, Segmented, Select, Space, Table, Tag, Button, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-panel";
@@ -184,6 +184,7 @@ export function PostCommentsPage() {
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), refreshCurrentDomain()]);
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评论审核开关失败");
     } finally {
@@ -450,6 +451,7 @@ export function PostCommentsPage() {
                           buildCommentAuditManualDecision(record.id, record.nextStatus)
                         );
                         await Promise.all([refreshCurrentDomain(), auditQuery.refetch()]);
+                        message.success("操作成功");
                       } catch (reason: unknown) {
                         setError(reason instanceof Error ? reason.message : "更新评论状态失败");
                       }

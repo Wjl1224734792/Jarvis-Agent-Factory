@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
+import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
@@ -143,6 +143,7 @@ export function RatingTargetsPage() {
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), itemsQuery.refetch()]);
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评分对象审核模式失败");
     } finally {
@@ -162,6 +163,7 @@ export function RatingTargetsPage() {
         rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
       });
       await Promise.all([itemsQuery.refetch(), detailQuery.refetch()]);
+      message.success("操作成功");
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "更新评分对象状态失败");
     }

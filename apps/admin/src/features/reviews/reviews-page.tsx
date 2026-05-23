@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Segmented, Table, Tag } from "antd";
+import { Button, Input, Segmented, Table, Tag, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
@@ -139,6 +139,7 @@ export function ReviewsPage() {
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), reviewsQuery.refetch()]);
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评测审核模式失败");
     } finally {
@@ -297,6 +298,7 @@ export function ReviewsPage() {
                       })
                       .then(() => {
                         void reviewsQuery.refetch();
+                        message.success("操作成功");
                       })
                       .catch((reason: unknown) => {
                         setError(reason instanceof Error ? reason.message : "更新评测状态失败");

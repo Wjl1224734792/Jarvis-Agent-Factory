@@ -86,6 +86,7 @@ export function CirclePostsAdminPage() {
       message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新审核模式失败");
+      message.error(reason instanceof Error ? reason.message : "更新审核模式失败");
     } finally {
       setIsSavingSettings(false);
     }

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
+import { Button, Image, Input, Modal, Select, Space, Table, Tag, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
@@ -166,6 +166,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       })
       .then(() => {
         void Promise.all([postsQuery.refetch(), detailQuery.refetch()]);
+        message.success("操作成功");
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "更新内容状态失败");
@@ -194,6 +195,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         )
       );
       await Promise.all([siteSettingsQuery.refetch(), postsQuery.refetch()]);
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新审核模式失败");
     } finally {

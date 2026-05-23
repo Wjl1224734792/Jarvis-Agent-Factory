@@ -17,6 +17,7 @@ import { useSlidePanelStore } from '@/features/circles/use-slide-panel-store';
 import { apiClient } from '@/lib/api-client';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 import { VirtualFeed } from '@/components/virtual-feed';
+import { toast } from 'sonner';
 
 // ── 帖子数据转换：listCirclePosts 返回原始字段，需映射为 CircleFeedItem ──
 
@@ -180,14 +181,16 @@ export function CircleDetailPage() {
     if (!circleId) return;
     void (async () => {
       try {
+        const joined = !circle?.viewerRole;
         if (circle?.viewerRole) {
           await apiClient.leaveCircle(circleId);
         } else {
           await apiClient.joinCircle(circleId);
         }
+        toast.success(joined ? '已关注圈子' : '已取消关注');
         void circleQuery.refetch();
       } catch {
-        // 静默处理，避免 UI 抖动
+        toast.error('操作失败，请重试');
       }
     })();
   }

@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { FileImageIcon, XIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ export function ReportActionSheet(props: {
       setReason("");
       setImages([]);
       setOpen(false);
+      toast.success("举报已提交，我们会尽快处理");
     } catch (reasonValue: unknown) {
       setError(reasonValue instanceof Error ? reasonValue.message : "举报提交失败。");
     } finally {

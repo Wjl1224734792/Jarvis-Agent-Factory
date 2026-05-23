@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
+import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag, message } from "antd";
 import { APP_ROUTES } from "@feijia/shared";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -145,6 +145,7 @@ export function RankingsPage() {
         })
       );
       await siteSettingsQuery.refetch();
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "更新榜单审核模式失败");
     } finally {
@@ -164,6 +165,7 @@ export function RankingsPage() {
         rejectionReason: status === "rejected" ? rejectionReason ?? null : null
       });
       await Promise.all([officialRankingsQuery.refetch(), communityRankingsQuery.refetch()]);
+      message.success("操作成功");
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "更新榜单状态失败");
     }

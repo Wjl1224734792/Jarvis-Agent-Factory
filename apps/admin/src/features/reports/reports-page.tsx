@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Input, Modal, Space, Table, Tag } from "antd";
+import { Button, Empty, Image, Input, Modal, Space, Table, Tag, message } from "antd";
 import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -180,7 +180,10 @@ export function ReportsPage() {
                           status: "rejected",
                           rejectionReason: reason
                         })
-                        .then(() => refreshAll())
+                        .then(() => {
+                          void refreshAll();
+                          message.success("操作成功");
+                        })
                         .catch((reasonValue: unknown) =>
                           setActionError(
                             reasonValue instanceof Error ? reasonValue.message : "处理失败"
@@ -197,7 +200,10 @@ export function ReportsPage() {
                       setActionError(null);
                       void apiClient
                         .updateAdminPostStatus(record.id, { status: "hidden" })
-                        .then(() => refreshAll())
+                        .then(() => {
+                          void refreshAll();
+                          message.success("操作成功");
+                        })
                         .catch((reasonValue: unknown) =>
                           setActionError(
                             reasonValue instanceof Error ? reasonValue.message : "处理失败"
@@ -273,7 +279,10 @@ export function ReportsPage() {
                       onClick={() => {
                         setActionError(null);
                         void toggleCommentVisibility(record)
-                          .then(() => refreshAll())
+                          .then(() => {
+                            void refreshAll();
+                            message.success("操作成功");
+                          })
                           .catch((reasonValue: unknown) =>
                             setActionError(
                               reasonValue instanceof Error ? reasonValue.message : "处理失败"

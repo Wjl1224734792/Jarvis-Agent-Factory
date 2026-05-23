@@ -22,6 +22,7 @@ import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { getModelGallery, getModelImage } from "@/lib/aviation-media";
@@ -412,6 +413,8 @@ export function ModelDetailPage() {
         void queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] });
         void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
       });
+    } catch {
+      toast.error('操作失败，请重试');
     } finally {
       setInteractionPending((prev) => ({ ...prev, [type]: false }));
     }

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
+import { Button, Image, Input, Modal, Select, Space, Table, Tag, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-panel";
@@ -171,6 +171,7 @@ export function AircraftSubmissionsPage() {
         auditQuery.refetch(),
         detailId === id ? detailQuery.refetch() : Promise.resolve(null)
       ]);
+      message.success("操作成功");
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "更新投稿状态失败");
     }
@@ -191,6 +192,7 @@ export function AircraftSubmissionsPage() {
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), submissionsQuery.refetch()]);
+      message.success("审核模式已更新");
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新投稿审核模式失败");
     } finally {

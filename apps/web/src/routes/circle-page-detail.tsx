@@ -22,6 +22,7 @@ import { IpLocationText } from '@/components/ip-location-text';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useLoginPrompt } from '@/features/auth/use-login-prompt';
 import {
@@ -185,6 +186,7 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
             };
           }
         );
+        toast.success('评论已发表');
         setCommentContent('');
       })
       .catch((err: unknown) => {
@@ -232,7 +234,9 @@ export function CirclePostDetailContent({ postId }: CirclePostDetailContentProps
       }
     );
 
+    toast.success(nextIsFollowing ? '已关注' : '已取消关注');
     void apiClient.toggleFollow(selectedNote.author.id).catch(() => {
+      toast.error('操作失败');
       // 回滚
       queryClient.setQueryData<PostDetailResponse>(
         ['circle-post', postId, commentSort],
