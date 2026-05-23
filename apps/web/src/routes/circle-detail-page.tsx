@@ -1,13 +1,13 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon, MessageCircleIcon, PlusIcon, SendIcon, UsersIcon } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeftIcon, MessageCircleIcon, PlusIcon, UsersIcon } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/features/auth/auth-store";
+import { CreatePostModal } from "@/features/circles/create-post-modal";
+import { useCreatePostDialogStore } from "@/features/circles/create-post-dialog-store";
 import { apiClient } from "@/lib/api-client";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
@@ -15,13 +15,8 @@ import { cn } from "@/lib/utils";
 export function CircleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const currentUser = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.status === "authenticated");
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPostTitle, setNewPostTitle] = useState("");
-  const [newPostContent, setNewPostContent] = useState("");
-  const [posting, setPosting] = useState(false);
+  const openCreatePostDialog = useCreatePostDialogStore((s) => s.openDialog);
 
   const circleQuery = useQuery({
     queryKey: ["circle", slug],
@@ -47,27 +42,6 @@ export function CircleDetailPage() {
       circleQuery.refetch();
     } catch { /* ignore */ }
   }
-
-  async function handleCreatePost() {
-    if (!circleId || !newPostTitle.trim() || posting) return;
-    setPosting(true);
-    try {
-      await (apiClient as any).createCirclePost(circleId, {
-        title: newPostTitle.trim(),
-        content: newPostContent.trim() || undefined,
-      });
-      setNewPostTitle("");
-      setNewPostContent("");
-      setShowCreatePost(false);
-      postsQuery.refetch();
-    } catch (e: any) {
-      // ignore
-    } finally {
-      setPosting(false);
-    }
-  }
-
-  const isOwner = currentUser && (circle?.ownerId as string) === currentUser.id;
 
   return (
     <SitePage className="gap-4">
@@ -143,49 +117,13 @@ export function CircleDetailPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowCreatePost(!showCreatePost)}
+                  onClick={openCreatePostDialog}
                 >
                   <PlusIcon className="size-3.5 mr-1" />
                   发帖
                 </Button>
               ) : null}
             </div>
-
-            {showCreatePost ? (
-              <div className="mt-3 rounded-xl border border-border/60 bg-white p-4 space-y-3">
-                <Input
-                  onChange={(e) => setNewPostTitle(e.target.value)}
-                  placeholder="帖子标题"
-                  value={newPostTitle}
-                />
-                <Input
-                  onChange={(e) => setNewPostContent(e.target.value)}
-                  placeholder="帖子内容（选填）"
-                  value={newPostContent}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    disabled={!newPostTitle.trim() || posting}
-                    onClick={handleCreatePost}
-                    size="sm"
-                  >
-                    <SendIcon className="size-3.5 mr-1" />
-                    {posting ? "发布中..." : "发布"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreatePost(false);
-                      setNewPostTitle("");
-                      setNewPostContent("");
-                    }}
-                  >
-                    取消
-                  </Button>
-                </div>
-              </div>
-            ) : null}
 
             <div className="mt-3 space-y-3">
               {postsQuery.isLoading ? (
@@ -244,6 +182,15 @@ export function CircleDetailPage() {
           </div>
         </div>
       )}
+
+      {circleId ? (
+        <CreatePostModal
+          onCreated={() => { void postsQuery.refetch(); }}
+          preselectedCircleCoverUrl={circle?.coverImageUrl as string | null}
+          preselectedCircleId={circleId}
+          preselectedCircleName={circle?.name as string}
+        />
+      ) : null}
     </SitePage>
   );
 }

@@ -1,28 +1,15 @@
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { SitePage } from "@/components/site-shell";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PlusIcon } from "lucide-react";
 import { useAuthStore } from "@/features/auth/auth-store";
-import { useLoginPrompt } from "@/features/auth/use-login-prompt";
-import {
-  patchPostAuthorFollowState,
-  patchPostCommentCreated,
-  patchPostViewCount
-} from "@/features/posts/post-query-cache";
+import { CreateCircleModal } from "@/features/circles/create-circle-modal";
+import { CreatePostModal } from "@/features/circles/create-post-modal";
 import { apiClient } from "@/lib/api-client";
 import { resolveFeedNextCursor } from "@/lib/feed-pagination";
-import { shouldRecordSessionView } from "@/lib/view-session";
-import { CirclePageFeed, feedTabs, mapCirclePostToFeedItem, type CircleFeedItem, type FeedTab } from "./circle-page-feed";
-
-const CirclePageDetail = lazy(() =>
-  import("./circle-page-detail").then((module) => ({
-    default: module.CirclePageDetail
-  }))
-);
+import { CirclePageFeed, feedTabs, type CircleFeedItem, type CircleFeedTab, type FeedTab } from "./circle-page-feed";
+import { RecommendedCirclesStrip } from "./recommended-circles-strip";
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -37,35 +24,24 @@ function formatCount(value: number) {
 }
 
 export function CirclePage() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
-  const promptLogin = useLoginPrompt();
   const [activeTab, setActiveTab] = useState<FeedTab>(() => {
     const tab = readTabFromURL();
     return tab && feedTabs.some(t => t.id === tab) ? (tab as FeedTab) : "recommended";
   });
-  const [commentContent, setCommentContent] = useState("");
-  const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  function readNoteIdFromURL(): string | null {
-    return new URLSearchParams(window.location.search).get("note");
-  }
 
   function readTabFromURL(): string | null {
     return new URLSearchParams(window.location.search).get("tab");
   }
 
-  function syncURLParams(updates: { tab?: string | null; note?: string | null }) {
+  function syncTabURL(tab: string | null) {
     const params = new URLSearchParams(window.location.search);
-    if (updates.tab !== undefined) {
-      updates.tab ? params.set("tab", updates.tab) : params.delete("tab");
-    }
-    if (updates.note !== undefined) {
-      updates.note ? params.set("note", updates.note) : params.delete("note");
+    if (tab) {
+      params.set("tab", tab);
+    } else {
+      params.delete("tab");
     }
     const search = params.toString();
     const url = search
@@ -74,10 +50,6 @@ export function CirclePage() {
     window.history.replaceState(null, "", url);
   }
 
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
-    readNoteIdFromURL()
-  );
-
   // 响应浏览器前进/后退时同步 URL 状态
   useEffect(() => {
     function handlePopState() {
@@ -85,92 +57,52 @@ export function CirclePage() {
       if (tabFromURL && feedTabs.some(t => t.id === tabFromURL)) {
         setActiveTab(tabFromURL as FeedTab);
       }
-      const noteIdFromURL = readNoteIdFromURL();
-      setSelectedNoteId(noteIdFromURL ?? null);
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-  const circlesQuery = useQuery({
-    queryKey: ["circles-list"],
-    queryFn: () => apiClient.listCircles({ sort: "hot" }),
-  });
-  const circles = (circlesQuery.data?.items ?? []) as Array<{ id: string; slug: string; name: string; description?: string | null; memberCount: number; postCount: number; coverImageUrl: string | null }>;
 
+  // ── 关注圈子列表（REQ-007） ──
+  const userCirclesQuery = useQuery({
+    queryKey: ["user-circles", currentUser?.id],
+    queryFn: () => apiClient.listUserCircles(currentUser!.id),
+    enabled: authStatus === "authenticated" && Boolean(currentUser?.id),
+  });
+  const userCircles = useMemo(() => {
+    const items = (userCirclesQuery.data?.items ?? []) as Array<{
+      id: string;
+      slug: string;
+      name: string;
+      memberCount: number;
+      postCount: number;
+      coverImageUrl: string | null;
+    }>;
+    return items;
+  }, [userCirclesQuery.data?.items]);
+
+  /** 关注圈子 Tab 列表 */
+  const circleTabs = useMemo<CircleFeedTab[]>(() => {
+    if (userCircles.length === 0) return [];
+    return userCircles.map((c) => ({
+      id: `circle-${c.id}`,
+      label: c.name,
+      circleId: c.id,
+      circleSlug: c.slug,
+    }));
+  }, [userCircles]);
+
+  const [activeCircleTabId, setActiveCircleTabId] = useState<string | null>(null);
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
 
+  // 获取选中圈子的帖子
   const circlePostsQuery = useQuery({
     queryKey: ["circle-posts", selectedCircleId],
     queryFn: () => apiClient.listCirclePosts(selectedCircleId!, { tab: "latest" }),
     enabled: Boolean(selectedCircleId),
   });
 
-  const [showCreate, setShowCreate] = useState(false);
-  const [newCircleName, setNewCircleName] = useState("");
-  const [newCircleSlug, setNewCircleSlug] = useState("");
-  const [newCircleDesc, setNewCircleDesc] = useState("");
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [coverFileId, setCoverFileId] = useState<string | null>(null);
-  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
-  const [isCoverUploading, setIsCoverUploading] = useState(false);
-
-  async function handleCoverUpload(file: File) {
-    setIsCoverUploading(true);
-    setCreateError(null);
-    try {
-      const init = await apiClient.initUpload({
-        bizType: "circle-cover-image",
-        fileName: file.name,
-        fileSize: file.size,
-        contentType: file.type,
-      });
-      if (init.upload.mode === "presigned-put") {
-        await fetch(init.upload.url, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
-        });
-      }
-      const complete = await apiClient.completeUpload(init.fileId);
-      setCoverFileId(complete.item.id);
-      setCoverPreviewUrl(complete.item.url);
-    } catch (e: unknown) {
-      setCreateError(e instanceof Error ? e.message : "封面上传失败");
-    } finally {
-      setIsCoverUploading(false);
-    }
-  }
-
-  async function handleCreateCircle() {
-    setCreateError(null);
-    if (!newCircleName.trim() || !newCircleSlug.trim()) {
-      setCreateError("名称和Slug不能为空");
-      return;
-    }
-    if (!coverFileId) {
-      setCreateError("请上传圈子封面图");
-      return;
-    }
-    try {
-      await apiClient.createCircle({ name: newCircleName.trim(), slug: newCircleSlug.trim(), description: newCircleDesc.trim() || undefined, coverImageFileId: coverFileId });
-      setShowCreate(false);
-      setNewCircleName("");
-      setNewCircleSlug("");
-      setNewCircleDesc("");
-      setCoverFileId(null);
-      setCoverPreviewUrl(null);
-      void circlesQuery.refetch();
-    } catch (e: unknown) {
-      const err = e as Record<string, unknown>;
-      if (err.code === "SPAM_BLOCKED") {
-        setCreateError((err.message as string) ?? "暂不满足创建条件");
-      } else {
-        setCreateError((err.message as string) ?? "创建失败");
-      }
-    }
-  }
-
-  const feedApiTab = activeTab === "circles" ? "recommended" : activeTab;
+  // ── 主 Feed 查询 ──
+  const feedApiTab = activeTab;
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", feedApiTab],
     initialPageParam: undefined as string | undefined,
@@ -182,54 +114,11 @@ export function CirclePage() {
     getNextPageParam: (lastPage) => resolveFeedNextCursor(lastPage),
     enabled: true
   });
-  const noteQuery = useQuery({
-    queryKey: ["post-detail", selectedNoteId],
-    queryFn: () => {
-      if (!selectedNoteId) {
-        throw new Error("Missing note id");
-      }
-      return apiClient.getPostDetail(selectedNoteId);
-    },
-    enabled: Boolean(selectedNoteId)
-  });
 
   const posts = useMemo<CircleFeedItem[]>(
     () => circleFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [],
     [circleFeedQuery.data?.pages]
   );
-  const selectedPreview = useMemo(
-    () => posts.find((item) => item.id === selectedNoteId) ?? null,
-    [posts, selectedNoteId]
-  );
-  const selectedNote = noteQuery.data?.item ?? null;
-  const displayNote = selectedNote ?? selectedPreview;
-
-  useEffect(() => {
-    if (!selectedNote || selectedNote.status !== "published" || !shouldRecordSessionView("post", selectedNote.id)) {
-      return;
-    }
-
-    void apiClient
-      .recordPostView(selectedNote.id)
-      .then(() => {
-        patchPostViewCount(queryClient, selectedNote.id);
-      })
-      .catch(() => {
-        // Ignore passive view-record failures to keep the modal responsive.
-      });
-  }, [queryClient, selectedNote]);
-
-  function openNote(id: string) {
-    setSelectedNoteId(id);
-    syncURLParams({ note: id });
-  }
-
-  function closeNote() {
-    setSelectedNoteId(null);
-    syncURLParams({ note: null });
-    setCommentContent("");
-    setActionError(null);
-  }
 
   const isFeedLoading = circleFeedQuery.isLoading && !circleFeedQuery.data;
   const isFeedRefetching = circleFeedQuery.isRefetching;
@@ -238,72 +127,6 @@ export function CirclePage() {
   const feedErrorMessage = circleFeedQuery.error instanceof Error ? circleFeedQuery.error.message : undefined;
   const hasMoreFeedItems = Boolean(circleFeedQuery.hasNextPage);
   const isFetchingNextFeedPage = circleFeedQuery.isFetchingNextPage;
-
-  const isFollowingPendingRef = useRef(false);
-
-  function handleToggleFollow() {
-    if (!selectedNote || isFollowingPendingRef.current) {
-      return;
-    }
-
-    if (
-      !promptLogin({
-        title: "登录后才能关注作者",
-        description: "关注前请先登录。"
-      })
-    ) {
-      return;
-    }
-
-    const nextIsFollowing = !selectedNote.engagement.viewer.isFollowingAuthor;
-    setActionError(null);
-    isFollowingPendingRef.current = true;
-    // 乐观更新: 立即反映 UI 状态
-    patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
-
-    void apiClient
-      .toggleFollow(selectedNote.author.id)
-      .then(() => {
-        startTransition(() => {
-          void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        });
-      })
-      .catch((reason: unknown) => {
-        // 回滚乐观更新
-        patchPostAuthorFollowState(queryClient, selectedNote.author.id, !nextIsFollowing);
-        setActionError(
-          reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
-        );
-      })
-      .finally(() => {
-        isFollowingPendingRef.current = false;
-      });
-  }
-
-  function handleCommentSubmit() {
-    if (!selectedNote || !commentContent.trim() || isSubmitting) {
-      return;
-    }
-
-    setActionError(null);
-    setIsSubmitting(true);
-    void apiClient
-      .createPostComment(selectedNote.id, {
-        content: commentContent
-      })
-      .then((payload) => {
-        patchPostCommentCreated(queryClient, selectedNote.id, payload.item);
-        setCommentContent("");
-      })
-      .catch((reason: unknown) => {
-        setActionError(
-          reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
-        );
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  }
 
   function handleNavigateToLogin() {
     void navigate(
@@ -317,87 +140,51 @@ export function CirclePage() {
     );
   }
 
+  /**
+   * 卡片点击导航——优先使用 circle.slug，降级使用 source.url，兜底静默。
+   * REQ-005：点击卡片导航到圈子详情页。
+   */
+  function handleCardClick(post: CircleFeedItem) {
+    // 1. 优先使用帖子关联的圈子 slug
+    if (post.circle?.slug) {
+      void navigate(APP_ROUTES.circleDetail.replace(":slug", post.circle.slug));
+      return;
+    }
+    // 2. 降级：从 source.url 提取圈子路径
+    if (post.source?.url?.startsWith("/circles/")) {
+      const slug = post.source.url.replace("/circles/", "").split("/")[0];
+      if (slug) {
+        void navigate(APP_ROUTES.circleDetail.replace(":slug", slug));
+        return;
+      }
+    }
+    // 3. 无圈子信息时静默（不抛异常）
+  }
+
+  /** 切换关注圈子 Tab */
+  function handleChangeCircleTab(tabId: string) {
+    setActiveCircleTabId(tabId);
+    const circleTab = circleTabs.find((t) => t.id === tabId);
+    if (circleTab) {
+      setSelectedCircleId(circleTab.circleId);
+    } else {
+      setSelectedCircleId(null);
+    }
+  }
+
   return (
     <SitePage className="gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">飞友圈</h2>
-        {authStatus === "authenticated" ? (
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setShowCreate(!showCreate)}>
-              <PlusIcon className="size-3.5 mr-1" />
-              创建圈子
-            </Button>
-          </div>
-        ) : null}
       </div>
 
-      {showCreate ? (
-        <div className="rounded-xl border border-border/60 bg-white p-4 space-y-3">
-          <Input
-            onChange={(e) => setNewCircleName(e.target.value)}
-            placeholder="圈子名称"
-            value={newCircleName}
-          />
-          <Input
-            onChange={(e) => setNewCircleSlug(e.target.value)}
-            placeholder="Slug（英文标识）"
-            value={newCircleSlug}
-          />
-          <Input
-            onChange={(e) => setNewCircleDesc(e.target.value)}
-            placeholder="圈子简介（选填）"
-            value={newCircleDesc}
-          />
-          <div>
-            <label className="text-sm font-medium text-foreground">圈子封面图 *</label>
-            <div className="mt-1.5">
-              {coverPreviewUrl ? (
-                <div className="relative inline-block">
-                  <img
-                    alt="圈子封面预览"
-                    className="h-28 w-28 rounded-lg object-cover border border-border/60"
-                    src={coverPreviewUrl}
-                  />
-                  <button
-                    className="absolute -top-2 -right-2 size-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"
-                    disabled={isCoverUploading}
-                    onClick={() => { setCoverFileId(null); setCoverPreviewUrl(null); }}
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <input
-                  accept="image/*"
-                  className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
-                  disabled={isCoverUploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleCoverUpload(file);
-                  }}
-                  type="file"
-                />
-              )}
-              {isCoverUploading ? (
-                <div className="mt-1 text-xs text-muted-foreground">上传中...</div>
-              ) : null}
-            </div>
-          </div>
-          {createError ? <div className="text-xs text-red-500">{createError}</div> : null}
-          <div className="flex gap-2">
-            <Button disabled={isCoverUploading} size="sm" onClick={handleCreateCircle}>确认创建</Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowCreate(false); setCoverFileId(null); setCoverPreviewUrl(null); }}>取消</Button>
-          </div>
-        </div>
-      ) : null}
+      <RecommendedCirclesStrip />
 
       <CirclePageFeed
         activeTab={activeTab}
-        onChangeTab={(tab) => { setActiveTab(tab); syncURLParams({ tab }); }}
+        onChangeTab={(tab) => { setActiveTab(tab); syncTabURL(tab); }}
         posts={posts}
-        openNote={openNote}
-        selectedNoteId={selectedNoteId}
+        onCardClick={handleCardClick}
         isLoading={isFeedLoading}
         isRefetching={isFeedRefetching}
         isFetchingNextPage={isFetchingNextFeedPage}
@@ -412,43 +199,33 @@ export function CirclePage() {
         formatCount={formatCount}
         authStatus={authStatus}
         onNavigateToLogin={handleNavigateToLogin}
-        circlesTabProps={{
-          circles: circles.map(c => ({ id: c.id, slug: c.slug, name: c.name, memberCount: c.memberCount, postCount: c.postCount, coverImageUrl: c.coverImageUrl })),
-          selectedCircleId,
-          onSelectCircle: setSelectedCircleId,
-          circlePosts: circlePostsQuery.data ? circlePostsQuery.data.items.map(mapCirclePostToFeedItem) : [],
-          isCirclePostsLoading: circlePostsQuery.isLoading,
-          circlePostsError: circlePostsQuery.error,
-          feedPosts: posts,
-          isFeedPostsLoading: isFeedLoading,
-          feedPostsError: circleFeedQuery.error instanceof Error ? circleFeedQuery.error : null,
-        }}
+        circleTabs={circleTabs}
+        activeCircleTabId={activeCircleTabId}
+        onChangeCircleTab={handleChangeCircleTab}
+        circleTabPosts={circlePostsQuery.data?.items ?? []}
+        isCircleTabLoading={circlePostsQuery.isLoading}
+        circleTabError={circlePostsQuery.error instanceof Error ? circlePostsQuery.error : null}
+        circleTabsSelectorProps={
+          userCircles.length > 0
+            ? {
+                circles: userCircles.map(c => ({
+                  id: c.id,
+                  slug: c.slug,
+                  name: c.name,
+                  memberCount: c.memberCount,
+                  postCount: c.postCount,
+                  coverImageUrl: c.coverImageUrl,
+                })),
+                selectedCircleId,
+                onSelectCircle: setSelectedCircleId,
+                isLoading: userCirclesQuery.isLoading,
+              }
+            : undefined
+        }
       />
 
-      {selectedNoteId ? (
-        <Suspense fallback={null}>
-          <CirclePageDetail
-            key={selectedNoteId}
-            selectedNoteId={selectedNoteId}
-            selectedNote={selectedNote}
-            displayNote={displayNote}
-            noteQuery={noteQuery}
-            authStatus={authStatus}
-            currentUser={currentUser}
-            promptLogin={promptLogin}
-            commentContent={commentContent}
-            onCommentContentChange={setCommentContent}
-            commentSort={commentSort}
-            onCommentSortChange={setCommentSort}
-            isSubmitting={isSubmitting}
-            actionError={actionError}
-            onCommentSubmit={handleCommentSubmit}
-            onClose={closeNote}
-            onToggleFollow={handleToggleFollow}
-            formatCount={formatCount}
-          />
-        </Suspense>
-      ) : null}
+      <CreateCircleModal onCreated={() => { void userCirclesQuery.refetch(); }} />
+      <CreatePostModal onCreated={() => { void circleFeedQuery.refetch(); }} />
     </SitePage>
   );
 }

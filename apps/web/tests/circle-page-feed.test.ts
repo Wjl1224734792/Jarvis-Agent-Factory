@@ -11,6 +11,11 @@ vi.mock("@/lib/avatar-url", () => ({
   resolveUserAvatarSrc: (value: string | null) => value
 }));
 
+vi.mock("react-virtuoso", () => ({
+  Virtuoso: ({ data, itemContent }: { data: unknown[]; itemContent: (index: number, item: unknown) => unknown }) =>
+    createElement("div", null, data.map((item, i) => createElement("div", { key: i }, itemContent(i, item)))),
+}));
+
 import { CirclePageFeed } from "../src/routes/circle-page-feed";
 
 const createPost = (id: string): CircleFeedItem => ({
@@ -36,8 +41,7 @@ describe("circle page feed", () => {
         activeTab: "recommended",
         onChangeTab: vi.fn(),
         posts: [createPost("post-1")],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: false,
@@ -60,8 +64,7 @@ describe("circle page feed", () => {
         activeTab: "recommended",
         onChangeTab: vi.fn(),
         posts: [createPost("post-1")],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: true,
@@ -83,8 +86,7 @@ describe("circle page feed", () => {
         activeTab: "recommended",
         onChangeTab: vi.fn(),
         posts: [createPost("post-1")],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: false,
@@ -109,8 +111,7 @@ describe("circle page feed", () => {
         activeTab: "recommended",
         onChangeTab: vi.fn(),
         posts: [],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: false,
@@ -128,14 +129,13 @@ describe("circle page feed", () => {
     expect(markup).toContain("请求失败");
   });
 
-  it("renders circles tab when active", () => {
+  it("renders circle tabs when following tab is active", () => {
     const markup = renderToStaticMarkup(
       createElement(CirclePageFeed, {
-        activeTab: "circles",
+        activeTab: "following",
         onChangeTab: vi.fn(),
         posts: [],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: false,
@@ -145,85 +145,16 @@ describe("circle page feed", () => {
         formatCount: (value: number) => String(value),
         authStatus: "authenticated",
         onNavigateToLogin: vi.fn(),
-        circlesTabProps: {
-          circles: [
-            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
-          ],
-          selectedCircleId: null,
-          onSelectCircle: vi.fn(),
-          circlePosts: [],
-          isCirclePostsLoading: false,
-        },
+        circleTabs: [
+          { id: "circle-c1", label: "航拍交流", circleId: "c1", circleSlug: "aerial" },
+        ],
+        activeCircleTabId: null,
+        onChangeCircleTab: vi.fn(),
       })
     );
 
     expect(markup).toContain("航拍交流");
-    expect(markup).toContain("圈子");
-  });
-
-  it("shows guidance prompt when no circle is selected", () => {
-    const markup = renderToStaticMarkup(
-      createElement(CirclePageFeed, {
-        activeTab: "circles",
-        onChangeTab: vi.fn(),
-        posts: [],
-        openNote: vi.fn(),
-        selectedNoteId: null,
-        isLoading: false,
-        isRefetching: false,
-        isFetchingNextPage: false,
-        isError: false,
-        hasMore: false,
-        onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value),
-        authStatus: "authenticated",
-        onNavigateToLogin: vi.fn(),
-        circlesTabProps: {
-          circles: [
-            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
-          ],
-          selectedCircleId: null,
-          onSelectCircle: vi.fn(),
-          circlePosts: [],
-          isCirclePostsLoading: false,
-        },
-      })
-    );
-
-    expect(markup).toContain("选择一个圈子查看帖子");
-  });
-
-  it("renders circle posts when a circle is selected", () => {
-    const markup = renderToStaticMarkup(
-      createElement(CirclePageFeed, {
-        activeTab: "circles",
-        onChangeTab: vi.fn(),
-        posts: [],
-        openNote: vi.fn(),
-        selectedNoteId: null,
-        isLoading: false,
-        isRefetching: false,
-        isFetchingNextPage: false,
-        isError: false,
-        hasMore: false,
-        onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value),
-        authStatus: "authenticated",
-        onNavigateToLogin: vi.fn(),
-        circlesTabProps: {
-          circles: [
-            { id: "c1", slug: "aerial", name: "航拍交流", memberCount: 10, postCount: 5 },
-          ],
-          selectedCircleId: "c1",
-          onSelectCircle: vi.fn(),
-          circlePosts: [createPost("circle-post-1")],
-          isCirclePostsLoading: false,
-        },
-      })
-    );
-
-    expect(markup).toContain("post-circle-post-1");
-    expect(markup).not.toContain("选择一个圈子查看帖子");
+    expect(markup).toContain("关注");
   });
 
   it("shows login prompt for anonymous user on latest tab", () => {
@@ -232,8 +163,7 @@ describe("circle page feed", () => {
         activeTab: "latest",
         onChangeTab: vi.fn(),
         posts: [],
-        openNote: vi.fn(),
-        selectedNoteId: null,
+        onCardClick: vi.fn(),
         isLoading: false,
         isRefetching: false,
         isFetchingNextPage: false,
@@ -248,5 +178,28 @@ describe("circle page feed", () => {
 
     expect(markup).toContain("登录后浏览最新动态");
     expect(markup).toContain("去登录");
+  });
+
+  it("renders posts as single-column cards", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CirclePageFeed, {
+        activeTab: "recommended",
+        onChangeTab: vi.fn(),
+        posts: [createPost("post-1"), createPost("post-2")],
+        onCardClick: vi.fn(),
+        isLoading: false,
+        isRefetching: false,
+        isFetchingNextPage: false,
+        isError: false,
+        hasMore: false,
+        onLoadMore: vi.fn(),
+        formatCount: (value: number) => String(value),
+        authStatus: "authenticated",
+        onNavigateToLogin: vi.fn(),
+      })
+    );
+
+    expect(markup).toContain("post-post-1");
+    expect(markup).toContain("post-post-2");
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
+  createCirclePostInputSchema,
   createPostCommentInputSchema,
   createPostInputSchema,
   feedTabSchema,
@@ -530,5 +531,140 @@ describe("posts contract", () => {
 
     expect(payload.details.reason).toBe("file_too_large");
     expect(payload.details.limit?.mb).toBe("2");
+  });
+
+  // ── createCirclePostInputSchema 测试 ──
+
+  it("parses valid circle post payload with images", () => {
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "今日飞行记录",
+      content: "天气很好，飞行顺利。",
+      imageIds: ["img_1", "img_2"],
+      videoId: null
+    });
+
+    expect(payload.circleId).toBe("circle_1");
+    expect(payload.title).toBe("今日飞行记录");
+    expect(payload.content).toBe("天气很好，飞行顺利。");
+    expect(payload.imageIds).toEqual(["img_1", "img_2"]);
+    expect(payload.videoId).toBeNull();
+  });
+
+  it("parses valid circle post payload with video", () => {
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "FPV 穿越视频",
+      content: "",
+      imageIds: [],
+      videoId: "vid_1"
+    });
+
+    expect(payload.circleId).toBe("circle_1");
+    expect(payload.title).toBe("FPV 穿越视频");
+    expect(payload.content).toBe("");
+    expect(payload.imageIds).toEqual([]);
+    expect(payload.videoId).toBe("vid_1");
+  });
+
+  it("parses circle post payload with no media", () => {
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "纯文字帖子"
+    });
+
+    expect(payload.circleId).toBe("circle_1");
+    expect(payload.title).toBe("纯文字帖子");
+    expect(payload.content).toBe("");
+    expect(payload.imageIds).toEqual([]);
+    expect(payload.videoId).toBeNull();
+  });
+
+  it("rejects circle post with empty circleId", () => {
+    expect(() =>
+      createCirclePostInputSchema.parse({
+        circleId: "",
+        title: "测试帖子"
+      })
+    ).toThrow();
+  });
+
+  it("rejects circle post with empty title", () => {
+    expect(() =>
+      createCirclePostInputSchema.parse({
+        circleId: "circle_1",
+        title: ""
+      })
+    ).toThrow();
+  });
+
+  it("rejects circle post with title exceeding 31 characters", () => {
+    const longTitle = "a".repeat(32);
+    expect(() =>
+      createCirclePostInputSchema.parse({
+        circleId: "circle_1",
+        title: longTitle
+      })
+    ).toThrow();
+  });
+
+  it("accepts circle post with title exactly 31 characters", () => {
+    const maxTitle = "a".repeat(31);
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: maxTitle
+    });
+    expect(payload.title).toBe(maxTitle);
+  });
+
+  it("rejects circle post with content exceeding 2000 characters", () => {
+    const longContent = "a".repeat(2001);
+    expect(() =>
+      createCirclePostInputSchema.parse({
+        circleId: "circle_1",
+        title: "测试帖子",
+        content: longContent
+      })
+    ).toThrow();
+  });
+
+  it("accepts circle post with content exactly 2000 characters", () => {
+    const maxContent = "a".repeat(2000);
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "测试帖子",
+      content: maxContent
+    });
+    expect(payload.content).toBe(maxContent);
+  });
+
+  it("rejects circle post with both images and video", () => {
+    expect(() =>
+      createCirclePostInputSchema.parse({
+        circleId: "circle_1",
+        title: "冲突帖子",
+        imageIds: ["img_1"],
+        videoId: "vid_1"
+      })
+    ).toThrow();
+  });
+
+  it("normalizes null content to empty string", () => {
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "空内容帖子",
+      content: null
+    });
+    expect(payload.content).toBe("");
+  });
+
+  it("trims whitespace from title and content", () => {
+    const payload = createCirclePostInputSchema.parse({
+      circleId: "circle_1",
+      title: "  标题  ",
+      content: "  正文内容  "
+    });
+    expect(payload.title).toBe("标题");
+    expect(payload.content).toBe("正文内容");
   });
 });

@@ -14,7 +14,134 @@
       "Bash(bun test *)",
       "Bash(npx tsc *)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(pip:*)",
+      "Bash(go:*)",
+      "Bash(cargo:*)"
     ]
-  }
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation spawn_impl"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation write_code"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation write_code"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(npm run build)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation build"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(npm run lint)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation lint"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(npm test)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation spawn_test"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git push)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation deploy"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(npm publish)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation deploy"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation write_code"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(npx *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation write_code"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(node *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check --operation write_code"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook status"
+          }
+        ]
+      }
+    ]
+  },
+  "_jarvisManagedHooks": [
+    "PreToolUse",
+    "Stop"
+  ]
 }

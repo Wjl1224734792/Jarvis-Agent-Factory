@@ -55,7 +55,6 @@ import {
   authErrorResponseSchema,
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
-  circleFeedResponseSchema,
   completeUploadInputSchema,
   completeUploadResponseSchema,
   contentCategoriesResponseSchema,
@@ -156,6 +155,7 @@ import {
   type HealthResponse,
   type UserSummary
 } from "@feijia/schemas";
+import type { circleFeedResponseSchema } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 
 type ApiClientOptions = {
@@ -196,6 +196,8 @@ type ModelsQueryInput = {
   tab?: "recommended" | "latest" | "following";
   limit?: number;
   page?: number;
+  priceMin?: number;
+  priceMax?: number;
 };
 type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
@@ -277,6 +279,54 @@ type AdminAuditManualDecisionInput =
   Parameters<typeof adminAuditManualDecisionInputSchema.parse>[0];
 type AdminUserListQueryInput = Parameters<typeof adminUserListQuerySchema.parse>[0];
 type AdminBanUserInput = Parameters<typeof adminBanUserInputSchema.parse>[0];
+
+/**
+ * 将 circles feed API 的扁平响应项映射为前端 CircleFeedItem 兼容格式。
+ * 服务端返回 likeCount/commentCount 等扁平字段，前端期望嵌套在 engagement 中。
+ */
+function mapCircleFeedItem(raw: Record<string, unknown>) {
+  const parseJsonArray = (value: unknown): Array<{ url?: string | null }> => {
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        return Array.isArray(parsed) ? (parsed as Array<{ url?: string | null }>) : [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? (value as Array<{ url?: string | null }>) : [];
+  };
+
+  const author = (raw.author ?? {}) as Record<string, unknown>;
+  const circle = (raw.circle ?? null) as Record<string, unknown> | null;
+
+  return {
+    ...raw,
+    images: parseJsonArray(raw.images),
+    videos: parseJsonArray(raw.videos),
+    author: {
+      id: author.id ?? "",
+      displayName: author.displayName ?? "",
+      avatarUrl: author.avatarUrl ?? null,
+      ipLocationLabel: author.ipLocationLabel ?? null,
+    },
+    engagement: {
+      likeCount: Number(raw.likeCount) || 0,
+      favoriteCount: Number(raw.favoriteCount) || 0,
+      shareCount: Number(raw.shareCount) || 0,
+      viewer: {
+        isAuthor: false,
+        isFollowingAuthor: false,
+        hasLiked: false,
+        hasFavorited: false,
+        hasShared: false,
+      },
+    },
+    circle: circle
+      ? { id: circle.id ?? "", slug: circle.slug ?? "", name: circle.name ?? "" }
+      : null,
+  };
+}
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -442,6 +492,18 @@ function buildQueryString(input: ModelsQueryInput): string {
 
   if (typeof query.limit === "number") {
     search.set("limit", String(query.limit));
+  }
+
+  if (typeof query.page === "number") {
+    search.set("page", String(query.page));
+  }
+
+  if (typeof query.priceMin === "number") {
+    search.set("priceMin", String(query.priceMin));
+  }
+
+  if (typeof query.priceMax === "number") {
+    search.set("priceMax", String(query.priceMax));
   }
 
   const queryString = search.toString();
@@ -952,7 +1014,8 @@ export function createApiClient(options: ApiClientOptions) {
         credentials: "include",
       });
       if (!response.ok) throw new Error(`Failed to list circle posts: ${response.status}`);
-      return response.json() as Promise<{ items: Record<string, unknown>[] }>;
+      const data = (await response.json()) as { items: Record<string, unknown>[] };
+      return { items: (data.items ?? []).map(mapCircleFeedItem) };
     },
     async createCirclePost(circleId: string, input: { title: string; content?: string; images?: string[]; videos?: string[] }) {
       const response = await fetch(`${baseUrl}${API_ROUTES.circles.posts.create(circleId)}`, {
@@ -993,19 +1056,41 @@ export function createApiClient(options: ApiClientOptions) {
     },
     async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
+      // 使用 circles 模块端点（/api/v1/circles/feed），该端点返回包含
+      // circle 信息的帖子列表（帖子归属的圈子 id/slug/name）。
+      // 旧端点 /api/v1/circle/feed 仅查询 posts 表，不含圈子信息。
       const search = new URLSearchParams({ tab: parsedTab });
       if (pagination?.limit) {
         search.set("limit", String(pagination.limit));
       }
       if (pagination?.cursor) {
-        search.set("cursor", pagination.cursor);
+        // circles 模块使用 offset 分页，将 cursor 解析为 offset
+        const offset = Number.parseInt(pagination.cursor, 10);
+        if (Number.isFinite(offset) && offset > 0) {
+          search.set("offset", String(offset));
+        }
       }
-      const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?${search.toString()}`, {
+      const response = await fetch(`${baseUrl}${API_ROUTES.circles.feed}?${search.toString()}`, {
         method: "GET",
         credentials: "include"
       });
 
-      return readJson(response, circleFeedResponseSchema);
+      if (!response.ok) {
+        throw await parseApiError(response);
+      }
+
+      const data = (await response.json()) as { items: Record<string, unknown>[] };
+      const items = (data.items ?? []).map(mapCircleFeedItem);
+      const limit = pagination?.limit ?? 20;
+      const offset = pagination?.cursor ? Number.parseInt(pagination.cursor, 10) || 0 : 0;
+      const hasMore = items.length >= limit;
+
+      return {
+        tab: parsedTab,
+        items,
+        pagination: { limit, hasMore },
+        nextCursor: hasMore ? String(offset + items.length) : null
+      } as ReturnType<typeof circleFeedResponseSchema.parse>;
     },
     // ── 圈子帖子举报/编辑/删除 ──
     async reportCirclePost(circleId: string, postId: string, input: { reason: string; imageFileIds?: string[] }) {

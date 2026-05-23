@@ -356,9 +356,9 @@ circlesRoute.delete(API_ROUTES.circles.posts.commentDelete(":circleId", ":postId
 // ── Admin 路由 ──
 
 export const adminCirclesRoute = new Hono<{ Variables: AuthVariables }>();
-adminCirclesRoute.use("*", attachCurrentUser, requireRole("super_admin", "moderator"));
+adminCirclesRoute.use("*", attachCurrentUser);
 
-adminCirclesRoute.get(API_ROUTES.adminCircles.posts, async (context) => {
+adminCirclesRoute.get(API_ROUTES.adminCircles.posts, requireRole("super_admin", "moderator"), async (context) => {
   const query = adminCirclePostsQuerySchema.parse(context.req.query());
   const posts = await circlesService.listAllPosts({
     status: query.status,
@@ -369,19 +369,19 @@ adminCirclesRoute.get(API_ROUTES.adminCircles.posts, async (context) => {
   return context.json({ items: posts });
 });
 
-adminCirclesRoute.put(API_ROUTES.adminCircles.postStatus(":postId"), async (context) => {
+adminCirclesRoute.put(API_ROUTES.adminCircles.postStatus(":postId"), requireRole("super_admin", "moderator"), async (context) => {
   const body = adminCirclePostStatusInputSchema.parse(await context.req.json());
   const ok = await circlesService.updatePostStatus(context.req.param("postId")!, body.status);
   if (!ok) return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   return context.json({ success: true });
 });
 
-adminCirclesRoute.get(API_ROUTES.adminCircles.postReports(":postId"), async (context) => {
+adminCirclesRoute.get(API_ROUTES.adminCircles.postReports(":postId"), requireRole("super_admin", "moderator"), async (context) => {
   const reports = await circlesService.listPostReports(context.req.param("postId")!);
   return context.json({ items: reports });
 });
 
-adminCirclesRoute.get(API_ROUTES.adminCircles.comments, async (context) => {
+adminCirclesRoute.get(API_ROUTES.adminCircles.comments, requireRole("super_admin", "moderator"), async (context) => {
   const query = adminCircleCommentsQuerySchema.parse(context.req.query());
   const comments = await circlesService.listAllComments({
     status: query.status,
@@ -392,14 +392,14 @@ adminCirclesRoute.get(API_ROUTES.adminCircles.comments, async (context) => {
   return context.json({ items: comments });
 });
 
-adminCirclesRoute.put(API_ROUTES.adminCircles.commentStatus(":commentId"), async (context) => {
+adminCirclesRoute.put(API_ROUTES.adminCircles.commentStatus(":commentId"), requireRole("super_admin", "moderator"), async (context) => {
   const body = adminCircleCommentStatusInputSchema.parse(await context.req.json());
   const ok = await circlesService.updateCommentStatus(context.req.param("commentId")!, body.status);
   if (!ok) return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
   return context.json({ success: true });
 });
 
-adminCirclesRoute.get(API_ROUTES.adminCircles.commentReports(":commentId"), async (context) => {
+adminCirclesRoute.get(API_ROUTES.adminCircles.commentReports(":commentId"), requireRole("super_admin", "moderator"), async (context) => {
   const reports = await circlesService.listCommentReports(context.req.param("commentId")!);
   return context.json({ items: reports });
 });

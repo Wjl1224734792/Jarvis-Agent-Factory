@@ -262,7 +262,13 @@ export const postFeedItemSchema = z.object({
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
   contentCategory: postContentCategorySummarySchema.nullable(),
-  engagement: postEngagementSchema
+  engagement: postEngagementSchema,
+  /** 圈子信息——circle 帖子 feed 时由服务端填充，主 feed 可能为 null */
+  circle: z.object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+  }).nullable().optional()
 });
 
 export const postCommentReplySchema = z.object({
@@ -379,6 +385,40 @@ export const updateCirclePostInputSchema = z.object({
 export const updateCircleCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(2000)
 });
+
+// ── 创建圈子帖子输入 Schema ──
+
+/**
+ * 创建圈子帖子的输入 Schema。
+ * - title：必填，最多 31 字
+ * - content：选填，最多 2000 字
+ * - imageIds：选填，图片 ID 数组
+ * - videoId：选填，单个视频 ID
+ * - circleId：必填，目标圈子 ID
+ * - 不包含 coverImageId（圈子帖子无封面图设置）
+ * - 图片和视频不能同时存在
+ */
+export const createCirclePostInputSchema = z.object({
+  circleId: z.string().min(1, "请选择目标圈子"),
+  title: z.string().trim().min(1, "标题不能为空").max(31, "标题最多 31 个字符"),
+  content: z.preprocess(
+    (value) => (value == null ? "" : value),
+    z.string().trim().max(2000, "正文最多 2000 个字符")
+  ),
+  imageIds: z.array(z.string().min(1)).default([]),
+  videoId: z.string().min(1).nullable().default(null)
+}).superRefine((input, context) => {
+  // 图片和视频互斥
+  if (input.imageIds.length > 0 && input.videoId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "图片和视频不能同时选择",
+      path: ["videoId"]
+    });
+  }
+});
+
+export type CreateCirclePostInput = z.infer<typeof createCirclePostInputSchema>;
 
 // ── Admin 圈子帖子/评论查询 ──
 

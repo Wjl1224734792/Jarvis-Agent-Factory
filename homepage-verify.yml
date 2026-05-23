@@ -1,0 +1,12 @@
+- generic [ref=e2]:
+  - heading "Unexpected Application Error!" [level=2] [ref=e54]
+  - heading "undefined is not iterable (cannot read property Symbol(Symbol.iterator))" [level=3] [ref=e55]
+  - generic [ref=e56]: "TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator)) at Array.from (<anonymous>) at hashSeed (http://localhost:5181/src/lib/aviation-media.ts:49:15) at pickFromPool (http://localhost:5181/src/lib/aviation-media.ts:52:17) at getEditorialImage (http://localhost:5181/src/lib/aviation-media.ts:62:9) at CirclePostCard (http://localhost:5181/src/components/home/circle-post-card.tsx:50:33) at renderWithHooks (http://localhost:5181/node_modules/.vite/deps/react-dom_client.js?v=70e9b937:2879:21) at updateFunctionComponent (http://localhost:5181/node_modules/.vite/deps/react-dom_client.js?v=70e9b937:4255:15) at beginWork (http://localhost:5181/node_modules/.vite/deps/react-dom_client.js?v=70e9b937:4645:19) at performUnitOfWork (http://localhost:5181/node_modules/.vite/deps/react-dom_client.js?v=70e9b937:6619:14) at workLoopSync (http://localhost:5181/node_modules/.vite/deps/react-dom_client.js?v=70e9b937:6523:36)"
+  - paragraph [ref=e57]: 💿 Hey developer 👋
+  - paragraph [ref=e58]:
+    - text: You can provide a way better UX than this when your app throws errors by providing your own
+    - code [ref=e59]: ErrorBoundary
+    - text: or
+    - code [ref=e60]: errorElement
+    - text: prop on your route.
+  - region "Notifications alt+T"

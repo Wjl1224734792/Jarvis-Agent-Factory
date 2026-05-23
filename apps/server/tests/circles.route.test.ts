@@ -12,6 +12,8 @@ const {
     deleteCircle: vi.fn(),
     assignCircleToCategory: vi.fn(),
     removeCircleFromCategory: vi.fn(),
+    reportPost: vi.fn(),
+    reportComment: vi.fn(),
   },
   mockCurrentUser: { id: "user_1", role: "user" },
 }));
@@ -315,5 +317,143 @@ describe("circles route authorization — categoryAssignments", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { success: boolean };
     expect(body.success).toBe(true);
+  });
+});
+
+// ── 帖子举报路由 ──
+
+function createReportTestApp(userOverride?: { id: string; role: string }) {
+  const app = new Hono();
+  const currentUser = userOverride ?? mockCurrentUser;
+
+  // Replicate: POST /api/v1/circles/:circleId/posts/:postId/report (requireAuth)
+  app.post(API_ROUTES.circles.posts.report(":circleId", ":postId"), async (c) => {
+    const body = await c.req.json();
+    const result = await circlesServiceMock.reportPost(
+      c.req.param("postId")!,
+      currentUser.id,
+      body.reason,
+      body.imageFileIds
+    );
+    if (result.kind === "not_found") return c.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+    return c.json({ id: result.id }, 201);
+  });
+
+  // Replicate: POST /api/v1/circles/:circleId/posts/:postId/comments/:commentId/report (requireAuth)
+  app.post(API_ROUTES.circles.posts.commentReport(":circleId", ":postId", ":commentId"), async (c) => {
+    const body = await c.req.json();
+    const result = await circlesServiceMock.reportComment(
+      c.req.param("commentId")!,
+      currentUser.id,
+      body.reason,
+      body.imageFileIds
+    );
+    if (result.kind === "not_found") return c.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+    return c.json({ id: result.id }, 201);
+  });
+
+  return app;
+}
+
+describe("circles route — post report", () => {
+  const circleId = "circle_1";
+  const postId = "cp_1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("POST report returns 201 with report id on success", async () => {
+    circlesServiceMock.reportPost.mockResolvedValue({ kind: "ok", id: "cpr_1" });
+
+    const app = createReportTestApp();
+    const response = await app.request(
+      API_ROUTES.circles.posts.report(circleId, postId),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "违规内容", imageFileIds: ["file_1"] }),
+      }
+    );
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { id: string };
+    expect(body.id).toBe("cpr_1");
+    expect(circlesServiceMock.reportPost).toHaveBeenCalledWith(
+      postId,
+      "user_1",
+      "违规内容",
+      ["file_1"]
+    );
+  });
+
+  it("POST report returns 404 when post not found", async () => {
+    circlesServiceMock.reportPost.mockResolvedValue({ kind: "not_found" });
+
+    const app = createReportTestApp();
+    const response = await app.request(
+      API_ROUTES.circles.posts.report(circleId, "nonexistent"),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "违规内容" }),
+      }
+    );
+
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { code: string };
+    expect(body.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("circles route — comment report", () => {
+  const circleId = "circle_1";
+  const postId = "cp_1";
+  const commentId = "cc_1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("POST commentReport returns 201 with report id on success", async () => {
+    circlesServiceMock.reportComment.mockResolvedValue({ kind: "ok", id: "ccr_1" });
+
+    const app = createReportTestApp();
+    const response = await app.request(
+      API_ROUTES.circles.posts.commentReport(circleId, postId, commentId),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "spam", imageFileIds: ["file_1", "file_2"] }),
+      }
+    );
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { id: string };
+    expect(body.id).toBe("ccr_1");
+    expect(circlesServiceMock.reportComment).toHaveBeenCalledWith(
+      commentId,
+      "user_1",
+      "spam",
+      ["file_1", "file_2"]
+    );
+  });
+
+  it("POST commentReport returns 404 when comment not found", async () => {
+    circlesServiceMock.reportComment.mockResolvedValue({ kind: "not_found" });
+
+    const app = createReportTestApp();
+    const response = await app.request(
+      API_ROUTES.circles.posts.commentReport(circleId, postId, "nonexistent"),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "spam" }),
+      }
+    );
+
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { code: string };
+    expect(body.code).toBe("NOT_FOUND");
   });
 });

@@ -14,7 +14,7 @@ export const webMainNavItems: readonly {
   label: string;
   icon: typeof NewspaperIcon;
 }[] = [
-  { to: APP_ROUTES.feedHome, label: "文章", icon: NewspaperIcon },
+  { to: APP_ROUTES.feedHome, label: "首页", icon: NewspaperIcon },
   { to: APP_ROUTES.flightCircle, label: "飞友圈", icon: MessagesSquareIcon },
   { to: APP_ROUTES.models, label: "机型", icon: PlaneIcon },
   { to: APP_ROUTES.rankings, label: "榜单", icon: TrophyIcon }
@@ -38,10 +38,15 @@ export const webBottomNavItems: readonly {
   { to: APP_ROUTES.webProfile, label: "我的", icon: CircleUserRoundIcon }
 ] as const;
 
-export const webPublishMenuEntries: readonly { to: string; label: string }[] = [
+export type PublishMenuEntry =
+  | { to: string; label: string; action?: never }
+  | { to?: never; label: string; action: string };
+
+export const webPublishMenuEntries: readonly PublishMenuEntry[] = [
   { to: WEB_ROUTE_PATHS.publishArticle, label: "发布文章" },
-  { to: WEB_ROUTE_PATHS.publishMoment, label: "发布动态" },
+  { action: "create-post", label: "发布动态" },
   { to: WEB_ROUTE_PATHS.publishAircraft, label: "发布机型" },
   { to: APP_ROUTES.publishBrand, label: "申请品牌" },
-  { to: APP_ROUTES.rankingEditor, label: "创建榜单" }
+  { to: APP_ROUTES.rankingEditor, label: "创建榜单" },
+  { action: "create-circle", label: "创建圈子" }
 ] as const;
