@@ -864,6 +864,7 @@ function inferCategory(name: string): string {
   if (/review/.test(name)) return 'review';
   if (/architect/.test(name)) return 'architecture';
   if (/^task-/.test(name)) return 'task';
+  if (/cleanup|remove|uninstall/.test(name)) return 'session';
   if (/android|ios|flutter|expo|taro/.test(name)) return 'platform';
   return 'development';
 }

@@ -59,7 +59,7 @@ export default function Guide() {
   const categoryLabels: Record<string, string> = {
     workflow: '工作流',
     pipeline: '流水线',
-    session: '会话',
+    session: '会话/清理',
     agent: '智能体',
     wiki: '知识库',
     debug: '调试',
