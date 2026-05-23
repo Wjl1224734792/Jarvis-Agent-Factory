@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.17] - 2026-05-24
+
+### Changed
+- **README 中英文简化**：从 ~290行 压缩至 ~110行，优化双列布局，版本徽章动态化
+- 新增卸载清理命令到快速开始 + 新增 `/cleanup` 流程图
+
 ## [4.7.16] - 2026-05-24
 
 ### Fixed
