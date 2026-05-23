@@ -45,32 +45,7 @@ import {
   usersTable,
 } from "./schema.js";
 import { sql } from "drizzle-orm";
-import {
-  buildSeedStorageRecord,
-  resolveSeedStorageConfig,
-  uploadSeedStorageObjects,
-  type SeedStorageObject
-} from "./seed.storage.js";
 import { hashVerificationCode, createId } from "./helpers.js";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function resolveRepoRoot(): string {
-  return resolve(__dirname, "..", "..", "..");
-}
-
-function loadSeedAsset(filename: string): Buffer {
-  const filePath = resolve(repoRoot, "docs", "tests_img-video", filename);
-  if (!existsSync(filePath)) {
-    throw new Error(`Seed asset not found: ${filePath}`);
-  }
-  return readFileSync(filePath);
-}
-
-const repoRoot = resolveRepoRoot();
 
 // ==================== 工具函数 ====================
 
@@ -377,61 +352,20 @@ const BIO_TEXTS = [
   "低空法规研究员，推动行业发展",
 ];
 
-const FILE_KEYS: string[] = [];
+/** 为本地媒体文件构建 file record 字段（跳过 Kodo 上传，直接使用 /test-media/ 路径） */
+function buildLocalFileRecord(filename: string) {
+  return {
+    provider: "local",
+    bucket: "",
+    region: "",
+    objectKey: `/test-media/${filename}`,
+  };
+}
 
 // ==================== Object Storage ====================
 
 async function seedObjectStorage() {
-  console.log("\n 开始推送对象存储测试数据...");
-
-  const config = resolveSeedStorageConfig();
-  FILE_KEYS.length = 0;
-
-  const assets = {
-    avatar1: loadSeedAsset("测试头像1.jpg"),
-    avatar2: loadSeedAsset("测试头像2.jpg"),
-    cover1: loadSeedAsset("封面图1.webp"),
-    cover2: loadSeedAsset("封面图2.webp"),
-    cover3: loadSeedAsset("封面图3.webp"),
-    cover4: loadSeedAsset("封面图4.webp"),
-    articleImg: loadSeedAsset("文章测试图.jpg"),
-  };
-
-  const covers = [assets.cover1, assets.cover2, assets.cover3, assets.cover4];
-
-  const categories: Array<{
-    prefix: string;
-    count: number;
-    type: "image/jpeg" | "image/webp";
-    ext: string;
-    dataList: Buffer[];
-  }> = [
-    { prefix: "avatars", count: 50, type: "image/jpeg", ext: "jpg", dataList: [assets.avatar1, assets.avatar2] },
-    { prefix: "posts/covers", count: 200, type: "image/webp", ext: "webp", dataList: covers },
-    { prefix: "posts/content", count: 200, type: "image/jpeg", ext: "jpg", dataList: [assets.articleImg] },
-    { prefix: "models/covers", count: 30, type: "image/webp", ext: "webp", dataList: covers },
-    { prefix: "circles/covers", count: 10, type: "image/webp", ext: "webp", dataList: covers },
-    { prefix: "rankings/covers", count: 5, type: "image/webp", ext: "webp", dataList: covers },
-    { prefix: "rankings/items", count: 50, type: "image/webp", ext: "webp", dataList: covers },
-  ];
-
-  const objects: SeedStorageObject[] = [];
-  for (const cat of categories) {
-    for (let i = 0; i < cat.count; i++) {
-      const key = `test/${cat.prefix}/${cat.prefix.split("/").pop()}-${String(i + 1).padStart(3, "0")}.${cat.ext}`;
-      objects.push({
-        key,
-        body: cat.dataList[i % cat.dataList.length],
-        contentType: cat.type
-      });
-      FILE_KEYS.push(key);
-    }
-  }
-
-  const total = objects.length;
-  await uploadSeedStorageObjects(config, objects);
-
-  console.log(`  ${config.provider} 推送完成，共 ${total} 个文件`);
+  console.log("\n 跳过云端对象存储上传，使用本地 /test-media/ 路径");
 }
 
 // ==================== Redis ====================
@@ -478,7 +412,7 @@ async function seedRedis() {
     await client.set("feed:hot-circle", JSON.stringify(
       Array.from({ length: 10 }, (_, i) => ({
         id: `circle-${i + 1}`, title: `circle-${i + 1}`,
-        mediaPath: FILE_KEYS[550 + i % 10] ?? FILE_KEYS[0], heat: 100 - i * 7,
+        mediaPath: `/test-media/封面图${(i % 4) + 1}.webp`, heat: 100 - i * 7,
       }))
     ));
     await client.set("feed:hot-models", JSON.stringify(
@@ -650,18 +584,15 @@ async function seedPostgreSQL() {
     contentType: string; size: number;
   }> = [];
 
-  const storage = resolveSeedStorageConfig();
-
   // 头像文件记录
   const avatarFileIds: string[] = [];
   for (let i = 0; i < 50; i++) {
     const fileId = uid("file");
     avatarFileIds.push(fileId);
-    const key = `test/avatars/avatar-${String(i + 1).padStart(3, "0")}.jpg`;
     fileEntries.push({
       id: fileId, ownerId: USER_IDS[i], postId: null,
       bizType: "avatar", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, key),
+      ...buildLocalFileRecord(i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg"),
       filename: i % 2 === 0 ? "测试头像1.jpg" : "测试头像2.jpg",
       contentType: "image/jpeg", size: i % 2 === 0 ? 50000 : 48000,
     });
@@ -672,11 +603,10 @@ async function seedPostgreSQL() {
   for (let i = 0; i < 30; i++) {
     const fileId = uid("file");
     modelCoverFileIds.push(fileId);
-    const key = `test/models/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
     fileEntries.push({
       id: fileId, ownerId: pick(regularUsers), postId: null,
       bizType: "aircraft-cover-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, key),
+      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -687,11 +617,10 @@ async function seedPostgreSQL() {
   for (let i = 0; i < 10; i++) {
     const fileId = uid("file");
     circleCoverFileIds.push(fileId);
-    const key = `test/circles/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "circle-cover-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, key),
+      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -706,20 +635,17 @@ async function seedPostgreSQL() {
     postCoverFileIds.push(coverFileId);
     postContentFileIds.push(contentFileId);
 
-    const coverKey = `test/posts/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
-    const contentKey = `test/posts/content/content-${String(i + 1).padStart(3, "0")}.jpg`;
-
     fileEntries.push({
       id: coverFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
       bizType: "post-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, coverKey),
+      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
     fileEntries.push({
       id: contentFileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
       bizType: "post-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, contentKey),
+      ...buildLocalFileRecord("文章测试图.jpg"),
       filename: "文章测试图.jpg",
       contentType: "image/jpeg", size: 200000,
     });
@@ -730,11 +656,10 @@ async function seedPostgreSQL() {
   for (let i = 0; i < 5; i++) {
     const fileId = uid("file");
     rankingCoverFileIds.push(fileId);
-    const key = `test/rankings/covers/covers-${String(i + 1).padStart(3, "0")}.webp`;
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "ranking-cover-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, key),
+      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 100000,
     });
@@ -744,11 +669,10 @@ async function seedPostgreSQL() {
   for (let i = 0; i < 50; i++) {
     const fileId = uid("file");
     rankingItemFileIds.push(fileId);
-    const key = `test/rankings/items/items-${String(i + 1).padStart(3, "0")}.webp`;
     fileEntries.push({
       id: fileId, ownerId: adminId, postId: null,
       bizType: "ranking-item-image", mediaKind: "image",
-      ...buildSeedStorageRecord(storage, key),
+      ...buildLocalFileRecord(`封面图${(i % 4) + 1}.webp`),
       filename: `封面图${(i % 4) + 1}.webp`,
       contentType: "image/webp", size: 80000,
     });
@@ -1065,7 +989,6 @@ async function seedPostgreSQL() {
 // ==================== 主函数 ====================
 
 export async function seedMockTestDataDatabase() {
-  const storage = resolveSeedStorageConfig();
   console.log("飞加项目测试数据生成脚本");
   console.log("================================");
 
@@ -1082,7 +1005,7 @@ export async function seedMockTestDataDatabase() {
   console.log("  图形验证码: test_captcha_001 (code: TEST01)");
   console.log("  短信验证码: 13800138000 (code: 888888)");
   console.log("  注册令牌: test_reg_001");
-  console.log(`\nStorage: ${storage.provider} / ${storage.bucket} bucket, test/ 前缀`);
+  console.log("\nStorage: 本地 /test-media/ 路径");
 }
 
 if (import.meta.main) {
