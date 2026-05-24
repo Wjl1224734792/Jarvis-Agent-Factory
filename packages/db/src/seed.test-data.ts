@@ -474,6 +474,7 @@ function getMediaFilesToUpload(): Array<{ filename: string; contentType: string 
     { filename: "封面图3.webp", contentType: "image/webp" },
     { filename: "封面图4.webp", contentType: "image/webp" },
     { filename: "文章测试图.jpg", contentType: "image/jpeg" },
+    { filename: "测试视频.mp4", contentType: "video/mp4" },
   ];
 }
 
@@ -809,6 +810,20 @@ async function seedPostgreSQL() {
     });
   }
 
+  // 视频文件记录（圈子帖子视频用）
+  const postVideoFileIds: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const fileId = uid("file");
+    postVideoFileIds.push(fileId);
+    fileEntries.push({
+      id: fileId, ownerId: regularUsers[i % regularUsers.length], postId: null,
+      bizType: "post-video", mediaKind: "video",
+      ...buildKodoFileRecord("测试视频.mp4"),
+      filename: "测试视频.mp4",
+      contentType: "video/mp4", size: 5124390,
+    });
+  }
+
   // 榜单封面和条目文件记录
   const rankingCoverFileIds: string[] = [];
   for (let i = 0; i < 5; i++) {
@@ -991,6 +1006,7 @@ async function seedPostgreSQL() {
   // 12. 榜单 (5 个，每个 10 个条目)
   console.log("   创建 5 个榜单...");
   const rankingIds: string[] = [];
+  const allRatingTargetIds: string[] = [];
 
   for (let i = 0; i < 5; i++) {
     const id = uid("ranking");
@@ -1014,8 +1030,10 @@ async function seedPostgreSQL() {
     for (let j = 0; j < 10; j++) {
       const itemIdx = i * 10 + j;
       const modelIdx = itemIdx % MODEL_DATA.length;
+      const ratingTargetId = uid("rtarget");
+      allRatingTargetIds.push(ratingTargetId);
       await db.insert(ratingTargetsTable).values({
-        id: uid("rtarget"),
+        id: ratingTargetId,
         rankingId: id,
         authorId: adminId,
         linkedModelId: MODEL_IDS[modelIdx],
@@ -1047,6 +1065,38 @@ async function seedPostgreSQL() {
     });
   }
   console.log(`  榜单: ${rankingIds.length} 个，共 ${rankingIds.length * 10} 个条目`);
+
+  // 12.1 榜单条目评分 (每个条目 3-5 个评分)
+  console.log("   创建榜单条目评分...");
+  const ratingEntries: Array<{
+    id: string; ratingTargetId: string; userId: string;
+    rating: number; createdAt: Date; updatedAt: Date;
+  }> = [];
+  for (const ratingTargetId of allRatingTargetIds) {
+    const ratingCount = randInt(3, 5);
+    const usedUserIds = new Set<string>();
+    for (let k = 0; k < ratingCount; k++) {
+      let userId = pick(regularUsers);
+      // 确保同一用户不对同一目标重复评分
+      while (usedUserIds.has(userId)) {
+        userId = pick(regularUsers);
+      }
+      usedUserIds.add(userId);
+      const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
+      ratingEntries.push({
+        id: uid("rrating"),
+        ratingTargetId,
+        userId,
+        rating: randInt(1, 5),
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+  }
+  for (let i = 0; i < ratingEntries.length; i += 50) {
+    await db.insert(ratingTargetRatingsTable).values(ratingEntries.slice(i, i + 50));
+  }
+  console.log(`  榜单评分: ${ratingEntries.length} 条`);
 
   // 13. 用户关注 (100)
   console.log("   创建用户关注...");
@@ -1103,7 +1153,7 @@ async function seedPostgreSQL() {
       const imageIds = Array.from({ length: imageCount }, () =>
         pick(postContentFileIds)
       );
-      const videoIds = useVideo ? [pick(postContentFileIds)] : [];
+      const videoIds = useVideo ? [pick(postVideoFileIds)] : [];
 
       await db.insert(circlePostsTable).values({
         id: uid("cp"),

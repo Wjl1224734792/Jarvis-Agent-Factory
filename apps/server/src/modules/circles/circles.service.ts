@@ -172,13 +172,18 @@ export const circlesService = {
   async getPostDetail(postId: string) {
     const post = await circlesRepo.findPostById(postId);
     if (!post) return null;
-    const [authorAvatar] = await Promise.all([
+    const imageIds = safeParseJsonArray(post.images);
+    const videoIds = safeParseJsonArray(post.videos);
+
+    const [authorAvatar, imageUrls, videoUrls] = await Promise.all([
       post.author.avatarFileId ? resolvePublicUploadedFileUrl(post.author.avatarFileId) : Promise.resolve(null),
+      Promise.all(imageIds.map(id => resolvePublicUploadedFileUrl(id))),
+      Promise.all(videoIds.map(id => resolvePublicUploadedFileUrl(id))),
     ]);
     return {
       ...post,
-      images: safeParseJsonArray(post.images),
-      videos: safeParseJsonArray(post.videos),
+      images: imageUrls.filter((url): url is string => url !== null).map(url => ({ url })),
+      videos: videoUrls.filter((url): url is string => url !== null).map(url => ({ url })),
       author: { ...post.author, avatarUrl: authorAvatar },
     };
   },
@@ -546,17 +551,27 @@ export const circlesService = {
 
   async resolvePostMedia(posts: Awaited<ReturnType<typeof circlesRepo.listPosts>>) {
     return Promise.all(
-      posts.map(async (post) => ({
-        ...post,
-        images: safeParseJsonArray(post.images),
-        videos: safeParseJsonArray(post.videos),
-        author: {
-          ...post.author,
-          avatarUrl: post.author.avatarFileId
-            ? await resolvePublicUploadedFileUrl(post.author.avatarFileId)
-            : null,
-        },
-      }))
+      posts.map(async (post) => {
+        const imageIds = safeParseJsonArray(post.images);
+        const videoIds = safeParseJsonArray(post.videos);
+
+        const [imageUrls, videoUrls] = await Promise.all([
+          Promise.all(imageIds.map(id => resolvePublicUploadedFileUrl(id))),
+          Promise.all(videoIds.map(id => resolvePublicUploadedFileUrl(id))),
+        ]);
+
+        return {
+          ...post,
+          images: imageUrls.filter((url): url is string => url !== null).map(url => ({ url })),
+          videos: videoUrls.filter((url): url is string => url !== null).map(url => ({ url })),
+          author: {
+            ...post.author,
+            avatarUrl: post.author.avatarFileId
+              ? await resolvePublicUploadedFileUrl(post.author.avatarFileId)
+              : null,
+          },
+        };
+      })
     );
   },
 };
