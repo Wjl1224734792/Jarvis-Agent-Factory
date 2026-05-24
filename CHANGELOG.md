@@ -4,6 +4,16 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [4.7.20] - 2026-05-24
+
+### Changed
+- **Run历史改为单列布局**：窄右侧栏下单列卡片更可读
+
+## [4.7.19] - 2026-05-24
+
+### Changed
+- **SessionDetail 页面优化**：Gate 进度改为水平步骤条 + Run 历史改为卡片网格 + 右侧栏支持拖拽调整宽度
+
 ## [4.7.18] - 2026-05-24
 
 ### Changed
