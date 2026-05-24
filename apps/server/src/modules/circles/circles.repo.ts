@@ -492,6 +492,7 @@ export const circlesRepo = {
           id: circlesTable.id,
           slug: circlesTable.slug,
           name: circlesTable.name,
+          coverImageFileId: circlesTable.coverImageFileId,
         },
       })
       .from(circlePostsTable)

@@ -27,6 +27,8 @@ import {
   circlesTable,
   circleMembersTable,
   circlePostsTable,
+  circlePostInteractionsTable,
+  circlePostCommentsTable,
   contentCategoriesTable,
   filesTable,
   notificationsTable,
@@ -606,10 +608,15 @@ async function seedPostgreSQL() {
       "post_reports", "posts", "aircraft_model_comment_likes", "aircraft_model_comments",
       "aircraft_model_comment_reports", "aircraft_model_interactions", "aircraft_model_reports",
       "aircraft_reviews", "aircraft_review_likes", "aircraft_review_reports",
+      "review_comments", "review_comment_likes", "review_comment_reports",
       "aircraft_submissions", "brand_applications", "aircraft_models", "brands",
       "content_categories", "aircraft_categories", "power_types", "files", "user_follows",
       "notifications", "user_settings", "sessions", "devices", "site_settings",
-      "roles", "circle_posts", "circle_members", "circles", "users"
+      "roles",
+      "circle_post_interactions", "circle_post_comments", "circle_post_comment_likes",
+      "circle_post_comment_reports", "circle_post_reports",
+      "circle_user_categories", "circle_category_assignments",
+      "circle_posts", "circle_members", "circles", "users"
       RESTART IDENTITY CASCADE;`
   ));
   console.log("  清理完成");
@@ -810,6 +817,39 @@ async function seedPostgreSQL() {
     });
   }
 
+  // 机型视频文件记录
+  const modelVideoFileIds: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const fileId = uid("file");
+    modelVideoFileIds.push(fileId);
+    fileEntries.push({
+      id: fileId, ownerId: pick(regularUsers), postId: null,
+      bizType: "aircraft-video", mediaKind: "video",
+      ...buildKodoFileRecord("测试视频.mp4"),
+      filename: "测试视频.mp4",
+      contentType: "video/mp4", size: 5124390,
+    });
+  }
+
+  // 机型图库文件记录（每个机型 2-4 张）
+  const modelGalleryFileIds: string[][] = [];
+  for (let i = 0; i < 30; i++) {
+    const galleryCount = randInt(2, 4);
+    const galleryIds: string[] = [];
+    for (let g = 0; g < galleryCount; g++) {
+      const fileId = uid("file");
+      galleryIds.push(fileId);
+      fileEntries.push({
+        id: fileId, ownerId: pick(regularUsers), postId: null,
+        bizType: "aircraft-gallery-image", mediaKind: "image",
+        ...buildKodoFileRecord(`封面图${(g % 4) + 1}.webp`),
+        filename: `封面图${(g % 4) + 1}.webp`,
+        contentType: "image/webp", size: 120000,
+      });
+    }
+    modelGalleryFileIds.push(galleryIds);
+  }
+
   // 视频文件记录（圈子帖子视频用）
   const postVideoFileIds: string[] = [];
   for (let i = 0; i < 30; i++) {
@@ -870,14 +910,19 @@ async function seedPostgreSQL() {
   for (let i = 0; i < Math.min(avatarFileIds.length, regularUsers.length); i++) {
     await db.update(usersTable).set({ avatarFileId: avatarFileIds[i] }).where(sql`id = ${regularUsers[i]}`);
   }
-  await db.update(usersTable).set({ avatarFileId: avatarFileIds[0] || null }).where(sql`id = ${adminId}`);
+  // admin 使用末尾的头像 ID，避免与 regularUsers[0] 冲突
+  await db.update(usersTable).set({ avatarFileId: avatarFileIds[avatarFileIds.length - 1] || null }).where(sql`id = ${adminId}`);
   console.log("  用户头像已关联");
 
-  // 更新机型封面
+  // 更新机型封面、视频和图库
   for (let i = 0; i < Math.min(modelCoverFileIds.length, MODEL_IDS.length); i++) {
-    await db.update(aircraftModelsTable).set({ coverImageFileId: modelCoverFileIds[i] }).where(sql`id = ${MODEL_IDS[i]}`);
+    await db.update(aircraftModelsTable).set({
+      coverImageFileId: modelCoverFileIds[i],
+      videoFileId: modelVideoFileIds[i] || null,
+      galleryImageFileIds: JSON.stringify(modelGalleryFileIds[i] || []),
+    }).where(sql`id = ${MODEL_IDS[i]}`);
   }
-  console.log("  机型封面已关联");
+  console.log("  机型封面、视频和图库已关联");
 
   // 9. 圈子 (10)
   console.log("   创建 10 个圈子...");
@@ -1171,6 +1216,76 @@ async function seedPostgreSQL() {
     }
   }
   console.log(`  圈子帖子: ${circlePostCount} 个`);
+
+  // 15.1 圈子帖子互动（每个帖子 3-8 条点赞/收藏记录）
+  console.log("   创建圈子帖子互动...");
+  const circleInteractionTypes = ["like", "favorite"] as const;
+
+  // 从数据库中查询刚插入的圈子帖子 ID
+  const insertedCirclePosts = await db.execute(sql.raw(
+    `SELECT id FROM "circle_posts" ORDER BY "created_at" ASC LIMIT ${circlePostCount}`
+  ));
+  const cpIds: string[] = (insertedCirclePosts as unknown as Array<{ id: string }>).map(r => r.id);
+
+  const circleInteractions: Array<Record<string, unknown>> = [];
+  const circleInteractionKeys = new Set<string>();
+  for (const cpId of cpIds) {
+    const interactionCount = randInt(3, 8);
+    for (let k = 0; k < interactionCount; k++) {
+      const userId = pick(regularUsers);
+      const type = pick(circleInteractionTypes);
+      const key = `${cpId}:${userId}:${type}`;
+      if (circleInteractionKeys.has(key)) continue;
+      circleInteractionKeys.add(key);
+      circleInteractions.push({
+        id: uid("cinter"),
+        postId: cpId, userId, type,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      });
+    }
+  }
+  for (let i = 0; i < circleInteractions.length; i += 50) {
+    await db.insert(circlePostInteractionsTable).values(circleInteractions.slice(i, i + 50));
+  }
+  console.log(`  圈子帖子互动: ${circleInteractions.length} 条`);
+
+  // 15.2 圈子帖子评论（每个帖子 2-5 条）
+  console.log("   创建圈子帖子评论...");
+  const circlePostCommentEntries: Array<Record<string, unknown>> = [];
+  const circleCommentIdsByPost = new Map<string, string[]>();
+
+  for (const cpId of cpIds) {
+    const commentCount = randInt(2, 5);
+    const postCommentIds: string[] = [];
+
+    for (let j = 0; j < commentCount; j++) {
+      const id = uid("ccomment");
+      postCommentIds.push(id);
+      const isReply = j > 0 && Math.random() > 0.6;
+      const parentCommentId = isReply && postCommentIds.length > 1
+        ? postCommentIds[Math.floor(Math.random() * (postCommentIds.length - 1))]
+        : null;
+
+      circlePostCommentEntries.push({
+        id, postId: cpId,
+        authorId: pick(regularUsers),
+        parentCommentId,
+        replyToCommentId: parentCommentId,
+        replyToUserId: parentCommentId ? pick(regularUsers) : null,
+        content: pick(COMMENT_CONTENTS),
+        status: "visible",
+        likeCount: randInt(0, 10),
+        reportCount: 0,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      });
+    }
+    circleCommentIdsByPost.set(cpId, postCommentIds);
+  }
+  for (let i = 0; i < circlePostCommentEntries.length; i += 50) {
+    await db.insert(circlePostCommentsTable).values(circlePostCommentEntries.slice(i, i + 50));
+  }
+  console.log(`  圈子帖子评论: ${circlePostCommentEntries.length} 条`);
 
   // 16. 站点设置
   console.log("   创建站点设置...");

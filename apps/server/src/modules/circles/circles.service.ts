@@ -5,6 +5,10 @@ import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 
+type FeedPost = Awaited<ReturnType<typeof circlesRepo.listPosts>>[number] & {
+  circle?: { id: string; slug: string; name: string; coverImageFileId?: string | null } | null;
+};
+
 export const circlesService = {
   async listCircles(filters: { keyword?: string; sort?: "hot" | "latest"; limit?: number; offset?: number }) {
     const items = await circlesRepo.listCircles(filters);
@@ -549,15 +553,18 @@ export const circlesService = {
 
   // ── helpers ──
 
-  async resolvePostMedia(posts: Awaited<ReturnType<typeof circlesRepo.listPosts>>) {
+  async resolvePostMedia(posts: FeedPost[]) {
     return Promise.all(
       posts.map(async (post) => {
         const imageIds = safeParseJsonArray(post.images);
         const videoIds = safeParseJsonArray(post.videos);
 
-        const [imageUrls, videoUrls] = await Promise.all([
+        const [imageUrls, videoUrls, coverImageUrl] = await Promise.all([
           Promise.all(imageIds.map(id => resolvePublicUploadedFileUrl(id))),
           Promise.all(videoIds.map(id => resolvePublicUploadedFileUrl(id))),
+          post.circle?.coverImageFileId
+            ? resolvePublicUploadedFileUrl(post.circle.coverImageFileId)
+            : Promise.resolve(null),
         ]);
 
         return {
@@ -570,6 +577,9 @@ export const circlesService = {
               ? await resolvePublicUploadedFileUrl(post.author.avatarFileId)
               : null,
           },
+          circle: post.circle
+            ? { ...post.circle, coverImageUrl }
+            : undefined,
         };
       })
     );

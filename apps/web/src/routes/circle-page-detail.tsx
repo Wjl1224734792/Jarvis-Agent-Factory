@@ -80,25 +80,38 @@ function mapCirclePostToPostDetail(
 ): PostDetailResponse {
   const author = (rawItem.author ?? {}) as Record<string, unknown>;
 
-  // 圈子帖子 API 返回 images/videos 为 string[]（URL 列表），需适配为
+  // 圈子帖子 API 返回 images/videos 可能为 string[]（URL 列表）
+  // 或 {url: string}[]（对象数组），需兼容两种格式并适配为
   // postImageSchema/postVideoSchema 要求的完整 File 对象形状。
   const images = Array.isArray(rawItem.images)
-    ? (rawItem.images as string[]).map((url: string, idx: number) => ({
-        id: `circle-img-${idx}`,
-        url,
-        fileName: url.split('/').pop() ?? 'image',
-        mimeType: 'image/jpeg',
-        byteSize: 0,
-      }))
+    ? (rawItem.images as Array<string | { url?: string | null }>)
+        .map((item, idx) => {
+          const src = typeof item === 'string' ? item : item?.url;
+          if (!src) return null;
+          return {
+            id: `circle-img-${idx}`,
+            url: src,
+            fileName: src.split('/').pop() ?? 'image',
+            mimeType: 'image/jpeg',
+            byteSize: 0,
+          };
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null)
     : [];
   const videos = Array.isArray(rawItem.videos)
-    ? (rawItem.videos as string[]).map((url: string, idx: number) => ({
-        id: `circle-vid-${idx}`,
-        url,
-        fileName: url.split('/').pop() ?? 'video',
-        mimeType: 'video/mp4',
-        byteSize: 0,
-      }))
+    ? (rawItem.videos as Array<string | { url?: string | null }>)
+        .map((item, idx) => {
+          const src = typeof item === 'string' ? item : item?.url;
+          if (!src) return null;
+          return {
+            id: `circle-vid-${idx}`,
+            url: src,
+            fileName: src.split('/').pop() ?? 'video',
+            mimeType: 'video/mp4',
+            byteSize: 0,
+          };
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null)
     : [];
 
   const authorRole =

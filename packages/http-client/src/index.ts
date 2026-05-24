@@ -326,7 +326,7 @@ function mapCircleFeedItem(raw: Record<string, unknown>) {
       },
     },
     circle: circle
-      ? { id: circle.id ?? "", slug: circle.slug ?? "", name: circle.name ?? "" }
+      ? { id: circle.id ?? "", slug: circle.slug ?? "", name: circle.name ?? "", coverImageUrl: circle.coverImageUrl ?? null }
       : null,
   };
 }

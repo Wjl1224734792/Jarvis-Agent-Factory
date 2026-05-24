@@ -46,6 +46,8 @@ export interface CircleFeedItem {
     id: string;
     slug: string;
     name: string;
+    /** 圈子封面图片（CDN 签名 URL） */
+    coverImageUrl?: string | null;
   } | null;
   createdAt?: string | null;
 }
@@ -207,6 +209,10 @@ const FlatPostItem = memo(function FlatPostItem({
           onClick={(e) => e.stopPropagation()}
         >
           <Avatar className="size-5 shrink-0">
+            <AvatarImage
+              alt={post.circle.name}
+              src={post.circle.coverImageUrl ?? undefined}
+            />
             <AvatarFallback>
               {post.circle.name?.slice(0, 1) ?? ''}
             </AvatarFallback>
