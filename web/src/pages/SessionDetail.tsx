@@ -309,12 +309,12 @@ export default function SessionDetail() {
       </div>
       )}
 
-      {/* Run 历史 — 两列卡片网格，位于流水线下方 */}
+      {/* Run 历史 — 单列卡片列表，位于流水线下方 */}
       {hasRuns && (
         <Card size="small" style={{ borderRadius: 14, marginTop: 10, flexShrink: 0 }}
           title={<span style={{ fontWeight: 600, fontSize: 13 }}><HistoryOutlined style={{ marginRight: 6 }} />Run 历史 · {runs.length} 条</span>}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
             {runs.map(record => (
               <div key={record.id}
                 onClick={() => navigate(`/archive/${record.id}`)}
