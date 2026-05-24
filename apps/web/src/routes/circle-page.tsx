@@ -12,9 +12,6 @@ import { CreateCircleModal } from '@/features/circles/create-circle-modal';
 import { CreatePostModal } from '@/features/circles/create-post-modal';
 import { FlatPostItem } from '@/features/circles/flat-post-item';
 import type { CircleFeedItem } from '@/features/circles/flat-post-item';
-import { XSlidePanel } from '@/features/circles/x-slide-panel';
-import { useSlidePanelURLSync } from '@/features/circles/use-slide-panel-url-sync';
-import { useSlidePanelStore } from '@/features/circles/use-slide-panel-store';
 import { RecommendedCirclesStrip } from './recommended-circles-strip';
 import { CircleTabSelector } from './circle-tab-selector';
 import { apiClient } from '@/lib/api-client';
@@ -56,9 +53,6 @@ export function CirclePage() {
   const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
-
-  // ── SlidePanel URL 同步（popstate + 初始加载） ──
-  useSlidePanelURLSync();
 
   // ── Tab 状态：从 URL 初始化，切换时同步 URL ──
   const [activeTab, setActiveTab] = useState<FeedTab>(() => {
@@ -118,15 +112,15 @@ export function CirclePage() {
     );
   }
 
-  // ── 帖子点击回调 → 打开 SlidePanel ──
+  // ── 帖子点击回调 → 导航到帖子详情页 ──
   // postId → circleSlug 映射，由 renderItem 回调填充
   const postCircleMapRef = useRef(new Map<string, string>());
   // 上一个帖子的圈子 ID——用于圈子头行去重
   const lastCircleIdRef = useRef<string | null>(null);
 
   function handlePostClick(postId: string) {
-    const circleSlug = postCircleMapRef.current.get(postId) ?? null;
-    useSlidePanelStore.getState().open(postId, circleSlug);
+    const circleSlug = postCircleMapRef.current.get(postId) ?? '';
+    void navigate(`/circle/post/${postId}?circleId=${circleSlug}`);
   }
 
   // ── 主 Feed 查询 ──
@@ -364,8 +358,6 @@ export function CirclePage() {
         ) : null}
       </div>
 
-      {/* SlidePanel -- 帖子详情右侧滑入面板 */}
-      <XSlidePanel />
       {/* SLOT: PublishModal -- TASK-005 填充，发帖弹窗 */}
       {/* FAB 发布按钮由全局 WebPublishFab 渲染（web-top-nav.tsx），样式已统一 */}
 

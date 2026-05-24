@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { APP_ROUTES } from '@feijia/shared';
 import { ArrowLeftIcon, UsersIcon, MessageCircleIcon } from 'lucide-react';
 import { SitePage } from '@/components/site-shell';
@@ -11,9 +11,6 @@ import { useLoginPrompt } from '@/features/auth/use-login-prompt';
 import { CreatePostModal } from '@/features/circles/create-post-modal';
 import { FlatPostItem } from '@/features/circles/flat-post-item';
 import type { CircleFeedItem } from '@/features/circles/flat-post-item';
-import { XSlidePanel } from '@/features/circles/x-slide-panel';
-import { useSlidePanelURLSync } from '@/features/circles/use-slide-panel-url-sync';
-import { useSlidePanelStore } from '@/features/circles/use-slide-panel-store';
 import { apiClient } from '@/lib/api-client';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 import { VirtualFeed } from '@/components/virtual-feed';
@@ -138,16 +135,14 @@ function CircleDetailSkeleton() {
  * 圈子详情页。
  *
  * 顶部展示圈子信息（头像/名称/简介/成员数/帖子数/关注按钮），
- * 下方使用 FlatPostItem 渲染帖子列表，点击帖子触发 SlidePanel。
+ * 下方使用 FlatPostItem 渲染帖子列表，点击帖子跳转到独立详情页。
  * 与推荐/关注流保持一致的单列布局（max-w-[680px]）。
  */
 export function CircleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const isAuthenticated = useAuthStore((s) => s.status === 'authenticated');
   const promptLogin = useLoginPrompt();
-
-  // ── SlidePanel URL 同步 ──
-  useSlidePanelURLSync();
+  const navigate = useNavigate();
 
   // ── 圈子详情查询 ──
   const circleQuery = useQuery({
@@ -184,10 +179,10 @@ export function CircleDetailPage() {
     [postsQuery.data?.pages]
   );
 
-  // ── 帖子点击 → 打开 SlidePanel ──
+  // ── 帖子点击 → 导航到帖子详情页 ──
   const handlePostClick = useCallback((postId: string) => {
-    useSlidePanelStore.getState().open(postId, slug ?? null);
-  }, [slug]);
+    void navigate(`/circle/post/${postId}?circleId=${slug ?? ''}`);
+  }, [navigate, slug]);
 
   // ── 关注/已关注/圈主 按钮逻辑 ──
   function handleJoinLeave() {
@@ -451,9 +446,6 @@ export function CircleDetailPage() {
           ) : null}
         </div>
       </div>
-
-      {/* SlidePanel -- 帖子详情右侧滑入面板 */}
-      <XSlidePanel />
 
       {/* 发帖弹窗（预设当前圈子） */}
       <CreatePostModal

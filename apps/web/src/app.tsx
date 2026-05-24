@@ -132,6 +132,11 @@ const SafeRedirectPage = lazy(() =>
     default: module.SafeRedirectPage
   }))
 );
+const CirclePostDetailPage = lazy(() =>
+  import("./routes/circle-post-detail-page").then((module) => ({
+    default: module.CirclePostDetailPage
+  }))
+);
 
 const HomePageRouteSkeleton = lazy(() =>
   import("./components/route-skeletons").then((module) => ({
@@ -301,6 +306,17 @@ export function App() {
               path: toRootChildPath(APP_ROUTES.circleDetail),
               element: withSuspenseFallback(
                 <CircleDetailPage />,
+                <DeferredFallback>
+                  <div className="flex items-center justify-center py-20">
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                </DeferredFallback>
+              )
+            },
+            {
+              path: 'circle/post/:postId',
+              element: withSuspenseFallback(
+                <CirclePostDetailPage />,
                 <DeferredFallback>
                   <div className="flex items-center justify-center py-20">
                     <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
