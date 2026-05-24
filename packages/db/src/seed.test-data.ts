@@ -1189,6 +1189,7 @@ async function seedPostgreSQL() {
   const circlePostTitles = ["新人报到", "分享航拍作品", "求推荐入门机型", "FPV飞行记录", "DIY装机分享", "航拍调色教程", "避障实测", "远航挑战"];
   const circlePostContents = ["详细内容见图片", "和大家分享飞行体验", "欢迎交流讨论", "今天飞了一把，感觉不错", "新手求指导"];
   let circlePostCount = 0;
+  const circlePostIds: string[] = [];
   for (const circleId of CIRCLE_IDS) {
     for (let j = 0; j < 5; j++) {
       // 70% 帖子有图片 (1-3 张)，30% 无图片；少数帖子用视频替代
@@ -1200,8 +1201,10 @@ async function seedPostgreSQL() {
       );
       const videoIds = useVideo ? [pick(postVideoFileIds)] : [];
 
+      const cpId = uid("cp");
+      circlePostIds.push(cpId);
       await db.insert(circlePostsTable).values({
-        id: uid("cp"),
+        id: cpId,
         circleId,
         authorId: j === 0 ? adminId : pick(regularUsers),
         title: circlePostTitles[circlePostCount % circlePostTitles.length],
@@ -1221,11 +1224,7 @@ async function seedPostgreSQL() {
   console.log("   创建圈子帖子互动...");
   const circleInteractionTypes = ["like", "favorite"] as const;
 
-  // 从数据库中查询刚插入的圈子帖子 ID
-  const insertedCirclePosts = await db.execute(sql.raw(
-    `SELECT id FROM "circle_posts" ORDER BY "created_at" ASC LIMIT ${circlePostCount}`
-  ));
-  const cpIds: string[] = (insertedCirclePosts as unknown as Array<{ id: string }>).map(r => r.id);
+  const cpIds = circlePostIds;
 
   const circleInteractions: Array<Record<string, unknown>> = [];
   const circleInteractionKeys = new Set<string>();
