@@ -73,8 +73,10 @@ export const useSlidePanelStore = create<SlidePanelStore>((set, get) => ({
 
   open(postId, circleId) {
     const state = get();
-    // 互斥防护：关闭动画期间不响应新打开请求
-    if (state.isClosing) return;
+    // 如果正在关闭中，取消关闭状态，允许立即打开
+    if (state.isClosing) {
+      set({ isClosing: false });
+    }
     // 重复打开同一帖子不处理
     if (state.isOpen && state.postId === postId) return;
 
@@ -90,7 +92,9 @@ export const useSlidePanelStore = create<SlidePanelStore>((set, get) => ({
     removePostFromURL();
 
     setTimeout(() => {
+      // 防御性检查：如果在 300ms 内面板被重新打开（isClosing 被清除），跳过关闭
       const current = get();
+      if (!current.isClosing) return;
       set({
         postId: null,
         circleId: null,

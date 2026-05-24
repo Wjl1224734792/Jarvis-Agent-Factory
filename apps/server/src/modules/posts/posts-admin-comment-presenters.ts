@@ -1,5 +1,6 @@
 import { buildReplyToUserMap } from '../../lib/comment-serializer';
 import { isValidPostCommentStatus } from '../../lib/type-guards';
+import { resolveUploadedFileUrlMap } from '../uploads/uploads.helpers';
 import { usersService } from '../users/users.service';
 import { postsRepo } from './posts.repo';
 import { buildPublicUserSummary } from './posts-presenters';
@@ -15,7 +16,7 @@ type AdminCommentStatusItem = NonNullable<
 
 async function buildAdminCommentContext(
   items: Array<{
-    author: { id: string };
+    author: { id: string; avatarFileId?: string | null };
     replyToUserId: string | null;
   }>
 ) {
@@ -26,12 +27,19 @@ async function buildAdminCommentContext(
         .filter((value): value is string => Boolean(value))
     )
   );
-  const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
-    ...items.map(item => item.author.id),
-    ...replyToUserIds
+  const [ipLocationLabelMap, replyToUsers, avatarUrlMap] = await Promise.all([
+    usersService.resolvePublicIpLocationLabelMap([
+      ...items.map(item => item.author.id),
+      ...replyToUserIds
+    ]),
+    postsRepo.listUsersByIds(replyToUserIds),
+    resolveUploadedFileUrlMap([
+      ...items.map(item => item.author.avatarFileId ?? null),
+      ...replyToUserIds
+    ])
   ]);
   const replyToUserMap = buildReplyToUserMap(
-    (await postsRepo.listUsersByIds(replyToUserIds)).map(replyUser => ({
+    replyToUsers.map(replyUser => ({
       ...replyUser,
       ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
     }))
@@ -39,7 +47,8 @@ async function buildAdminCommentContext(
 
   return {
     ipLocationLabelMap,
-    replyToUserMap
+    replyToUserMap,
+    avatarUrlMap
   };
 }
 
@@ -65,6 +74,7 @@ function serializeAdminCommentItem(
     postTitle: string;
     ipLocationLabelMap: ReadonlyMap<string, string | null>;
     replyToUserMap: ReturnType<typeof buildReplyToUserMap>;
+    avatarUrlMap?: ReadonlyMap<string, string | null>;
   }
 ) {
   return {
@@ -80,7 +90,10 @@ function serializeAdminCommentItem(
     reportCount: item.reportCount ?? 0,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
-    author: buildPublicUserSummary(item.author, input.ipLocationLabelMap),
+    author: buildPublicUserSummary(item.author, {
+      avatarUrlMap: input.avatarUrlMap,
+      ipLocationLabelMap: input.ipLocationLabelMap
+    }),
     replyToUser: item.replyToUserId
       ? input.replyToUserMap.get(item.replyToUserId) ?? null
       : null
@@ -95,7 +108,7 @@ function serializeAdminCommentItem(
  * @throws {Error} 当用户映射或 IP 属地数据查询失败时透传异常。
  */
 export async function serializeAdminCommentList(items: AdminCommentListItem[]) {
-  const { ipLocationLabelMap, replyToUserMap } =
+  const { ipLocationLabelMap, replyToUserMap, avatarUrlMap } =
     await buildAdminCommentContext(items);
 
   return {
@@ -103,7 +116,8 @@ export async function serializeAdminCommentList(items: AdminCommentListItem[]) {
       serializeAdminCommentItem(item, {
         postTitle: item.postTitle,
         ipLocationLabelMap,
-        replyToUserMap
+        replyToUserMap,
+        avatarUrlMap
       })
     )
   };
@@ -121,12 +135,13 @@ export async function serializeAdminCommentStatusItem(
   item: AdminCommentStatusItem,
   postTitle: string
 ) {
-  const { ipLocationLabelMap, replyToUserMap } =
+  const { ipLocationLabelMap, replyToUserMap, avatarUrlMap } =
     await buildAdminCommentContext([item]);
 
   return serializeAdminCommentItem(item, {
     postTitle,
     ipLocationLabelMap,
-    replyToUserMap
+    replyToUserMap,
+    avatarUrlMap
   });
 }

@@ -1,4 +1,5 @@
 import { buildReplyToUserMap } from '../../lib/comment-serializer';
+import { resolvePublicUploadedFileUrlMap } from '../uploads/uploads.helpers';
 import { usersService } from '../users/users.service';
 import { socialService } from '../social/social.service';
 import { postsRepo } from './posts.repo';
@@ -19,9 +20,15 @@ async function buildCommentReplyContext(
   const replyUsers = replyToUserId
     ? await postsRepo.listUsersByIds([replyToUserId])
     : [];
-  const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
-    item.author.id ?? currentUserId ?? '',
-    ...(replyToUserId ? [replyToUserId] : [])
+  const [ipLocationLabelMap, avatarUrlMap] = await Promise.all([
+    usersService.resolvePublicIpLocationLabelMap([
+      item.author.id ?? currentUserId ?? '',
+      ...(replyToUserId ? [replyToUserId] : [])
+    ]),
+    resolvePublicUploadedFileUrlMap([
+      item.author.avatarFileId ?? null,
+      ...replyUsers.map(replyUser => replyUser.avatarFileId ?? null)
+    ])
   ]);
   const replyToUserMap = buildReplyToUserMap(
     replyUsers.map(replyUser => ({
@@ -32,7 +39,8 @@ async function buildCommentReplyContext(
 
   return {
     replyToUserMap,
-    ipLocationLabelMap
+    ipLocationLabelMap,
+    avatarUrlMap
   };
 }
 
@@ -52,7 +60,7 @@ export async function serializeCommentForViewer(
     return null;
   }
 
-  const { replyToUserMap, ipLocationLabelMap } = await buildCommentReplyContext(
+  const { replyToUserMap, ipLocationLabelMap, avatarUrlMap } = await buildCommentReplyContext(
     item,
     currentUserId
   );
@@ -61,7 +69,8 @@ export async function serializeCommentForViewer(
     item,
     replyToUserMap,
     currentUserId,
-    ipLocationLabelMap
+    ipLocationLabelMap,
+    avatarUrlMap
   );
 }
 

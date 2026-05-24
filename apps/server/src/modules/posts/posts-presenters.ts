@@ -36,6 +36,7 @@ export interface ReplyToUserSummary {
 interface PublicUserSummarySource {
   id: string;
   displayName: string;
+  avatarFileId?: string | null;
   role: string;
 }
 
@@ -44,6 +45,7 @@ interface PostListSerializeOptions {
   images: SerializedPostMedia[];
   videos: SerializedPostMedia[];
   viewer: ReturnType<typeof toViewerState>;
+  avatarUrlMap?: ReadonlyMap<string, string | null>;
   ipLocationLabelMap?: ReadonlyMap<string, string | null>;
 }
 
@@ -51,6 +53,7 @@ interface CommentSerializeOptions {
   currentUserId?: string | null;
   likedCommentIds?: Set<string>;
   reportedCommentIds?: Set<string>;
+  avatarUrlMap?: ReadonlyMap<string, string | null>;
   ipLocationLabelMap?: ReadonlyMap<string, string | null>;
 }
 
@@ -130,12 +133,18 @@ export function toViewerState(input: {
 
 export function buildPublicUserSummary(
   user: PublicUserSummarySource,
-  ipLocationLabelMap?: ReadonlyMap<string, string | null>
+  options?: {
+    avatarUrlMap?: ReadonlyMap<string, string | null>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
+  }
 ) {
   return {
     id: user.id,
     displayName: user.displayName,
-    ipLocationLabel: ipLocationLabelMap?.get(user.id) ?? null,
+    avatarUrl: user.avatarFileId
+      ? options?.avatarUrlMap?.get(user.avatarFileId) ?? null
+      : null,
+    ipLocationLabel: options?.ipLocationLabelMap?.get(user.id) ?? null,
     role: isValidAuthRole(user.role) ? user.role : ('user' as const)
   };
 }
@@ -214,7 +223,10 @@ export function serializePostListItem(
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     publishedAt: toIsoString(item.publishedAt),
-    author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
+    author: buildPublicUserSummary(item.author, {
+      avatarUrlMap: options.avatarUrlMap,
+      ipLocationLabelMap: options.ipLocationLabelMap
+    }),
     source: serializePostSource(item),
     declaration: serializePostDeclarations(item.declaration),
     cover: options.cover,
@@ -254,7 +266,10 @@ function serializeCommentBase(
     updatedAt: comment.updatedAt.toISOString(),
     likeCount: comment.likeCount ?? 0,
     reportCount: comment.reportCount ?? 0,
-    author: buildPublicUserSummary(comment.author, input.ipLocationLabelMap),
+    author: buildPublicUserSummary(comment.author, {
+      avatarUrlMap: input.avatarUrlMap,
+      ipLocationLabelMap: input.ipLocationLabelMap
+    }),
     replyToUser: comment.replyToUserId
       ? replyToUserMap.get(comment.replyToUserId) ?? null
       : null,
@@ -342,7 +357,8 @@ export function serializeSingleComment(
   item: Awaited<ReturnType<typeof PostsRepo.getCommentById>>,
   replyToUserMap: Map<string, ReplyToUserSummary>,
   currentUserId?: string | null,
-  ipLocationLabelMap?: ReadonlyMap<string, string | null>
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>,
+  avatarUrlMap?: ReadonlyMap<string, string | null>
 ) {
   if (!item) {
     return null;
@@ -361,7 +377,7 @@ export function serializeSingleComment(
     updatedAt: item.updatedAt.toISOString(),
     likeCount: item.likeCount ?? 0,
     reportCount: item.reportCount ?? 0,
-    author: buildPublicUserSummary(item.author, ipLocationLabelMap),
+    author: buildPublicUserSummary(item.author, { avatarUrlMap, ipLocationLabelMap }),
     replyToUser: item.replyToUserId
       ? replyToUserMap.get(item.replyToUserId) ?? null
       : null,

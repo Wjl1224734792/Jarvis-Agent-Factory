@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   listUsersByIds: vi.fn(),
-  resolvePublicIpLocationLabelMap: vi.fn()
+  resolvePublicIpLocationLabelMap: vi.fn(),
+  resolveUploadedFileUrlMap: vi.fn()
 }));
 
 vi.mock('../src/modules/posts/posts.repo', () => ({
@@ -17,6 +18,10 @@ vi.mock('../src/modules/users/users.service', () => ({
   }
 }));
 
+vi.mock('../src/modules/uploads/uploads.helpers', () => ({
+  resolveUploadedFileUrlMap: mocks.resolveUploadedFileUrlMap
+}));
+
 afterEach(() => {
   vi.clearAllMocks();
 });
@@ -27,6 +32,7 @@ describe('posts admin comment presenters', () => {
       {
         id: 'user_reply',
         displayName: 'Reply User',
+        avatarFileId: null,
         role: 'user'
       }
     ]);
@@ -36,6 +42,7 @@ describe('posts admin comment presenters', () => {
         ['user_reply', 'Beijing']
       ])
     );
+    mocks.resolveUploadedFileUrlMap.mockResolvedValue(new Map());
 
     const { serializeAdminCommentList } = await import(
       '../src/modules/posts/posts-admin-comment-presenters'
@@ -56,6 +63,7 @@ describe('posts admin comment presenters', () => {
         author: {
           id: 'user_author',
           displayName: 'Author',
+          avatarFileId: null,
           role: 'not-a-valid-role'
         }
       }
@@ -84,6 +92,7 @@ describe('posts admin comment presenters', () => {
     mocks.resolvePublicIpLocationLabelMap.mockResolvedValue(
       new Map([['user_author', 'Hangzhou']])
     );
+    mocks.resolveUploadedFileUrlMap.mockResolvedValue(new Map());
 
     const { serializeAdminCommentStatusItem } = await import(
       '../src/modules/posts/posts-admin-comment-presenters'
@@ -105,6 +114,7 @@ describe('posts admin comment presenters', () => {
         author: {
           id: 'user_author',
           displayName: 'Author',
+          avatarFileId: null,
           role: 'admin'
         }
       },

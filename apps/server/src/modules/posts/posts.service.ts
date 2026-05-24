@@ -6,7 +6,10 @@ import {
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { socialService } from "../social/social.service";
 import { uploadsRepo } from "../uploads/upload.repo";
-import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrlMap,
+  resolveUploadedFileUrls
+} from "../uploads/uploads.helpers";
 import { buildReplyToUserMap } from "../../lib/comment-serializer";
 import { postsRepo } from "./posts.repo";
 import { createPostsCommentWriteService } from "./posts-comment-write-service";
@@ -127,10 +130,12 @@ export const postsService = {
     let items = hasMore ? feedResult.items.slice(0, limit) : feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
-    const [interactions, followingAuthorIds, ipLocationLabelMap] = await Promise.all([
+    const avatarFileIds = items.map((item) => item.author.avatarFileId ?? null);
+    const [interactions, followingAuthorIds, ipLocationLabelMap, avatarUrlMap] = await Promise.all([
       currentUser ? postsRepo.listViewerInteractions(postIds, currentUser.id) : [],
       currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>(),
-      usersService.resolvePublicIpLocationLabelMap(authorIds)
+      usersService.resolvePublicIpLocationLabelMap(authorIds),
+      resolvePublicUploadedFileUrlMap(avatarFileIds)
     ]);
     const interactionMap = buildInteractionMap(interactions);
 
@@ -211,6 +216,7 @@ export const postsService = {
             followingAuthorIds,
             interactionTypes: interactionMap.get(item.id)
           }),
+          avatarUrlMap,
           ipLocationLabelMap
         })
       )
@@ -328,10 +334,17 @@ export const postsService = {
       currentUser ? postsRepo.listViewerCommentLikes(commentIds, currentUser.id) : [],
       currentUser ? postsRepo.listViewerCommentReports(commentIds, currentUser.id) : []
     ]);
-    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
-      item.author.id,
-      ...comments.map((comment) => comment.author.id),
-      ...replyToUserIds
+    const [ipLocationLabelMap, avatarUrlMap] = await Promise.all([
+      usersService.resolvePublicIpLocationLabelMap([
+        item.author.id,
+        ...comments.map((comment) => comment.author.id),
+        ...replyToUserIds
+      ]),
+      resolvePublicUploadedFileUrlMap([
+        item.author.avatarFileId ?? null,
+        ...comments.map((comment) => comment.author.avatarFileId ?? null),
+        ...replyToUsers.map((replyUser) => replyUser.avatarFileId ?? null)
+      ])
     ]);
     const replyToUserMap = buildReplyToUserMap(
       replyToUsers.map((replyUser) => ({
@@ -362,7 +375,7 @@ export const postsService = {
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         publishedAt: toIsoString(item.publishedAt),
-        author: buildPublicUserSummary(item.author, ipLocationLabelMap),
+        author: buildPublicUserSummary(item.author, { avatarUrlMap, ipLocationLabelMap }),
         source: serializePostSource(item),
         declaration: serializePostDeclarations(item.declaration),
         cover: coversByPostId.get(item.id) ?? null,
@@ -391,6 +404,7 @@ export const postsService = {
           likedCommentIds,
           reportedCommentIds,
           sort: options?.commentSort ?? "hot",
+          avatarUrlMap,
           ipLocationLabelMap
         })
       }

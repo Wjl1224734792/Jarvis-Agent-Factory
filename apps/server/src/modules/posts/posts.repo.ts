@@ -444,6 +444,7 @@ function postSelection() {
     author: {
       id: usersTable.id,
       displayName: usersTable.displayName,
+      avatarFileId: usersTable.avatarFileId,
       role: usersTable.role
     },
     contentCategory: {
@@ -484,6 +485,7 @@ function postFeedSelection(input?: { recommendationBaseScore?: SQL<number> | SQL
     author: {
       id: usersTable.id,
       displayName: usersTable.displayName,
+      avatarFileId: usersTable.avatarFileId,
       role: usersTable.role
     },
     contentCategory: {
@@ -506,6 +508,7 @@ export const postsRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
+        avatarFileId: usersTable.avatarFileId,
         role: usersTable.role
       })
       .from(usersTable)
@@ -1096,6 +1099,7 @@ export const postsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -1131,6 +1135,7 @@ export const postsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -1408,6 +1413,7 @@ export const postsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
