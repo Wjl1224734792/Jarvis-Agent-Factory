@@ -77,7 +77,7 @@ async function serializeSubmission(
     videoAsset: videoFile
       ? {
           id: videoFile.id,
-          url: uploadsService.serializeFileItem(videoFile).url,
+          url: (await uploadsService.serializeFileItem(videoFile)).url,
           fileName: videoFile.fileName,
           mimeType: videoFile.mimeType,
           byteSize: videoFile.byteSize

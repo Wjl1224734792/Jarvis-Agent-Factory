@@ -100,7 +100,9 @@ function normalizeBaseUrl(
 }
 
 function resolveObjectKey(config: StorageProviderConfig, inputKey: string) {
-  return config.keyPrefix ? `${config.keyPrefix}/${inputKey}` : inputKey;
+  if (!config.keyPrefix) return inputKey;
+  if (inputKey.startsWith(`${config.keyPrefix}/`)) return inputKey;
+  return `${config.keyPrefix}/${inputKey}`;
 }
 
 function createS3Client(config: StorageProviderConfig) {

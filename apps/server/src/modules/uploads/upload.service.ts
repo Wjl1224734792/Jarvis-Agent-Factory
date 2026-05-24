@@ -8,7 +8,8 @@ import { API_ROUTES } from "@feijia/shared";
 import {
   buildStorageObjectUrl,
   createStorageProvider,
-  resolveStorageProviderConfig
+  resolveStorageProviderConfig,
+  shouldUseSignedReadUrl
 } from "../../lib/storage-provider";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -44,8 +45,19 @@ function buildObjectKey(bizType: FileBizType, ownerId: string, fileName: string,
   return `${bizType}/${ownerId}/${yyyy}/${mm}/${dd}/${randomUUID()}${extension}`;
 }
 
-function serializeFileItem(file: NonNullable<StoredFileRecord>) {
+async function serializeFileItem(file: NonNullable<StoredFileRecord>) {
   const config = resolveStorageProviderConfig();
+  let url: string;
+
+  if (shouldUseSignedReadUrl(config)) {
+    const provider = createStorageProvider(config);
+    url = await provider.getDownloadUrl({
+      objectKey: file.objectKey,
+      expiresIn: 60 * 60
+    });
+  } else {
+    url = buildStorageObjectUrl(config, file.objectKey);
+  }
 
   return {
     id: file.id,
@@ -56,7 +68,7 @@ function serializeFileItem(file: NonNullable<StoredFileRecord>) {
     fileName: file.fileName,
     mimeType: file.mimeType,
     byteSize: file.byteSize,
-    url: buildStorageObjectUrl(config, file.objectKey),
+    url,
     uploadedAt: file.uploadedAt?.toISOString() ?? null
   };
 }
@@ -238,7 +250,7 @@ export const uploadsService = {
       return { kind: "not_found" as const };
     }
 
-    const baseItem = serializeFileItem(uploaded);
+    const baseItem = await serializeFileItem(uploaded);
     const resolvedUrl = await resolveUploadedFileUrl(uploaded.id);
     const fileUrl = resolvedUrl ?? baseItem.url;
 
