@@ -2,7 +2,7 @@
 name: taro-ui-expert
 description: "Taro UI 专项工作者：负责 Taro 小程序/H5 页面布局、组件构建、样式实现、多端适配和无障碍访问。不涉及状态管理或数据获取。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-24"

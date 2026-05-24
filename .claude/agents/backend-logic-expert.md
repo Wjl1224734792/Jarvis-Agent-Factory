@@ -2,7 +2,7 @@
 name: backend-logic-expert
 description: "后端业务逻辑专项工作者：在编排者 分配明确子任务后执行；负责核心业务规则、领域逻辑、状态机、权限验证、幂等性和工作流编排；不涉及 API 路由或数据访问层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-24"

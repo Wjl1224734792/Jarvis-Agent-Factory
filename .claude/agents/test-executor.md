@@ -1,7 +1,7 @@
 ---
 name: test-executor
 description: "浏览器测试执行者——严格按照已有测试用例文档执行测试，记录通过/失败结果，不自行编写测试用例"
-model: deepseek-v4-pro
+model: qwen3.6-plus
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
 version: "4.3.8"

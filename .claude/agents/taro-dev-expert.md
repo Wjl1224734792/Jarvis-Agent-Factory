@@ -2,7 +2,7 @@
 name: taro-dev-expert
 description: "Taro 跨端移动开发工作者：在编排者 分配明确子任务后执行；负责 Taro（React/Vue）小程序/H5/移动端页面、组件、交互与平台适配。不涉及后端或 API。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-24"

@@ -2,7 +2,7 @@
 name: flutter-state-expert
 description: "Flutter 状态与数据专项工作者：负责 Provider/Riverpod/BLoC 状态管理、本地存储、网络请求、GoRouter 路由。不涉及 UI 样式或布局。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 effort: max
 version: "4.3.8"
 updated: "2026-05-24"
