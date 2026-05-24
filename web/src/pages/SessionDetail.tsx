@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Progress, Tag, Button, Empty, Spin, Statistic, Breadcrumb, message, Table,
+  Card, Progress, Tag, Button, Empty, Spin, Statistic, Breadcrumb, message, Steps,
 } from 'antd';
 import {
   CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
@@ -76,6 +76,31 @@ export default function SessionDetail() {
       setPipeline(ssePipeline);
     }
   }, [ssePipeline, sessionId]);
+
+  // 右侧栏宽度拖拽
+  const [rightPanelWidth, setRightPanelWidth] = useState(340);
+  const draggingRef = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = rightPanelWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(200, Math.min(560, startWidth + delta));
+      setRightPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [rightPanelWidth]);
 
   const openMdPreview = async (filepath: string) => {
     try {
@@ -153,54 +178,29 @@ export default function SessionDetail() {
         </Empty></div>
       )}
 
-      {/* Run 历史 */}
-      {hasRuns && (
-        <Card size="small" style={{ borderRadius: 14, marginBottom: 10, flexShrink: 0 }}
-          title={<span style={{ fontWeight: 600, fontSize: 13 }}><HistoryOutlined style={{ marginRight: 6 }} />Run 历史 · {runs.length} 条</span>}
-        >
-          <Table
-            dataSource={runs}
-            rowKey="id"
+      {/* Gate 步骤条 */}
+      {hasPipeline && gates.length > 0 && (
+        <Card size="small" style={{ borderRadius: 14, marginBottom: 10, flexShrink: 0 }}>
+          <Steps
             size="small"
-            pagination={false}
-            onRow={(record) => ({
-              onClick: () => navigate(`/archive/${record.id}`),
-              style: { cursor: 'pointer' },
+            current={gates.findIndex(g => g.gate === currentGate)}
+            items={gates.map(g => {
+              const sg = shortGate(g.gate);
+              return {
+                title: g.gate,
+                description: GATE_LABELS[sg] || sg,
+                status: g.passed ? 'finish' as const : g.gate === currentGate ? 'process' as const : 'wait' as const,
+              };
             })}
-            columns={[
-              {
-                title: '任务', dataIndex: 'task_name', key: 'task_name',
-                render: (t: string | null) => t || <span style={{ fontStyle: 'italic', opacity: 0.4 }}>未命名</span>,
-              },
-              {
-                title: '状态', dataIndex: 'status', key: 'status', width: 80,
-                render: (s: string) => (
-                  <Tag color={s === 'completed' ? 'var(--ant-color-success)' : s === 'active' ? 'var(--ant-color-primary)' : 'var(--ant-color-text)'}
-                    style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>{s === 'completed' ? '已完成' : s === 'active' ? '进行中' : s}</Tag>
-                ),
-              },
-              {
-                title: 'Gate', dataIndex: 'current_gate', key: 'current_gate', width: 70,
-                render: (g: string) => <Tag style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>{g}</Tag>,
-              },
-              {
-                title: '开始', dataIndex: 'started_at', key: 'started_at', width: 110,
-                render: (t: string) => formatTime(t),
-              },
-              {
-                title: '耗时', dataIndex: 'total_duration_display', key: 'duration', width: 80,
-                render: (d: string | null) => d || '-',
-              },
-            ]}
           />
         </Card>
       )}
 
-      {/* 内容区：中间文档预览区 + 右侧 Gate 流水线边栏 */}
+      {/* 内容区：中间文档预览区 + 可拖拽分割线 + 右侧 Gate 流水线边栏 */}
       {hasPipeline && (
-      <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden', minHeight: 0 }}>
         {/* 中间：文档预览预留区域 */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0, paddingRight: 8 }}>
           {mdPreview.open ? (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -230,8 +230,27 @@ export default function SessionDetail() {
           )}
         </div>
 
+        {/* 拖拽分割线 */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          tabIndex={0}
+          onMouseDown={handleResizeStart}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') setRightPanelWidth(w => Math.min(560, w + 20));
+            if (e.key === 'ArrowRight') setRightPanelWidth(w => Math.max(200, w - 20));
+          }}
+          style={{
+            width: 6, cursor: 'col-resize', flexShrink: 0,
+            background: 'transparent', transition: 'background 0.15s',
+            borderLeft: '1px solid var(--ant-color-border-secondary)',
+          }}
+          onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--ant-color-primary-bg)'; }}
+          onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+        />
+
         {/* 右侧边栏：Gate 流水线 + 产物文档 */}
-        <div style={{ width: 340, flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+        <div style={{ width: rightPanelWidth, flexShrink: 0, overflowY: 'auto', overflowX: 'hidden', paddingLeft: 8 }}>
           <Card size="small" style={{ borderRadius: 14 }}
             title={<span style={{ fontWeight: 600, fontSize: 13 }}><FileTextOutlined style={{ marginRight: 6 }} />Gate 流水线</span>}
             extra={<Progress percent={progressPct} size="small" style={{ width: 100 }} strokeColor="var(--ant-color-primary)" />}
@@ -288,6 +307,44 @@ export default function SessionDetail() {
           </Card>
         </div>
       </div>
+      )}
+
+      {/* Run 历史 — 两列卡片网格，位于流水线下方 */}
+      {hasRuns && (
+        <Card size="small" style={{ borderRadius: 14, marginTop: 10, flexShrink: 0 }}
+          title={<span style={{ fontWeight: 600, fontSize: 13 }}><HistoryOutlined style={{ marginRight: 6 }} />Run 历史 · {runs.length} 条</span>}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {runs.map(record => (
+              <div key={record.id}
+                onClick={() => navigate(`/archive/${record.id}`)}
+                style={{
+                  padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                  border: '1px solid var(--ant-color-border)',
+                  backgroundColor: 'var(--ant-color-bg-container)',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--ant-color-primary)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--ant-color-border)'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--ant-color-text)' }}>
+                    {record.task_name || <span style={{ fontStyle: 'italic', opacity: 0.4 }}>未命名</span>}
+                  </span>
+                  <Tag color={record.status === 'completed' ? 'var(--ant-color-success)' : record.status === 'active' ? 'var(--ant-color-primary)' : 'var(--ant-color-text)'}
+                    style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>
+                    {record.status === 'completed' ? '已完成' : record.status === 'active' ? '进行中' : record.status}
+                  </Tag>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5 }}>
+                  <Tag style={{ borderRadius: 4, fontSize: 9, margin: 0, lineHeight: '16px', padding: '0 4px' }}>{record.current_gate}</Tag>
+                  <span>{formatTime(record.started_at)}</span>
+                  <span style={{ marginLeft: 'auto' }}>{record.total_duration_display || '-'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );
