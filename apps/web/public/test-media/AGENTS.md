@@ -1,10 +1,10 @@
-<!-- Generated: 2026-05-23T07:13:04.969Z | Updated: 2026-05-23T07:13:04.969Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
-# tests_img-video
+# test-media
 
 ## Purpose
-This directory contains the tests_img-video module of the project.
+This directory contains the test-media module of the project.
 
 ## Key Files
 | File | Description |

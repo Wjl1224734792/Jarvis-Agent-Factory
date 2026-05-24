@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # src
@@ -22,6 +22,7 @@ This directory contains the src module of the project.
 | modules/ | Project subdirectory | [AGENTS.md](modules/AGENTS.md) |
 | openapi/ | Project subdirectory | [AGENTS.md](openapi/AGENTS.md) |
 | routes/ | Route handlers | [AGENTS.md](routes/AGENTS.md) |
+| types/ | TypeScript type definitions | [AGENTS.md](types/AGENTS.md) |
 
 
 ## For AI Agents
@@ -29,7 +30,7 @@ This directory contains the src module of the project.
 
 
 ## Dependencies
-- **Internal:** lib/, modules/, openapi/, routes/
+- **Internal:** lib/, modules/, openapi/, routes/, types/
 - **External:** See package.json for full dependency list
 
 <!-- MANUAL:START -->

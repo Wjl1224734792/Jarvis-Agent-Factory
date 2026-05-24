@@ -5,7 +5,7 @@ tools: Read, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 你是项目只读审查代理。

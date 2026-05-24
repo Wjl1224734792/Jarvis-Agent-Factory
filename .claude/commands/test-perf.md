@@ -6,7 +6,7 @@ effort: max
 argument-hint: [测试目标端点或场景描述]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 性能测试

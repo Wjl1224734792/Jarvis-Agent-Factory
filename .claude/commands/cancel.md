@@ -6,7 +6,7 @@ effort: max
 argument-hint: [--leave | --force]
 allowed-tools: Read, Bash, Skill
 version: "4.4.0"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 # 取消流水线运行

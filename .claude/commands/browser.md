@@ -6,7 +6,7 @@ effort: max
 argument-hint: "[--mode explore|test] [URL 或功能描述]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 version: "4.3.8"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 # 浏览器自动化

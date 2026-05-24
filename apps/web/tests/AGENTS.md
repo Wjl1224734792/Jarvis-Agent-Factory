@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # tests
@@ -10,7 +10,6 @@ This directory contains the tests module of the project.
 | File | Description |
 |------|-------------|
 | AGENTS.md | Markdown documentation |
-| ai-summary-format-integration.test.ts | TypeScript source |
 | api-client-refresh.test.ts | TypeScript source |
 | api-client-sanitization.test.ts | TypeScript source |
 | article-editor-white-paper-copy.test.ts | TypeScript source |
@@ -19,7 +18,6 @@ This directory contains the tests module of the project.
 | auth-required-dialog-store.test.ts | TypeScript source |
 | auth-store-persistence.test.ts | TypeScript source |
 | avatar-url.test.ts | TypeScript source |
-| circle-page-feed.test.ts | TypeScript source |
 | circle-page-helpers.test.ts | TypeScript source |
 | circle-tab-selector.test.ts | TypeScript source |
 | CLAUDE.md | Markdown documentation |
@@ -29,6 +27,8 @@ This directory contains the tests module of the project.
 | draft-store.test.ts | TypeScript source |
 | feed-pagination.test.ts | TypeScript source |
 | home-feed-query.test.ts | TypeScript source |
+| import-file-button.test.ts | TypeScript source |
+| inline-comment-composer.test.ts | TypeScript source |
 
 
 ## Subdirectories

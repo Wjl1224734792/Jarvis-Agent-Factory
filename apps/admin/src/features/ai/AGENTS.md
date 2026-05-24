@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # ai
@@ -14,6 +14,7 @@ This directory contains the ai module of the project.
 | ai-settings-page.tsx | React component |
 | CLAUDE.md | Markdown documentation |
 | import-file-button.tsx | React component |
+| use-ai-features.ts | TypeScript source |
 | use-ai-format.ts | TypeScript source |
 
 

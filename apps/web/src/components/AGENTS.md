@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # components
@@ -17,6 +17,7 @@ This directory contains the components module of the project.
 | comment-thread-controls.tsx | React component |
 | detail-more-actions-state.ts | TypeScript source |
 | detail-more-actions.tsx | React component |
+| error-boundary.tsx | React component |
 | feed-refetch-footer.tsx | React component |
 | immersive-page-shell.tsx | React component |
 | ip-location-text.tsx | React component |
@@ -28,7 +29,6 @@ This directory contains the components module of the project.
 | publish-shell.tsx | React component |
 | publish-skeletons.tsx | React component |
 | rating-breakdown.tsx | React component |
-| rating-stars.tsx | React component |
 
 
 ## Subdirectories

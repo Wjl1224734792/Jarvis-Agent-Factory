@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # src
@@ -16,6 +16,7 @@ This directory contains the src module of the project.
 | audits.ts | TypeScript source |
 | auth.ts | TypeScript source |
 | brand-applications.ts | TypeScript source |
+| circles.ts | TypeScript source |
 | CLAUDE.md | Markdown documentation |
 | content-categories.ts | TypeScript source |
 | files.ts | TypeScript source |
@@ -28,7 +29,6 @@ This directory contains the src module of the project.
 | rankings.ts | TypeScript source |
 | recommendation-settings.ts | TypeScript source |
 | reports.ts | TypeScript source |
-| reviews.ts | TypeScript source |
 
 
 ## Subdirectories

@@ -1,21 +1,33 @@
-# docker/AGENTS.md
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
+<!-- Parent: ../AGENTS.md -->
 
-> `scope`: `docker/*`（本地开发 Compose）  
-> `pre`: [`../AGENTS.md`](../AGENTS.md) **L0–L3**（含 env 同步）  
-> `human`: [`README.md`](./README.md)、根 [`README.md`](../README.md)
+# docker
 
-**禁止**：生产编排、云资源、CI/CD；**禁止** 展开 `apps/*`、`packages/*` 实现。
+## Purpose
+This directory contains the docker module of the project.
 
-## 服务范围
+## Key Files
+| File | Description |
+|------|-------------|
+| AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
+| README.md | Markdown documentation |
 
-PostgreSQL · Redis · MinIO（仅本地）。
 
-## 修改要求
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| database/ | Project subdirectory | [AGENTS.md](database/AGENTS.md) |
+| redis/ | Project subdirectory | [AGENTS.md](redis/AGENTS.md) |
+| storage/ | Project subdirectory | [AGENTS.md](storage/AGENTS.md) |
 
-- **优先** 根脚本：`bun run infra:up` · `infra:ps` · `infra:down`。
-- 直接 Compose → `docker compose -f ...`（**禁止** `docker-compose` 命令形式）。
-- 改端口/账号/密码/卷/服务名/健康检查 → **必须** 同步：
-  - [`.env.example`](../.env.example)
-  - 根 [`README.md`](../README.md)
-  - [`docker/README.md`](./README.md)
-- **[`.claude/rules/`](../.claude/rules/)** — 所有配置变更必须遵循团队协作规范与通用编程规范
+
+## For AI Agents
+
+
+## Dependencies
+- **Internal:** database/, redis/, storage/
+- **External:** See package.json for full dependency list
+
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

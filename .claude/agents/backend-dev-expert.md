@@ -3,9 +3,9 @@ name: backend-dev-expert
 description: "后端全栈实现者：在编排者 分配明确子任务后执行；负责后端服务、接口、应用逻辑、数据访问和后端测试的完整实现。自身不调度其他 agent。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 你是后端全栈实现者。

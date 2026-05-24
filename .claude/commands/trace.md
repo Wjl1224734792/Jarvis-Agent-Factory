@@ -6,7 +6,7 @@ effort: max
 argument-hint: [异常/问题/症状描述]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, WebFetch, WebSearch
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 因果追踪

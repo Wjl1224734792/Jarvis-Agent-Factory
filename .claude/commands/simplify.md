@@ -6,7 +6,7 @@ effort: max
 argument-hint: [目标文件/目录/模块]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 代码简化与质量清理

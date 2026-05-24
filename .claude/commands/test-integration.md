@@ -6,7 +6,7 @@ effort: max
 argument-hint: [API 端点或服务名称]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 集成测试 / API 测试
@@ -33,7 +33,7 @@ Skill("test-data-factory")
 
 1. **OpenAPI 契约文件**：`openapi.json`、`swagger.json`、`openapi.yaml`
 2. **路由定义文件**：Express/Next 路由文件、FastAPI router、Gin handler
-3. **契约文档**：`.jarvis/YYYY-MM-DD/api/`、`.jarvis/contracts/`
+3. **契约文档**：`.jarvis/YYYY-MM-DD/api/`
 
 提取关键信息：
 - HTTP 方法（GET/POST/PUT/PATCH/DELETE）

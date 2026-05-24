@@ -5,7 +5,7 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: [--dry-run 预览模式] [--no-clean 跳过清理]
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 同步项目文档

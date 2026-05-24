@@ -6,7 +6,7 @@ effort: max
 argument-hint: "[任务描述]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 智能自动路由编排

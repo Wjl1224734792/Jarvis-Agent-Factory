@@ -5,7 +5,7 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: "[--platform android|ios|flutter|expo|react-native|taro] [需求描述]"
 version: "4.3.8"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 # 移动端开发生命周期

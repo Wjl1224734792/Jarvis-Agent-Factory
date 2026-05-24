@@ -6,7 +6,7 @@ effort: max
 argument-hint: [--interview|--direct|--consensus|--review] <需求/想法/计划/指令>
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.3.9"
-updated: "2026-05-23"
+updated: "2026-05-24"
 ---
 
 # 需求探询（4 模式自适应 · 文档驱动 · Flag 可控）

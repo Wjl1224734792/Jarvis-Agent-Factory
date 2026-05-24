@@ -6,7 +6,7 @@ effort: max
 argument-hint: [故障描述或issue编号]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 紧急热修复

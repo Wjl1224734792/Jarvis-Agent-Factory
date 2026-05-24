@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { PostInteractionBar } from '@/features/posts/post-interaction-bar';
 import { apiClient } from '@/lib/api-client';
+import { normalizeMediaSrc } from '@/lib/media-url';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 
 // ── 帖子 Feed 项类型（从 API 响应映射后的完整结构） ──
@@ -267,7 +268,7 @@ const FlatPostItem = memo(function FlatPostItem({
                   muted
                   playsInline
                   preload="metadata"
-                  src={post.videos[0].url}
+                  src={normalizeMediaSrc(post.videos[0].url ?? '')}
                 />
                 <span className="pointer-events-none absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-black/55 text-white">
                   <PlayIcon className="size-4 fill-current" />
@@ -289,7 +290,7 @@ const FlatPostItem = memo(function FlatPostItem({
                   alt={`${post.title} ${idx + 1}`}
                   className="w-full max-h-64 object-cover"
                   loading="lazy"
-                  src={img.url ?? ''}
+                  src={normalizeMediaSrc(img.url ?? '')}
                 />
               ))}
             </div>

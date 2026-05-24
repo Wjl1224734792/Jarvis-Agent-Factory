@@ -128,7 +128,7 @@ export function patchRatingTargetCommentCreated<
       ...detail,
       commentCount: Math.max(0, detail.commentCount + countDelta),
       comments: [...detail.comments, comment]
-    } as TDetail;
+    };
   }
 
   return {
@@ -142,5 +142,5 @@ export function patchRatingTargetCommentCreated<
             replies: [...(entry.replies ?? []), comment]
           }
     )
-  } as TDetail;
+  };
 }

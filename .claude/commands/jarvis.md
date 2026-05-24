@@ -5,7 +5,7 @@ argument-hint: "[任务描述]"
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 贾维斯全流程编排

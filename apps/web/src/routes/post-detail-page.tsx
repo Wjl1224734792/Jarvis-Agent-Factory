@@ -30,6 +30,7 @@ import {
   patchPostViewCount
 } from "../features/posts/post-query-cache";
 import { apiClient } from "../lib/api-client";
+import { normalizeMediaSrc } from "@/lib/media-url";
 import { resolveUserAvatarSrc } from "../lib/avatar-url";
 import { shouldRecordSessionView } from "../lib/view-session";
 
@@ -38,14 +39,6 @@ function splitContent(content: string) {
     .split(/\n{2,}/)
     .map((part) => part.trim())
     .filter(Boolean);
-}
-
-function normalizeMediaSrc(input: string) {
-  const value = input.trim();
-  if (!value) {
-    return "";
-  }
-  return value.startsWith("//") ? `https:${value}` : value;
 }
 
 function extractVideoSrcSet(html: string) {
@@ -405,7 +398,7 @@ export function PostDetailPage() {
               <div className="space-y-4">
                 {fallbackVideos.map((video) => (
                   <div className="overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950" key={video.id}>
-                    <video className="h-auto w-full" controls preload="metadata" src={video.url} />
+                    <video className="h-auto w-full" controls preload="metadata" src={normalizeMediaSrc(video.url ?? '')} />
                   </div>
                 ))}
               </div>

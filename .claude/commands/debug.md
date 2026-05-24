@@ -6,7 +6,7 @@ effort: max
 argument-hint: [异常描述或Bug报告]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 调试诊断

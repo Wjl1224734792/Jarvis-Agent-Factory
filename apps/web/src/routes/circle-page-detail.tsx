@@ -1,5 +1,4 @@
 import {
-  AlertTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   MessageCircleIcon,
@@ -9,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { APP_ROUTES } from '@feijia/shared';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,14 +17,16 @@ import { InlineCommentComposer } from '@/features/posts/inline-comment-composer'
 import { PostCommentThread } from '@/features/posts/post-comment-thread';
 import { PostInteractionBar } from '@/features/posts/post-interaction-bar';
 import { ProfileLink } from '@/components/profile-link';
-import { ReportActionSheet } from '@/components/report-action-sheet';
+import { DetailMoreActions } from '@/components/detail-more-actions';
 import { IpLocationText } from '@/components/ip-location-text';
+import { normalizeMediaSrc } from '@/lib/media-url';
 import { resolveUserAvatarSrc } from '@/lib/avatar-url';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useLoginPrompt } from '@/features/auth/use-login-prompt';
+import { useSlidePanelStore } from '@/features/circles/use-slide-panel-store';
 import {
   buildCircleMediaItems,
   getLoopedNextIndex,
@@ -51,6 +53,7 @@ async function fetchCirclePostDetail(
   const url = `/api/v1/circles/${encodeURIComponent(circleId)}/posts/${encodeURIComponent(postId)}`;
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const body = await res.json().catch(() => ({
       message: '请求的内容不存在或已被移除',
     }));
@@ -67,9 +70,13 @@ async function fetchCirclePostDetail(
  *
  * 圈子帖子缺少 comment 列表、engagement/viewer 状态、declaration/source 等字段，
  * 本函数提供安全的默认值，确保组件渲染不崩溃。
+ *
+ * @param rawItem - 圈子帖子 API 返回的原始数据
+ * @param currentUserId - 当前登录用户 ID，用于判断是否为帖子作者
  */
 function mapCirclePostToPostDetail(
   rawItem: Record<string, unknown>,
+  currentUserId?: string,
 ): PostDetailResponse {
   const author = (rawItem.author ?? {}) as Record<string, unknown>;
 
@@ -131,7 +138,9 @@ function mapCirclePostToPostDetail(
         favoriteCount: 0,
         shareCount: 0,
         viewer: {
-          isAuthor: false,
+          isAuthor:
+            Boolean(currentUserId) &&
+            currentUserId === ((author.id as string) ?? ''),
           isFollowingAuthor: false,
           hasLiked: false,
           hasFavorited: false,
@@ -215,9 +224,11 @@ export function CirclePostDetailContent({
   circleId,
 }: CirclePostDetailContentProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const authStatus = useAuthStore((s) => s.status);
   const currentUser = useAuthStore((s) => s.user);
   const promptLogin = useLoginPrompt();
+  const closeSlidePanel = useSlidePanelStore((s) => s.close);
 
   const [commentSort, setCommentSort] = useState<'latest' | 'hot'>('latest');
   const [commentContent, setCommentContent] = useState('');
@@ -231,7 +242,7 @@ export function CirclePostDetailContent({
     queryFn: async () => {
       if (circleId) {
         const raw = await fetchCirclePostDetail(circleId, postId);
-        return mapCirclePostToPostDetail(raw.item) as PostDetailResponse;
+        return mapCirclePostToPostDetail(raw.item, currentUser?.id);
       }
       return apiClient.getPostDetail(postId, { commentSort });
     },
@@ -336,7 +347,7 @@ export function CirclePostDetailContent({
     const nextIsFollowing = !selectedNote.engagement.viewer.isFollowingAuthor;
 
     queryClient.setQueryData<PostDetailResponse>(
-      ['circle-post', postId, commentSort],
+      ['circle-post', postId, commentSort, circleId],
       (old) => {
         if (!old) return old;
         return {
@@ -360,7 +371,7 @@ export function CirclePostDetailContent({
       toast.error('操作失败');
       // 回滚
       queryClient.setQueryData<PostDetailResponse>(
-        ['circle-post', postId, commentSort],
+        ['circle-post', postId, commentSort, circleId],
         (old) => {
           if (!old) return old;
           return {
@@ -487,6 +498,47 @@ export function CirclePostDetailContent({
                 : '关注'}
             </Button>
           ) : null}
+
+          <DetailMoreActions
+            isOwner={selectedNote.engagement.viewer.isAuthor}
+            canEdit={selectedNote.engagement.viewer.isAuthor}
+            canDelete={selectedNote.engagement.viewer.isAuthor}
+            canReport={!selectedNote.engagement.viewer.isAuthor}
+            isAuthenticated={authStatus === 'authenticated'}
+            report={{
+              title: '举报帖子',
+              description: '请填写举报理由，并至少上传 1 张证据图。',
+              onSubmit: async (input) => {
+                if (!circleId) return;
+                await apiClient.reportCirclePost(circleId, selectedNote.id, {
+                  reason: input.reason,
+                  imageFileIds: input.imageIds,
+                });
+                toast.success('举报已提交，感谢反馈');
+              },
+            }}
+            onEdit={() => {
+              navigate(APP_ROUTES.publishArticle + '?edit=' + selectedNote.id);
+            }}
+            onDelete={async () => {
+              if (!circleId) return;
+              if (!window.confirm('删除后无法恢复，确定要删除这篇文章吗？')) return;
+              try {
+                await apiClient.deleteCirclePost(circleId, selectedNote.id);
+                toast.success('已删除');
+                closeSlidePanel();
+                queryClient.invalidateQueries({ queryKey: ['circle-feed'] });
+              } catch (err: unknown) {
+                toast.error(err instanceof Error ? err.message : '删除失败');
+              }
+            }}
+            onRequireLogin={() => {
+              promptLogin({
+                title: '登录后才能操作',
+                description: '请先登录后再进行操作。',
+              });
+            }}
+          />
         </div>
       </div>
 
@@ -500,13 +552,13 @@ export function CirclePostDetailContent({
                 className="w-full max-h-[50vh] object-contain"
                 controls
                 preload="metadata"
-                src={activeMedia.url}
+                src={normalizeMediaSrc(activeMedia.url)}
               />
             ) : activeMedia ? (
               <img
                 alt={activeMedia.label}
                 className="w-full max-h-[50vh] object-contain"
-                src={activeMedia.url}
+                src={normalizeMediaSrc(activeMedia.url)}
               />
             ) : null}
 
@@ -686,35 +738,6 @@ export function CirclePostDetailContent({
               {formatCount(selectedNote.commentCount)}
             </span>
           </div>
-
-          {authStatus === 'authenticated' &&
-          currentUser?.id !== selectedNote.author.id ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <ReportActionSheet
-                description="请填写举报理由，并至少上传 1 张证据图。"
-                onSubmit={async (input) => {
-                  const circleId =
-                    (selectedNote as Record<string, unknown>).circleId as string ?? '';
-                  await apiClient.reportCirclePost(
-                    circleId,
-                    selectedNote.id,
-                    input
-                  );
-                }}
-                title="举报内容"
-                trigger={
-                  <Button
-                    aria-label="举报内容"
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <AlertTriangleIcon className="size-4" />
-                  </Button>
-                }
-              />
-            </div>
-          ) : null}
         </div>
       </div>
     </div>

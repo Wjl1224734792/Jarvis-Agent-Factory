@@ -5,7 +5,7 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: [后端需求描述]
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 后端开发生命周期

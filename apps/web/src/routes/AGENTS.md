@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # routes
@@ -12,7 +12,6 @@ This directory contains the routes module of the project.
 | AGENTS.md | Markdown documentation |
 | circle-detail-page.tsx | React component |
 | circle-page-detail.tsx | React component |
-| circle-page-feed.tsx | React component |
 | circle-page-helpers.ts | TypeScript source |
 | circle-page.tsx | React component |
 | circle-tab-selector.tsx | React component |
@@ -29,6 +28,7 @@ This directory contains the routes module of the project.
 | notifications-page.tsx | React component |
 | post-detail-page.tsx | React component |
 | publish-aircraft-page.tsx | React component |
+| publish-article-page-helpers.ts | TypeScript source |
 
 
 ## Subdirectories

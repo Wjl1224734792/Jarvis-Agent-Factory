@@ -36,19 +36,44 @@ export function XSlidePanel() {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartXRef = useRef(0);
   const dragStartWidthRef = useRef(420);
+  const panelWidthRef = useRef(panelWidth);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
 
-  /** 开始拖拽——记录起始位置和当前宽度 */
+  // 同步 panelWidth 到 ref，避免 handleDragStart 闭包捕获旧值
+  useEffect(() => {
+    panelWidthRef.current = panelWidth;
+  }, [panelWidth]);
+
+  /** 开始拖拽——记录起始位置和当前宽度（仅鼠标事件使用此回调） */
   const handleDragStart = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(true);
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      dragStartXRef.current = clientX;
-      dragStartWidthRef.current = panelWidth;
+      dragStartXRef.current = e.clientX;
+      dragStartWidthRef.current = panelWidthRef.current;
     },
-    [panelWidth],
+    [],
   );
+
+  // touchstart 必须使用原生监听以 { passive: false } 避免被动事件警告
+  useEffect(() => {
+    const el = dragHandleRef.current;
+    if (!el) return undefined;
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      dragStartXRef.current = e.touches[0].clientX;
+      dragStartWidthRef.current = panelWidthRef.current;
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+    };
+  }, []);
 
   // 监听 document 级别的 mousemove/touchmove/mouseup/touchend
   useEffect(() => {
@@ -122,9 +147,9 @@ export function XSlidePanel() {
 
         {/* 左侧拖拽手柄——仅桌面端可见 */}
         <div
+          ref={dragHandleRef}
           className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-1.5 h-12 rounded-full bg-border hover:bg-primary/50 cursor-col-resize items-center justify-center transition-colors"
           onMouseDown={handleDragStart}
-          onTouchStart={handleDragStart}
         />
 
         {/* Framer Motion 拖拽层包裹整个面板内容 */}

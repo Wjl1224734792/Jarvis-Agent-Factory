@@ -2,7 +2,7 @@
 name: security-testing
 description: "安全测试(DAST)方法论——OWASP ZAP 使用、漏洞扫描、安全报告生成、漏洞验证。用于动态应用安全测试和安全审计。"
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 安全测试 (DAST) 方法论

@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_pr
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 你是修复与优化规划代理。

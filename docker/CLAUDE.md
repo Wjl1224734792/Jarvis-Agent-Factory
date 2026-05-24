@@ -1,10 +1,6 @@
-# docker/CLAUDE.md
+# docker
 
-本文件为 Claude Code 入口。Docker 规则以 [AGENTS.md](./AGENTS.md) 为准，本文件仅做路由。
+> AI Entry → [AGENTS.md](./AGENTS.md)
 
-## 规则源
+Parent: [../AGENTS.md](../AGENTS.md)
 
-- **docker 规则**：[`AGENTS.md`](./AGENTS.md)
-- **项目级规则**：[`AGENTS.md`](../AGENTS.md) — L0–L5 全部约束
-- **Agent 配置与模型**：[`.claude/CLAUDE.md`](../.claude/CLAUDE.md)
-- **编程规范**：[`.claude/rules/`](../.claude/rules/)

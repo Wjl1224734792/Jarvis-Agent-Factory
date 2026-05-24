@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # auth
@@ -24,11 +24,11 @@ This directory contains the auth module of the project.
 | profile-content-card.tsx | React component |
 | profile-content-filters.ts | TypeScript source |
 | profile-filter-bar.tsx | React component |
+| profile-interactions-tab.tsx | React component |
 | profile-layout-shell.tsx | React component |
 | profile-meta-bar.tsx | React component |
+| profile-my-comments-tab.tsx | React component |
 | profile-overview.ts | TypeScript source |
-| profile-page.tsx | React component |
-| profile-settings-state.ts | TypeScript source |
 
 
 ## Subdirectories

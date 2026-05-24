@@ -6,7 +6,7 @@ effort: max
 argument-hint: [用户故事描述或E2E测试范围]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 端到端测试（E2E）

@@ -6,7 +6,7 @@ effort: max
 argument-hint: [重构目标描述或文件路径]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent
 version: "4.3.8"
-updated: "2026-05-18"
+updated: "2026-05-24"
 ---
 
 # 代码重构（安全网保护）

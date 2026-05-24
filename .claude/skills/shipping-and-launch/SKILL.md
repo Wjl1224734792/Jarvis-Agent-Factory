@@ -2,7 +2,7 @@
 name: shipping-and-launch
 description: "发布与上线——上线前检查清单、功能开关生命周期、灰度发布、回滚预案和监控配置。用于准备将代码部署到生产环境。"
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 发布与上线

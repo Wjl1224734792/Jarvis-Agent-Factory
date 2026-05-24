@@ -1,11 +1,11 @@
 ---
 name: browser-use-expert
 description: 自主浏览器操作专家：利用 browser-use CLI 进行自主决策式浏览器操作——自动发现 UI bug、探索未知页面、执行探索性测试、收集页面证据、截图对比、数据提取。与 browser-test-expert（按测试用例执行验证）互补，各自独立运行
-model: qwen3.6-plus
+model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 你是自主浏览器操作专家，利用 browser-use CLI 进行自主探索式浏览器操作。

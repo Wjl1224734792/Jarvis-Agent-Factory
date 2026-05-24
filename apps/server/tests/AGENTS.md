@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23T03:01:45.429Z | Updated: 2026-05-23T03:01:45.429Z -->
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # tests
@@ -19,7 +19,6 @@ This directory contains the tests module of the project.
 | ai-infrastructure.test.ts | TypeScript source |
 | ai-settings-maskApiKey.test.ts | TypeScript source |
 | ai-settings.test.ts | TypeScript source |
-| ai-summary.test.ts | TypeScript source |
 | api-versioning.test.ts | TypeScript source |
 | audits.service.test.ts | TypeScript source |
 | auth-test-helpers.ts | TypeScript source |
@@ -29,6 +28,7 @@ This directory contains the tests module of the project.
 | circles.repo.test.ts | TypeScript source |
 | circles.route.test.ts | TypeScript source |
 | circles.service.test.ts | TypeScript source |
+| CLAUDE.md | Markdown documentation |
 
 
 ## Subdirectories

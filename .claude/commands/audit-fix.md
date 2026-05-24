@@ -6,7 +6,7 @@ effort: max
 argument-hint: [审查范围]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent, Edit, Write
 version: "4.4.2"
-updated: "2026-05-21"
+updated: "2026-05-24"
 ---
 
 # 审查修复优化闭环

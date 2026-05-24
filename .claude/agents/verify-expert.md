@@ -1,12 +1,12 @@
 ---
 name: verify-expert
 description: 基于文档的证据驱动验证专家 — 设计验证策略，收集可观察证据，判定改动是否生效可用
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 effort: max
 category: review
 tags: [verify, QA, evidence, testing, audit, quality]
 version: "1.0.0"
-updated: "2026-05-22"
+updated: "2026-05-24"
 skill-recommendations: [verification-before-completion, code-review-and-quality, behavioral-guidelines]
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_diagnostics_directory, mcp__jarvis-engine__jarvis_lsp_document_symbols, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_servers
 ---

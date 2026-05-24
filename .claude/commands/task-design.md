@@ -5,7 +5,7 @@ argument-hint: "[--mode ddd|bdd|tdd] [需求文档路径]"
 model: deepseek-v4-pro
 effort: max
 version: "4.3.8"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 # 任务分解设计

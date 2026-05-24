@@ -5,7 +5,7 @@ tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__j
 effort: max
 model: deepseek-v4-pro
 version: "4.3.8"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 你是代码差异只读审查代理。

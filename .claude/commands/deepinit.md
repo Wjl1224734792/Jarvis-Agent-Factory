@@ -5,7 +5,7 @@ argument-hint: "[--smart | --force | --incremental]"
 model: deepseek-v4-flash
 effort: max
 version: "1.1.0"
-updated: "2026-05-22"
+updated: "2026-05-24"
 ---
 
 # DeepInit — 自适应分层文档初始化

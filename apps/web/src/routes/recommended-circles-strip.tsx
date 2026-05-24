@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,13 +59,20 @@ export function RecommendedCirclesStrip() {
 
   const circles = (circlesQuery.data?.items ?? []) as RecommendedCircle[];
 
-  /** 鼠标滚轮 → 水平滚动 */
-  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+  /** 鼠标滚轮 → 水平滚动（使用原生事件以 { passive: false } 注册，消除浏览器警告） */
+  useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    event.preventDefault();
-    el.scrollLeft += event.deltaY;
-  }
+    const node = el;
+
+    function handleWheel(event: WheelEvent) {
+      event.preventDefault();
+      node.scrollLeft += event.deltaY;
+    }
+
+    node.addEventListener("wheel", handleWheel, { passive: false });
+    return () => node.removeEventListener("wheel", handleWheel);
+  }, []);
 
   /** 点击卡片 → 跳转圈子详情 */
   function handleClick(circle: RecommendedCircle) {
@@ -78,7 +85,6 @@ export function RecommendedCirclesStrip() {
         <div
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto pb-2"
-          onWheel={handleWheel}
         >
           {Array.from({ length: 8 }).map((_, i) => (
             <SkeletonCard key={i} />
@@ -97,7 +103,6 @@ export function RecommendedCirclesStrip() {
       <div
         ref={scrollRef}
         className="flex gap-3 overflow-x-auto pb-2"
-        onWheel={handleWheel}
       >
         {circles.map((circle) => (
           <button

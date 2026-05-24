@@ -1,6 +1,6 @@
 // Page-private component for CirclePage -- 关注圈子横滚条
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -51,14 +51,20 @@ export function CircleTabSelector({
 }: CircleTabSelectorProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+  /** 鼠标滚轮 → 水平滚动（使用原生事件以 { passive: false } 注册，消除浏览器警告） */
+  useEffect(() => {
     const el = scrollRef.current;
-    if (!el) {
-      return;
+    if (!el) return;
+    const node = el;
+
+    function handleWheel(event: WheelEvent) {
+      event.preventDefault();
+      node.scrollLeft += event.deltaY;
     }
-    event.preventDefault();
-    el.scrollLeft += event.deltaY;
-  }
+
+    node.addEventListener("wheel", handleWheel, { passive: false });
+    return () => node.removeEventListener("wheel", handleWheel);
+  }, []);
 
   if (isLoading) {
     return (
@@ -66,7 +72,6 @@ export function CircleTabSelector({
         <div
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto pb-2"
-          onWheel={handleWheel}
         >
           {Array.from({ length: 6 }).map((_, index) => (
             <div className="flex shrink-0 items-center gap-2" key={index}>
@@ -88,7 +93,6 @@ export function CircleTabSelector({
       <div
         ref={scrollRef}
         className="flex gap-3 overflow-x-auto pb-2"
-        onWheel={handleWheel}
       >
         {circles.map((circle) => (
           <button

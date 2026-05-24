@@ -6,7 +6,7 @@ effort: max
 argument-hint: [迁移描述，如"Express→Fastify"或"Vue2→Vue3"]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 框架 / 依赖迁移

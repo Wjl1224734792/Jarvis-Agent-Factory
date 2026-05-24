@@ -6,7 +6,7 @@ effort: max
 argument-hint: [版本类型：patch|minor|major，默认patch]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 发布（Tag + Push）

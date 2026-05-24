@@ -39,13 +39,7 @@ export function PublishStatusPage() {
   }
 
   const aircraft = submissionQuery.data?.item ?? null;
-  const aircraftView = aircraft as
-    | (typeof aircraft & {
-        category?: { name?: string | null } | null;
-        brand?: { name?: string | null } | null;
-        proposedBrandName?: string | null;
-      })
-    | null;
+  const aircraftView = aircraft;
   const title =
     state.title ??
     (kind === "aircraft"

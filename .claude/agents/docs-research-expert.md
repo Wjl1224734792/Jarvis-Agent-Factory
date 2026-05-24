@@ -5,7 +5,7 @@ tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__j
 model: deepseek-v4-flash
 effort: max
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 你是文档研究代理。

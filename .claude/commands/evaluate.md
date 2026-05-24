@@ -6,7 +6,7 @@ effort: max
 argument-hint: [评估对象，如"是否采用Bun替代Node.js"或"React vs Vue技术选型"]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch, WebSearch
 version: "4.3.8"
-updated: "2026-05-14"
+updated: "2026-05-24"
 ---
 
 # 技术评估

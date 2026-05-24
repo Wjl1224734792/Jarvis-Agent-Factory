@@ -5,7 +5,7 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: "[--expert frontend-architect|backend-architect|algorithm-expert] [问题描述]"
 version: "4.3.8"
-updated: "2026-05-20"
+updated: "2026-05-24"
 ---
 
 > ⚡ 此命令仅用于架构方案讨论与技术咨询，不参与流水线编排。流水线中架构评审由编排者在 Gate B1 自动 spawn 对应架构师 Agent。

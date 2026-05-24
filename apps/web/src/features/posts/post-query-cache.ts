@@ -269,7 +269,7 @@ function updateCommentTree(
     }
 
     const nextReplies = comment.replies.map((reply) =>
-      reply.id === commentId ? (updater(reply, comment.id) as PostCommentReply) : reply
+      reply.id === commentId ? (updater(reply, comment.id)) : reply
     );
     return nextReplies === comment.replies ? comment : { ...comment, replies: nextReplies };
   });

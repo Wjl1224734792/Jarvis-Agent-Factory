@@ -6,7 +6,7 @@ effort: max
 argument-hint: [改进目标/优化方向]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 自主迭代改进

@@ -1,31 +1,33 @@
-# apps/AGENTS.md
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
+<!-- Parent: ../AGENTS.md -->
 
-> `scope`: `apps/*`（web · admin · server 共性）  
-> `pre`: [`../AGENTS.md`](../AGENTS.md) **L0–L2**；若动协议/DB/env → **L3**  
-> `human`: 根 [`README.md`](../README.md)、[`README.md`](./README.md)
+# apps
 
-**禁止**：展开 `packages/*`、`docker/*` 内部细节；各应用专有结构 → `apps/web|admin|server/AGENTS.md`。
+## Purpose
+This directory contains the apps module of the project.
 
-## 加载顺序
+## Key Files
+| File | Description |
+|------|-------------|
+| AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
+| README.md | Markdown documentation |
 
-1. 根 L0–L2  
-2. 根 L3（条件同上）  
-3. 本节  
-4. 进入单应用 → 该应用 `AGENTS.md`
-5. **[`.claude/rules/`](../.claude/rules/)** — 所有代码必须遵循三份编程规范
 
-## 成员
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| admin/ | Project subdirectory | [AGENTS.md](admin/AGENTS.md) |
+| server/ | Project subdirectory | [AGENTS.md](server/AGENTS.md) |
+| web/ | Web frontend | [AGENTS.md](web/AGENTS.md) |
 
-`web` · `admin` · `server`。Flutter App 不在本仓库维护。
 
-## 边界
+## For AI Agents
 
-- `apps` 只消费 `packages/*`；禁止让 `packages` 依赖 `apps`。
-- 协议 → `packages/schemas`；常量/路由 → `packages/shared`；请求 → `packages/http-client`；DB → `packages/db` + server 模块。
 
-## 修改要求
+## Dependencies
+- **Internal:** admin/, server/, web/
+- **External:** See package.json for full dependency list
 
-- 改共享契约：检查 `packages/schemas`、`packages/http-client`、`packages/shared` 与受影响 app。
-- **禁止** 在应用内硬编码应属于 `packages` 的结构、路由、鉴权约定、路径。
-- 新页面/模块：跟随各 app 现有目录与命名。
-- `web` 与 `admin` 重复逻辑 → **优先** 上提到 `packages/*`，禁止两应用各抄一份。
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

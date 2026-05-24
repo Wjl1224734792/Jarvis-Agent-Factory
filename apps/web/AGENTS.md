@@ -1,36 +1,40 @@
-# @feijia/web — AGENTS
+<!-- Generated: 2026-05-24T15:09:36.523Z | Updated: 2026-05-24T15:09:36.523Z -->
+<!-- Parent: ../AGENTS.md -->
 
-> `scope`: `apps/web`  
-> `pre`: [`../../AGENTS.md`](../../AGENTS.md) **L0–L2**；[`../AGENTS.md`](../AGENTS.md)  
-> `human`: 根 [`README.md`](../../README.md)
+# web
 
-**禁止**：描述 `admin`、`server`、`packages` 内部（除依赖关系外）。
+## Purpose
+This directory contains the web module of the project.
 
-## 加载顺序
+## Key Files
+| File | Description |
+|------|-------------|
+| .env.development.local | Project file |
+| AGENTS.md | Markdown documentation |
+| CLAUDE.md | Markdown documentation |
+| components.json | JSON config/data |
+| index.html | HTML template |
+| package.json | JSON config/data |
+| tsconfig.json | JSON config/data |
+| tsconfig.tsbuildinfo | Project file |
+| vite.config.ts | TypeScript source |
 
-1. 根 L0–L2 + `apps/AGENTS.md`  
-2. 本节
-3. **[`.claude/rules/`](../../.claude/rules/)** — 所有代码必须遵循三份编程规范
 
-## 入口
+## Subdirectories
+| Directory | Description | AGENTS |
+|-----------|-------------|--------|
+| e2e/ | Project subdirectory | [AGENTS.md](e2e/AGENTS.md) |
+| public/ | Static assets | [AGENTS.md](public/AGENTS.md) |
+| src/ | Source code | [AGENTS.md](src/AGENTS.md) |
+| tests/ | Test suite | [AGENTS.md](tests/AGENTS.md) |
 
-`src/main.tsx` · `src/app.tsx`
 
-## 目录约定
+## For AI Agents
 
-| 类型 | 路径 |
-|------|------|
-| 页面/路由 | `src/routes/*` |
-| 业务复用 | `src/features/*` |
-| 组件 | `src/components/*` |
-| hooks | `src/hooks/*` |
-| 状态 | `src/store/*` |
-| 工具 | `src/lib/*` |
 
-## 修改要求
+## Dependencies
+- **Internal:** e2e/, public/, src/, tests/
+- **External:** See package.json for full dependency list
 
-- HTTP：`@feijia/http-client`；类型：`@feijia/schemas`；路径常量：`@feijia/shared`。
-- **禁止** 在页面散落请求细节、鉴权、响应适配。
-- 用户头像：空 `avatarUrl` 仅做 trim / 空值归一，交给 `UserAvatar` fallback icon；不得为真实用户补 seed / 随机头像图。
-- `web` 与 `admin` 重复逻辑 → `packages/*`，**禁止** 双份复制。
-- AI 功能：仅保留**排版优化**（`AiFormatButton` + `POST /api/v1/ai/format`），通过 `useAiFeatures()` 查询开关控制显示。AI 聊天与摘要已移除。
+<!-- MANUAL:START -->
+<!-- MANUAL:END -->

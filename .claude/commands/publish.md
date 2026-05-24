@@ -5,7 +5,7 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: [版本类型：patch|minor|major，默认patch]
 version: "4.3.8"
-updated: "2026-05-19"
+updated: "2026-05-24"
 ---
 
 # 一键发布
