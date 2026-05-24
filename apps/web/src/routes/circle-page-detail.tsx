@@ -455,12 +455,12 @@ export function CirclePostDetailContent({
   // ── 正文渲染 ──
   return (
     <div className="flex flex-col">
-      {/* 作者信息区 */}
-      <div className="shrink-0 border-b border-border/70 px-4 pb-3.5 pt-4">
-        <div className="flex items-center justify-between gap-3">
+      {/* 作者信息区——Twitter/X 风格：头像+名字+时间+操作 */}
+      <div className="shrink-0 border-b border-border/70 px-4 pt-3.5 pb-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <ProfileLink userId={selectedNote.author.id}>
-              <Avatar size="lg">
+              <Avatar className="size-10">
                 <AvatarImage
                   alt={selectedNote.author.displayName}
                   src={resolveUserAvatarSrc(selectedNote.author.avatarUrl)}
@@ -472,15 +472,17 @@ export function CirclePostDetailContent({
             </ProfileLink>
             <div className="min-w-0">
               <ProfileLink
-                className="truncate text-sm font-semibold text-foreground hover:text-primary"
+                className="truncate text-sm font-semibold text-foreground hover:underline"
                 userId={selectedNote.author.id}
               >
                 {selectedNote.author.displayName}
               </ProfileLink>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-muted-foreground">
-                {new Date(
-                  selectedNote.publishedAt ?? selectedNote.createdAt
-                ).toLocaleDateString('zh-CN')}
+              <div className="flex flex-wrap items-center gap-x-1.5 text-[0.72rem] text-muted-foreground leading-4">
+                <span>
+                  {new Date(
+                    selectedNote.publishedAt ?? selectedNote.createdAt
+                  ).toLocaleDateString('zh-CN')}
+                </span>
                 <IpLocationText
                   label={selectedNote.author.ipLocationLabel}
                   variant="plain"
@@ -489,74 +491,113 @@ export function CirclePostDetailContent({
             </div>
           </div>
 
-          {!selectedNote.engagement.viewer.isAuthor ? (
-            <Button
-              className="rounded-full"
-              onClick={handleToggleFollow}
-              size="sm"
-              type="button"
-              variant={
-                selectedNote.engagement.viewer.isFollowingAuthor
-                  ? 'outline'
-                  : 'hero'
-              }
-            >
-              {selectedNote.engagement.viewer.isFollowingAuthor ? (
-                <UserCheckIcon data-icon="inline-start" />
-              ) : (
-                <UserPlusIcon data-icon="inline-start" />
-              )}
-              {selectedNote.engagement.viewer.isFollowingAuthor
-                ? '已关注'
-                : '关注'}
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!selectedNote.engagement.viewer.isAuthor ? (
+              <Button
+                className="rounded-full h-8 px-3 text-xs"
+                onClick={handleToggleFollow}
+                size="sm"
+                type="button"
+                variant={
+                  selectedNote.engagement.viewer.isFollowingAuthor
+                    ? 'outline'
+                    : 'hero'
+                }
+              >
+                {selectedNote.engagement.viewer.isFollowingAuthor ? (
+                  <UserCheckIcon data-icon="inline-start" className="size-3.5" />
+                ) : (
+                  <UserPlusIcon data-icon="inline-start" className="size-3.5" />
+                )}
+                {selectedNote.engagement.viewer.isFollowingAuthor
+                  ? '已关注'
+                  : '关注'}
+              </Button>
+            ) : null}
 
-          <DetailMoreActions
-            isOwner={selectedNote.engagement.viewer.isAuthor}
-            canEdit={selectedNote.engagement.viewer.isAuthor}
-            canDelete={selectedNote.engagement.viewer.isAuthor}
-            canReport={!selectedNote.engagement.viewer.isAuthor}
-            isAuthenticated={authStatus === 'authenticated'}
-            report={{
-              title: '举报帖子',
-              description: '请填写举报理由，并至少上传 1 张证据图。',
-              onSubmit: async (input) => {
+            <DetailMoreActions
+              isOwner={selectedNote.engagement.viewer.isAuthor}
+              canEdit={selectedNote.engagement.viewer.isAuthor}
+              canDelete={selectedNote.engagement.viewer.isAuthor}
+              canReport={!selectedNote.engagement.viewer.isAuthor}
+              isAuthenticated={authStatus === 'authenticated'}
+              report={{
+                title: '举报帖子',
+                description: '请填写举报理由，并至少上传 1 张证据图。',
+                onSubmit: async (input) => {
+                  if (!circleId) return;
+                  await apiClient.reportCirclePost(circleId, selectedNote.id, {
+                    reason: input.reason,
+                    imageFileIds: input.imageIds,
+                  });
+                  toast.success('举报已提交，感谢反馈');
+                },
+              }}
+              onEdit={() => {
+                navigate(APP_ROUTES.publishArticle + '?edit=' + selectedNote.id);
+              }}
+              onDelete={async () => {
                 if (!circleId) return;
-                await apiClient.reportCirclePost(circleId, selectedNote.id, {
-                  reason: input.reason,
-                  imageFileIds: input.imageIds,
+                if (!window.confirm('删除后无法恢复，确定要删除这篇文章吗？')) return;
+                try {
+                  await apiClient.deleteCirclePost(circleId, selectedNote.id);
+                  toast.success('已删除');
+                  closeSlidePanel();
+                  queryClient.invalidateQueries({ queryKey: ['circle-feed'] });
+                } catch (err: unknown) {
+                  toast.error(err instanceof Error ? err.message : '删除失败');
+                }
+              }}
+              onRequireLogin={() => {
+                promptLogin({
+                  title: '登录后才能操作',
+                  description: '请先登录后再进行操作。',
                 });
-                toast.success('举报已提交，感谢反馈');
-              },
-            }}
-            onEdit={() => {
-              navigate(APP_ROUTES.publishArticle + '?edit=' + selectedNote.id);
-            }}
-            onDelete={async () => {
-              if (!circleId) return;
-              if (!window.confirm('删除后无法恢复，确定要删除这篇文章吗？')) return;
-              try {
-                await apiClient.deleteCirclePost(circleId, selectedNote.id);
-                toast.success('已删除');
-                closeSlidePanel();
-                queryClient.invalidateQueries({ queryKey: ['circle-feed'] });
-              } catch (err: unknown) {
-                toast.error(err instanceof Error ? err.message : '删除失败');
-              }
-            }}
-            onRequireLogin={() => {
-              promptLogin({
-                title: '登录后才能操作',
-                description: '请先登录后再进行操作。',
-              });
-            }}
-          />
+              }}
+            />
+          </div>
         </div>
       </div>
 
       {/* 可滚动内容区 */}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        {/* 帖子标题——大号加粗 */}
+        <h1 className="text-xl font-bold leading-snug text-foreground mb-3">
+          {selectedNote.title}
+        </h1>
+
+        {/* 帖子正文 */}
+        {selectedNote.content ? (
+          <p className="text-[0.9rem] leading-relaxed text-foreground/80 whitespace-pre-wrap mb-4">
+            {selectedNote.content}
+          </p>
+        ) : null}
+
+        {/* 来源/声明信息 */}
+        {(selectedNote.declaration || selectedNote.source) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground mb-4">
+            {selectedNote.declaration ? (
+              <span>{selectedNote.declaration.label}</span>
+            ) : null}
+            {selectedNote.source ? (
+              <span>来源：{selectedNote.source.label}</span>
+            ) : null}
+          </div>
+        )}
+
+        {selectedNote.source?.url ? (
+          <div className="mb-4">
+            <a
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              href={selectedNote.source.url}
+              rel="noreferrer"
+              target="_blank"
+            >
+              原文链接
+            </a>
+          </div>
+        ) : null}
+
         {/* 媒体轮播 */}
         {mediaItems.length > 0 ? (
           <div className="relative mb-4 overflow-hidden rounded-xl">
@@ -620,51 +661,45 @@ export function CirclePostDetailContent({
           </div>
         ) : null}
 
-        {/* 帖子正文 */}
-        <div className="space-y-3">
-          <h1 className="text-[1.15rem] leading-[1.3] font-semibold text-foreground">
-            {selectedNote.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78rem] text-muted-foreground">
-            {selectedNote.declaration ? (
-              <span>{selectedNote.declaration.label}</span>
-            ) : null}
-            {selectedNote.source ? (
-              <span>来源：{selectedNote.source.label}</span>
-            ) : null}
-          </div>
-          <p className="text-[0.86rem] leading-6 text-foreground/72 whitespace-pre-wrap">
-            {selectedNote.content}
-          </p>
+        {/* 互动栏——帖子正文下方 */}
+        <div className="flex items-center gap-4 py-3 border-t border-border">
+          <PostInteractionBar
+            compact
+            hideFollow
+            iconOnly
+            plain
+            authorId={selectedNote.author.id}
+            favoriteCount={selectedNote.engagement.favoriteCount}
+            isPublished={selectedNote.status === 'published'}
+            likeCount={selectedNote.engagement.likeCount}
+            postId={selectedNote.id}
+            shareCount={selectedNote.engagement.shareCount}
+            sharePath={APP_ROUTES.postDetail.replace(
+              ':id',
+              selectedNote.id
+            )}
+            viewer={selectedNote.engagement.viewer}
+          />
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+            <MessageCircleIcon className="size-[15px]" />
+            {formatCount(selectedNote.commentCount)}
+          </span>
         </div>
 
-        {selectedNote.source?.url ? (
-          <div className="mt-3">
-            <a
-              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-              href={selectedNote.source.url}
-              rel="noreferrer"
-              target="_blank"
-            >
-              原文链接
-            </a>
-          </div>
-        ) : null}
-
-        {/* 互动栏 */}
-        <div className="mt-4 border-t border-border pt-3.5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[0.84rem] font-semibold text-foreground">
-              评论区 {selectedNote.commentCount}
+        {/* 评论区 */}
+        <div className="pt-2">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-foreground">
+              评论 {selectedNote.commentCount > 0 ? selectedNote.commentCount : ''}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {(['latest', 'hot'] as const).map((item) => (
                 <button
                   className={cn(
-                    'rounded-full border px-3 py-1 text-xs transition',
+                    'rounded-full px-3 py-1 text-xs font-medium transition',
                     commentSort === item
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border/70 text-muted-foreground hover:text-foreground'
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:bg-accent'
                   )}
                   key={item}
                   onClick={() => setCommentSort(item)}
@@ -685,14 +720,14 @@ export function CirclePostDetailContent({
               sortOrder={commentSort}
             />
           ) : (
-            <div className="text-[0.82rem] text-muted-foreground">
-              还没有评论。
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              还没有评论，来发表第一条评论吧。
             </div>
           )}
         </div>
       </div>
 
-      {/* 底部固定区：评论输入 + 互动栏 */}
+      {/* 底部固定区：评论输入 */}
       <div className="shrink-0 border-t border-border bg-white px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {actionError ? (
           <Alert className="mb-3" variant="destructive">
@@ -726,32 +761,6 @@ export function CirclePostDetailContent({
             登录后评论
           </Button>
         )}
-
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <PostInteractionBar
-              compact
-              hideFollow
-              iconOnly
-              plain
-              authorId={selectedNote.author.id}
-              favoriteCount={selectedNote.engagement.favoriteCount}
-              isPublished={selectedNote.status === 'published'}
-              likeCount={selectedNote.engagement.likeCount}
-              postId={selectedNote.id}
-              shareCount={selectedNote.engagement.shareCount}
-              sharePath={APP_ROUTES.postDetail.replace(
-                ':id',
-                selectedNote.id
-              )}
-              viewer={selectedNote.engagement.viewer}
-            />
-            <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-foreground/62">
-              <MessageCircleIcon className="size-4" />
-              {formatCount(selectedNote.commentCount)}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

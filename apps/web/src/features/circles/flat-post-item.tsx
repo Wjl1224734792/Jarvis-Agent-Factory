@@ -168,10 +168,10 @@ function CollapsibleText({
 // ── 组件 ──
 
 /**
- * 贴吧式扁平列表帖子项。
+ * Twitter/X 风格的帖子 Feed 项。
  *
- * 渲染结构：圈子头行（图标+圈子名，hideCircleHeader=true 时隐藏）
- * → 作者头像+标题 → 正文截断 → 图片/视频缩略图 → 底部互动栏
+ * 渲染结构：圈子头行（可隐藏）→ 作者信息行（头像+名字+时间）
+ * → 标题 → 正文预览（可折叠）→ 媒体 → 互动栏（图标+数字）
  *
  * 无卡片包裹，使用 border-b 分隔。
  */
@@ -192,21 +192,18 @@ const FlatPostItem = memo(function FlatPostItem({
     [onPostClick, post.id],
   );
 
-  /** 阻止 ProfileLink 点击冒泡到父级 div，避免同时触发帖子详情打开 */
-  const handleProfileLinkClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-    },
-    [],
-  );
+  /** 阻止子元素点击冒泡到帖子整体点击 */
+  const stopPropagation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
 
   return (
     <div className="w-full border-b border-border/40">
       {/* 圈子头行——仅在 post.circle 存在且未隐藏时显示 */}
       {post.circle && !hideCircleHeader ? (
         <div
-          className="flex items-center gap-2 px-4 pt-3 pb-2"
-          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2 px-4 pt-3 pb-1.5"
+          onClick={stopPropagation}
         >
           <Avatar className="size-5 shrink-0">
             <AvatarImage
@@ -231,8 +228,8 @@ const FlatPostItem = memo(function FlatPostItem({
         role="button"
         tabIndex={0}
       >
-        {/* 作者头像 */}
-        <Avatar className="size-10 shrink-0 mt-0.5" size="sm">
+        {/* 作者头像（缩小到 36px，与名字垂直对齐） */}
+        <Avatar className="size-9 shrink-0 mt-0.5">
           <AvatarImage
             alt={post.author.displayName}
             src={resolveUserAvatarSrc(post.author.avatarUrl)}
@@ -243,8 +240,24 @@ const FlatPostItem = memo(function FlatPostItem({
         </Avatar>
 
         <div className="flex-1 min-w-0">
-          {/* 帖子标题：始终完整显示 */}
-          <h2 className="font-semibold text-[0.92rem] leading-[1.35rem] text-foreground">
+          {/* 作者信息行：名字 + 时间（Twitter/X 风格） */}
+          <div className="flex items-center gap-1.5 text-[0.82rem] leading-5">
+            <span onClick={stopPropagation} className="shrink-0">
+              <ProfileLink
+                className="font-semibold text-foreground hover:underline"
+                userId={post.author.id}
+              >
+                {post.author.displayName}
+              </ProfileLink>
+            </span>
+            <span className="text-muted-foreground shrink-0">·</span>
+            <span className="text-muted-foreground truncate">
+              {relativeTime(post.createdAt)}
+            </span>
+          </div>
+
+          {/* 帖子标题 */}
+          <h2 className="font-semibold text-[0.9rem] leading-snug text-foreground mt-0.5">
             {post.title}
           </h2>
 
@@ -261,7 +274,7 @@ const FlatPostItem = memo(function FlatPostItem({
                   className="w-full max-h-64 object-cover"
                   controls
                   muted
-                  onClick={() => onPostClick?.(post.id)}
+                  onClick={stopPropagation}
                   playsInline
                   preload="metadata"
                   src={normalizeMediaSrc(post.videos[0].url ?? '')}
@@ -286,46 +299,41 @@ const FlatPostItem = memo(function FlatPostItem({
                   alt={`${post.title} ${idx + 1}`}
                   className="w-full max-h-64 object-cover"
                   loading="lazy"
-                  onClick={() => onPostClick?.(post.id)}
+                  onClick={stopPropagation}
                   src={normalizeMediaSrc(img.url ?? '')}
                 />
               ))}
             </div>
           ) : null}
 
-          {/* 底部信息栏：作者 | 来源 | 评论数 | 时间 */}
-          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-            <span onClick={handleProfileLinkClick}>
-              <ProfileLink className="truncate hover:text-foreground" userId={post.author.id}>
-                {post.author.displayName}
-              </ProfileLink>
-            </span>
-            {post.source ? (
-              <span className="truncate text-muted-foreground/70">
-                来自{post.source.label}
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-1 shrink-0">
-              <MessageCircleIcon className="size-3" />
+          {/* 互动栏：图标 + 数字紧凑排列 */}
+          <div
+            className="flex items-center gap-4 mt-2 text-muted-foreground"
+            onClick={stopPropagation}
+          >
+            <PostInteractionBar
+              authorId={post.author.id}
+              compact
+              favoriteCount={post.engagement.favoriteCount}
+              hideFollow
+              iconOnly
+              isPublished
+              likeCount={post.engagement.likeCount}
+              plain
+              postId={post.id}
+              shareCount={post.engagement.shareCount}
+              viewer={post.engagement.viewer}
+            />
+            <span className="inline-flex items-center gap-1 text-xs tabular-nums">
+              <MessageCircleIcon className="size-[15px]" />
               {formatCount(post.engagement.commentCount ?? 0)}
             </span>
-            <span className="shrink-0">{relativeTime(post.createdAt)}</span>
+            {post.source ? (
+              <span className="text-xs text-muted-foreground/60 truncate ml-auto">
+                {post.source.label}
+              </span>
+            ) : null}
           </div>
-
-          {/* 互动操作栏：点赞 | 收藏 | 分享 */}
-          <PostInteractionBar
-            authorId={post.author.id}
-            compact
-            favoriteCount={post.engagement.favoriteCount}
-            hideFollow
-            iconOnly
-            isPublished
-            likeCount={post.engagement.likeCount}
-            plain
-            postId={post.id}
-            shareCount={post.engagement.shareCount}
-            viewer={post.engagement.viewer}
-          />
         </div>
       </div>
     </div>
