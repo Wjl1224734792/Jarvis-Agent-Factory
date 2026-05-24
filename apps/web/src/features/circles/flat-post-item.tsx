@@ -255,6 +255,7 @@ const FlatPostItem = memo(function FlatPostItem({
                   className="w-full max-h-64 object-cover"
                   controls
                   muted
+                  onClick={() => onPostClick?.(post.id)}
                   playsInline
                   preload="metadata"
                   src={normalizeMediaSrc(post.videos[0].url ?? '')}
@@ -279,6 +280,7 @@ const FlatPostItem = memo(function FlatPostItem({
                   alt={`${post.title} ${idx + 1}`}
                   className="w-full max-h-64 object-cover"
                   loading="lazy"
+                  onClick={() => onPostClick?.(post.id)}
                   src={normalizeMediaSrc(img.url ?? '')}
                 />
               ))}
