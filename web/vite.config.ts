@@ -29,8 +29,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://127.0.0.1:3456',
-      '/health': 'http://127.0.0.1:3456',
+      '/api': `http://127.0.0.1:${process.env.JARVIS_DEV ? '3457' : '3456'}`,
+      '/health': `http://127.0.0.1:${process.env.JARVIS_DEV ? '3457' : '3456'}`,
     },
   },
 });
