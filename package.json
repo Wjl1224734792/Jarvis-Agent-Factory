@@ -1,6 +1,6 @@
 {
   "name": "jarvis-agent-factory",
-  "version": "4.7.25",
+  "version": "4.7.26",
   "description": "Jarvis Agent Factory CLI — Claude Code 多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code",
   "keywords": [
     "jarvis",
@@ -50,7 +50,8 @@
     "preversion": "npm run check && npm run build",
     "version": "npm run version:sync && git add QUICKSTART.md web/public/guide.html src/templates/platforms/claude/skills/concurrency-policy/SKILL.md",
     "prerelease": "npm run version:sync && npm run check && npm run build",
-    "dev:setup": "node -e \"import{cpSync}from'fs';cpSync('.mcp.dev.json','.mcp.json');console.log('✓ .mcp.json configured for local development (JARVIS_DEV=1)');console.log('  Run: npm run build');console.log('  Then restart Claude Code session to pick up new MCP config');\""  },
+    "dev:setup": "node -e \"import{cpSync}from'fs';cpSync('.mcp.dev.json','.mcp.json');console.log('✓ .mcp.json configured for local development (JARVIS_DEV=1)');console.log('  Run: npm run build');console.log('  Then restart Claude Code session to pick up new MCP config');\""
+  },
   "dependencies": {
     "@ast-grep/napi": "^0.42.3",
     "@hono/node-server": "^1.13.0",
