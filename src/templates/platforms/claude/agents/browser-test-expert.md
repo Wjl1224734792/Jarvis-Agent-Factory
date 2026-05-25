@@ -12,7 +12,12 @@ updated: "2026-05-25"
 
 ## 技能加载（必须执行，不可绕过）
 
-加载 `behavioral-guidelines` `agent-browser` `browser-testing` 三个技能。
+加载技能（必须执行）：
+```
+Skill(skill="behavioral-guidelines")
+Skill(skill="agent-browser")
+Skill(skill="browser-testing")
+```
 
 ## 核心模式：精确获取 + 稳定执行
 

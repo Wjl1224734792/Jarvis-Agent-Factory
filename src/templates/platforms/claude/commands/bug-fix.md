@@ -20,7 +20,8 @@ Skill("browser-testing")
 ```
 
 **引擎会话注册**（硬约束——引擎确保修复操作按 Gate 权限执行）：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - 修复代码前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
 - 构建/Lint 前调用 `mcp__jarvis-engine__gate_check({ operation: "lint" })` 和 `mcp__jarvis-engine__gate_check({ operation: "build" })`
 - 修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate 条件

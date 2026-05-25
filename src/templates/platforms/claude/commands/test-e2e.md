@@ -22,7 +22,8 @@ Skill("test-driven-development")
 ```
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
