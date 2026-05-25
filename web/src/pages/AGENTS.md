@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-25T00:20:00.000Z -->
+<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-25T12:10:00.000Z -->
 <!-- Parent: ../AGENTS.md -->
 
 # pages — Project subdirectory
@@ -36,7 +36,7 @@
 ### Working In This Directory
 - 页面组件使用 Ant Design (antd) + 内联样式，不额外引入 CSS 文件
 - 可拖拽分割线模式参考 `Dashboard.tsx` 的 `handleResizeStart` 实现（mousedown/mousemove/mouseup）
-- SessionDetail 的 Gate 步骤条使用 antd `Steps` 组件，Run 历史使用 CSS Grid 卡片布局
+- SessionDetail 的 Gate 使用 antd `Steps` 组件 `direction="vertical"` 纵向时间线布局（右侧边栏），每条步骤含状态图标、产物文档链接、时间信息；Run 历史使用 CSS Grid 单列卡片布局（流水线下方）
 
 ### Common Patterns
 - `useRef` 用于拖拽状态追踪，`useCallback` 包裹拖拽处理器避免闭包过期
