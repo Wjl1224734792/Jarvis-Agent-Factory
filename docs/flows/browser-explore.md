@@ -1,32 +1,39 @@
-# `/browser-explore` — 浏览器探索模式
+# 前端调试探索
 
-- **命令**：`/browser-explore [探索目标或 URL]`
-- **类别**：调研
-- **说明**：以自主探索模式驱动浏览器，自动发现 UI Bug、提取页面数据并产出结构化报告。
+- **类别**：调试
+- **说明**：使用 Chrome DevTools MCP 进行前端深度调试——性能分析、渲染诊断、网络检查、控制台诊断。
 
 ## 使用场景
 
 | 场景 | 说明 |
 |------|------|
-| UI Bug 扫描 | 自主遍历页面，发现布局异常、交互缺陷与视觉回归问题 |
-| 竞品数据提取 | 访问竞品网站，提取定价、功能列表等结构化数据 |
-| 页面行为分析 | 截图对比与交互记录，分析页面加载、动画与响应行为 |
-| 新功能探索 | 对新上线页面进行无脚本自由探索，生成可用性报告 |
+| 性能分析 | Core Web Vitals (LCP/FID/CLS)、渲染性能、内存泄漏检测 |
+| 渲染调试 | 布局问题、样式层叠、重绘/回流诊断 |
+| 网络诊断 | HTTP 请求/响应分析、API 错误定位、资源加载优化 |
+| 控制台诊断 | JS 运行时错误、未捕获异常、console 日志分析 |
+| 跨端调试 | PC / Tablet / Mobile 多视口验证 |
+| 打包后调试 | 构建产物性能分析、内联资源验证 |
 
 ## 关键 Agent
 
 | Agent | 职责 |
 |-------|------|
-| `browser-use-expert` | 浏览器自主探索，包括页面导航、元素交互与数据提取 |
+| `frontend-debug-expert` | Chrome DevTools MCP 深度调试——性能追踪 + 渲染分析 + 网络诊断 |
 
 ## 流程图
 
 ```mermaid
 flowchart TD
-    START([用户输入 /browser-explore]) --> S1[browser-use-expert<br/>自主探索模式]
-    S1 --> S2[自动发现 UI Bug]
-    S2 --> S3[截图对比 + 页面证据]
-    S3 --> S4[数据提取]
-    S4 --> S5[产出结构化报告]
-    S5 --> DONE([✅ 探索报告])
+    START([前端调试需求]) --> S1[frontend-debug-expert]
+    S1 --> S2[Chrome DevTools MCP<br/>navigate → take_snapshot]
+    S2 --> S3{调试目标}
+    S3 --> |性能| P[Performance Trace<br/>Core Web Vitals 分析]
+    S3 --> |渲染| R[多视口截图<br/>CSS/DOM 检查]
+    S3 --> |网络| N[Network Requests<br/>API 错误定位]
+    S3 --> |控制台| C[Console Messages<br/>JS 错误诊断]
+    P --> S4[产出调试报告]
+    R --> S4
+    N --> S4
+    C --> S4
+    S4 --> DONE([✅ 调试报告])
 ```

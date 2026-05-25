@@ -1,19 +1,23 @@
 ---
 name: browser-testing
-description: "浏览器自动化测试方法论——测试用例编写规范、agent-browser 操作流程、报告模板、修复闭环。用于 /browser-test 和 /bug-fix 命令的执行。依赖 agent-browser CLI 工具。"
-version: "4.3.8"
-updated: "2026-05-14"
+description: "浏览器自动化测试方法论——混合模式测试：agent-browser（看清）+ Playwright MCP（操作）。精确获取页面结构 + 稳定执行交互操作。用于 /browser-test 和 /bug-fix 命令的执行。"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # 浏览器自动化测试
 
 ## 概述
 
-基于 `agent-browser` CLI 的交互测试方法。先编写结构化测试用例，再逐条通过 Bash 执行 agent-browser 命令操作浏览器，截图记录结果，失败驱动修复闭环。
+**混合模式：agent-browser（看清）+ Playwright MCP（操作）**
 
-**前置条件：** `agent-browser` 已安装（`npm i -g agent-browser && agent-browser install`）。
+本质：**精确获取 + 稳定执行**——agent-browser snapshot -i 以极低成本获取页面结构（DOM 快照 + 元素引用），Playwright MCP 负责可靠的交互操作（点击/填写/导航/截图）。
 
-**版本更新时：** 首先运行 `agent-browser skills get core` 获取最新工作流内容，它会覆盖本文内容。
+- **agent-browser snapshot -i**：廉价页面结构获取，返回元素引用（@ref），token 消耗极低
+- **Playwright MCP**：稳定执行交互——browser_click / browser_type / browser_navigate / browser_take_screenshot 等，CI 可重复
+- **agent-browser CLI**：补充操作——console 日志、network 请求、viewport 调整等诊断能力
+
+**前置条件：** `agent-browser` 已安装（`npm i -g agent-browser && agent-browser install`），Playwright MCP 已配置。
 
 ## 测试用例格式
 
@@ -43,46 +47,39 @@ agent-browser profile list        # 若需复用 Chrome 登录态，先查 profi
 agent-browser --profile "Default" open <url>  # 使用现有 Chrome 登录态
 ```
 
-### 每条用例的标准操作序列
+### 每条用例的标准操作序列（混合模式）
 
 ```bash
-# 1. 导航
-agent-browser open "<URL>"
-
-# 2. 获取页面快照（获取元素 @ref）
+# 1. 获取页面快照（agent-browser 精确获取元素引用）
 agent-browser snapshot -i
 
-# 3. 交互操作
-agent-browser click @e1                          # 点击元素
-agent-browser fill @e2 "text"                    # 填写输入框
-agent-browser type @e3 "text"                    # 追加输入
-agent-browser press "Enter"                      # 按键
-agent-browser select @e4 "option"                # 下拉选择
-agent-browser hover @e5                          # 悬停
-agent-browser scroll down 300                    # 滚动
+# 2. 交互操作（Playwright MCP 稳定执行）
+mcp__playwright__browser_click({target: "<element-ref>"})       # 点击元素
+mcp__playwright__browser_type({target: "<ref>", text: "..."})   # 输入文本
+mcp__playwright__browser_press_key({key: "Enter"})              # 按键
+mcp__playwright__browser_navigate({url: "<URL>"})               # 导航
+mcp__playwright__browser_hover({target: "<ref>"})               # 悬停
 
-# 4. 截图留证（关键交互后必须）
-agent-browser screenshot [path.png]
-agent-browser screenshot --full                  # 全页截图
-agent-browser screenshot --annotate              # 带标注截图
+# 3. 截图留证（Playwright MCP）
+mcp__playwright__browser_take_screenshot({type: "png"})         # 截图
+mcp__playwright__browser_take_screenshot({fullPage: true})      # 全页截图
 
-# 5. 验证
-agent-browser snapshot -i                        # 确认预期元素出现/消失
-agent-browser get text @e1                       # 确认文本内容
-agent-browser console                            # 检查控制台日志
-agent-browser errors                             # 检查 JS 异常
-agent-browser network requests --filter api      # 检查 API 请求
-agent-browser get url                            # 确认当前 URL
+# 4. 验证（agent-browser 诊断 + Playwright 快照）
+agent-browser snapshot -i                                        # 确认元素引用变化
+mcp__playwright__browser_snapshot()                              # Playwright 无障碍快照
+agent-browser console                                            # 检查控制台日志
+agent-browser errors                                             # 检查 JS 异常
+agent-browser network requests --filter api                      # 检查 API 请求
+agent-browser get url                                            # 确认当前 URL
 ```
 
 **执行规则：**
-- 先加载: `agent-browser skills get core` 获取最新命令文档
+- agent-browser snapshot -i 获取元素引用（看清），Playwright MCP 执行操作（执行）
 - 每次关键交互后截图（点击按钮、提交表单、页面跳转后）
-- 截图使用 `agent-browser screenshot [path]`；异常区域检查 `agent-browser get text` 和 `agent-browser get html`
 - 失败立即记录，截图保存失败状态
 - 前置条件不满足则标记"跳过"，写明原因
 - 页面异常时 `agent-browser close` 清理后重试
-- 不用硬等待；用 `agent-browser wait "<selector>"` 或 `agent-browser --text "text"` 轮询确认元素就绪
+- 不用硬等待；用 `agent-browser wait "<selector>"` 或 Playwright `browser_wait_for` 确认页面状态
 
 ## Bug 复现模式
 
@@ -116,14 +113,14 @@ agent-browser screenshot desktop.png
 
 ### 工具可用性矩阵
 
-| 平台/环境 | Preview MCP | agent-browser CLI | Playwright MCP |
-|-----------|------------|-------------------|----------------|
-| Claude Code（桌面版） | ✅ 可用 | ✅ 可用 | ✅ 可用 |
-| Claude Code（终端/CLI） | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
-| OpenCode | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
-| Codex | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
+| 平台/环境 | Preview MCP | agent-browser CLI | Playwright MCP | Chrome DevTools MCP |
+|-----------|------------|-------------------|----------------|---------------------|
+| Claude Code（桌面版） | ✅ 可用 | ✅ 可用 | ✅ 可用 | ✅ 可用 |
+| Claude Code（终端/CLI） | ❌ 不可用 | ✅ 可用 | ✅ 可用 | ✅ 可用 |
+| OpenCode | ❌ 不可用 | ✅ 可用 | ✅ 可用 | ✅ 可用 |
+| Codex | ❌ 不可用 | ✅ 可用 | ✅ 可用 | ✅ 可用 |
 
-> **重要**：`mcp__Claude_Preview__*` 工具仅在 Claude Code 桌面应用中可用。在 Claude Code 终端/CLI 环境中，必须使用 agent-browser CLI 工具进行浏览器操作和截图验证。
+> **混合模式**：agent-browser snapshot -i 精确获取页面结构（看清），Playwright MCP 稳定执行交互操作（操作）。Chrome DevTools MCP 用于前端调试（性能追踪/渲染分析/网络诊断/控制台调试）。
 
 ### 方案 A：有 Preview MCP 时（Claude Code 桌面版）
 

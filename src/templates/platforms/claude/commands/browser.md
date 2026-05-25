@@ -1,12 +1,12 @@
 ---
-description: 浏览器自动化——自由探索发现 Bug 或按测试用例逐条执行验证
+description: 浏览器自动化——agent-browser + Playwright MCP 混合模式：精确获取 + 稳定执行
 name: browser
 model: deepseek-v4-pro
 effort: max
-argument-hint: "[--mode explore|test] [URL 或功能描述]"
+argument-hint: "[URL 或功能描述]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
-version: "4.3.8"
-updated: "2026-05-20"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # 浏览器自动化
@@ -16,17 +16,13 @@ updated: "2026-05-20"
 
 ## 模式选择
 
-| 模式 | 说明 | Agent |
-|------|------|-------|
-| `explore` | 自主探索——browser-use 自主浏览 → 自动发现 Bug → 出报告 | `browser-use-expert` |
-| `test` | 结构化测试——按预先编写的测试用例逐条执行验证 → 出报告 | `browser-use-expert` |
+spawn `browser-test-expert` 执行浏览器交互测试——agent-browser (精确获取页面结构) + Playwright MCP (稳定执行交互操作)。
 
 ## 步骤 0：加载技能 + 注册引擎
 
 加载：
 - `Skill("behavioral-guidelines")`
 - `Skill("browser-testing")`
-- `Skill("browser-use")`
 
 注册引擎：`mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
@@ -37,13 +33,13 @@ updated: "2026-05-20"
 2. **explore 模式** — 确认探索范围与目标
 3. **test 模式** — 加载已有测试用例文档
 
-## 步骤 2：spawn browser-use-expert
+## 步骤 2：spawn browser-test-expert
 
 ```
 Agent(
-  description="{explore|test} browser session",
-  subagent_type="browser-use-expert",
-  prompt="<探索目标/测试用例、URL、报告要求>"
+  description="browser interaction test session",
+  subagent_type="browser-test-expert",
+  prompt="<测试用例、URL、报告要求>"
 )
 ```
 

@@ -12,7 +12,7 @@ export function matchPipelineType(id: string, type: string): boolean {
     case '全流程':
       return (
         idStartsWith('frontend-') || idStartsWith('backend-') ||
-        ['infra-deploy', 'api-contract', 'browser-use-expert',
+        ['infra-deploy', 'api-contract', 'frontend-debug-expert',
           'qa-review', 'security-review', 'perf-review', 'perf-test',
           'diff-review', 'project-review', 'change-review',
           'test-doc-writer', 'test-executor'].some(n => idStartsWith(n)) ||

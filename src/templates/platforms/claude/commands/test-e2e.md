@@ -1,15 +1,17 @@
 ---
 name: test-e2e
-description: 端到端测试指令——基于用户故事生成 Playwright/Cypress 脚本，验证核心流程从前端到后端完整性
+description: 端到端测试指令——基于 Playwright 生成 E2E 脚本，验证核心流程从前端到后端完整性（交互式调试请使用 /frontend）
 model: deepseek-v4-pro
 effort: max
 argument-hint: [用户故事描述或E2E测试范围]
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.8"
-updated: "2026-05-14"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # 端到端测试（E2E）
+
+> 本指令专注于 Playwright E2E 脚本的生成与执行。如需交互式浏览器调试（断点、逐步执行、实时 DOM 检查），请使用 `/frontend`（会 spawn `frontend-debug-expert`）。
 
 立即执行以下初始化步骤：
 

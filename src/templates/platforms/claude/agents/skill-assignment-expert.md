@@ -110,7 +110,7 @@ Skill(skill="behavioral-guidelines")
 ### 浏览器测试任务
 
 涉及浏览器自动化、E2E 测试、UI 快照的任务：
-- `@agent-browser` 或 `@browser-use`
+- `@agent-browser` 或 `@browser-testing`（browser-test-expert）
 - `@browser-testing`
 
 ### 安全审计/加固任务

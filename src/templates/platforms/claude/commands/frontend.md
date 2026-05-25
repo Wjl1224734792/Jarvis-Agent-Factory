@@ -4,8 +4,8 @@ name: frontend
 model: deepseek-v4-pro
 effort: max
 argument-hint: [前端需求描述]
-version: "4.3.8"
-updated: "2026-05-14"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # 前端开发生命周期
@@ -59,6 +59,7 @@ updated: "2026-05-14"
 | 状态/数据/路由 | `frontend-state-expert` |
 | 前端测试 | `frontend-test-expert` |
 | 浏览器测试 | `browser-test-expert` |
+| 前端调试 | `frontend-debug-expert` |
 | E2E 测试 | `e2e-test-expert` |
 | 前端审查 | `frontend-review-expert` |
 | 质量签核 | `qa-review-expert` |
@@ -113,10 +114,10 @@ Gate C-impl:
 ### Gate C1.5：视觉验证（强制，不可跳过）
 
 **前端任务必须过此门。** 条件：
-- 预览服务器已启动（`.claude/launch.json` + `preview_start`）
+- 预览服务器已启动（通过 Chrome DevTools MCP 连接浏览器）
 - 修改前/后对比截图已附
 - 响应式三视口截图已附（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
-- 关键样式属性已通过 `preview_inspect` 验证
+- 关键样式属性已通过 `chrome-devtools__css_getComputedStyle` / `chrome-devtools__dom_getBoxModel` 等工具验证
 - 无可见布局问题
 
 **通过**：进入 Gate C2
@@ -144,8 +145,8 @@ Gate C-impl:
 
 ### 浏览器测试闭环
 
-1. `browser-test-expert` 加载 `agent-browser` 和 `browser-testing` 技能
-2. 编写用例 → `agent-browser` 逐条执行 → 截图 → 验证
+1. `browser-test-expert` 使用 agent-browser (精确获取页面结构) + Playwright MCP (稳定执行交互操作) 混合模式
+2. 编写用例 → agent-browser snapshot 获取页面 → Playwright MCP 执行操作 → 截图 → 验证
 3. 失败驱动修复，最多 2 轮
 4. 报告包含截图证据和控制台/网络错误日志
 

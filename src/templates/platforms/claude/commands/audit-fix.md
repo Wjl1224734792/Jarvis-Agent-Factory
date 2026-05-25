@@ -5,8 +5,8 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: [审查范围]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent, Edit, Write
-version: "4.4.2"
-updated: "2026-05-21"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # 审查修复优化闭环
@@ -40,7 +40,7 @@ updated: "2026-05-21"
 
    ### **阶段四：验证**（不可绕过）
    - Lint + Type-check + Build 三项全部通过（失败→回退修复），运行测试确保无回归
-   - **涉及前端页面/交互的修复**：用 `agent-browser` CLI 按相同步骤重新操作（open→snapshot -i→复现步骤→screenshot），截图对比修复前后，确认 Bug 不再出现
+   - **涉及前端页面/交互的修复**：用 agent-browser (获取页面结构) + Playwright MCP (执行操作) 混合模式按相同步骤重新操作（agent-browser snapshot→Playwright MCP 交互→browser_take_screenshot），截图对比修复前后，确认 Bug 不再出现
 
    ### **阶段五：复审**（不可绕过）
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项

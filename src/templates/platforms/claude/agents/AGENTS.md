@@ -28,7 +28,7 @@ This directory contains the agents module of the project.
 | backend-review-expert.md | Markdown documentation |
 | backend-test-expert.md | Markdown documentation |
 | browser-test-expert.md | Markdown documentation |
-| browser-use-expert.md | Markdown documentation |
+| frontend-debug-expert.md | Markdown documentation |
 | change-review-expert.md | Markdown documentation |
 | CLAUDE.md | Markdown documentation |
 | code-explore-expert.md | Markdown documentation |

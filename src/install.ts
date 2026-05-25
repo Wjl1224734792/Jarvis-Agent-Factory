@@ -465,6 +465,10 @@ function installMcp(platform, target, force) {
     let updated = existing;
     let additions = 0;
 
+    if (!existing.includes('[mcp_servers.chrome-devtools]')) {
+      updated += '\n[mcp_servers.chrome-devtools]\ncommand = "npx"\nargs = ["chrome-devtools-mcp@latest"]\nenabled = true\n';
+      additions++;
+    }
     if (!existing.includes('[mcp_servers.playwright]')) {
       updated += '\n[mcp_servers.playwright]\ncommand = "npx"\nargs = ["-y", "@playwright/mcp@latest"]\nenabled = true\n';
       additions++;

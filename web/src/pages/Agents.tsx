@@ -54,7 +54,7 @@ function matchFunctionRole(id: string, role: string): boolean {
     case '架构师':
       return idIncludes('architect') || idLower === 'algorithm-expert';
     case '浏览器':
-      return idLower.includes('browser-use');
+      return idLower.includes('browser-test') || idLower.includes('frontend-debug');
     case '支撑':
       return idLower === 'external-resource-expert' || idLower === 'skill-assignment-expert';
     case '专家':

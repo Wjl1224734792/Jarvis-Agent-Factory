@@ -18,7 +18,6 @@ This directory contains the skills module of the project.
 |-----------|-------------|--------|
 | behavioral-guidelines/ | Project subdirectory | [AGENTS.md](behavioral-guidelines/AGENTS.md) |
 | browser-testing/ | Project subdirectory | [AGENTS.md](browser-testing/AGENTS.md) |
-| browser-use/ | Project subdirectory | [AGENTS.md](browser-use/AGENTS.md) |
 | chinese-documentation/ | Project subdirectory | [AGENTS.md](chinese-documentation/AGENTS.md) |
 | code-quality-gate/ | Project subdirectory | [AGENTS.md](code-quality-gate/AGENTS.md) |
 | code-review-and-quality/ | Project subdirectory | [AGENTS.md](code-review-and-quality/AGENTS.md) |
@@ -57,7 +56,7 @@ This directory contains the skills module of the project.
 
 
 ## Dependencies
-- **Internal:** behavioral-guidelines/, browser-testing/, browser-use/, chinese-documentation/, code-quality-gate/, code-review-and-quality/, code-simplification/, code-standards/, concurrency-policy/, context-engineering/, debugging-and-error-recovery/, debugging-deep/, documentation-and-adrs/, find-docs/, finishing-a-development-branch/, frontend-design/, git-workflow-and-versioning/, idea-refine/, incremental-implementation/, jarvis-reference/, mcp-builder/, perf-testing/, planning-and-task-breakdown/, refactoring/, security-and-hardening/, security-testing/, session-memory/, shipping-and-launch/, source-driven-development/, spec-driven-development/, test-data-factory/, test-driven-development/, using-agent-skills/, verification-before-completion/, writing-skills/
+- **Internal:** behavioral-guidelines/, browser-testing/, chinese-documentation/, code-quality-gate/, code-review-and-quality/, code-simplification/, code-standards/, concurrency-policy/, context-engineering/, debugging-and-error-recovery/, debugging-deep/, documentation-and-adrs/, find-docs/, finishing-a-development-branch/, frontend-design/, git-workflow-and-versioning/, idea-refine/, incremental-implementation/, jarvis-reference/, mcp-builder/, perf-testing/, planning-and-task-breakdown/, refactoring/, security-and-hardening/, security-testing/, session-memory/, shipping-and-launch/, source-driven-development/, spec-driven-development/, test-data-factory/, test-driven-development/, using-agent-skills/, verification-before-completion/, writing-skills/
 - **External:** See package.json for full dependency list
 
 <!-- MANUAL:START -->

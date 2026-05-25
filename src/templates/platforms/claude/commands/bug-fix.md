@@ -5,8 +5,8 @@ model: deepseek-v4-pro
 effort: max
 argument-hint: [Bug 描述、URL 或复现步骤]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
-version: "4.3.8"
-updated: "2026-05-14"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
 # Bug 修复闭环（浏览器复现 → 修复 → 验证）
@@ -39,33 +39,29 @@ Skill("browser-testing")
 
 ## 步骤 2：浏览器复现——捕获证据（不可绕过）
 
-使用 `agent-browser` CLI 严格按复现步骤操作。
+使用 agent-browser (精确获取页面结构) + Playwright MCP (稳定执行交互操作) 混合模式。
 
 ### 2.1 加载文档并初始化
-```bash
-agent-browser skills get core
-agent-browser open <url>                # 或 --headed 调试模式
-agent-browser --profile "Default" open <url>  # 如需登录态
+```
+# agent-browser 打开页面并获取结构
+agent-browser open <url>
+agent-browser snapshot -i               # 获取页面结构和 @ref
 ```
 
 ### 2.2 逐步复现
-```bash
-agent-browser snapshot -i               # 获取页面结构和 @ref
-# 按复现步骤执行：
-agent-browser click @eN
-agent-browser fill @eN "text"
-agent-browser press "Enter"
-agent-browser scroll down 300
-# 每步交互后 snapshot -i 确认页面状态变化
+```
+# agent-browser 获取页面快照确认状态
+agent-browser snapshot -i
+# Playwright MCP 执行交互操作（更稳定）
+browser_click / browser_type / browser_press_key
+# 每步交互后 agent-browser snapshot -i 确认页面状态变化
 ```
 
 ### 2.3 异常发生时立即截图和收集证据
-```bash
-agent-browser screenshot bug-repro.png
-agent-browser screenshot --annotate     # 带标注
-agent-browser console                   # JS 错误
-agent-browser errors                    # 未捕获异常
-agent-browser network requests          # 失败的网络请求
+```
+browser_take_screenshot                 # 截图
+browser_console_messages --level error  # JS 错误
+browser_network_requests                # 失败的网络请求
 ```
 
 ### 2.4 边界探测
@@ -103,20 +99,24 @@ agent-browser network requests          # 失败的网络请求
 
 ## 步骤 6：浏览器验证——确认修复（不可绕过）
 
-使用 `agent-browser` 按**完全相同复现步骤**重新操作：
+使用 agent-browser + Playwright MCP 混合模式，按**完全相同复现步骤**重新操作：
 
-```bash
+```
+# agent-browser 打开页面并获取结构
 agent-browser open <url>
 agent-browser snapshot -i
-# 严格按步骤 2 的相同操作序列执行
-agent-browser screenshot fix-verify.png  # 修复后截图
-# agent-browser console + agent-browser errors 确认无新增错误
+# Playwright MCP 执行相同交互操作序列
+browser_click / browser_type / browser_press_key
+# 修复后截图
+browser_take_screenshot
+# 确认无新增错误
+browser_console_messages --level error
 ```
 
 **验证通过标准：**
-- 原异常操作现在产生预期结果（`agent-browser get text @eN` 确认）
+- 原异常操作现在产生预期结果（agent-browser snapshot 确认页面状态）
 - 截图对比修复前后，异常已消除
-- 控制台无新增错误（`agent-browser console` + `agent-browser errors` 确认）
+- 控制台无新增错误（`browser_console_messages --level error` 确认）
 - 未引入新问题（相关功能抽查通过）
 
 **通过 → 进入步骤 7；失败 → 回到步骤 3 重新分析（最多 2 轮回退）**
@@ -141,13 +141,13 @@ agent-browser screenshot fix-verify.png  # 修复后截图
 
 ## 闭环图示
 ```
-Bug Report → 浏览器复现(agent-browser) → 截图/证据 → 定位根因 → 修复代码
-                                                   ↓
-                                   Lint + Type-check + Build
-                                    ↓                ↓
-                               三项通过          任一失败
-                                    ↓                ↓
-                          浏览器验证(agent-browser)   回到修复代码
+Bug Report → 浏览器复现(agent-browser+Playwright MCP) → 截图/证据 → 定位根因 → 修复代码
+                                                                   ↓
+                                                   Lint + Type-check + Build
+                                                    ↓                ↓
+                                               三项通过          任一失败
+                                                    ↓                ↓
+                                          浏览器验证(agent-browser+Playwright MCP)   回到修复代码
                           ↓           ↓
                      Bug 不再出现  Bug 仍存在
                           ↓           ↓
@@ -163,4 +163,4 @@ Bug Report → 浏览器复现(agent-browser) → 截图/证据 → 定位根因
 - 修改代码后不用浏览器验证（无法确认修复生效）
 - 修复范围超出 Bug 本身（夹带无关改动）
 - 在浏览器中执行破坏性操作（删除数据、发起支付等）
-- 用 sleep/wait 硬等待替代 `agent-browser wait` 轮询确认页面状态
+- 用 sleep/wait 硬等待替代 `browser_wait_for` 轮询确认页面状态

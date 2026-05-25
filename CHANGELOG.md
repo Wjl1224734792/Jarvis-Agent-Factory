@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.25 (2026-05-25)
+
+### 浏览器工具链重构
+- **新增 Chrome DevTools MCP**：前端调试专用，支持性能追踪、渲染分析、网络诊断、控制台调试
+- **新增 frontend-debug-expert**：使用 Chrome DevTools MCP 进行开发实时调试、性能/渲染优化
+- **删除 browser-use**：移除 browser-use CLI + browser-use-expert agent + install:browser-use 脚本
+- **browser-test-expert 重构**：混合模式——agent-browser CLI 精确获取页面结构（看清）+ Playwright MCP 稳定执行交互操作（操作）
+- **e2e-test-expert**：Playwright MCP 专用于代码级自动化测试，CI 可重复执行
+- **MCP 模板更新**：mcp-claude.json / mcp-codex.toml / mcp-opencode.json 均添加 chrome-devtools server
+- **agent tools 字段完整注册**：所有 agent 的 tools frontmatter 包含所需全部 MCP 工具和 Skill
+- **引擎核心更新**：agent-registry 分类规则、gates.ts Agent 指引、remove.ts MCP 白名单同步更新
+
 ## [4.7.20] - 2026-05-24
 
 ### Changed

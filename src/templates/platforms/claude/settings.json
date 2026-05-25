@@ -19,7 +19,8 @@
       "Bash(cargo:*)",
       "WebFetch",
       "WebSearch",
-      "Skill(*)"
+      "Skill(*)",
+      "mcp__chrome-devtools__*"
     ]
   }
 }

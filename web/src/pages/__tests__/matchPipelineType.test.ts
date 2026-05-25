@@ -96,8 +96,8 @@ describe('matchPipelineType', () => {
       expect(matchPipelineType('infra-deploy', '全流程')).toBe(true);
     });
 
-    it('应匹配 browser-use-expert', () => {
-      expect(matchPipelineType('browser-use-expert', '全流程')).toBe(true);
+    it('应匹配 frontend-debug-expert', () => {
+      expect(matchPipelineType('frontend-debug-expert', '全流程')).toBe(true);
     });
 
     it('不应匹配已移除的 docs-research-expert', () => {

@@ -15,7 +15,7 @@ const MANAGED_HOOKS_KEY = '_jarvisManagedHooks';
 const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 
 /** MCP server 白名单：安装时添加的 server（仅删除这些） */
-const JARVIS_MCP_SERVERS = new Set(['jarvis-engine', 'playwright']);
+const JARVIS_MCP_SERVERS = new Set(['jarvis-engine', 'playwright', 'chrome-devtools']);
 
 /**
  * 加载 jarvis 安装时写入的 hash 记录
