@@ -4,7 +4,27 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.27 (2026-05-25)
+
+### 审查优化
+- **e2e-test-expert 工具名修正**：移除8个不存在的MCP工具名，修正 `browser_fill`→`browser_fill_form`，`browser_run_code`→`browser_run_code_unsafe`，Playwright API方法→MCP工具
+- **browser-test-expert 技能加载**：由叙述性文本改为代码块 `Skill()` 格式
+- **frontend-dev-expert 矛盾修复**：解决"禁止spawn agent"与"spawn验证agent"的逻辑冲突
+- **命令 pipeline_type 修正**：`bug-fix` 和 `test-e2e` 由 `full` 改为 `lite`（跳过不必要的DDD/架构Gate）
+- **audit-fix agent名修正**：`remediation-expert`(执行器)→`remediation-planner`(规划器)
+- **phantom引用清理**：移除不存在的 `browser-test-worker` 和 `frontend-debug` skill引用，替换为实际存在的内容
+- **mcp-claude.json**：`chrome-devtools` 补充 `type: stdio` 字段
+
+## v4.7.26 (2026-05-25)
+
+### 浏览器工具链重构
+v4.7.25 的后续完善版本，包含完全的端点闭合：
+- 同步更新 install.ts MCP注入逻辑（Codex chrome-devtools）
+- 完整的 7 类验证通过（MCP模板/Agent工具/Skills/Commands/Gates/Hooks）
+
 ## v4.7.25 (2026-05-25)
+
+### 浏览器工具链重构
 
 ### 浏览器工具链重构
 - **新增 Chrome DevTools MCP**：前端调试专用，支持性能追踪、渲染分析、网络诊断、控制台调试
