@@ -7,7 +7,13 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), viteSingleFile({ removeViteModuleLoader: true })],
+  plugins: [
+    react(),
+    {
+      ...viteSingleFile({ removeViteModuleLoader: true }),
+      apply: 'build' as const,
+    },
+  ],
   base: '/',
   build: {
     outDir: resolve(__dirname, '..', 'dist', 'web'),
