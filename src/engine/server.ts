@@ -9,7 +9,7 @@ import { homedir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, touchSession, markStaleSessions } from './db.js';
+import { openDb, touchSession, markStaleSessions, addSession, initPipeline, createPipelineRun } from './db.js';
 import { setupApiRoutes } from '../web/routes.js';
 import { readPackageVersion } from '../shared/package-version.js';
 import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
@@ -141,6 +141,16 @@ function scanConflictFiles(projectRoot: string): void {
   for (const f of conflictPaths) {
     console.warn(`  ⚠ 冲突文件: ${f}`);
   }
+}
+
+/** MCP 连接后自动初始化默认会话，确保工具调用立即可用 */
+function autoInitSession(db: DatabaseSync, root: string): void {
+  if (_lastSessionId) return; // 已有会话则跳过
+  const sid = `s${Date.now()}`;
+  addSession(db, sid, 'claude', 'member');
+  initPipeline(db, sid, root, 'full');
+  createPipelineRun(db, sid, root, 'full');
+  _lastSessionId = sid;
 }
 
 /** 启动 Jarvis 引擎 */
@@ -322,6 +332,8 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
       log('The engine will now exit. Claude Code will restart it automatically.');
       process.exit(1);
     }
+    // MCP 启动即自动初始化会话，避免工具调用时提示 "session_id required"
+    autoInitSession(db, root);
   } else {
     // ---- HTTP Transport：MCP 通过 HTTP + SSE（手动启动 jarvis engine start） ----
     const transport = new StreamableHTTPServerTransport({
