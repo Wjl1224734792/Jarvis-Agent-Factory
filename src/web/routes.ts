@@ -20,6 +20,7 @@ type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSS
 /** SSE 客户端集合：存储 { stream, db, root } 引用 */
 export let sseClients: SSEClient[] = [];
 let sseDbRef: any = null;
+let sseRootRef: string = '.';
 let _sseTimer: ReturnType<typeof setInterval> | null = null;
 /** SSE 广播锁：防止并发广播时的竞态条件 */
 let _broadcasting = false;
@@ -88,6 +89,56 @@ function _initPubSubListeners(): void {
 }
 
 /**
+ * 构建单个会话的完整流水线数据（gates 数组 + 产物扫描）
+ * 用于 SSE 广播和 /api/pipeline 端点，确保数据结构一致
+ */
+function buildSessionPipeline(db: any, session: any, root: string) {
+  const p = getPipeline(db, session.id);
+  const pt = p?.pipeline_type || DEFAULT_PIPELINE;
+  const gateList = getPipelineGates(pt);
+  const run = getActiveRun(db, session.id);
+  const currentGate = p?.current_gate;
+  let currentIdx = currentGate != null ? gateList.indexOf(currentGate) : -1;
+  if (currentIdx < 0) currentIdx = gateList.length;
+  const gates = gateList.map((g, idx) => {
+    const cpList = getCheckpoints(db, g, session.id);
+    const cp = cpList.length > 0 ? cpList[0] : null;
+    let enteredAt;
+    if (idx === 0) {
+      enteredAt = run?.started_at || null;
+    } else if (idx > 0 && idx < currentIdx) {
+      const prevCpList = getCheckpoints(db, gateList[idx - 1], session.id);
+      const prevCp = prevCpList.length > 0 ? prevCpList[0] : null;
+      enteredAt = prevCp?.passed_at || null;
+    } else if (idx === currentIdx) {
+      enteredAt = run?.gate_entered_at || null;
+    } else {
+      enteredAt = null;
+    }
+    return {
+      gate: g,
+      passed: cp !== null,
+      artifacts: findSessionGateArtifacts(resolve(root, '.jarvis'), g, session.id, db, run?.id),
+      entered_at: enteredAt,
+      duration_seconds: cp?.duration_seconds ?? null,
+      duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
+    };
+  });
+  const current = gates.find(g => !g.passed)?.gate || 'Complete';
+  return {
+    session_id: session.id,
+    platform: session.platform,
+    status: session.status,
+    pipeline_type: pt,
+    pipeline_name: getPipelineName(pt),
+    current_gate: current,
+    completed: gates.filter(g => g.passed).map(g => g.gate),
+    gates,
+    _display: formatGateDisplay(gates, current),
+  };
+}
+
+/**
  * 向所有 SSE 客户端广播最新会话数据
  * 由外部 setInterval 或 PubSub 事件驱动调用
  */
@@ -124,7 +175,7 @@ export function broadcastSSE() {
       latestSession = s;
     }
   }
-  const pipeline = latestSession ? (getPipeline(sseDbRef, latestSession.id) ?? null) : null;
+  const pipeline = latestSession ? buildSessionPipeline(sseDbRef, latestSession, sseRootRef) : null;
   const pipelineRuns = latestSession
     ? getSessionRuns(sseDbRef, latestSession.id).map(r => ({
         ...r,
@@ -173,6 +224,7 @@ export function broadcastSSE() {
 export function setupApiRoutes(app, db, root) {
   // 保存 SSE db 引用
   sseDbRef = db;
+  sseRootRef = root;
 
   // TASK-002: 初始化 PubSub 事件监听（去抖广播）
   _initPubSubListeners();
@@ -211,57 +263,7 @@ export function setupApiRoutes(app, db, root) {
   // 所有会话的合并流水线视图（Dashboard 用）
   app.get('/api/pipeline', (c) => {
     const sessions = getSessions(db);
-    const sessionList = sessions.map(s => {
-      const p = getPipeline(db, s.id);
-      const pt = p?.pipeline_type || DEFAULT_PIPELINE;
-      const gateList = getPipelineGates(pt);
-      const run = getActiveRun(db, s.id);
-      // 根据 pipeline 状态的 current_gate 确定当前 Gate 在序列中的位置
-      const currentGate = p?.current_gate;
-      let currentIdx = currentGate != null ? gateList.indexOf(currentGate) : -1;
-      if (currentIdx < 0) currentIdx = gateList.length; // 无当前 Gate（已完成等），全部视为已过 Gate
-      const gates = gateList.map((g, idx) => {
-        const cpList = getCheckpoints(db, g, s.id);
-        const cp = cpList.length > 0 ? cpList[0] : null;
-        // 按 Gate 在序列中的位置分情形计算 entered_at
-        let enteredAt;
-        if (idx === 0) {
-          // Gate A（首个 Gate）：使用 run.started_at
-          enteredAt = run?.started_at || null;
-        } else if (idx > 0 && idx < currentIdx) {
-          // 已通过的后续 Gate：使用前一个 Gate 的 checkpoint.passed_at 作为近似进入时间
-          const prevCpList = getCheckpoints(db, gateList[idx - 1], s.id);
-          const prevCp = prevCpList.length > 0 ? prevCpList[0] : null;
-          enteredAt = prevCp?.passed_at || null;
-        } else if (idx === currentIdx) {
-          // 当前 Gate：使用 run.gate_entered_at
-          enteredAt = run?.gate_entered_at || null;
-        } else {
-          // 未到达的 Gate：null
-          enteredAt = null;
-        }
-        return {
-          gate: g,
-          passed: cp !== null,
-          artifacts: findSessionGateArtifacts(getArtifactsDir(root), g, s.id, db, run?.id),
-          entered_at: enteredAt,
-          duration_seconds: cp?.duration_seconds ?? null,
-          duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
-        };
-      });
-      const current = gates.find(g => !g.passed)?.gate || 'Complete';
-      return {
-        session_id: s.id,
-        platform: s.platform,
-        status: s.status,
-        pipeline_type: pt,
-        pipeline_name: getPipelineName(pt),
-        current_gate: current,
-        completed: gates.filter(g => g.passed).map(g => g.gate),
-        gates,
-        _display: formatGateDisplay(gates, current),
-      };
-    });
+    const sessionList = sessions.map(s => buildSessionPipeline(db, s, root));
     return c.json({ sessions: sessionList, active_count: sessions.length });
   });
 
