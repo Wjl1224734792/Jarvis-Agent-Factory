@@ -19,7 +19,6 @@ This directory contains the templates module of the project.
 ## Subdirectories
 | Directory | Description | AGENTS |
 |-----------|-------------|--------|
-| deepinit/ | DeepInit documentation generator | [AGENTS.md](deepinit/AGENTS.md) |
 | memory/ | Memory templates | [AGENTS.md](memory/AGENTS.md) |
 | platforms/ | Platform-specific configs | [AGENTS.md](platforms/AGENTS.md) |
 
@@ -28,7 +27,7 @@ This directory contains the templates module of the project.
 
 
 ## Dependencies
-- **Internal:** deepinit/, memory/, platforms/
+- **Internal:** memory/, platforms/
 - **External:** See package.json for full dependency list
 
 <!-- MANUAL:START -->

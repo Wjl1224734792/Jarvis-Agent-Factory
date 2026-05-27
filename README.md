@@ -98,7 +98,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | Agents | 72 |
 | Commands | 35 |
 | Skills | 35 |
-| CLI 命令 | 11 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `deepinit` `resolve`) |
+| CLI 命令 | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
 | 流水线 | 15 条 |
 
 ## 引擎能力

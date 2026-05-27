@@ -20,7 +20,6 @@ const COMMANDS: Record<string, () => Promise<CmdModule>> = {
   resolve: () => import('./commands/resolve.js'),
   doctor:   () => import('./commands/doctor.js'),
   check:    () => import('./commands/doctor.js'),
-  deepinit: () => import('./commands/deepinit.js'),
 };
 
 export async function run(): Promise<void> {

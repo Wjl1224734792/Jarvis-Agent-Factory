@@ -67,9 +67,8 @@ Usage:
   jarvis engine stop                 Stop engine
   jarvis engine status               Engine status
   jarvis web [--port=N]              Start web dashboard (≡ engine start)
-  jarvis hook <subcommand>           Engine hook integration (gate-check/gate-advance/status/agent-config)
+  jarvis hook <subcommand>           Engine hook integration (gate-check/gate-advance/status/report-status/agent-config)
   jarvis doctor [path]               Verify installation
-  jarvis deepinit [path]             Deep codebase initialization (AGENTS.md regeneration)
   jarvis resolve [path]              Resolve jarvis paths and configuration
 
 Options:

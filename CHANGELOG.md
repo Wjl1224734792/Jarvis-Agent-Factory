@@ -4,6 +4,21 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.30 (2026-05-27)
+
+### 指令重构
+- **deepinit 重写**：`/deepinit` 指令由 CLI 模板填充重写为 AI Agent 驱动架构文档生成——spawn 并行 Agent 读取源码 → 理解架构 → 撰写分层 AGENTS.md + CLAUDE.md
+
+## v4.7.29 (2026-05-26)
+
+### Bug 修复
+- **SSE 广播修复**：修复 SSE 广播推送空 gates 数组导致推进 gate 后 Web 面板 Gate 流程消失的问题
+
+## v4.7.28 (2026-05-26)
+
+### Bug 修复
+- **MCP 会话修复**：MCP 启动时自动初始化引擎会话，避免工具调用时提示 `session_id required`
+
 ## v4.7.27 (2026-05-25)
 
 ### 审查优化

@@ -80,7 +80,7 @@ jarvis remove claude -g --engine --force # Global: all Jarvis files in user home
 | Agents | 72 |
 | Commands | 35 |
 | Skills | 35 |
-| CLI Commands | 11 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `deepinit` `resolve`) |
+| CLI Commands | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
 | Pipelines | 15 |
 
 ## Engine Capabilities

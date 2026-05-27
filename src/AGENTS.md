@@ -22,7 +22,6 @@ This directory contains the src module of the project.
 | Directory | Description | AGENTS |
 |-----------|-------------|--------|
 | cli/ | CLI entry point | [AGENTS.md](cli/AGENTS.md) |
-| deepinit/ | DeepInit documentation generator | [AGENTS.md](deepinit/AGENTS.md) |
 | engine/ | Core engine logic | [AGENTS.md](engine/AGENTS.md) |
 | shared/ | Shared utilities | [AGENTS.md](shared/AGENTS.md) |
 | templates/ | Code templates | [AGENTS.md](templates/AGENTS.md) |
@@ -33,7 +32,7 @@ This directory contains the src module of the project.
 
 
 ## Dependencies
-- **Internal:** cli/, deepinit/, engine/, shared/, templates/, web/
+- **Internal:** cli/, engine/, shared/, templates/, web/
 - **External:** See package.json for full dependency list
 
 <!-- MANUAL:START -->

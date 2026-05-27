@@ -12,7 +12,6 @@ This directory contains the commands module of the project.
 | add.ts | TypeScript source — No exports |
 | AGENTS.md | Markdown documentation |
 | CLAUDE.md | Markdown documentation |
-| deepinit.ts | TypeScript source — No exports |
 | diff.ts | TypeScript source — No exports |
 | doctor.ts | TypeScript source — No exports |
 | engine-restart.ts | TypeScript source — No exports |

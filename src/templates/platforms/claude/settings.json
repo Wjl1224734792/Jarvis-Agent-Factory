@@ -20,7 +20,9 @@
       "WebFetch",
       "WebSearch",
       "Skill(*)",
-      "mcp__chrome-devtools__*"
+      "mcp__chrome-devtools__*",
+      "mcp__playwright__*",
+      "mcp__visual-primitives__*"
     ]
   }
 }
