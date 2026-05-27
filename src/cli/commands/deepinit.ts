@@ -2,7 +2,8 @@ import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import {
   scanDirectory, flattenTree, generateAll, generateAllParallel, generateAllSmart,
-  writeDocs, generateIncremental, generateIncrementalParallel, validateHierarchy,
+  writeDocs, generateIncremental, generateIncrementalParallel, generateIncrementalSmart,
+  validateHierarchy,
   scanDirectories, loadManifest, saveManifest, computeDiff, changedPaths,
 } from '../../deepinit/index.js';
 import type { CliOpts } from '../utils/args.js';
@@ -10,7 +11,7 @@ import type { CliOpts } from '../utils/args.js';
 export async function execute(opts: CliOpts, positional: string[]): Promise<void> {
   const target = resolve(positional[1] || process.cwd());
   const force = opts.yes || false;
-  const smart = opts.smart || false;
+  const smart = opts.smart !== false; // Default: smart mode on (architecture-aware analysis)
   const parallel = opts.parallel !== false; // Default: parallel on
   const jobs = typeof opts.jobs === 'number' ? opts.jobs : 0; // 0 = unlimited
 
@@ -58,7 +59,9 @@ export async function execute(opts: CliOpts, positional: string[]): Promise<void
       results = generateAll(flat, target);
     }
   } else {
-    if (parallel) {
+    if (smart) {
+      results = generateIncrementalSmart(flat, changed, target);
+    } else if (parallel) {
       results = generateIncrementalParallel(flat, changed, target, jobs);
     } else {
       results = generateIncremental(flat, changed, target);
