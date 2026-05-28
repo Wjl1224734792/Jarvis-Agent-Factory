@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = resolve(__dirname, 'templates');
 
-const INSTALL_BUCKETS = ['agents', 'commands', 'skills', 'plugins'];
+const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 
 /** MCP server 白名单：永不被删除 */
 const MCP_SERVER_WHITELIST = new Set(['jarvis-engine']);

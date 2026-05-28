@@ -3,28 +3,30 @@
   "mcp": {
     "chrome-devtools": {
       "type": "local",
-      "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
       "enabled": true
     },
     "playwright": {
       "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ],
       "enabled": true
-    },
-    "visual-primitives": {
-      "type": "local",
-      "command": ["npx", "-y", "visual-primitives-mcp"],
-      "enabled": true,
-      "env": {
-        "VISION_API_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "VISION_API_KEY": "${VISION_API_KEY}",
-        "VISION_MODEL_NAME": "qwen3.6-plus",
-        "VISION_OCR_MODEL": "qwen3-vl-ocr"
-      }
     },
     "jarvis-engine": {
       "type": "local",
-      "command": ["jarvis", "engine", "start", "--stdio"],
+      "command": [
+        "jarvis",
+        "engine",
+        "start",
+        "--stdio"
+      ],
       "enabled": true
     }
   }
