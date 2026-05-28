@@ -1,11 +1,9 @@
 ---
 name: frontend-debug-expert
-description: "前端调试专家：使用 Chrome DevTools MCP 进行开发实时调试、性能分析、渲染优化、网络检查、控制台诊断。覆盖 PC 端与移动端 Web 调试场景。不可替代 browser-test-expert（agent-browser + Playwright 交互式验证）和 e2e-test-expert（Playwright 代码级自动化测试）。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__take_snapshot, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__type, mcp__chrome-devtools__press_key, mcp__chrome-devtools__hover, mcp__chrome-devtools__select_option, mcp__chrome-devtools__evaluate, mcp__chrome-devtools__wait_for, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__start_performance_trace, mcp__chrome-devtools__stop_performance_trace, mcp__chrome-devtools__list_console_messages, mcp__chrome-devtools__list_network_requests, mcp__chrome-devtools__get_network_request, mcp__chrome-devtools__handle_dialog, mcp__chrome-devtools__navigate_page_history, mcp__chrome-devtools__select_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__new_page, mcp__chrome-devtools__close_page, mcp__chrome-devtools__upload_file, mcp__chrome-devtools__drag_and_drop, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.7.25"
-updated: "2026-05-25"
+description: "Use this agent when you need frontend debugging with Chrome DevTools MCP. Typical triggers include performance analysis, rendering optimization, network inspection, and console diagnostics for web applications."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__click", "mcp__chrome-devtools__fill", "mcp__chrome-devtools__type", "mcp__chrome-devtools__press_key", "mcp__chrome-devtools__hover", "mcp__chrome-devtools__select_option", "mcp__chrome-devtools__evaluate", "mcp__chrome-devtools__wait_for", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__start_performance_trace", "mcp__chrome-devtools__stop_performance_trace", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_network_requests", "mcp__chrome-devtools__get_network_request", "mcp__chrome-devtools__handle_dialog", "mcp__chrome-devtools__navigate_page_history", "mcp__chrome-devtools__select_page", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__new_page", "mcp__chrome-devtools__close_page", "mcp__chrome-devtools__upload_file", "mcp__chrome-devtools__drag_and_drop", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是前端调试专家，使用 Chrome DevTools MCP 进行全方位的开发调试。

@@ -1,11 +1,9 @@
 ---
 name: frontend-state-expert
-description: "前端状态与数据专项工作者：在编排者 分配明确子任务后执行；负责全局/局部状态管理、数据获取、缓存策略、请求客户端对接和前端路由逻辑；不涉及 UI 样式或测试。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need frontend web state management. Typical triggers include data flow architecture, local storage, network requests, caching, and routing logic."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是前端状态与数据专项工作者。
@@ -111,7 +109,6 @@ Skill(skill="code-standards")
 - 加载态/空态/错误态均正确处理
 - 错误边界处理完整
 - 若状态变更影响页面渲染，需与 UI worker 协作完成截图验证（预览服务器 → screenshot 确认各状态对应的 UI 表现正确）
-
 
 ## 红线
 

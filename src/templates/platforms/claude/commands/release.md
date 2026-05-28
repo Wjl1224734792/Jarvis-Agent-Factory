@@ -1,12 +1,9 @@
 ---
 name: release
 description: 发布指令——RL0环境检测→RL1质量门→RL2版本递增→RL3发布执行→RL4发布验证，5Gate发布流程
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [版本类型：patch|minor|major，默认patch]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent"]
 ---
 
 # 发布（Tag + Push）

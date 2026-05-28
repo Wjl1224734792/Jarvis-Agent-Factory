@@ -1,11 +1,9 @@
 ---
 description: 前端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路
 name: frontend
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [前端需求描述]
-version: "4.7.25"
-updated: "2026-05-25"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 前端开发生命周期
@@ -231,7 +229,6 @@ Gate C-impl:
 - 当 Claude Code 不支持 TeamCreate（缺少环境变量）时，回退到并行 subagent 模式
 - 小任务（<5 文件）直接用 subagent 模式，无需 Team
 - 中任务（5-10 文件）可选 Team 或并行 subagent
-
 
 ---
 

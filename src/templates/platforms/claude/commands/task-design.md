@@ -2,10 +2,8 @@
 name: task-design
 description: 任务分解——DDD领域分析/BDD场景生成/TDD任务包，三模式可独立使用或链式执行
 argument-hint: "[--mode ddd|bdd|tdd] [需求文档路径]"
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-20"
+model: inherit
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check"]
 ---
 
 # 任务分解设计

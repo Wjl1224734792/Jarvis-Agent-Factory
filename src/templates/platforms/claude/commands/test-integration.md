@@ -1,12 +1,9 @@
 ---
 name: test-integration
 description: 集成测试/API 测试指令——基于 OpenAPI 契约生成集成测试，启动测试环境，验证 API 端点行为
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [API 端点或服务名称]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
 ---
 
 # 集成测试 / API 测试

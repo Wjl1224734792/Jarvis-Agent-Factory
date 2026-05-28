@@ -1,12 +1,9 @@
 ---
 name: skill-flow
 description: 会话流程导出 — 将当前会话的流水线流程（Gate序列+Agent spawn+产物）导出为可复用的 Skill 模板
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: "[子命令: export|save|list|apply] [名称]"
-allowed-tools: Read, Glob, Grep, Bash(gh:*), Bash(git:*), Bash(npm:*), Edit, Write, mcp__jarvis-engine__session_export, mcp__jarvis-engine__flow_skill_save, mcp__jarvis-engine__flow_skill_list, mcp__jarvis-engine__session_join, mcp__jarvis-engine__pipeline_guide, mcp__jarvis-engine__gate_check, mcp__jarvis-engine__advance_gate, mcp__jarvis-engine__report_status
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Glob", "Grep", "Bash(gh:*)", "Bash(git:*)", "Bash(npm:*)", "Edit", "Write", "mcp__jarvis-engine__session_export", "mcp__jarvis-engine__flow_skill_save", "mcp__jarvis-engine__flow_skill_list", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__report_status"]
 ---
 
 # /skill-flow — 会话流程 Skill 化

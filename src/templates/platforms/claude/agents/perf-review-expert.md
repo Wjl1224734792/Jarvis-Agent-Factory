@@ -1,11 +1,9 @@
 ---
 name: perf-review-expert
-description: "性能只读审查代理：审查前端、后端、数据库、构建和运行时的性能风险、基线缺口与可测指标，不修改任何文件。"
-tools: Read, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need performance auditing. Typical triggers include bundle size analysis, LCP/CLS metrics review, database query optimization, and runtime profiling."
+tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
+color: blue
+model: inherit
 ---
 
 你是性能只读审查代理。
@@ -92,7 +90,6 @@ Skill(skill="behavioral-guidelines")
 4. 建议指标与测量方案
 5. Residual Risk
 6. 推荐的下一步
-
 
 ## 红线
 

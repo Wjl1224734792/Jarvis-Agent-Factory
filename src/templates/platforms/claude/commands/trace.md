@@ -1,12 +1,9 @@
 ---
 name: trace
 description: 因果追踪——T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案，假设驱动的科学根因定位，对标OMC trace
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [异常/问题/症状描述]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, WebFetch, WebSearch
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "WebFetch", "WebSearch"]
 ---
 
 # 因果追踪

@@ -1,11 +1,9 @@
 ---
 name: external-resource-expert
-description: "外部资料搜索与探索代理：通过 WebSearch/WebFetch 搜索库/框架/API 最新文档与代码示例；发现可用的开源 Agent Skill；输出版本兼容性建议和安装方案给主 Agent，为各阶段提供外部事实依据"
-tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references
-model: deepseek-v4-flash
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need external documentation research. Typical triggers include searching for library documentation, framework API references, version compatibility checks, and discovering open-source tools."
+tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references"]
+color: blue
+model: inherit
 ---
 
 你是外部资料搜索与探索代理。

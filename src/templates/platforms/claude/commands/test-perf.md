@@ -1,12 +1,9 @@
 ---
 name: test-perf
 description: 性能测试指令——k6/Artillery 负载测试，对比基线，定位性能瓶颈
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [测试目标端点或场景描述]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
 ---
 
 # 性能测试

@@ -1,12 +1,9 @@
 ---
 description: Bug 修复闭环——浏览器复现→定位根因→修复→浏览器验证，涉及前端/页面交互类 Bug 的完整闭环
 name: bug-fix
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [Bug 描述、URL 或复现步骤]
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
-version: "4.7.25"
-updated: "2026-05-25"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent"]
 ---
 
 # Bug 修复闭环（浏览器复现 → 修复 → 验证）

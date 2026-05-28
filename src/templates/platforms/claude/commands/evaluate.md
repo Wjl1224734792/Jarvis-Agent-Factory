@@ -1,12 +1,9 @@
 ---
 name: evaluate
 description: 技术评估指令——E0定义标准→E1生成原型→E2收集指标→E3生成报告，4Gate评估流程
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [评估对象，如"是否采用Bun替代Node.js"或"React vs Vue技术选型"]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch, WebSearch
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "WebSearch"]
 ---
 
 # 技术评估

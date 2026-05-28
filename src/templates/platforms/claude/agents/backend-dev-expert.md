@@ -1,11 +1,9 @@
 ---
 name: backend-dev-expert
-description: "后端全栈实现者：在编排者 分配明确子任务后执行；负责后端服务、接口、应用逻辑、数据访问和后端测试的完整实现。自身不调度其他 agent。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need backend server implementation. Typical triggers include feature development, code changes, component building, and backend server-specific tasks."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是后端全栈实现者。
@@ -119,5 +117,4 @@ Skill(skill="code-standards")
 8. 风险 / 未解决项
 9. 需要前端配合的点
 10. 推荐的下一步
-
 

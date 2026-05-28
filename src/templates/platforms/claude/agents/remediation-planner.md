@@ -1,11 +1,9 @@
 ---
 name: remediation-planner
-description: "修复与优化规划代理：把初审 findings 转成可执行修复/优化计划，明确所有权、顺序、验证命令和共享区域边界。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_priority_context, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_document_symbols, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_find_references
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need fix planning. Typical triggers include converting initial review findings into actionable fix plans with task ownership, execution order, and verification commands."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references"]
+color: blue
+model: inherit
 ---
 
 你是修复与优化规划代理。
@@ -75,7 +73,6 @@ Skill(skill="behavioral-guidelines")
 - 每个待处理 finding 都有处理状态
 - 每个执行任务边界清晰
 - 每个共享区域只有一个责任方
-
 
 ## 红线
 

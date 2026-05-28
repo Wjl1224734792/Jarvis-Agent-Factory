@@ -1,12 +1,9 @@
 ---
 description: 进入审查修复优化闭环——初审→规划→执行→验证→复审完整链路
 name: review-fix
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [审查范围]
-allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent, Edit, Write
-version: "4.7.25"
-updated: "2026-05-25"
+tools: ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Skill", "Agent", "Edit", "Write"]
 ---
 
 # 审查修复优化闭环
@@ -20,6 +17,7 @@ updated: "2026-05-25"
 
 2. 注册引擎会话（硬约束——引擎确保各阶段操作权限不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - `mcp__jarvis-engine__gate_jump({ gate: "Gate D" })`
    - 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
    - 关键操作前调用 `gate_check`：审查→`review`，修复→`fix`，Lint→`lint`，构建→`build`
 

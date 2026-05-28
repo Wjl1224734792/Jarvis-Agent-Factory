@@ -1,11 +1,9 @@
 ---
 name: api-contract-expert
-description: "API 文档专项工作者：负责 API 契约一致性验证（Gate C2 强制）和 OpenAPI/Swagger 文档生成（按需触发）。不编写业务代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need API contract verification. Typical triggers include OpenAPI/Swagger documentation generation, verifying API implementation against contracts, and endpoint consistency checks."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是 API 文档（API Documentation）工作者。分为两种模式：
@@ -123,7 +121,6 @@ API 文档不修改共享区域。若发现文档与实现不一致（契约漂�
 - Postman Collection 已导出（如需要）
 - 契约一致性已验证（文档 vs 实现）
 - 文档已输出
-
 
 ## 红线
 

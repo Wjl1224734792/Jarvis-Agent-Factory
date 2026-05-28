@@ -1,11 +1,9 @@
 ---
 description: 同步项目文档——检查并更新核心文档使其与代码一致，清理过时文件
 name: sync
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [--dry-run 预览模式] [--no-clean 跳过清理]
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__repowiki_add", "mcp__jarvis-engine__repowiki_ingest", "mcp__jarvis-engine__repowiki_query"]
 ---
 
 # 同步项目文档

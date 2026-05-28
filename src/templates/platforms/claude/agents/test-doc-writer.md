@@ -1,11 +1,9 @@
 ---
 name: test-doc-writer
-description: 浏览器测试用例编写者——根据需求文档和前端变更编写结构化测试用例文档，不执行测试
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need test case documentation. Typical triggers include writing structured test case documents from requirements and frontend changes for browser testing."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 # 测试文档编写智能体

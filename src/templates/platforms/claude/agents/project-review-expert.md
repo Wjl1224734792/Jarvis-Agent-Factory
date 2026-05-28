@@ -1,11 +1,9 @@
 ---
 name: project-review-expert
-description: "项目只读审查代理：审查仓库结构、模块边界、依赖方向、配置、脚本、文档漂移和工程约定风险，不修改任何文件。"
-tools: Read, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need project structure review. Typical triggers include auditing repository structure, module boundaries, dependency direction, and engineering conventions."
+tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
+color: blue
+model: inherit
 ---
 
 你是项目只读审查代理。
@@ -93,7 +91,6 @@ Skill(skill="behavioral-guidelines")
 6. Findings（按严重度排序）
 7. 高风险共享区域
 8. 推荐的下一步
-
 
 ## 红线
 

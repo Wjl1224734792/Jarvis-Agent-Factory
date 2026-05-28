@@ -1,11 +1,9 @@
 ---
 name: taro-dev-expert
-description: "Taro 跨端移动开发工作者：在编排者 分配明确子任务后执行；负责 Taro（React/Vue）小程序/H5/移动端页面、组件、交互与平台适配。不涉及后端或 API。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need Taro mini-program/H5 implementation. Typical triggers include feature development, code changes, component building, and Taro mini-program/H5-specific tasks."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是 Taro 跨端移动开发工作者。
@@ -109,7 +107,6 @@ Skill(skill="code-standards")
 - 条件编译点位已标注
 - 测试全部通过
 - 实现文档已输出
-
 
 ## 红线
 

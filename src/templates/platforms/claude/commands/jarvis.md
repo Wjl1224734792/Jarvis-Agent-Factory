@@ -2,10 +2,8 @@
 description: 启动贾维斯全流程编排——需求→任务→计划→实现→质量→测试→评审→发布
 name: jarvis
 argument-hint: "[任务描述]"
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+model: inherit
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 贾维斯全流程编排
@@ -16,7 +14,7 @@ updated: "2026-05-14"
 
 1. **Write / Edit 工具受 Gate 管控** — 在 Gate A、B、B1、C、C1.5、C2、D 阶段，直接使用 `Write`/`Edit` 工具写代码会被 Hook 拦截（`exit 1`）。只有 Gate C-impl 和 Gate C1 允许直接写代码。
 2. **编排者禁止直接编码** — 你是编排中枢，不是实现者。所有代码变更必须通过 `Agent()` spawn 实现类子 Agent 完成。唯一的例外：Gate C1 质量修复、Gate E 发布脚本、以及该命令自身的维护。
-3. **Gate 序列不可跳过** — A→B→B1→C→C-impl→C1→C1.5→C2→D→E，引擎 FSM 拒绝回退/跳跃。
+3. **Gate 序列不可跳过** — A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E，引擎 FSM 拒绝回退/跳跃。
 4. **与 `/auto` 区别**：
    - `/jarvis`（本命令）— **全流程严格模式**，10 道闸门全部强制执行。适合中大型功能开发。
    - `/auto` — **智能路由模式**，自动检测任务类型→路由最优流水线→跳过无关Gate→按复杂度分配Team/Subagent。适合日常所有任务。
@@ -60,7 +58,7 @@ updated: "2026-05-14"
 ## 流水线配置
 
 - **pipeline_type**: `full`
-- **Gate 序列**: A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（13 道闸门）
+- **Gate 序列**: A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（12 道闸门）
 - **可用代理**: 全部 47 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
 - **典型 Batch 结构**:
   ```
@@ -95,7 +93,7 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 ```
 
 **引擎验证**：需求确认后，推进时设置任务标题：
-`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "Gate B", task_name: "<需求澄清后的任务摘要>" })`
+`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "Gate B-DDD", task_name: "<需求澄清后的任务摘要>" })`
 
 ---
 
@@ -499,11 +497,10 @@ Agent(perf-review-expert, "性能审计")   /
 降级: TeamCreate 不可用 → 回退并行 Subagent
 ```
 
-
 ---
 
 ## 红线
-- Gate 不可跳跃——严格遵守 A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序
+- Gate 不可跳跃——严格遵守 A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E 顺序
 - 需求文档必须先产出再编码——先写 REQ-XXX 再写代码
 - Agent 不可递归 spawn——子 Agent 不得再生成其他 Agent
 - 测试不通过不得推进 Gate——Gate C2 是硬门禁

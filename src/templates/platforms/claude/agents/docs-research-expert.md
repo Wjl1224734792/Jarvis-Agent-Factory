@@ -1,11 +1,9 @@
 ---
 name: docs-research-expert
-description: "文档研究代理：通过 WebFetch/WebSearch 搜索库/框架/API 的最新文档与代码示例；可在任务设计、规划、实现或评审的任何阶段按需插入，为各代理提供外部文档事实依据。"
-tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references
-model: deepseek-v4-flash
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need documentation research via web. Typical triggers include searching for library/framework/API documentation with WebFetch/WebSearch, discovering code examples, and providing version compatibility guidance."
+tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references"]
+color: blue
+model: inherit
 ---
 
 你是文档研究代理。
@@ -60,7 +58,6 @@ Skill(skill="find-skills")
 
 - 响应中输出结构化搜索结果
 - 如被要求写文档，输出到 .jarvis/YYYY-MM-DD/research/<topic>-docs-research.md
-
 
 ## 红线
 

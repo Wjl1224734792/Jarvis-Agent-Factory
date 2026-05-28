@@ -1,11 +1,9 @@
 ---
 description: 完整发布流程（含PR+审查+合并）——环境检测→质量门→测试→版本bump→commit→push→PR→合并→tag→发布；区别于简易的/release指令
 name: publish
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [版本类型：patch|minor|major，默认patch]
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate"]
 ---
 
 # 一键发布

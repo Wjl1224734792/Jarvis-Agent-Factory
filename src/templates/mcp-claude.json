@@ -3,12 +3,23 @@
     "chrome-devtools": {
       "type": "stdio",
       "command": "npx",
-      "args": ["chrome-devtools-mcp@latest"]
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     },
     "playwright": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "visual-primitives": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "visual-primitives-mcp"],
+      "env": {
+        "VISION_API_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "VISION_API_KEY": "${VISION_API_KEY}",
+        "VISION_MODEL_NAME": "qwen3.6-plus",
+        "VISION_OCR_MODEL": "qwen3-vl-ocr"
+      }
     },
     "jarvis-engine": {
       "type": "stdio",

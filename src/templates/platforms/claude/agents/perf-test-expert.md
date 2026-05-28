@@ -1,11 +1,9 @@
 ---
 name: perf-test-expert
-description: "性能测试专项工作者：负责负载测试、压力测试、基准测试和性能瓶颈定位。使用 k6/Gatling/Locust/JMeter 等工具执行实际压测，产出性能报告。不编写业务代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need performance testing. Typical triggers include load testing with k6/Gatling/JMeter, stress testing, benchmarking, and bottleneck identification."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是性能测试（Performance Test）工作者。
@@ -116,7 +114,6 @@ Skill(skill="code-standards")
 - 瓶颈已定位并记录
 - 性能测试报告已输出
 - 无 Critical 或 High 性能退化未解释
-
 
 ## 红线
 

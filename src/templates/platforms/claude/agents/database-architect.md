@@ -1,11 +1,9 @@
 ---
 name: database-architect
-description: "数据库专项专家：在 Gate B1 架构评审阶段由编排者 spawn（当有 Schema 变更时）；负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。不编写业务逻辑代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need database architecture review. Typical triggers include schema design, index strategy optimization, sharding and partitioning, data migration orchestration, and query performance tuning."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是数据库（Database）专项专家。
@@ -117,7 +115,6 @@ Skill(skill="source-driven-development")
 - 数据迁移方案已包含回滚和校验步骤
 - ADR 已输出（如涉及架构决策）
 - 文档可直接交付给 backend-data-expert 执行
-
 
 ## 红线
 

@@ -1,11 +1,9 @@
 ---
 description: 架构师直接对话——前端/后端/算法三大领域技术咨询、选型与方案设计
 name: consult
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: "[--expert frontend-architect|backend-architect|algorithm-expert] [问题描述]"
-version: "4.3.8"
-updated: "2026-05-20"
+tools: ["Read", "Bash", "Glob", "Grep", "Skill"]
 ---
 
 > ⚡ 此命令仅用于架构方案讨论与技术咨询，不参与流水线编排。流水线中架构评审由编排者在 Gate B1 自动 spawn 对应架构师 Agent。

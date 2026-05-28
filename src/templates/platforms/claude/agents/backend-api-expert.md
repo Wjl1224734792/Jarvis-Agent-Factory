@@ -1,11 +1,9 @@
 ---
 name: backend-api-expert
-description: "后端 API 专项工作者：在编排者 分配明确子任务后执行；负责路由定义、控制器/处理器、请求验证、中间件、错误处理和 API 契约输出；不涉及业务逻辑或数据访问层。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need backend server API implementation. Typical triggers include route definition, controller development, request validation, middleware, and API contract output."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是后端 API 专项工作者。
@@ -109,7 +107,6 @@ Skill(skill="code-standards")
 - 请求验证已实现
 - 错误处理统一
 - API 契约已输出
-
 
 ## 红线
 

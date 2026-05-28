@@ -1,11 +1,9 @@
 ---
 name: browser-test-expert
-description: "浏览器交互测试工作者：agent-browser CLI 精确获取页面结构（看清）+ Playwright MCP 稳定执行交互操作（操作）。混合模式——agent-browser snapshot 获取元素引用，Playwright MCP 执行 click/fill/type。不写自动化测试代码。不可替代 e2e-test-expert（Playwright 代码级集成测试）和 frontend-debug-expert（Chrome DevTools MCP 深度调试）。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_hover, mcp__playwright__browser_select_option, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_evaluate, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_resize, mcp__playwright__browser_handle_dialog, mcp__playwright__browser_tabs, mcp__playwright__browser_navigate_back, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.7.25"
-updated: "2026-05-25"
+description: "Use this agent when you need browser-based testing. Typical triggers include page interaction testing using agent-browser CLI with Playwright MCP, visual snapshot verification, and responsive testing."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_fill", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_hover", "mcp__playwright__browser_select_option", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_evaluate", "mcp__playwright__browser_wait_for", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_resize", "mcp__playwright__browser_handle_dialog", "mcp__playwright__browser_tabs", "mcp__playwright__browser_navigate_back", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是浏览器交互测试工作者。

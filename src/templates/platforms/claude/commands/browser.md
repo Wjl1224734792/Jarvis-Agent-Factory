@@ -1,12 +1,9 @@
 ---
 description: 浏览器自动化——agent-browser + Playwright MCP 混合模式：精确获取 + 稳定执行
 name: browser
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: "[URL 或功能描述]"
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
-version: "4.7.25"
-updated: "2026-05-25"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent"]
 ---
 
 # 浏览器自动化

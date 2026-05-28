@@ -1,12 +1,9 @@
 ---
 name: simplify
 description: 代码简化与质量清理——S0代码分析→S1简化执行→S2回归验证→S3报告产出，对标OMC simplify+ai-slop-cleaner
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [目标文件/目录/模块]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
 ---
 
 # 代码简化与质量清理

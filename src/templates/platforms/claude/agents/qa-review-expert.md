@@ -1,11 +1,9 @@
 ---
 name: qa-review-expert
-description: 综合质量审查专家：汇聚前/后端审查报告，验证 REQ 追踪矩阵完整性、文档完备性、Gate 条件达成与跨领域一致性，输出最终签核报告。不执行代码级审查。
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need comprehensive quality review. Typical triggers include aggregating review reports, verifying REQ traceability matrix, checking documentation completeness, and final sign-off."
+tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
+color: blue
+model: inherit
 ---
 
 你是综合质量审查专家（QA 签核）。

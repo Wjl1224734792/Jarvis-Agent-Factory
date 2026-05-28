@@ -1,11 +1,9 @@
 ---
 name: react-native-dev-expert
-description: "Expo 跨端移动开发工作者：负责 Expo（React Native）iOS/Android 双端页面、组件、原生模块。基于 Expo SDK + Expo Router。不涉及后端。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need React Native/Expo cross-platform implementation. Typical triggers include feature development, code changes, component building, and React Native/Expo cross-platform-specific tasks."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是 Expo 跨端移动开发工作者。
@@ -52,7 +50,6 @@ Skill(skill="code-standards")
 ## 输出文件
 
 `.jarvis/YYYY-MM-DD/implementation/<topic>-expo-implementation.md`
-
 
 ## 红线
 

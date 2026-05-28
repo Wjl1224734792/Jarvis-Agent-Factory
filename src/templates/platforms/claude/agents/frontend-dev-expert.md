@@ -1,11 +1,9 @@
 ---
 name: frontend-dev-expert
-description: "前端全栈实现者：在 Gate C-impl 由编排者 spawn 分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。负责协调 UI+State 专项 Agent 的工作成果，聚焦集成与编排。自身不调度其他 agent。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__take_snapshot, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__type, mcp__chrome-devtools__evaluate, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__list_console_messages, mcp__chrome-devtools__list_network_requests, mcp__chrome-devtools__wait_for, mcp__chrome-devtools__start_performance_trace, mcp__chrome-devtools__stop_performance_trace, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.7.25"
-updated: "2026-05-25"
+description: "Use this agent when you need frontend web implementation. Typical triggers include feature development, code changes, component building, and frontend web-specific tasks."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__click", "mcp__chrome-devtools__fill", "mcp__chrome-devtools__type", "mcp__chrome-devtools__evaluate", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_network_requests", "mcp__chrome-devtools__wait_for", "mcp__chrome-devtools__start_performance_trace", "mcp__chrome-devtools__stop_performance_trace", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是前端全栈实现者。
@@ -158,5 +156,4 @@ mcp__chrome-devtools__take_screenshot()
 8. 风险 / 未解决项
 9. 需要后端配合的点
 10. 推荐的下一步
-
 

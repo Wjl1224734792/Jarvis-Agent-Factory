@@ -1,12 +1,9 @@
 ---
 name: auto
 description: 智能自动路由编排——自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配Team/Subagent，对标OMC autopilot+ralplan自动路由模式
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: "[任务描述]"
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
-version: "4.3.8"
-updated: "2026-05-19"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
 ---
 
 # 智能自动路由编排

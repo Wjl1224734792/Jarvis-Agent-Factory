@@ -1,12 +1,17 @@
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["chrome-devtools-mcp@latest"]
+args = ["-y", "chrome-devtools-mcp@latest"]
 enabled = true
 
 [mcp_servers.playwright]
 command = "npx"
 args = ["-y", "@playwright/mcp@latest"]
+enabled = true
+
+[mcp_servers.visual-primitives]
+command = "npx"
+args = ["-y", "visual-primitives-mcp"]
 enabled = true
 
 [mcp_servers.jarvis-engine]

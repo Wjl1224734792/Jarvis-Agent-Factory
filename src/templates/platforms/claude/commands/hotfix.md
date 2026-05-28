@@ -1,12 +1,9 @@
 ---
 name: hotfix
 description: 紧急热修复指令——H0紧急声明→H1最小化修复→H2快速验证+回滚→H3事后审计，4Gate紧急流程
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [故障描述或issue编号]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"]
 ---
 
 # 紧急热修复
@@ -171,7 +168,7 @@ Skill("debugging-and-error-recovery")
 |------|-----------|---------|------|
 | H0 | — | read | 编排者评估影响范围和紧急程度 |
 | H1 | remediation-expert | write_code | 最小化修复，只改根因 |
-| H2 | test-expert (对应平台) | test | 核心流程回归 + 回滚预案验证 |
+| H2 | frontend-test-expert / backend-test-expert（按平台选择） | test | 核心流程回归 + 回滚预案验证 |
 | H3 | security-review-expert | review | 事后审计：根因分析 + 预防措施 |
 
 > Gate 权限由 `gate_check({ operation })` 强制执行。Agent 不可递归 spawn。

@@ -1,11 +1,9 @@
 ---
 name: task-design
-description: "在编排者 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_workspace_symbols, mcp__jarvis-engine__jarvis_lsp_document_symbols
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need task decomposition. Typical triggers include DDD domain analysis, BDD scenario writing, TDD test-driven task breakdown, and requirement-to-task mapping."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是任务设计代理。
@@ -170,7 +168,6 @@ Skill(skill="behavioral-guidelines")
 |------|------|------|
 | 结构化任务分解 | `Skill(skill="planning-and-task-breakdown")` | 垂直切片策略、风险标注、并行机会识别 |
 | 选择性上下文 | `Skill(skill="context-engineering")` | 确保接收完整需求文档上下文 |
-
 
 ## 红线
 

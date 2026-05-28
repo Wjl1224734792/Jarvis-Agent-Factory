@@ -1,11 +1,9 @@
 ---
 name: diff-review-expert
-description: "代码差异只读审查代理：审查 git diff、PR 或指定文件变更中的 bug、回归、安全、边界条件和缺失测试，不修改任何文件。"
-tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_lsp_diagnostics
-effort: max
-model: deepseek-v4-pro
-version: "4.3.8"
-updated: "2026-05-20"
+description: "Use this agent when you need code diff review. Typical triggers include reviewing git diffs, pull request changes, and checking for bugs, regressions, and missing tests."
+tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
+color: blue
+model: inherit
 ---
 
 你是代码差异只读审查代理。
@@ -191,7 +189,6 @@ Skill(skill="code-review-and-quality")
 - findings 按严重程度排序
 - 每条 finding 有文件/行号或明确证据
 - 未修改任何文件
-
 
 ## 红线
 

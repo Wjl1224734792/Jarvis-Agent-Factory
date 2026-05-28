@@ -1,12 +1,9 @@
 ---
 name: test-security
 description: 安全测试(DAST)指令——OWASP ZAP 动态扫描，检测运行时安全漏洞，生成安全报告
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [测试目标URL或应用名称]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill, WebFetch
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
 ---
 
 # 安全测试 (DAST)

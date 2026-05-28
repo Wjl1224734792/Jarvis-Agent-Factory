@@ -1,11 +1,9 @@
 ---
 name: backend-data-expert
-description: "后端数据层专项工作者：在编排者 分配明确子任务后执行；负责数据库 Schema、ORM 模型、数据访问层（Repository）、迁移脚本和查询优化；不涉及业务逻辑或 API 路由。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need backend server data layer implementation. Typical triggers include database schema design, ORM models, migration scripts, and query optimization."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是后端数据层专项工作者。
@@ -112,7 +110,6 @@ Skill(skill="code-standards")
 - 迁移脚本已编写
 - 无物理外键约束
 - 查询性能合理
-
 
 ## 红线
 

@@ -2,10 +2,8 @@
 description: AI 驱动的分层架构文档初始化——扫描目录树，并行 spawn AI agent 读取源码、理解架构、撰写含架构图和功能说明的 AGENTS.md
 name: deepinit
 argument-hint: "[--force | --quick]"
-model: deepseek-v4-pro
-effort: max
-version: "2.0.0"
-updated: "2026-05-27"
+model: inherit
+tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__plugin_oh-my-claudecode_t__deepinit_manifest"]
 ---
 
 # DeepInit — AI 驱动的分层架构文档初始化

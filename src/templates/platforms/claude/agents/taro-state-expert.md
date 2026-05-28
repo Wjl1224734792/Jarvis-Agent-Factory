@@ -1,11 +1,9 @@
 ---
 name: taro-state-expert
-description: "Taro 状态与数据专项工作者：负责 Taro 小程序/H5 状态管理、数据获取、缓存策略、API 客户端对接和路由逻辑。不涉及 UI 样式或页面布局。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need Taro mini-program/H5 state management. Typical triggers include data flow architecture, local storage, network requests, caching, and routing logic."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是 Taro 状态与数据专项工作者。参照 frontend-state-expert 拆分模式，你只负责数据与状态层面。
@@ -39,7 +37,6 @@ Skill(skill="code-standards")
 
 ## 输出
 `.jarvis/YYYY-MM-DD/implementation/<topic>-taro-state.md`
-
 
 ## 红线
 - 在 UI 组件中直接发起网络请求

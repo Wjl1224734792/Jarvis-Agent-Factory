@@ -1,11 +1,9 @@
 ---
 name: frontend-test-expert
-description: "前端测试专项工作者：在编排者 分配明确子任务后执行；负责前端单元测试、组件测试、集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__jarvis-engine__jarvis_ast_search, mcp__jarvis-engine__jarvis_lsp_hover, mcp__jarvis-engine__jarvis_lsp_goto_definition, mcp__jarvis-engine__jarvis_lsp_find_references, mcp__jarvis-engine__jarvis_ast_replace, mcp__jarvis-engine__jarvis_lsp_diagnostics, mcp__jarvis-engine__jarvis_lsp_document_symbols
-model: deepseek-v4-pro
-effort: max
-version: "4.3.8"
-updated: "2026-05-14"
+description: "Use this agent when you need frontend web testing. Typical triggers include unit tests, component tests, integration tests, and test coverage improvement."
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+color: blue
+model: inherit
 ---
 
 你是前端测试专项工作者。
@@ -125,7 +123,6 @@ Skill(skill="code-standards")
 |------|------|------|
 | TDD 任务 | `Skill(skill="test-driven-development")` | Red→Green→Refactor 详细方法论、测试反模式、分层策略 |
 | 测试失败分析 | `Skill(skill="debugging-and-error-recovery")` | 系统化调试流程、根因追踪 |
-
 
 ## 红线
 

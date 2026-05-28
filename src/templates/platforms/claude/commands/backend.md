@@ -1,11 +1,9 @@
 ---
 description: 后端开发生命周期——需求→任务→计划→实现→质量→测试→评审→发布完整链路
 name: backend
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [后端需求描述]
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 后端开发生命周期
@@ -43,7 +41,7 @@ updated: "2026-05-14"
 | 配置项 | 值 |
 |--------|---|
 | **pipeline_type** | `backend` |
-| **Gate 序列** | A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C2 → D → E（12 道闸门，跳过 C1.5 视觉验证） |
+| **Gate 序列** | A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C2 → D → E（11 道闸门，跳过 C1.5 视觉验证） |
 
 ### 可用代理路由
 
@@ -212,7 +210,6 @@ Gate C-impl:
 - 当 Claude Code 不支持 TeamCreate（缺少环境变量）时，回退到并行 subagent 模式
 - 小任务（<5 文件）直接用 subagent 模式，无需 Team
 - 中任务（5-10 文件）可选 Team 或并行 subagent
-
 
 ---
 

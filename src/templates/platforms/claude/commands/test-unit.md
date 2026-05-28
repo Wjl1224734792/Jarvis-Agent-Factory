@@ -1,12 +1,9 @@
 ---
 name: test-unit
 description: 单元测试生成与执行——自动检测测试框架，生成覆盖率门禁测试用例，验证核心逻辑正确性
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [测试范围或模块路径]
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Skill
-version: "4.3.8"
-updated: "2026-05-14"
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"]
 ---
 
 # 单元测试生成与执行

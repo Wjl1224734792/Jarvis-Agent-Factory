@@ -1,12 +1,9 @@
 ---
 name: cleanup
 description: 安全卸载/清理 Jarvis — 细粒度移除项目或全局的 Jarvis 配置和引擎数据，不误删用户自有文件
-model: deepseek-v4-pro
-effort: max
+model: inherit
 argument-hint: [--dry-run] [--engine] [--global] [--force]
-allowed-tools: Read, Bash, Write, Edit, Skill, Glob, Grep
-version: "4.3.9"
-updated: "2026-05-24"
+tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep"]
 ---
 
 # 安全清理 Jarvis
