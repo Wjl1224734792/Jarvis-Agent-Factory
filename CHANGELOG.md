@@ -26,7 +26,7 @@ Note: This project follows [Semantic Versioning](https://semver.org/).
 - **browser-test-expert 技能加载**：由叙述性文本改为代码块 `Skill()` 格式
 - **frontend-dev-expert 矛盾修复**：解决"禁止spawn agent"与"spawn验证agent"的逻辑冲突
 - **命令 pipeline_type 修正**：`bug-fix` 和 `test-e2e` 由 `full` 改为 `lite`（跳过不必要的DDD/架构Gate）
-- **audit-fix agent名修正**：`remediation-expert`(执行器)→`remediation-planner`(规划器)
+- **review-fix agent名修正**：`remediation-expert`(执行器)→`remediation-planner`(规划器)
 - **phantom引用清理**：移除不存在的 `browser-test-worker` 和 `frontend-debug` skill引用，替换为实际存在的内容
 - **mcp-claude.json**：`chrome-devtools` 补充 `type: stdio` 字段
 

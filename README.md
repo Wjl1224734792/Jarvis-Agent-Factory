@@ -130,8 +130,8 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | | `/auto` | [auto.md](docs/flows/auto.md) | 智能路由 |
 | 前端 | `/frontend` | [frontend.md](docs/flows/frontend.md) | C1.5强制 |
 | 后端 | `/backend` | [backend.md](docs/flows/backend.md) | 跳过C1.5 |
-| 审查 | `/audit` | [audit.md](docs/flows/audit.md) | 只读 |
-| | `/audit-fix` | [audit-fix.md](docs/flows/audit-fix.md) | 审查闭环 |
+| 审查 | `/review-only` | [review-only.md](docs/flows/review-only.md) | 只读 |
+| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | 审查闭环 |
 | Bug | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 7步闭环 |
 | 工程 | `/refactor` | [refactor.md](docs/flows/refactor.md) | R1-R5 |
 | | `/hotfix` | [hotfix.md](docs/flows/hotfix.md) | H0-H3 |

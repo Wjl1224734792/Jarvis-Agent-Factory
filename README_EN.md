@@ -110,7 +110,7 @@ Mermaid flowcharts per command (Gate sequence + Agent spawns) in `docs/flows/`:
 | | `/auto` | [auto.md](docs/flows/auto.md) | Smart routing |
 | Frontend | `/frontend` | [frontend.md](docs/flows/frontend.md) | C1.5 mandatory |
 | Backend | `/backend` | [backend.md](docs/flows/backend.md) | Skip C1.5 |
-| Review | `/audit` | [audit.md](docs/flows/audit.md) | Read-only |
+| Review | `/review-only` | [review-only.md](docs/flows/review-only.md) | Read-only |
 | Bug | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 7-step loop |
 | Engineering | `/refactor` | [refactor.md](docs/flows/refactor.md) | R1-R5 |
 | | `/hotfix` | [hotfix.md](docs/flows/hotfix.md) | H0-H3 |
