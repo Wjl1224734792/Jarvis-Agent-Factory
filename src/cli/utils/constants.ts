@@ -40,7 +40,7 @@ export const PKG_NAME: string = PKG.name;
  * desc: 平台描述
  */
 export const PLATFORMS: Record<string, { dir: string; desc: string }> = {
-  claude:   { dir: '.claude',  desc: 'Claude Code — 71 agents + 40 commands + 35 skills' },
+  claude:   { dir: '.claude',  desc: 'Claude Code — 72 agents + 35 commands + 35 skills' },
   opencode: { dir: '.opencode', desc: 'OpenCode — 55 agents + 27 skills (agent switching)' },
   codex:    { dir: '.codex',   desc: 'Codex — 45 agents + 42 skills (skill-triggered)' },
 };

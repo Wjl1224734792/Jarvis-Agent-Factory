@@ -1,7 +1,7 @@
 ---
 name: concurrency-policy
 description: "并发调用与 Team/Subagent 分配规范——无依赖并行、同层并行跨层串行、Team 按规模选择、Gate 级并发规则"
-version: "4.7.53"
+version: "4.7.54"
 updated: "2026-05-22"
 ---
 
