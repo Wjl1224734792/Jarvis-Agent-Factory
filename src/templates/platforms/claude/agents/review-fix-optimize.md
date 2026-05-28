@@ -1,6 +1,6 @@
 ---
 name: review-fix-optimize
-description: "Use this agent when you need the full review-fix-reaudit cycle. Typical triggers include running initial review, planning fixes, executing remediations, verifying fixes, and re-auditing for gate D quality."
+description: "Use this agent when you need the full review-fix-re-review cycle. Typical triggers include running initial review, planning fixes, executing remediations, verifying fixes, and re-reviewing for gate D quality."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Agent", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
 model: inherit

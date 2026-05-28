@@ -1,6 +1,6 @@
 # Jarvis Agent Factory — 快速开始
 
-[![Version](https://img.shields.io/badge/version-v4.7.54-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.7.55-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，**仅支持 Claude Code**。
@@ -106,39 +106,6 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 平台 | 配置文件 | Transport | 说明 |
 |------|---------|-----------|------|
 | **Claude Code** | `.mcp.json` | `type: stdio` → 自动拉起 `jarvis engine start --stdio` |
-
-### Visual Primitives MCP（推荐，纯文本模型必备）
-
-[![npm](https://img.shields.io/npm/v/visual-primitives-mcp)](https://www.npmjs.com/package/visual-primitives-mcp)
-[![GitHub](https://img.shields.io/badge/GitHub-Wjl1224734792%2Fvisual--primitives--mcp-black)](https://github.com/Wjl1224734792/visual-primitives-mcp)
-
-基于 DeepSeek《Thinking with Visual Primitives》论文的视觉理解 MCP，将截图/图片转为精确的文字描述和坐标定位。**使用纯文本模型（如 DeepSeek）作为主力的用户强烈推荐**——它为纯文本模型提供了"眼睛"。
-
-```json
-{
-  "mcpServers": {
-    "visual-primitives": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["visual-primitives-mcp"],
-      "env": {
-        "VISION_API_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "VISION_API_KEY": "<你的百炼 API Key>",
-        "VISION_MODEL_NAME": "qwen3.5-plus",
-        "VISION_MODEL_OCR": "qwen3-vl-ocr"
-      }
-    }
-  }
-}
-```
-
-| 环境变量 | 说明 | 推荐值 |
-|---------|------|--------|
-| `VISION_MODEL_NAME` | 默认模型（describe/locate/video 共用） | `qwen3.5-plus` |
-| `VISION_MODEL_DESCRIBE` | 场景描述专用模型（可选） | `qwen3.5-plus` |
-| `VISION_MODEL_LOCATE` | 坐标定位专用模型（可选） | `qwen3.5-plus` |
-| `VISION_MODEL_VIDEO` | 视频分析专用模型（可选） | `qwen3.5-plus` |
-| `VISION_MODEL_OCR` | OCR 文字识别专用模型 | `qwen3-vl-ocr` |
 
 ### 开发环境 MCP（仅 Jarvis 自身开发者）
 

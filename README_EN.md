@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
-[![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 
 **AI coding assistant configs + MCP orchestration engine** — complete idea-to-delivery software pipeline. **Claude Code only**.
 
@@ -65,7 +64,7 @@ jarvis remove claude -g --engine --force # Global: all Jarvis files in user home
 | Full-stack | `/jarvis` | | Bug Fix | `/bug-fix` |
 | Frontend | `/frontend` | | Refactor | `/refactor` |
 | Backend | `/backend` | | Hotfix | `/hotfix` |
-| Review | `/audit` | | Debug | `/debug` |
+| Review | `/review-only` | | Debug | `/debug` |
 | Simplify | `/simplify` | | Release | `/release` |
 | Cleanup | `/cleanup` | | Publish | `/publish` |
 

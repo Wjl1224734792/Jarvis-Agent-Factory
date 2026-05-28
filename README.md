@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
-[![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 
 **AI 编程助手配置集 + MCP 编排引擎** — 从想法到交付的完整软件开发流水线。仅支持 **Claude Code**。
 
@@ -66,7 +65,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | 全栈 | `/jarvis` | | 深度研究 | `/research` |
 | 前端 | `/frontend` | | Bug 修复 | `/bug-fix` |
 | 后端 | `/backend` | | 重构 | `/refactor` |
-| 审查 | `/audit` | | 热修复 | `/hotfix` |
+| 审查 | `/review-only` | | 热修复 | `/hotfix` |
 | 代码简化 | `/simplify` | | 调试诊断 | `/debug` |
 | 安全清理 | `/cleanup` | | 发布 | `/release` |
 | 单元测试 | `/test-unit` | | E2E测试 | `/test-e2e` |
@@ -97,7 +96,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 |---|:--:|
 | Agents | 72 |
 | Commands | 35 |
-| Skills | 35 |
+| Skills | 34 |
 | CLI 命令 | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
 | 流水线 | 15 条 |
 

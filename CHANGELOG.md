@@ -4,6 +4,38 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.54 (2026-05-29)
+
+### 生产可用性修复
+- **MCP 模板补全**: claude 平台 .mcp.json 模板补充 playwright MCP server（3 个 server 闭环）
+- **文档同步**: README/README_EN/QUICKSTART 移除已废弃的 Visual Primitives MCP 引用
+- **术语统一**: jarvis-reference SKILL 和 review-fix-optimize agent 中 audit→review 引用全部更正
+- **CHANGELOG 回溯**: 补充 v4.7.31-v4.7.54 版本变更记录
+- **Skills 计数修正**: README 中 Skills 数量 35→34
+
+## v4.7.51–v4.7.53 (2026-05-28)
+
+### 版本回滚与重建
+- **v4.7.51**: 回滚至 v4.7.33 代码基线（撤销 v4.7.34–v4.7.50 的中间迭代）
+- **v4.7.52–v4.7.53**: 版本递增与稳定性修复
+
+## v4.7.33 (2026-05-27)
+
+### 审查重命名
+- **audit/audit-fix → review-only/review-fix**: 命令和 agent 重命名，同步更新 README/CHANGELOG/web 引用
+- **所有模板和引擎文件**: audit→review 术语全量同步
+
+## v4.7.32 (2026-05-27)
+
+### bug 修复
+- 修复 package.json 将 zod 误写为 z 导致全局安装失败
+
+## v4.7.31 (2026-05-27)
+
+### 架构精简
+- 移除 deepinit CLI 模块，统一使用 AI Agent 驱动的 /deepinit 命令
+- 减少 CLI 代码维护成本，逻辑集中于 Agent 模板
+
 ## v4.7.30 (2026-05-27)
 
 ### 指令重构

@@ -11,13 +11,18 @@ updated: "2026-05-24"
 
 ## 受控操作
 
-| 操作 | MCP gate_check operation | 拦截行为 |
-|------|--------------------------|---------|
-| Write / Edit (写代码) | `write_code` | Gate C-impl 之前拒绝 |
-| Agent / Task (生成Agent) | `spawn_impl` | 按 Gate 允许列表检查 |
-| Bash (build) | `build` | Gate C1 之前拒绝 |
-| Bash (test) | `spawn_test` | Gate C2 之前拒绝 |
-| Bash (deploy) | `deploy` | Gate E 之前拒绝 |
+| 工具调用 | MCP gate_check operation | 拦截行为 |
+|---------|--------------------------|---------|
+| Write / Edit | `write_code` | 按 Gate allow/deny 列表检查 |
+| Agent | `spawn_impl` | 按 Gate 允许列表检查 |
+| Bash(npm run build) | `build` | 按 Gate allow/deny 列表检查 |
+| Bash(npm run lint) | `lint` | 按 Gate allow/deny 列表检查 |
+| Bash(npm test) | `spawn_test` | 按 Gate allow/deny 列表检查 |
+| Bash(git push) | `deploy` | 按 Gate allow/deny 列表检查 |
+| Bash(npm publish) | `deploy` | 按 Gate allow/deny 列表检查 |
+| Bash(git commit) | `write_code` | 按 Gate allow/deny 列表检查 |
+| Bash(npx *) | `write_code` | 按 Gate allow/deny 列表检查 |
+| Bash(node *) | `write_code` | 按 Gate allow/deny 列表检查 |
 
 ## 豁免操作
 - `Read` — 任何 Gate 允许（只读不破坏状态）
