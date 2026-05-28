@@ -1,41 +1,15 @@
 ---
 description: 进入审查修复优化闭环——初审→规划→执行→验证→复审完整链路
-name: audit-fix
+name: review-fix
 model: deepseek-v4-pro
+effort: max
 argument-hint: [审查范围]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent, Edit, Write
-version: "4.4.2"
-updated: "2026-05-21"
+version: "4.7.25"
+updated: "2026-05-25"
 ---
 
-# `/audit-fix` — 审查修复优化闭环
-
-- **命令**：`/audit-fix [审查范围]`
-- **类别**：审查
-- **说明**：审查→修复→验证闭环——5 阶段完整链路：初审→规划→执行→验证→复审，确保问题修复后质量达标。
-
-## 使用场景
-
-| 场景 | 说明 |
-|------|------|
-| 代码质量问题修复 | 审查发现的问题需要系统修复 |
-| 性能优化闭环 | 性能审计 → 优化实现 → 验证 |
-| 安全漏洞修复 | 安全审查 → 修复 → 重审验证 |
-| 架构调整后验证 | 架构变更后的全面审查和修复 |
-
-## 关键 Agent
-
-| Agent | 职责 |
-|-------|------|
-| project-review-expert | 初审：项目全面审查 |
-| diff-review-expert | 差异审查 |
-| perf-review-expert | 性能审计 |
-| change-review-expert | 变更影响审查 |
-| remediation-expert | 修复执行 |
-| remediation-planner | 修复规划 |
-| audit-fix-optimize | 完整闭环编排器（审查→修复→重审） |
-
-## 审查修复优化闭环
+# 审查修复优化闭环
 
 ## 步骤 0：加载技能 + 注册引擎
 
@@ -59,14 +33,14 @@ updated: "2026-05-21"
 
    ### **阶段二：修复/优化规划**（不可绕过）
    - 将 findings 转为可执行修复计划，标注修复顺序、责任方、共享区域唯一责任方
-   - 可调用 `remediation-expert` Agent 辅助规划
+   - 可调用 `remediation-planner` Agent 辅助规划（把 findings 转成可执行修复/优化计划，明确所有权、顺序、验证命令和共享区域边界）
 
    ### **阶段三：执行**（不可绕过）
    - 按计划顺序或并发执行；共享区域必须唯一责任方，不得多个 Agent 同时修改
 
    ### **阶段四：验证**（不可绕过）
    - Lint + Type-check + Build 三项全部通过（失败→回退修复），运行测试确保无回归
-   - **涉及前端页面/交互的修复**：用 `agent-browser` CLI 按相同步骤重新操作（open→snapshot -i→复现步骤→screenshot），截图对比修复前后，确认 Bug 不再出现
+   - **涉及前端页面/交互的修复**：用 agent-browser (获取页面结构) + Playwright MCP (执行操作) 混合模式按相同步骤重新操作（agent-browser snapshot→Playwright MCP 交互→browser_take_screenshot），截图对比修复前后，确认 Bug 不再出现
 
    ### **阶段五：复审**（不可绕过）
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项

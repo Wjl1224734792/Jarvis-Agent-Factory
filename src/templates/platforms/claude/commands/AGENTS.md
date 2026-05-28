@@ -11,8 +11,8 @@ This directory contains the commands module of the project.
 |------|-------------|
 | AGENTS.md | Markdown documentation |
 | ask.md | Markdown documentation |
-| audit-fix.md | Markdown documentation |
-| audit.md | Markdown documentation |
+| review-fix.md | Markdown documentation |
+| review-only.md | Markdown documentation |
 | auto.md | Markdown documentation |
 | backend.md | Markdown documentation |
 | browser.md | Markdown documentation |

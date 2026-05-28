@@ -122,7 +122,7 @@ mcp__playwright__browser_take_screenshot()
 ## 修复闭环
 
 1. 全部通过 → 闭环完成
-2. 存在失败 → Browser Test Findings → `/audit-fix` → 重测失败用例
+2. 存在失败 → Browser Test Findings → `/review-fix` → 重测失败用例
 3. 最多 2 轮，第 3 轮仍失败标记 BLOCKED
 
 ## 红线

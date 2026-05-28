@@ -154,8 +154,8 @@ mcp__jarvis-engine__pipeline_status()
 
 | 指令 | 活跃状态 | Cancel 清理 | 中断影响 | 恢复 |
 |------|---------|------------|---------|------|
-| `/audit` | pipeline_run + 审查 Agent spawn（只读） | `pipeline_cancel` — **安全取消，无代码变更** | 审查报告不完整 | 重启 `/audit` |
-| `/audit-fix` | pipeline_run + 初审→修复→验证→复审循环 | `pipeline_cancel` | 已修复代码保留，复审未完成 | 重启 `/audit-fix` 继续 |
+| `/review-only` | pipeline_run + 审查 Agent spawn（只读） | `pipeline_cancel` — **安全取消，无代码变更** | 审查报告不完整 | 重启 `/review-only` |
+| `/review-fix` | pipeline_run + 初审→修复→验证→复审循环 | `pipeline_cancel` | 已修复代码保留，复审未完成 | 重启 `/review-fix` 继续 |
 
 ### 调研（3条）
 
@@ -199,7 +199,7 @@ mcp__jarvis-engine__pipeline_status()
 | 平台开发 | 3 | 安全（文档保留） | C1.5 截图需重新获取 |
 | 维护流程 | 5 | 中等（代码部分保留） | 建议 `git diff` 检查改动 |
 | 测试 | 5 | 安全（代码未变更） | 仅测试结果丢失 |
-| 审查 | 2 | 安全（audit 只读） / 中等（audit-fix 代码保留） | — |
+| 审查 | 2 | 安全（review-only 只读） / 中等（review-fix 代码保留） | — |
 | 调研 | 3 | 安全（全部只读） | 无代码影响 |
 | 工程流程 | 5 | ⚠ 注意（publish/release 有副作用） | 提交/标签不可自动回滚 |
 | 流程管理 | 3 | 安全 | cancel 自身可直接退出 |

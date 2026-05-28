@@ -45,7 +45,7 @@ const PLATFORM_CONFIG = {
 const ICON_MAP = {
   implementer: 'layout', 'frontend': 'layout', 'backend': 'server', 'api': 'route',
   'service': 'cog', 'data': 'table', 'database': 'table', 'test': 'test', 'e2e': 'play',
-  'browser': 'globe', 'docs': 'file', 'security': 'shield', 'audit': 'eye', 'review': 'eye',
+  'review': 'eye',
   'qa': 'eye', 'planner': 'map', 'plan': 'map', 'task': 'list', 'design': 'list',
   'architect': 'brain', 'algorithm': 'brain', 'expert': 'brain', 'explorer': 'globe',
   'researcher': 'globe', 'remediation': 'cog', 'worker': 'cog', 'infra': 'server',
@@ -59,7 +59,7 @@ const ICON_MAP = {
 const CATEGORY_RULES = [
   { cat: '编排', keys: ['jarvis', 'orchestrat'] },
   { cat: '测试', keys: ['test-expert', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'perf-test', 'performance-test', 'performance_test'] },
-  { cat: '审查', keys: ['review-expert', 'review', 'audit', 'security', 'qa'] },
+  { cat: '审查', keys: ['review-expert', 'review', 'review-only', 'security', 'qa'] },
   { cat: '架构', keys: ['architect', 'algorithm-expert'] },
   { cat: '浏览器', keys: ['browser-test', 'frontend-debug'] },
   { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state', 'expo-dev-expert', 'expo-ui', 'expo-state'] },

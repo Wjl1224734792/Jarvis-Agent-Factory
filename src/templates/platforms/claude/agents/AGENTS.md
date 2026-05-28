@@ -18,8 +18,8 @@ This directory contains the agents module of the project.
 | android-ui-expert.md | Markdown documentation |
 | api-contract-expert.md | Markdown documentation |
 | api-test-expert.md | Markdown documentation |
-| audit-fix-optimize.md | Markdown documentation |
-| audit-only.md | Markdown documentation |
+| review-fix-optimize.md | Markdown documentation |
+| review-only.md | Markdown documentation |
 | backend-api-expert.md | Markdown documentation |
 | backend-architect.md | Markdown documentation |
 | backend-data-expert.md | Markdown documentation |

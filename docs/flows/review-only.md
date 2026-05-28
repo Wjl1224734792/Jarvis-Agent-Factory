@@ -1,6 +1,6 @@
 ---
 description: 进入只读审查模式——审查代码/项目/风险，不修改任何文件
-name: audit
+name: review-only
 model: deepseek-v4-pro
 argument-hint: [审查对象]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Skill, Agent
@@ -10,7 +10,7 @@ updated: "2026-05-21"
 
 # `/audit` — 只读审查模式
 
-- **命令**：`/audit [审查对象]`
+- **命令**：`/review-only [审查对象]`
 - **类别**：审查
 - **说明**：只读审查模式——审查代码/项目/风险，不修改任何文件，产出分级审查报告。可 spawn 审查 Agent 进行多维度专业审查。
 
@@ -32,7 +32,7 @@ updated: "2026-05-21"
 | perf-review-expert | 性能审计 |
 | change-review-expert | 变更影响审查 |
 | security-review-expert | 安全漏洞审查 |
-| audit-only | 只读审查编排器（CRITICAL 或 3+ MAJOR 时升级为对抗审查） |
+| review-only | 只读审查编排器（CRITICAL 或 3+ MAJOR 时升级为对抗审查） |
 
 ## 只读审查模式
 
