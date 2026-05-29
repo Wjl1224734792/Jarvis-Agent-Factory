@@ -57,7 +57,7 @@ export async function hookCommand(args) {
     try {
       const pipeline = await api('/api/pipeline');
       const session = pickSession(pipeline, sessionId);
-      if (!session) { console.log('⚠️  No sessions found'); process.exit(2); }
+      if (!session) { process.exit(0); }
       const current = session.current_gate;
       if (current === 'Complete') { console.log('✅ All gates passed'); process.exit(0); }
 
@@ -68,9 +68,9 @@ export async function hookCommand(args) {
           console.log(`✅ ${current}: 操作 "${operation}" 允许执行 (${session.pipeline_name})`);
           process.exit(0);
         }
-        console.log(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
-        console.log(`  允许的操作: ${ops.allow.join(', ')}`);
-        process.exit(1);
+        console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
+        console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        process.exit(2);
       }
 
       // 默认：无 --operation（如 Agent hook）→ 检查 spawn_impl 是否在允许列表中
@@ -80,9 +80,9 @@ export async function hookCommand(args) {
         console.log(`✅ ${current}: spawn_impl 允许执行 (${session.pipeline_name})`);
         process.exit(0);
       } else {
-        console.log(`🚫 ${current}: Agent spawn 被禁止 (${session.pipeline_name})`);
-        console.log(`  允许的操作: ${ops.allow.join(', ')}`);
-        process.exit(1);
+        console.error(`🚫 ${current}: Agent spawn 被禁止 (${session.pipeline_name})`);
+        console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        process.exit(2);
       }
     } catch {
       console.error(`\n⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.`);
@@ -98,7 +98,7 @@ export async function hookCommand(args) {
     try {
       const pipeline = await api('/api/pipeline');
       const session = pickSession(pipeline, sessionId);
-      if (!session) { console.log('⚠️  No sessions found'); process.exit(2); }
+      if (!session) { process.exit(0); }
       const r = await fetch(`${ENGINE_URL}/api/gate/advance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,7 +109,7 @@ export async function hookCommand(args) {
         console.log(`🚀 ${g.previous || session.current_gate} → ${g.current}${g.next ? ` (next: ${g.next})` : ''}`);
         process.exit(0);
       }
-      else { console.log(`🚫 BLOCKED — ${g.error} (${session.pipeline_name})`); process.exit(1); }
+      else { console.error(`🚫 BLOCKED — ${g.error} (${session.pipeline_name})`); process.exit(2); }
     } catch {
       console.error(`\n⚠️  Jarvis Engine is NOT running. Cannot advance gate.`);
       console.error(`   Start it: jarvis engine start\n`);

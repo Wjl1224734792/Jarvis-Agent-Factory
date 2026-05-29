@@ -159,7 +159,7 @@ export default function Agents() {
   );
 
   return (
-    <div>
+    <div style={{ height: '100%', overflow: 'auto' }}>
       {/* 页面标题 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>

@@ -24,7 +24,7 @@ describe('hookCommand', () => {
   // gate-check with --operation
   // ================================================================
   describe('gate-check with --operation', () => {
-    it('1 | write_code 在 Gate A 被拒绝 → exit(1)', async () => {
+    it('1 | write_code 在 Gate A 被拒绝 → exit(2)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
@@ -32,7 +32,7 @@ describe('hookCommand', () => {
         })
       });
       await hookCommand(['gate-check', '--operation', 'write_code']);
-      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
     it('2 | write_code 在 Gate C-impl 允许 → exit(0)', async () => {
@@ -46,7 +46,7 @@ describe('hookCommand', () => {
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it('3 | spawn_impl 在 Gate A 被拒绝 → exit(1)', async () => {
+    it('3 | spawn_impl 在 Gate A 被拒绝 → exit(2)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
@@ -54,7 +54,7 @@ describe('hookCommand', () => {
         })
       });
       await hookCommand(['gate-check', '--operation', 'spawn_impl']);
-      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
     it('4 | spawn_impl 在 Gate C 允许 → exit(0)', async () => {
@@ -149,13 +149,13 @@ describe('hookCommand', () => {
   // gate-check error cases
   // ================================================================
   describe('gate-check error cases', () => {
-    it('11 | 无会话 → exit(2)', async () => {
+    it('11 | 无会话 → exit(0)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ sessions: [] })
       });
       await hookCommand(['gate-check']);
-      expect(exitSpy).toHaveBeenCalledWith(2);
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
     it('12 | Engine 不可用 → exit(2)', async () => {
@@ -184,7 +184,7 @@ describe('hookCommand', () => {
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it('14 | 推进被阻止 → exit(1)', async () => {
+    it('14 | 推进被阻止 → exit(2)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
@@ -196,7 +196,7 @@ describe('hookCommand', () => {
         json: () => Promise.resolve({ allowed: false, error: 'missing artifacts' })
       });
       await hookCommand(['gate-advance']);
-      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
     it('15 | Engine 不可用 → exit(2)', async () => {

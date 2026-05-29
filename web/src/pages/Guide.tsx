@@ -203,7 +203,7 @@ export default function Guide() {
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Text code style={{ fontSize: 12, whiteSpace: 'nowrap' }}>/{cmd.name}</Text>
                         <Text style={{ fontSize: 12 }} ellipsis={{ tooltip: cmd.description }}>
-                          {cmd.description}
+                          {cmd.description || '暂无描述'}
                         </Text>
                       </div>
                     </List.Item>
