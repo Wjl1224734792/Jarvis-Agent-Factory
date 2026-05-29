@@ -14,8 +14,6 @@ const TEMPLATES_DIR = resolve(__dirname, 'templates');
 
 const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 
-/** MCP server 白名单：永不被删除 */
-const MCP_SERVER_WHITELIST = new Set(['jarvis-engine']);
 
 /** 系统管理的 hook key 记录字段名（存储于 settings.json 顶层） */
 const MANAGED_HOOKS_KEY = '_jarvisManagedHooks';
@@ -67,7 +65,7 @@ function deepMergeValue(templateVal: unknown, existingVal: unknown): unknown {
 }
 
 /**
- * 合并 MCP servers 映射：新增、删除（白名单保护）、深度修改。
+ * 合并 MCP servers 映射：模板只负责新增/修改自己的 server，不动用户自己的。
  *
  * @param templateServers 模板定义的 servers
  * @param existingServers 目标文件中的 servers
@@ -80,7 +78,7 @@ function mergeMcpServers(
   const result: Record<string, unknown> = {};
   let added = 0;
   let updated = 0;
-  let removed = 0;
+  const removed = 0;
 
   // 模板中的 server：新增或深度合并
   for (const [name, tplConfig] of Object.entries(templateServers)) {
@@ -98,18 +96,12 @@ function mergeMcpServers(
     }
   }
 
-  // 目标独有的 server：不在白名单中则删除
+  // 目标独有的 server：始终保留（用户自己的 MCP 不受模板影响）
   for (const [name, config] of Object.entries(existingServers)) {
     if (!(name in templateServers)) {
-      if (MCP_SERVER_WHITELIST.has(name)) {
-        // 白名单保护：永不删除
-        result[name] = config;
-      } else {
-        removed++;
-      }
+      result[name] = config;
     }
   }
-
   return { merged: result, added, removed, updated };
 }
 const SKIP_FILES = new Set(['settings.json', 'settings.local.json', 'node_modules', '.git']);
