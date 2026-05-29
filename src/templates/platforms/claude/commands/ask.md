@@ -3,7 +3,7 @@ name: ask
 description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束。支持 --* 标志位指定模式。
 model: inherit
 argument-hint: [--interview|--direct|--consensus|--review] <需求/想法/计划/指令>
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 需求探询（4 模式自适应 · 文档驱动 · Flag 可控）

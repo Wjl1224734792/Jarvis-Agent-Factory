@@ -7,7 +7,6 @@ import AppLayout from './components/Layout';
 const DashboardHome = lazy(() => import('./pages/DashboardHome'));
 const SessionDetail = lazy(() => import('./pages/SessionDetail'));
 const Agents = lazy(() => import('./pages/Agents'));
-const Commands = lazy(() => import('./pages/Commands'));
 const Archive = lazy(() => import('./pages/Archive'));
 const RunDetail = lazy(() => import('./pages/RunDetail'));
 const Wiki = lazy(() => import('./pages/Wiki'));
@@ -31,7 +30,6 @@ export default function App() {
               <Route path="/" element={<DashboardHome />} />
               <Route path="/session/:sessionId" element={<SessionDetail />} />
               <Route path="/agents" element={<Agents />} />
-              <Route path="/commands" element={<Commands />} />
               <Route path="/archive" element={<Archive />} />
               <Route path="/archive/:runId" element={<RunDetail />} />
               <Route path="/wiki" element={<Wiki />} />

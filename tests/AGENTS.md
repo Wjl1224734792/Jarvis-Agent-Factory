@@ -14,7 +14,6 @@ This directory contains the tests module of the project.
 | CLAUDE.md | Markdown documentation |
 | cli-scope.test.ts | TypeScript source — No exports |
 | commands-api.test.ts | TypeScript source — No exports |
-| commands-filter.test.ts | TypeScript source — No exports |
 | db.test.ts | TypeScript source — No exports |
 | docs-api.test.ts | TypeScript source — No exports |
 | gates.test.ts | TypeScript source — No exports |

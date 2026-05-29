@@ -6,7 +6,6 @@ import {
   DashboardOutlined,
   RobotOutlined,
   FolderOpenOutlined,
-  CodeOutlined,
   BookOutlined,
   ReadOutlined,
   MenuFoldOutlined,
@@ -98,7 +97,6 @@ const CMD_LABELS: Record<string, { label: string; color: string; bg: string }> =
 const NAV_ITEMS = [
   { key: '/', icon: <DashboardOutlined />, label: '流水线看板' },
   { key: '/agents', icon: <RobotOutlined />, label: '智能体配置' },
-  { key: '/commands', icon: <CodeOutlined />, label: '指令' },
   { key: '/wiki', icon: <BookOutlined />, label: '知识库' },
   { key: '/guide', icon: <ReadOutlined />, label: '指南' },
   { key: '/archive', icon: <FolderOpenOutlined />, label: '归档记录' },

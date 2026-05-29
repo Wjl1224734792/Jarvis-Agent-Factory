@@ -3,7 +3,7 @@ name: research
 description: 深度研究指令——RS0课题定义→RS1信息收集→RS2深度分析→RS3假设验证→RS4研究报告，5Gate深度研究流程
 model: inherit
 argument-hint: [研究课题或问题描述]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 深度研究

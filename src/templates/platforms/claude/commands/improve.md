@@ -3,7 +3,7 @@ name: improve
 description: 自主迭代改进——IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代，对标OMC self-improve+autoresearch+ralph
 model: inherit
 argument-hint: [改进目标/优化方向]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__gate_jump"]
 ---
 
 # 自主迭代改进

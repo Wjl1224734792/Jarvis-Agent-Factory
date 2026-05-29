@@ -17,6 +17,7 @@ import {
 import { emitEvent } from '../pubsub.js';
 import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
 import { archiveSession } from '../session-archive.js';
+import { clearRunFileClaims } from './file-claim-tools.js';
 
 export function registerPipelineTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
@@ -29,6 +30,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       const existingActive = getActiveRun(db, sid);
       if (existingActive) {
         abortRun(db, existingActive.id);
+        clearRunFileClaims(existingActive.id);
         emitEvent('run:changed', { runId: existingActive.id, sessionId: sid, action: 'cancel' });
         logSessionEvent(db, sid, 'run_replaced', { runId: existingActive.id, detail: `replaced by new pipeline_init at ${new Date().toISOString()}` });
       }
@@ -205,6 +207,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
         addCheckpoint(db, gate, 'Complete', sid, undefined);
         if (runId) {
           completeRun(db, runId);
+          clearRunFileClaims(runId);
           // 最终 Gate：自动归档会话到 repowiki
           const run = db.prepare('SELECT task_name FROM pipeline_runs WHERE id=?').get(runId) as { task_name?: string } | undefined;
           archiveSession(root, db, sid, runId, run?.task_name).catch(e => {
@@ -311,6 +314,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
         return ctx.resp({ ok: false, error: `Run ${runId} is already ${previousStatus.status}.` });
       }
       abortRun(db, runId);
+      clearRunFileClaims(runId);
       emitEvent('run:changed', { runId, sessionId: sid, action: 'cancel' });
       logSessionEvent(db, sid, 'pipeline_cancel', {
         runId,

@@ -12,6 +12,7 @@ import { emitEvent } from '../pubsub.js';
 import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
 import { getSessionContextSummary, cleanExpiredMemories } from '../session-archive.js';
 import { getPriorityContextForInjection } from './memory-tools.js';
+import { clearRunFileClaims } from './file-claim-tools.js';
 
 const SESSION_TIMEOUT = 600_000; // 10分钟无心跳→inactive
 
@@ -146,6 +147,7 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
       const abortedIds: string[] = [];
       for (const r of activeRuns) {
         abortRun(db, r.id);
+        clearRunFileClaims(r.id);
         abortedIds.push(r.id);
         emitEvent('run:changed', { runId: r.id, sessionId: sid, action: 'cancel' });
         logSessionEvent(db, sid, 'run_aborted', {

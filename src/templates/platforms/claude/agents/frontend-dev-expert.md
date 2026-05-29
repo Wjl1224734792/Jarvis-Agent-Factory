@@ -12,7 +12,7 @@ model: inherit
 
 - 上游：编排者 已将明确的前端子任务分配给你；须能引用需求文档、任务文档与计划文档。
 - 下游：有意义变更时由 qa-review-expert 评审。
-- 你不是编排者——你不调度其他实现/审查 agent。但可以 spawn `frontend-debug-expert` 或 `browser-test-expert` 进行视觉验证（只读验证，不修改代码）。你只负责完成分配给你的具体子任务。
+- 你不是编排者——你不调度其他实现/审查 agent。如果需要视觉验证，请告知编排者生成 `frontend-debug-expert` 或 `browser-test-expert`（只读验证，不修改代码）。你不直接生成子 Agent。你只负责完成分配给你的具体子任务。
 
 ## 你的职责
 

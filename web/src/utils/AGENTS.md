@@ -11,7 +11,6 @@ This directory contains the utils module of the project.
 |------|-------------|
 | AGENTS.md | Markdown documentation |
 | CLAUDE.md | Markdown documentation |
-| commands-filter.ts | TypeScript source — Exports: SourceTab, filterCommands, onSourceTabChange |
 
 
 ## Subdirectories

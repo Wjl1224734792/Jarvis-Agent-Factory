@@ -78,7 +78,7 @@ updated: "2026-05-22"
 | Gate | 并发策略 | 说明 |
 |------|---------|------|
 | Gate A | 需求澄清 → 并行探索（explore × N） | 探索可并行 |
-| Gate B-BDD/BDD/TDD | 串行 | DDD → BDD → TDD 依赖链 |
+| Gate B-DDD/B-BDD/B-TDD | 串行 | DDD → BDD → TDD 依赖链 |
 | Gate B1 | 并行架构评审 | frontend-architect + backend-architect + database-architect |
 | Gate C | 串行 planner | 单 Agent 产出计划 |
 | Gate C-impl | 按 batch 内并行 | 同 batch 无冲突 → 同发；batch 间串行 |
@@ -100,6 +100,27 @@ concurrency:
 
 未声明时使用默认值：max_parallel_spawns=4, team_preferred=false, safe_to_parallelize=true。
 
+## 文件冲突防护协议
+
+每次 spawn 实现类 Agent 必须遵循三步骤：
+
+```
+# Step 1: 预检查
+file_claim_check({ run_id, paths: ["src/components/Login/", "src/hooks/useAuth.ts"] })
+# → conflict_free: true → 继续
+# → conflict_free: false → 调整 paths 或延后到下一 Batch
+
+# Step 2: 注册
+file_claim_register({ run_id, agent_name: "T1-frontend-login", paths: [...] })
+
+# Step 3: 释放（Agent 完成后）
+file_claim_release({ run_id, agent_name: "T1-frontend-login" })
+```
+
+- 同 Batch 内所有 Agent 的路径互不重叠（含子目录）
+- 冲突检测基于路径前缀匹配：`src/a/b.ts` 与 `src/a/` 冲突
+- pipeline_guide 返回当前 run 的 `file_claims`，编排者可据此调度
+
 ## 反模式（禁止）
 
 - ❌ 串行 spawn 无依赖的 Agent（浪费轮次）
@@ -107,3 +128,4 @@ concurrency:
 - ❌ 共享文件的并发写入（必然冲突）
 - ❌ 等待 agent 结果时不发其他独立任务
 - ❌ 测试和审查并发执行（审查依赖测试报告）
+- ❌ 跳过 file_claim_check 直接 spawn（文件冲突不可追溯）

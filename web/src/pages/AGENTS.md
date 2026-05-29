@@ -4,7 +4,7 @@
 # pages — Project subdirectory
 
 ## Purpose
-页面组件 — Dashboard（流水线看板首页）、SessionDetail（会话详情含 Gate 步骤条 + Run 历史 + 文档预览）、Agents、Archive、Commands、Guide、Wiki 等。
+页面组件 — Dashboard（流水线看板首页）、SessionDetail（会话详情含 Gate 步骤条 + Run 历史 + 文档预览）、Agents、Archive、Guide、Wiki 等。
 
 ## Key Files
 | File | Description |
@@ -13,8 +13,6 @@
 | Agents.tsx | React component — Exports: Agents |
 | Archive.tsx | React component — Exports: Archive |
 | CLAUDE.md | Markdown documentation |
-| Commands.css | Style sheet |
-| Commands.tsx | React component — Exports: Commands |
 | Dashboard.tsx | React component — Exports: shortGate, GATE_COLORS, GATE_LABELS, GATE_DESCRIPTIONS, MARKDOWN_CSS |
 | DashboardHome.tsx | React component — Exports: DashboardHome |
 | Guide.tsx | React component — Exports: Guide |

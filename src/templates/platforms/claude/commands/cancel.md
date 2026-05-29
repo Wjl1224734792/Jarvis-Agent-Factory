@@ -110,7 +110,7 @@ mcp__jarvis-engine__pipeline_status()
 
 ## 中断各指令全表
 
-以下表格定义 `/cancel` 对全部 31 条指令的中断行为。所有指令均通过 `session_join` 注册引擎会话，`/cancel` 统一调用 `pipeline_cancel` 清理。
+以下表格定义 `/cancel` 对全部 35 条指令的中断行为。所有指令均通过 `session_join` 注册引擎会话，`/cancel` 统一调用 `pipeline_cancel` 清理。
 
 ### 编排入口（2条）
 
@@ -172,13 +172,17 @@ mcp__jarvis-engine__pipeline_status()
 | `/migrate` | pipeline_run + migrate 流水线 | `pipeline_cancel` | 部分迁移代码保留 | 重启 `/migrate` |
 | `/debug` | pipeline_run + debug 流水线 | `pipeline_cancel` — **安全取消，只读诊断** | 诊断数据丢失 | 重启 `/debug` |
 
-### 流程管理（3条）
+### 流程管理（7条）
 
 | 指令 | 活跃状态 | Cancel 清理 | 中断影响 | 恢复 |
 |------|---------|------------|---------|------|
 | `/cancel` | pipeline_run（cancel 自身创建的） | 自我取消 — `pipeline_cancel` + 退出 | 已在取消流程中，再次取消即退出 | N/A |
 | `/skill-flow` | pipeline_run + export/save/list/apply | `pipeline_cancel` | save 子命令中途取消则 SKILL.md 不完整 | 重启 `/skill-flow save <名称>` |
 | `/task-design` | pipeline_run + task-design Agent | `pipeline_cancel` | TASK-XXX 任务包不完整 | 重启 `/task-design` |
+| `/cleanup` | session_join（无 pipeline_run，session 未注册） | 安全取消 — 当前 run→aborted，无代码变更 | 无代码影响，随时中断安全 | 重启 `/cleanup` |
+| `/deepinit` | pipeline_run + 多 Agent spawn + 文档生成 | `pipeline_cancel` — kill 所有 spawned agents，清理 session | 部分诊断文档丢失，代码未变更 | 重启 `/deepinit` |
+| `/repowiki` | pipeline_run + wiki session（读写） | `pipeline_cancel` — 完成待写数据，关闭 wiki session | 当前页草稿可能丢失，已保存内容安全 | 重启 `/repowiki` |
+| `/verify` | pipeline_run + 验证流程（证据采集） | `pipeline_cancel` — 中止验证，丢弃部分证据 | 验证结论不完整，部分证据丢失 | 重启 `/verify` |
 
 ### 技术咨询（3条）
 
@@ -199,7 +203,7 @@ mcp__jarvis-engine__pipeline_status()
 | 审查 | 2 | 安全（review-only 只读） / 中等（review-fix 代码保留） | — |
 | 调研 | 3 | 安全（全部只读） | 无代码影响 |
 | 工程流程 | 5 | ⚠ 注意（publish/release 有副作用） | 提交/标签不可自动回滚 |
-| 流程管理 | 3 | 安全 | cancel 自身可直接退出 |
+| 流程管理 | 7 | 安全 | cancel 自身可自我取消，其余可安全中断 |
 | 技术咨询 | 3 | 安全（只读对话） | 无代码影响 |
 
 ---

@@ -16,7 +16,7 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "mcp_
 2. **编排者禁止直接编码** — 你是编排中枢，不是实现者。所有代码变更必须通过 `Agent()` spawn 实现类子 Agent 完成。唯一的例外：Gate C 计划文档写入、Gate E 发布脚本、以及该命令自身的维护。
 3. **Gate 序列不可跳过** — A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E，引擎 FSM 拒绝回退/跳跃。
 4. **与 `/auto` 区别**：
-   - `/jarvis`（本命令）— **全流程严格模式**，10 道闸门全部强制执行。适合中大型功能开发。
+   - `/jarvis`（本命令）— **全流程严格模式**，12 道闸门全部强制执行。适合中大型功能开发。
    - `/auto` — **智能路由模式**，自动检测任务类型→路由最优流水线→跳过无关Gate→按复杂度分配Team/Subagent。适合日常所有任务。
 
 > **你的 Write/Edit 操作会被实时检查。** 若当前 Gate 不允许写代码，操作将被引擎阻断并显示 `🚫 <Gate>: 操作 "write_code" 被禁止`。此时你只能通过 spawn Agent 推进流水线。
@@ -176,6 +176,13 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 ### 步骤 3：spawn Agent
 同一 Batch 的任务在 **一条消息中同时发出**（不可串行逐个等待）。
+
+**🔴 文件冲突防护（硬约束）**：
+1. spawn 前 → `file_claim_check({ run_id, paths })` 检测路径是否与已有 Agent 冲突
+2. spawn 后 → `file_claim_register({ run_id, agent_name, paths })` 注册独占路径
+3. Agent 完成 → `file_claim_release({ run_id, agent_name })` 释放路径
+4. 同 Batch 内所有 Agent 的 `allowed_paths` 必须互不重叠（含子目录匹配）
+5. 冲突 → 调整路径范围或将冲突 Agent 移到不同 Batch
 
 **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过。
 
@@ -438,7 +445,7 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 | 5-10 文件，单模块 | Subagent ×2-3 并行 | 同发 2-3 个 |
 | >10 文件，跨 ≥3 目录 | **Team 模式** | TeamCreate → 按模块分配 |
 | 只读探索多目录 | Subagent ×N 并行 | 同发 N 个 explore |
-| 多领域审查 | Subagent ×4 并行 | 同发 4 个 review |
+| 多领域审查 | Team 模式（大）或 Subagent 并行（小） | 同发 4 个 review |
 
 ### Gate C-impl: 按计划批次并行实现
 
@@ -468,23 +475,38 @@ Agent(backend-data-expert, "数据模型", task_id=T4)
 
 ### Gate C2: 并行测试
 
+> 引擎策略: `prefer_team`。大任务用 Team 模式并行测试，小任务用 Subagent。
+
 ```
-# 一条消息同发全部测试 Agent
+# Subagent 模式（小任务，一条消息同发）
 Agent(frontend-test-expert, "前端单元+组件测试")
 Agent(backend-test-expert, "后端单元+集成测试")
 # 等前两个完成后 → Agent(e2e-test-expert, "端到端测试")
-# 全部通过 → Agent(qa-review-expert, "综合签核")
+
+# Team 模式（大任务，>10 文件或跨 ≥3 目录）
+TeamCreate({ team_name: "test-{topic}" })
+→ Agent({ team_name, subagent_type: "frontend-test-expert", ... })
+→ Agent({ team_name, subagent_type: "backend-test-expert", ... })
 ```
 
 ### Gate D: 并行审查
 
+> 引擎策略: `prefer_team`。大任务用 Team 模式并行审查，小任务用 Subagent。
+
 ```
-# 一条消息同发 4 个领域审查（互不依赖）
+# Subagent 模式（小任务，一条消息同发 4 个领域审查）
 Agent(frontend-review-expert, "前端审查") \
 Agent(backend-review-expert, "后端审查")  } 同发
 Agent(security-review-expert, "安全审计") /
 Agent(perf-review-expert, "性能审计")   /
 # 全部完成后 → Agent(qa-review-expert, "综合签核") — 串行等待前 4 个
+
+# Team 模式（大任务，>10 文件或跨 ≥3 目录）
+TeamCreate({ team_name: "review-{topic}" })
+→ Agent({ team_name, subagent_type: "frontend-review-expert", ... })
+→ Agent({ team_name, subagent_type: "backend-review-expert", ... })
+→ Agent({ team_name, subagent_type: "security-review-expert", ... })
+→ Agent({ team_name, subagent_type: "perf-review-expert", ... })
 ```
 
 ### Team 生命周期
@@ -492,7 +514,10 @@ Agent(perf-review-expert, "性能审计")   /
 ```
 创建: TeamCreate({ team_name: "{task}-{gate}" })
 分配: spawn Agent 带 team_name + name + subagent_type
+文件声明: 每个成员 spawn 后 → file_claim_register({ run_id, agent_name, paths })
+冲突检查: 分配前 → file_claim_check({ run_id, paths }) 确保无重叠
 完成: TaskList 全部 resolved
+释放: 每个成员完成 → file_claim_release({ run_id, agent_name })
 关闭: SendMessage(shutdown_request) → TeamDelete()
 降级: TeamCreate 不可用 → 回退并行 Subagent
 ```

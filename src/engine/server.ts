@@ -24,6 +24,7 @@ import { registerWikiTools } from './tools/wiki-tools.js';
 import { registerMemoryTools } from './tools/memory-tools.js';
 import { registerAstTools } from './tools/ast-tools.js';
 import { registerLspTools } from './tools/lsp-tools.js';
+import { registerFileClaimTools } from './tools/file-claim-tools.js';
 
 
 // ── TASK-003: 全局错误处理 + 请求日志 ─────────────────────
@@ -399,6 +400,7 @@ export function registerMcpTools(server: McpServer, db: DatabaseSync, root: stri
   registerMemoryTools(server, db, root, ctx);
   registerAstTools(server, db, root, ctx);
   registerLspTools(server, db, root, ctx);
+  registerFileClaimTools(server, ctx);
 }
 
 export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_PORT, projectRoot = '.' } = {}) {

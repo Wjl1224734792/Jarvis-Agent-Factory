@@ -18,7 +18,7 @@ Skill("security-testing")
 ```
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
 - 扫描前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 - 扫描过程中只读，不修改代码
 

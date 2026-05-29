@@ -20,7 +20,7 @@ Skill("browser-testing")
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
 - 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - 修复代码前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
-- 构建/Lint 前调用 `mcp__jarvis-engine__gate_check({ operation: "lint" })` 和 `mcp__jarvis-engine__gate_check({ operation: "build" })`
+- 质量检查（Lint/Type-check/Build）作为修复验证的一部分执行，非独立操作；修复前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
 - 修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate 条件
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。

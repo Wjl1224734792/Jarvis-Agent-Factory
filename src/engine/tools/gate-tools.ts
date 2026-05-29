@@ -5,6 +5,7 @@ import type { ToolContext } from './types.js';
 import { getPipeline, getActiveRun } from '../db.js';
 import { GATE_CHECKS, GATE_CONFIG, DEFAULT_PIPELINE, getPipelineName, getGateOperations, getGateAgentGuide, getGateTeamStrategy } from '../gates.js';
 import { sessionGates } from './shared.js';
+import { getRunFileClaims } from './file-claim-tools.js';
 
 export function registerGateTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('gate_check',
@@ -74,6 +75,8 @@ export function registerGateTools(server: McpServer, db: DatabaseSync, root: str
         previous_gate: ci > 0 ? gateList[ci - 1] : null,
         fix_loop: (cur === 'Gate C1' || cur === 'Gate C1.5' || cur === 'Gate C2' || cur === 'Gate D')
           ? '当前Gate支持修复回退循环，最多2轮。调用 gate_check("fix") 确认修复操作已允许。' : null,
+        file_claims: runId ? getRunFileClaims(runId) : {},
+        file_claim_hint: 'spawn Agent 前用 file_claim_check 检测路径冲突，spawn 后用 file_claim_register 注册独占路径，Agent 完成后用 file_claim_release 释放。',
       });
     });
 }

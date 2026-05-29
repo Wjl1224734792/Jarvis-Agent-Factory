@@ -44,11 +44,11 @@ Skill("session-memory")
 | 任务性质 | 路由流水线 | 入口 Gate | 说明 |
 |---------|-----------|-----------|------|
 | 新功能开发 | `full` | Gate A | 完整需求→实现→测试→评审→发布流程 |
-| Bug修复 | `full` | Gate C | 跳过需求/任务/架构，直接规划→实现→测试 |
-| 小修改(<3文件) | `full` | Gate C-impl | 跳过所有前置，直接进入实现 |
+| Bug修复 | `lite` | Gate C | 使用 lite 流水线（allow_jump），gate_jump 到 Gate C 直接修复 |
+| 小修改(<3文件) | `lite` | Gate C-impl | 使用 lite 流水线（allow_jump），gate_jump 到 Gate C-impl 直接实现 |
 | 重构 | `refactor` | R1 | R1边界→R2基线→R3重构→R4漂移→R5报告 |
 | 紧急修复 | `hotfix` | H0 | H0声明→H1修复→H2验证→H3审计 |
-| 代码审查 | `full` | Gate D | 直接进入评审阶段 |
+| 代码审查 | `lite` | Gate D | 使用 lite 流水线（allow_jump），gate_jump 到 Gate D 直接审查 |
 | 技术调研 | `research` | RS0 | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 |
 | 调试诊断 | `debug` | D0 | D0信息→D1复现→D2会话→D3诊断→D4报告 |
 | 代码简化 | `simplify` | S0 | S0分析→S1简化→S2验证→S3报告 |
@@ -56,8 +56,8 @@ Skill("session-memory")
 | 框架迁移 | `migrate` | M1 | M1规则→M2迁移→M3编译→M4修复 |
 | 技术评估 | `evaluate` | E0 | E0标准→E1原型→E2指标→E3报告 |
 | 发布上线 | `release` | RL0 | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 |
-| 前端开发 | `frontend` | Gate A | 全流程但跳过C1.5(后端跳C1.5) |
-| 后端开发 | `backend` | Gate A | 全流程但跳过C1.5 |
+| 前端开发 | `frontend` | Gate A | 全流程（含强制 C1.5 视觉验证） |
+| 后端开发 | `backend` | Gate A | 全流程（跳过 C1.5 视觉验证） |
 | 无法分类 | `full` | Gate A | 默认全流程，编排者逐步澄清 |
 
 **路由输出**（一句话声明）：
@@ -79,7 +79,8 @@ mcp__jarvis-engine__session_join({
 })
 ```
 
-- 若路由到 `full` 流水线但非 Gate A 入口 → 使用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>" })` 跳转
+- 若路由到 `lite` 流水线且非 Gate A 入口 → 使用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>" })` 直接跳转（lite 支持 allow_jump）
+- 若路由到 `full`/`frontend`/`backend` 流水线 → 从 Gate A 开始按序列推进（这些流水线不支持 gate_jump，须经完整 Gate 序列）
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 的 `team_strategy` 和允许的操作
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
 - spawn Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })`

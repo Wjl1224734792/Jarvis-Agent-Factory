@@ -3,7 +3,7 @@ name: hotfix
 description: 紧急热修复指令——H0紧急声明→H1最小化修复→H2快速验证+回滚→H3事后审计，4Gate紧急流程
 model: inherit
 argument-hint: [故障描述或issue编号]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 紧急热修复
