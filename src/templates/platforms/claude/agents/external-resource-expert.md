@@ -39,7 +39,7 @@ model: inherit
 
 常用技能包括：
 - `find-docs` — 外部库/框架文档搜索（WebSearch/WebFetch）
-- `find-skills` — 搜索和发现开源 Agent Skill
+- `find-docs` — 搜索和发现开源 Agent Skill
 
 所有 Agent 基座技能 `behavioral-guidelines` 自动遵守。
 

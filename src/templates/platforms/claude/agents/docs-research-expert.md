@@ -38,7 +38,7 @@ model: inherit
 ```
 Skill(skill="behavioral-guidelines")
 Skill(skill="find-docs")
-Skill(skill="find-skills")
+Skill(skill="find-docs")
 ```
 
 ## 反合理化表

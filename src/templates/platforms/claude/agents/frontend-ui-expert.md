@@ -1,7 +1,7 @@
 ---
 name: frontend-ui-expert
 description: "Use this agent when you need frontend web UI implementation. Typical triggers include page layout design, component building, styling, responsive adaptation, and accessibility."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__Claude_Preview__preview_start", "mcp__Claude_Preview__preview_screenshot", "mcp__Claude_Preview__preview_snapshot", "mcp__Claude_Preview__preview_inspect", "mcp__Claude_Preview__preview_resize", "mcp__Claude_Preview__preview_logs", "mcp__Claude_Preview__preview_list", "mcp__Claude_Preview__preview_stop", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__evaluate", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__close_page", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
 model: inherit
 ---
@@ -97,20 +97,20 @@ Skill(skill="code-standards")
 }
 ```
 
-然后启动：`mcp__Claude_Preview__preview_start({name: "<project-name>-dev"})`。
+然后启动：`mcp__chrome-devtools__navigate_page({name: "<project-name>-dev"})`。
 
 ### 步骤 2：修改前截图（Baseline）
 
 在修改任何 UI 代码前，先截图当前页面状态作为基线：
-- `mcp__Claude_Preview__preview_screenshot({serverId: "<serverId>"})`
-- `mcp__Claude_Preview__preview_snapshot({serverId: "<serverId>"})` — 获取元素结构
+- `mcp__chrome-devtools__take_screenshot({serverId: "<serverId>"})`
+- `mcp__chrome-devtools__take_snapshot({serverId: "<serverId>"})` — 获取元素结构
 
 ### 步骤 3：增量修改 + 即时截图验证
 
 每完成一个独立 UI 变更（一个组件/一个页面区块），立即：
 
-1. **截图查看效果**：`mcp__Claude_Preview__preview_screenshot({serverId: "<serverId>"})`
-2. **检查关键样式**：`mcp__Claude_Preview__preview_inspect({serverId: "<serverId>", selector: "<CSS选择器>", styles: ["color", "font-size", "padding", "margin", "width", "height", "display", "position"]})`
+1. **截图查看效果**：`mcp__chrome-devtools__take_screenshot({serverId: "<serverId>"})`
+2. **检查关键样式**：`mcp__chrome-devtools__evaluate({serverId: "<serverId>", selector: "<CSS选择器>", styles: ["color", "font-size", "padding", "margin", "width", "height", "display", "position"]})`
 3. **对比预期**：与需求文档中的 UI 描述/设计稿对比，确认：
    - 颜色、字号、间距正确
    - 布局在不同视口下正常
@@ -122,9 +122,9 @@ Skill(skill="code-standards")
 每完成一个页面，必须在三种视口下截图验证：
 
 ```
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "mobile"})   → 截图
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "tablet"})   → 截图
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})  → 截图
+mcp__chrome-devtools__resize_page({serverId: "<serverId>", preset: "mobile"})   → 截图
+mcp__chrome-devtools__resize_page({serverId: "<serverId>", preset: "tablet"})   → 截图
+mcp__chrome-devtools__resize_page({serverId: "<serverId>", preset: "desktop"})  → 截图
 ```
 
 ### 步骤 5：问题立即修复
@@ -138,7 +138,7 @@ mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})
 ### 预览错误处理
 
 若 `preview_start` 失败或 dev server 报错：
-- `mcp__Claude_Preview__preview_logs({serverId: "<serverId>", level: "error"})` 检查错误
+- `mcp__chrome-devtools__list_console_messages({serverId: "<serverId>", level: "error"})` 检查错误
 - 修复构建错误后重新启动
 - 若无法启动，报告给编排者，不继续 UI 实现
 

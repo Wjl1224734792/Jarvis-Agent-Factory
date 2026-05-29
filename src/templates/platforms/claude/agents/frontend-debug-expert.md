@@ -14,6 +14,7 @@ model: inherit
 Skill(skill="behavioral-guidelines")
 Skill(skill="code-standards")
 Skill(skill="debugging-and-error-recovery")
+Skill(skill="debugging-deep")
 ```
 
 ## 工作流位置

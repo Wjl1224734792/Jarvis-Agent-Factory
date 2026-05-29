@@ -78,7 +78,7 @@ model: inherit
 | 数据层/DB | + `source-driven-development` |
 | 性能测试 | + `debugging-and-error-recovery` |
 | E2E 测试 | + `debugging-and-error-recovery` `verification-before-completion` |
-| 浏览器测试 | + `agent-browser` `browser-testing` |
+| 浏览器测试 | + `browser-testing` |
 | Bug 修复 | + `source-driven-development` `debugging-and-error-recovery` |
 | 重构 | + `code-simplification` `source-driven-development` `verification-before-completion` |
 | API 文档 | + `source-driven-development` `chinese-documentation` |

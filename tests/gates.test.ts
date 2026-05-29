@@ -389,7 +389,7 @@ describe('TASK-001: GATE_AGENT_GUIDE 注册 22 个新 Gate', () => {
     expect(GATE_AGENT_GUIDE['H1'].can_spawn).toContain('remediation-expert');
   });
 
-  it('19. R3 can_spawn 包含全部 8 种实现 Agent', () => {
+  it('19. R3 can_spawn 包含全部 8 种核心实现 Agent + 6 平台移动端 Agent', () => {
     const agents = GATE_AGENT_GUIDE['R3'].can_spawn;
     expect(agents).toContain('frontend-dev-expert');
     expect(agents).toContain('frontend-ui-expert');
@@ -399,7 +399,13 @@ describe('TASK-001: GATE_AGENT_GUIDE 注册 22 个新 Gate', () => {
     expect(agents).toContain('backend-logic-expert');
     expect(agents).toContain('backend-data-expert');
     expect(agents).toContain('remediation-expert');
-    expect(agents).toHaveLength(8);
+    expect(agents).toContain('android-dev-expert');
+    expect(agents).toContain('ios-dev-expert');
+    expect(agents).toContain('flutter-dev-expert');
+    expect(agents).toContain('taro-dev-expert');
+    expect(agents).toContain('react-native-dev-expert');
+    expect(agents).toContain('expo-dev-expert');
+    expect(agents).toHaveLength(14);
   });
 
   it('20. H3 can_spawn 包含 security-review-expert / qa-review-expert / docs-engineer', () => {

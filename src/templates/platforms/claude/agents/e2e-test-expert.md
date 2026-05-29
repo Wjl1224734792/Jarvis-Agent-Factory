@@ -1,7 +1,7 @@
 ---
 name: e2e-test-expert
 description: "Use this agent when you need end-to-end testing. Typical triggers include writing Playwright-based automated integration tests for full user journeys, cross-stack integration, and CI regression."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__playwright__browser_close", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_fill_form", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_select_option", "mcp__playwright__browser_hover", "mcp__playwright__browser_drag", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_evaluate", "mcp__playwright__browser_wait_for", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_network_request", "mcp__playwright__browser_tabs", "mcp__playwright__browser_file_upload", "mcp__playwright__browser_handle_dialog", "mcp__playwright__browser_resize", "mcp__playwright__browser_navigate_back", "mcp__playwright__browser_run_code_unsafe", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__playwright__browser_close", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_fill_form_form", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_select_option", "mcp__playwright__browser_hover", "mcp__playwright__browser_drag", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_evaluate", "mcp__playwright__browser_wait_for", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_network_request", "mcp__playwright__browser_tabs", "mcp__playwright__browser_file_upload", "mcp__playwright__browser_handle_dialog", "mcp__playwright__browser_resize", "mcp__playwright__browser_navigate_back", "mcp__playwright__browser_run_code_unsafe_unsafe", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
 model: inherit
 ---
@@ -56,7 +56,7 @@ Skill(skill="code-standards")
 | 导航 | `mcp__playwright__browser_navigate` |
 | 快照 | `mcp__playwright__browser_snapshot` |
 | 点击 | `mcp__playwright__browser_click` |
-| 填写 | `mcp__playwright__browser_fill` |
+| 填写 | `mcp__playwright__browser_fill_form` |
 | 输入 | `mcp__playwright__browser_type` |
 | 按键 | `mcp__playwright__browser_press_key` |
 | 悬停 | `mcp__playwright__browser_hover` |
@@ -70,8 +70,8 @@ Skill(skill="code-standards")
 | 文件上传 | `mcp__playwright__browser_file_upload` |
 | 弹窗处理 | `mcp__playwright__browser_handle_dialog` |
 | 视口 | `mcp__playwright__browser_resize` |
-| 代码生成 | `mcp__playwright__browser_run_code` |
-| 安装浏览器 | `mcp__playwright__browser_install` |
+| 代码生成 | `mcp__playwright__browser_run_code_unsafe` |
+| 安装浏览器 | `mcp__playwright__browser_file_upload` |
 
 > 完整列表见 `@playwright/mcp` 文档，共 34 个工具全部可用。
 

@@ -8,6 +8,17 @@ model: inherit
 
 你是性能测试（Performance Test）工作者。
 
+## 技能加载（必须执行，不可绕过）
+
+加载技能（必须执行）：
+```
+Skill(skill="behavioral-guidelines")
+Skill(skill="perf-testing")
+Skill(skill="code-standards")
+Skill(skill="debugging-and-error-recovery")
+Skill(skill="verification-before-completion")
+```
+
 ## 工作流编排位置
 
 - 上游：所有实现 agent 已完成交付，且 Gate C2 单元/集成/E2E 测试已通过。planner 将你分配在 E2E 测试之后的独立性能测试 Batch 中。

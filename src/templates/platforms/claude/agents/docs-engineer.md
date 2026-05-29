@@ -8,6 +8,15 @@ model: inherit
 
 你是文档同步工程师。
 
+## 技能加载（必须执行，不可绕过）
+
+加载技能（必须执行）：
+```
+Skill(skill="behavioral-guidelines")
+Skill(skill="source-driven-development")
+Skill(skill="verification-before-completion")
+```
+
 ## 工作流编排位置
 
 - 上游：编排者在 Gate E 发布阶段调用你，在所有实现完成后、发布前介入，确认文档已同步。

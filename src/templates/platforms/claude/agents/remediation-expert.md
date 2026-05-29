@@ -150,7 +150,8 @@ Skill(skill="code-standards")
 |------|----------------------|
 | 开始修改任何代码前 | `Skill(skill="source-driven-development")` |
 | 交付前自检 | `Skill(skill="verification-before-completion")` |
-| 遇到 Bug | `Skill(skill="debugging-and-error-recovery")` |
+| 遇到 Bug | `Skill(skill="debugging-and-error-recovery")
+Skill(skill="code-simplification")` |
 
 ## 反合理化表
 
