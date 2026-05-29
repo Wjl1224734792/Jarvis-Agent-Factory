@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Typography, Card, List, Spin, Collapse, Alert, Input, Row, Col } from 'antd';
+import { Typography, Card, List, Spin, Collapse, Alert, Input, Row, Col, Empty } from 'antd';
 import {
   ReadOutlined, ThunderboltOutlined, CodeOutlined,
   RocketOutlined, SearchOutlined, PlayCircleOutlined,
@@ -69,7 +69,7 @@ export default function Guide() {
   }, []);
 
   const groupedCommands = useMemo(() => {
-    const cmds = commandsData?.project?.commands || [];
+    const cmds = [...(commandsData?.project?.commands || []), ...(commandsData?.global?.commands || [])];
     const filtered = search
       ? cmds.filter(c => c.name.includes(search) || c.description.includes(search))
       : cmds;
@@ -161,7 +161,7 @@ export default function Guide() {
             <CodeOutlined style={{ marginRight: 6 }} />指令参考
             {!commandsLoading && !commandsError && (
               <Text type="secondary" style={{ fontSize: 12, marginLeft: 4, fontWeight: 400 }}>
-                ({commandsData?.project?.commands?.length || 0} 条)
+                ({[...(commandsData?.project?.commands || []), ...(commandsData?.global?.commands || [])].length} 条)
               </Text>
             )}
           </Title>
@@ -179,6 +179,8 @@ export default function Guide() {
           <div style={{ textAlign: 'center', padding: 20 }}><Spin size="small" /></div>
         ) : commandsError ? (
           <Alert message="指令加载失败，请确保引擎已启动" type="warning" showIcon style={{ fontSize: 13 }} />
+        ) : Object.keys(groupedCommands).length === 0 ? (
+          <Empty description="暂无命令数据" style={{ marginTop: 60 }} />
         ) : (
           <Collapse
             size="small"

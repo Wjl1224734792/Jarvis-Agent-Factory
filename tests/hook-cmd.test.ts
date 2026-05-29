@@ -8,6 +8,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+vi.mock('child_process', () => ({
+  spawn: vi.fn(() => ({
+    on: vi.fn(),
+    unref: vi.fn(),
+  })),
+}));
+
 const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -158,10 +165,10 @@ describe('hookCommand', () => {
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it('12 | Engine 不可用 → exit(2)', async () => {
+    it('12 | Engine 不可用 → exit(0) + 尝试自启动', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
       await hookCommand(['gate-check']);
-      expect(exitSpy).toHaveBeenCalledWith(2);
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 
@@ -199,10 +206,10 @@ describe('hookCommand', () => {
       expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
-    it('15 | Engine 不可用 → exit(2)', async () => {
+    it('15 | Engine 不可用 → exit(0) + 尝试自启动', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
       await hookCommand(['gate-advance']);
-      expect(exitSpy).toHaveBeenCalledWith(2);
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 

@@ -9,10 +9,19 @@
  *   jarvis hook agent-config [--agent-id <id>] [--model <model>] [--effort <effort>]
  */
 
+import { spawn } from 'child_process';
 import { GATE_OPERATIONS } from './engine/gates.js';
 
 const ENGINE_URL = process.env.JARVIS_ENGINE_URL || 'http://localhost:3456';
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
+function tryStartEngine() {
+  try {
+    const child = spawn('jarvis', ['engine', 'start'], { detached: true, stdio: 'ignore' });
+    child.on('error', () => {}); // 忽略 ENOENT 等异步错误
+    child.unref();
+  } catch { /* 启动失败不阻塞 */ }
+}
 
 async function api(path) {
   const r = await fetch(`${ENGINE_URL}${path}`);
@@ -85,9 +94,9 @@ export async function hookCommand(args) {
         process.exit(2);
       }
     } catch {
-      console.error(`\n⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.`);
-      console.error(`   Start it: jarvis engine start\n`);
-      process.exit(2);
+      console.error('⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.');
+      tryStartEngine();
+      process.exit(0);
     }
   }
 
@@ -111,9 +120,9 @@ export async function hookCommand(args) {
       }
       else { console.error(`🚫 BLOCKED — ${g.error} (${session.pipeline_name})`); process.exit(2); }
     } catch {
-      console.error(`\n⚠️  Jarvis Engine is NOT running. Cannot advance gate.`);
-      console.error(`   Start it: jarvis engine start\n`);
-      process.exit(2);
+      console.error('⚠️  Jarvis Engine is NOT running. Cannot advance gate.');
+      tryStartEngine();
+      process.exit(0);
     }
   }
 
