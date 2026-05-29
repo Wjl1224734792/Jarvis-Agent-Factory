@@ -13,7 +13,7 @@ import { VALID_PIPELINE_TYPES, sessionGates } from './shared.js';
 import { getSessionContextSummary, cleanExpiredMemories } from '../session-archive.js';
 import { getPriorityContextForInjection } from './memory-tools.js';
 
-const SESSION_TIMEOUT = 7_200_000;
+const SESSION_TIMEOUT = 600_000; // 10分钟无心跳→inactive
 
 export function registerSessionTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('session_join',
@@ -39,6 +39,7 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
         }
       }
       cleanExpiredMemories(db);
+      markStaleSessions(db, SESSION_TIMEOUT);
       const archiveSummary = getSessionContextSummary(db, root);
       const priorityNotes = getPriorityContextForInjection(root);
       const contextSummary = [archiveSummary, priorityNotes ? `## 永久优先上下文\n${priorityNotes}` : null]
