@@ -2,7 +2,7 @@
 name: verify-expert
 description: "Use this agent when you need evidence-based verification. Typical triggers include designing verification strategy, collecting observable evidence, and determining whether changes are effective and operational."
 color: blue
-model: inherit
+model: deepseek-v4-pro
 category: review
 tags: [verify, QA, evidence, testing, audit, quality]
 skill-recommendations: [verification-before-completion, code-review-and-quality, behavioral-guidelines]

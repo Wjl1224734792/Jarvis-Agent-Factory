@@ -3,7 +3,7 @@ name: planner
 description: "Use this agent when you need implementation planning. Typical triggers include task breakdown into parallel batches, resource allocation across sub-agents, and execution packet creation for gate C."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是执行规划代理。

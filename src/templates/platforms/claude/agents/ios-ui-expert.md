@@ -3,7 +3,7 @@ name: ios-ui-expert
 description: "Use this agent when you need iOS/Swift/SwiftUI UI implementation. Typical triggers include page layout design, component building, styling, responsive adaptation, and accessibility."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是 iOS UI 专项工作者。只负责 UI 呈现层面，可与 ios-state-expert 并行开发。

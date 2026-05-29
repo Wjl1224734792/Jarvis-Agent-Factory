@@ -3,7 +3,7 @@ name: backend-api-expert
 description: "Use this agent when you need backend server API implementation. Typical triggers include route definition, controller development, request validation, middleware, and API contract output."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是后端 API 专项工作者。

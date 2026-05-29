@@ -3,7 +3,7 @@ name: algorithm-expert
 description: "Use this agent when you need algorithm design and analysis. Typical triggers include complexity analysis, data structure design, performance optimization for compute-intensive modules, and algorithm selection."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "WebFetch", "WebSearch", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是算法专家。

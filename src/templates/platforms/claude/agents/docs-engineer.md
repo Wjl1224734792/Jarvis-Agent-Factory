@@ -3,7 +3,7 @@ name: docs-engineer
 description: "Use this agent when you need documentation synchronization. Typical triggers include checking AGENTS.md/README.md/CLAUDE.md against latest code changes, fixing documentation inconsistencies, and producing sync reports."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_workspace_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是文档同步工程师。

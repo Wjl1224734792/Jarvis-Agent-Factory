@@ -3,7 +3,7 @@ name: qa-review-expert
 description: "Use this agent when you need comprehensive quality review. Typical triggers include aggregating review reports, verifying REQ traceability matrix, checking documentation completeness, and final sign-off."
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是综合质量审查专家（QA 签核）。

@@ -3,7 +3,7 @@ name: frontend-state-expert
 description: "Use this agent when you need frontend web state management. Typical triggers include data flow architecture, local storage, network requests, caching, and routing logic."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: inherit
+model: deepseek-v4-pro
 ---
 
 你是前端状态与数据专项工作者。

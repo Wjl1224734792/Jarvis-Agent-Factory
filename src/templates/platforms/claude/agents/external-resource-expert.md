@@ -3,7 +3,7 @@ name: external-resource-expert
 description: "Use this agent when you need external documentation research. Typical triggers include searching for library documentation, framework API references, version compatibility checks, and discovering open-source tools."
 tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references"]
 color: blue
-model: inherit
+model: deepseek-v4-flash
 ---
 
 你是外部资料搜索与探索代理。

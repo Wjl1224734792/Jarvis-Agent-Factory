@@ -3,7 +3,7 @@ name: code-explore-expert
 description: "Use this agent when you need codebase exploration. Typical triggers include finding files by glob patterns, searching for symbols or keywords with grep, and locating code definitions across modules."
 tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references"]
 color: blue
-model: inherit
+model: deepseek-v4-flash
 ---
 
 你是代码库探索代理。
