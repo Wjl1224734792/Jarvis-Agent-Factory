@@ -59,7 +59,7 @@ Skill(skill="code-standards")
 
 ## 🔴 视觉预览闭环（不可绕过）
 
-> **⚠️ 工具可用性说明**：本章节基于 Claude Code **桌面版**编写（支持 `mcp__Claude_Preview__*` 工具）。
+> **⚠️ 工具可用性说明**：本章节基于 Claude Code **桌面版**编写。当前使用 `mcp__chrome-devtools__*` 工具作为等效替代。
 > 如果你在 **Claude Code 终端/CLI** 中运行，Preview MCP 不可用。请改用 agent-browser CLI 进行截图验证：
 > ```
 > # 启动 dev server

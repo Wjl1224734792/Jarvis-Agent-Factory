@@ -124,10 +124,10 @@ agent-browser screenshot desktop.png
 
 ### 方案 A：有 Preview MCP 时（Claude Code 桌面版）
 
-1. `mcp__Claude_Preview__preview_list` — 检查是否已有运行中的预览服务器
+1. `mcp__chrome-devtools__list_pages` — 检查是否已有运行中的预览服务器
 2. 若未运行且 `.claude/launch.json` 已配置：
    ```
-   mcp__Claude_Preview__preview_start({name: "<config-name>"})
+   mcp__chrome-devtools__navigate_page({name: "<config-name>"})
    ```
 3. 获取本地 URL 后使用 `agent-browser open <url>` 或 `preview_screenshot` 进行测试
 4. 测试完成后可保留服务器供后续使用

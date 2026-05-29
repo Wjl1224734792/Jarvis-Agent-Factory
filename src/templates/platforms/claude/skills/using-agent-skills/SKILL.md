@@ -75,7 +75,7 @@ Jarvis 按流程调度子 Agent
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
 | `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | external-resource-expert Agent |
-| `find-skills` | 搜索和安装开源 Agent 技能 | external-resource-expert Agent |
+| `find-docs` | 搜索和安装开源 Agent 技能 | external-resource-expert Agent |
 
 ### 阶段 5：实现
 | 技能 | 用途 | 加载者 |
@@ -183,7 +183,7 @@ Skill(skill="<技能名>")
 | 6 | `debugging-and-error-recovery` | 调试 | 系统化调试流程与根因追踪 |
 | 7 | `documentation-and-adrs` | 架构 | 架构决策记录 |
 | 8 | `find-docs` | 探索 | 文档查询（WebSearch/WebFetch） |
-| 9 | `find-skills` | 探索 | 搜索和安装开源 Agent 技能 |
+| 9 | `find-docs` | 探索 | 搜索和安装开源 Agent 技能 |
 | 10 | `finishing-a-development-branch` | 流程 | 分支合并、清理、部署验证 |
 | 11 | `git-workflow-and-versioning` | 流程 | Git 工作流与版本管理 |
 | 12 | `idea-refine` | 梳理 | 模糊想法 → 结构化问题 |
