@@ -21,6 +21,17 @@
 | backend-test-expert | 编写后端服务集成测试 |
 | frontend-test-expert | 编写前端与后端的集成测试 |
 
+## Gate 引擎集成
+
+立即执行以下初始化步骤：
+
+1. 注册引擎会话：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
+2. 测试执行前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
+3. 测试完成后调用 `mcp__jarvis-engine__gate_enforce()` 验证 Gate 条件
+4. `mcp__jarvis-engine__advance_gate()` 推进到下一个 Gate
+
 ## 流程图
 
 ```mermaid

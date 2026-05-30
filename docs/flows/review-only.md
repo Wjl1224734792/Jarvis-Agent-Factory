@@ -8,7 +8,7 @@ version: "4.4.2"
 updated: "2026-05-21"
 ---
 
-# `/audit` — 只读审查模式
+# `/review-only` — 只读审查模式
 
 - **命令**：`/review-only [审查对象]`
 - **类别**：审查
