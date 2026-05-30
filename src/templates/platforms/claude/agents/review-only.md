@@ -34,6 +34,7 @@ model: deepseek-v4-pro
 | 性能风险审查 | perf-review-expert | N+1、重复渲染、缓存失效、无界循环/查询、资源泄漏 |
 | 代码库探索 | code-explore-expert | 代码结构、调用链、风险边界事实输入 |
 | 外部文档 | external-resource-expert | 外部文档、API、库行为事实输入 |
+| 架构审查 | frontend-architect / backend-architect / database-architect | 架构一致性、设计模式、模块边界、依赖方向、架构反模式 |
 
 **可并行调用多个审查代理（它们互不依赖），在一条消息中批量发起，等待全部返回后汇总 findings。**
 

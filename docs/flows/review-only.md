@@ -31,6 +31,9 @@ updated: "2026-05-21"
 | diff-review-expert | 差异代码审查 |
 | perf-review-expert | 性能审计 |
 | change-review-expert | 变更影响审查 |
+| frontend-architect | 前端架构审查 |
+| backend-architect | 后端架构审查 |
+| database-architect | 数据库架构审查 |
 | security-review-expert | 安全漏洞审查 |
 | review-only | 只读审查编排器（CRITICAL 或 3+ MAJOR 时升级为对抗审查） |
 

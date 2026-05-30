@@ -65,6 +65,9 @@ model: deepseek-v4-pro
 | 性能专项初审 | perf-review-expert |
 | 仓库结构探索 | code-explore-expert |
 | 外部文档/API | external-resource-expert |
+| 前端架构审查 | frontend-architect | 前端架构一致性、组件设计模式、依赖方向 |
+| 后端架构审查 | backend-architect | 后端架构一致性、模块边界、领域设计 |
+| 数据库架构审查 | database-architect | 数据库架构一致性、Schema 设计、迁移策略 |
 | 修复/优化计划 | remediation-expert |
 | 前端 UI/样式 | frontend-ui-expert |
 | 前端状态/数据/路由 | frontend-state-expert |

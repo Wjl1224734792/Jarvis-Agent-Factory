@@ -4,6 +4,11 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.65 (2026-05-30)
+
+### 变更
+- **审查流程补充架构师多视角**: Gate D 审查阶段新增 `frontend-architect`、`backend-architect`、`database-architect` 参与，填补实现后架构一致性验证缺口
+
 ## v4.7.64 (2026-05-30)
 
 ### 修复

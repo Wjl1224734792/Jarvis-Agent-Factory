@@ -31,6 +31,9 @@ updated: "2026-05-21"
 | diff-review-expert | 差异审查 |
 | perf-review-expert | 性能审计 |
 | change-review-expert | 变更影响审查 |
+| frontend-architect | 前端架构审查 |
+| backend-architect | 后端架构审查 |
+| database-architect | 数据库架构审查 |
 | remediation-expert | 修复执行 |
 | remediation-planner | 修复规划 |
 | review-fix-optimize | 完整闭环编排器（审查→修复→重审） |
