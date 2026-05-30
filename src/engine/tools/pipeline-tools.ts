@@ -180,7 +180,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       addCheckpoint(db, cur, gate, sid, durationSeconds ?? undefined);
       updatePipelineGate(db, sid, gate);
       if (runId) {
-        const allCheckpoints = getCheckpoints(db, undefined, sid);
+        const allCheckpoints = getCheckpoints(db, '', sid);
         saveResumeData(db, runId, {
           gate,
           gateList,

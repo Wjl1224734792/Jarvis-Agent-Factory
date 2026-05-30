@@ -268,7 +268,7 @@ function initSchema(db: DbConn) {
     db.exec('BEGIN');
     try {
       // 备份旧数据（旧表可能有 id, project, current_gate, mode, started_at, updated_at, session_id, pipeline_type）
-      const oldRows = db.prepare('SELECT * FROM pipeline').all() as PipelineRecord[];
+      const oldRows = db.prepare('SELECT * FROM pipeline').all() as unknown as PipelineRecord[];
       db.exec('DROP TABLE IF EXISTS pipeline');
       db.exec(`
         CREATE TABLE pipeline (
@@ -300,7 +300,7 @@ function initSchema(db: DbConn) {
     // 旧表只有 UNIQUE(gate)，缺少 session_id 列或多列唯一约束
     db.exec('BEGIN');
     try {
-      const oldRows = db.prepare('SELECT * FROM checkpoints').all() as CheckpointRecord[];
+      const oldRows = db.prepare('SELECT * FROM checkpoints').all() as unknown as CheckpointRecord[];
       db.exec('DROP TABLE IF EXISTS checkpoints');
       db.exec(`
         CREATE TABLE checkpoints (
@@ -406,7 +406,7 @@ function initSchema(db: DbConn) {
   // ---- 迁移旧 pipeline 数据为首条 pipeline_run ----
   const existingRuns = db.prepare('SELECT COUNT(*) as cnt FROM pipeline_runs').get() as { cnt: number };
   if (existingRuns.cnt === 0) {
-    const oldPipelines = db.prepare('SELECT * FROM pipeline').all() as PipelineRecord[];
+    const oldPipelines = db.prepare('SELECT * FROM pipeline').all() as unknown as PipelineRecord[];
     for (const p of oldPipelines) {
       if (!p.session_id) continue;
       const runId = 'run_' + Date.now() + '_' + p.session_id.slice(-6);
@@ -419,7 +419,7 @@ function initSchema(db: DbConn) {
 }
 
 // ---- Pipeline (per-session) ----
-export function getPipeline(db: DbConn, sessionId: string): PipelineRecord | null {
+export function getPipeline(db: DbConn, sessionId: string): any {
   if (!sessionId) return null;
   return db.prepare('SELECT * FROM pipeline WHERE session_id=?').get(sessionId);
 }
@@ -431,12 +431,12 @@ export function updatePipelineGate(db: DbConn, sessionId: string, gate: string):
 export function initPipeline(db: DbConn, sessionId: string, project: string, pipelineType: string = 'full'): void {
   db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, pipeline_type, started_at, updated_at) VALUES (?, ?, 'Gate A', ?, datetime('now'), datetime('now'))`).run(sessionId, project, pipelineType);
 }
-export function getAllPipelines(db: DbConn): PipelineRecord[] {
+export function getAllPipelines(db: DbConn): any[] {
   return db.prepare('SELECT * FROM pipeline ORDER BY updated_at DESC').all();
 }
 
 // ---- Checkpoints (per-session) ----
-export function getCheckpoints(db: DbConn, gate: string, sessionId: string): CheckpointRecord[] {
+export function getCheckpoints(db: DbConn, gate: string, sessionId: string): any[] {
   if (!sessionId) return [];
   if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId);
   return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId);
@@ -469,7 +469,7 @@ export function addCheckpoint(db: DbConn, gate: string, advanceTo: string, sessi
  * @param {'active'|'inactive'|undefined} statusFilter
  * @returns {Array<{id: string; platform: string; role: string; status: string; created_at: number; last_heartbeat: number; latest_run_started_at: string|null}>}
  */
-export function getSessions(db: DbConn, statusFilter?: string): SessionRecord[] {
+export function getSessions(db: DbConn, statusFilter?: string): any[] {
   const orderClause = `
     ORDER BY
       CASE WHEN latest_run_started_at IS NULL THEN 1 ELSE 0 END,
@@ -492,7 +492,7 @@ export function getSessions(db: DbConn, statusFilter?: string): SessionRecord[] 
     ${orderClause}
   `).all();
 }
-export function getSession(db: DbConn, sid: string): SessionRecord | undefined {
+export function getSession(db: DbConn, sid: string): any {
   return db.prepare('SELECT * FROM sessions WHERE id=?').get(sid);
 }
 export function addSession(db: DbConn, sid: string, platform: string, role: string): void {
@@ -535,13 +535,13 @@ export function migrateSession(db: DbConn, oldSid: string, newSid: string): void
     throw e;
   }
 }
-export function getOldestSession(db: DbConn): SessionRecord | undefined {
+export function getOldestSession(db: DbConn): any {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();
 }
 
 // ---- Agent Models ----
 export function getAgentConfig(db: DbConn): Record<string, { model: string; effort: string }> {
-  const rows = db.prepare('SELECT agent_id, model, effort FROM agent_models').all() as AgentModelRecord[];
+  const rows = db.prepare('SELECT agent_id, model, effort FROM agent_models').all() as unknown as AgentModelRecord[];
   const cfg: Record<string, { model: string; effort: string }> = {};
   for (const r of rows) cfg[r.agent_id] = { model: r.model, effort: r.effort };
   return cfg;
@@ -568,7 +568,7 @@ export function createPipelineRun(db: DbConn, sessionId: string, project: string
 }
 
 /** 获取指定 run */
-export function getPipelineRun(db: DbConn, runId: string): PipelineRunRecord | undefined {
+export function getPipelineRun(db: DbConn, runId: string): any {
   return db.prepare('SELECT * FROM pipeline_runs WHERE id=?').get(runId);
 }
 
@@ -576,7 +576,7 @@ export function getPipelineRun(db: DbConn, runId: string): PipelineRunRecord | u
  * 获取 session 的当前活跃 run（最新一条 status=active）
  * @returns {object|undefined}
  */
-export function getActiveRun(db: DbConn, sessionId: string): PipelineRunRecord | undefined {
+export function getActiveRun(db: DbConn, sessionId: string): any {
   return db.prepare("SELECT * FROM pipeline_runs WHERE session_id=? AND status='active' AND archived=0 ORDER BY started_at DESC LIMIT 1").get(sessionId);
 }
 
@@ -584,7 +584,7 @@ export function getActiveRun(db: DbConn, sessionId: string): PipelineRunRecord |
  * 获取 session 的所有 runs（按时间倒序）
  * @returns {object[]}
  */
-export function getSessionRuns(db: DbConn, sessionId: string): PipelineRunRecord[] {
+export function getSessionRuns(db: DbConn, sessionId: string): any[] {
   return db.prepare('SELECT * FROM pipeline_runs WHERE session_id=? ORDER BY started_at DESC').all(sessionId);
 }
 
@@ -679,7 +679,7 @@ export function unarchiveRun(db: DbConn, runId: string): { ok: boolean } {
  * @param {DatabaseSync} db
  * @returns {object[]}
  */
-export function getArchivedRuns(db: DbConn): PipelineRunRecord[] {
+export function getArchivedRuns(db: DbConn): any[] {
   return db.prepare("SELECT * FROM pipeline_runs WHERE archived=1 ORDER BY session_id, started_at DESC").all();
 }
 
@@ -797,7 +797,7 @@ export function insertArtifact(db: DbConn, runId: string, gate: string, filepath
  * @param {string} runId
  * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
  */
-export function getArtifactsByRun(db: DbConn, runId: string): ArtifactRecord[] {
+export function getArtifactsByRun(db: DbConn, runId: string): any[] {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? ORDER BY created_at').all(runId);
 }
 
@@ -808,7 +808,7 @@ export function getArtifactsByRun(db: DbConn, runId: string): ArtifactRecord[] {
  * @param {string} gate
  * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
  */
-export function getArtifactsByRunAndGate(db: DbConn, runId: string, gate: string): ArtifactRecord[] {
+export function getArtifactsByRunAndGate(db: DbConn, runId: string, gate: string): any[] {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
 }
 
@@ -825,14 +825,14 @@ export function logSessionEvent(db: DbConn, sessionId: string, eventType: string
 /**
  * 获取会话事件日志
  */
-export function getSessionEvents(db: DbConn, sessionId: string, limit: number = 50): SessionEventRecord[] {
+export function getSessionEvents(db: DbConn, sessionId: string, limit: number = 50): any[] {
   return db.prepare('SELECT * FROM session_events WHERE session_id=? ORDER BY created_at DESC LIMIT ?').all(sessionId, limit);
 }
 
 /**
  * 获取 run 的事件日志
  */
-export function getRunEvents(db: DbConn, runId: string): SessionEventRecord[] {
+export function getRunEvents(db: DbConn, runId: string): any[] {
   return db.prepare('SELECT * FROM session_events WHERE run_id=? ORDER BY created_at DESC').all(runId);
 }
 
@@ -871,11 +871,11 @@ export function saveFlowSkill(db: DbConn, name: string, description: string, pip
   return id;
 }
 
-export function getFlowSkills(db: DbConn): FlowSkillRecord[] {
+export function getFlowSkills(db: DbConn): any[] {
   return db.prepare('SELECT * FROM flow_skills ORDER BY created_at DESC').all();
 }
 
-export function getFlowSkill(db: DbConn, id: string): FlowSkillRecord | undefined {
+export function getFlowSkill(db: DbConn, id: string): any {
   return db.prepare('SELECT * FROM flow_skills WHERE id=?').get(id);
 }
 
@@ -898,13 +898,13 @@ export function addWorkingMemory(db: DbConn, sessionId: string, content: string,
     .run(sessionId, opts?.runId || null, opts?.category || 'general', content, expiresAt);
 }
 
-export function getWorkingMemory(db: DbConn, sessionId: string, limit = 20): WorkingMemoryRecord[] {
+export function getWorkingMemory(db: DbConn, sessionId: string, limit = 20): any[] {
   return db.prepare(
     "SELECT * FROM working_memory WHERE session_id=? AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY created_at DESC LIMIT ?"
   ).all(sessionId, limit);
 }
 
-export function queryWorkingMemory(db: DbConn, query: string, sessionId: string, limit = 20): WorkingMemoryRecord[] {
+export function queryWorkingMemory(db: DbConn, query: string, sessionId: string, limit = 20): any[] {
   return db.prepare(
     "SELECT * FROM working_memory WHERE (expires_at IS NULL OR expires_at > datetime('now')) AND session_id=? AND content LIKE ? ORDER BY created_at DESC LIMIT ?"
   ).all(sessionId, `%${query}%`, limit);
@@ -912,7 +912,7 @@ export function queryWorkingMemory(db: DbConn, query: string, sessionId: string,
 
 export function pruneWorkingMemory(db: DbConn): number {
   const result = db.prepare("DELETE FROM working_memory WHERE expires_at IS NOT NULL AND expires_at <= datetime('now')").run();
-  return result.changes;
+  return Number(result.changes);
 }
 
 // ---- Session Context（会话归档摘要） ----
@@ -922,11 +922,11 @@ export function saveSessionContext(db: DbConn, sessionId: string, runId: string,
     .run(sessionId, runId, summary, keyDecisions ? JSON.stringify(keyDecisions) : null, pendingItems ? JSON.stringify(pendingItems) : null);
 }
 
-export function getRecentSessionContexts(db: DbConn, limit = 3): SessionContextRecord[] {
+export function getRecentSessionContexts(db: DbConn, limit = 3): any[] {
   return db.prepare('SELECT * FROM session_context ORDER BY created_at DESC LIMIT ?').all(limit);
 }
 
-export function getSessionContext(db: DbConn, sessionId: string): SessionContextRecord | undefined {
+export function getSessionContext(db: DbConn, sessionId: string): any {
   return db.prepare('SELECT * FROM session_context WHERE session_id=? ORDER BY created_at DESC LIMIT 1').get(sessionId);
 }
 

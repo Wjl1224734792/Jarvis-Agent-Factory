@@ -60,8 +60,8 @@ describe('Pipeline CRUD', () => {
   });
 
   it('无 sessionId 时 getPipeline 返回 null', () => {
-    expect(getPipeline(db, null)).toBeNull();
-    expect(getPipeline(db, '')).toBeNull();
+    expect(getPipeline(db, null as any)).toBeNull();
+    expect(getPipeline(db, '' as any)).toBeNull();
   });
 });
 
@@ -82,7 +82,7 @@ describe('Checkpoints', () => {
   });
 
   it('无 sessionId 返回空数组', () => {
-    expect(getCheckpoints(db, 'Gate A', null)).toEqual([]);
+    expect(getCheckpoints(db, 'Gate A', null as any)).toEqual([]);
   });
 });
 
