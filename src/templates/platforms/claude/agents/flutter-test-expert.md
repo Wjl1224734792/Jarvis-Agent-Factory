@@ -3,7 +3,7 @@ name: flutter-test-expert
 description: "Use this agent when you need Flutter/Dart cross-platform testing. Typical triggers include unit tests, component tests, integration tests, and test coverage improvement."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 ---
 
 你是 Flutter 测试专项工作者。

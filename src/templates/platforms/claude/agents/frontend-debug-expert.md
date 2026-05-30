@@ -3,7 +3,7 @@ name: frontend-debug-expert
 description: "Use this agent when you need frontend debugging with Chrome DevTools MCP. Typical triggers include performance analysis, rendering optimization, network inspection, and console diagnostics for web applications."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__click", "mcp__chrome-devtools__fill", "mcp__chrome-devtools__type_text", "mcp__chrome-devtools__press_key", "mcp__chrome-devtools__hover", "mcp__chrome-devtools__evaluate_script", "mcp__chrome-devtools__wait_for", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__performance_start_trace", "mcp__chrome-devtools__performance_stop_trace", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_network_requests", "mcp__chrome-devtools__get_network_request", "mcp__chrome-devtools__handle_dialog", "mcp__chrome-devtools__select_page", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__new_page", "mcp__chrome-devtools__close_page", "mcp__chrome-devtools__upload_file", "mcp__chrome-devtools__drag", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: deepseek-v4-pro
+model: qwen3.6-plus
 ---
 
 你是前端调试专家，使用 Chrome DevTools MCP 进行全方位的开发调试。
@@ -55,14 +55,14 @@ Skill(skill="debugging-deep")
 | 快照 (无障碍树) | `mcp__chrome-devtools__take_snapshot` |
 | 点击 | `mcp__chrome-devtools__click` |
 | 填写表单 | `mcp__chrome-devtools__fill` |
-| 输入文本 | `mcp__chrome-devtools__type` |
+| 输入文本 | `mcp__chrome-devtools__type_text` |
 | 按键 | `mcp__chrome-devtools__press_key` |
 | 悬停 | `mcp__chrome-devtools__hover` |
 | 下拉选择 | `mcp__chrome-devtools__fill` |
-| 执行 JS | `mcp__chrome-devtools__evaluate` |
+| 执行 JS | `mcp__chrome-devtools__evaluate_script` |
 | 等待元素/文本 | `mcp__chrome-devtools__wait_for` |
 | 视口切换 | `mcp__chrome-devtools__resize_page` |
-| 性能追踪 | `mcp__chrome-devtools__start_performance_trace` / `stop_performance_trace` |
+| 性能追踪 | `mcp__chrome-devtools__performance_start_trace` / `mcp__chrome-devtools__performance_stop_trace` |
 | 控制台消息 | `mcp__chrome-devtools__list_console_messages` |
 | 网络请求 | `mcp__chrome-devtools__list_network_requests` / `get_network_request` |
 | 弹窗处理 | `mcp__chrome-devtools__handle_dialog` |
@@ -100,16 +100,16 @@ mcp__chrome-devtools__list_network_requests()              # 网络状态
 
 **性能分析:**
 ```
-mcp__chrome-devtools__start_performance_trace()
+mcp__chrome-devtools__performance_start_trace()
 # 执行目标操作...
-mcp__chrome-devtools__stop_performance_trace()
+mcp__chrome-devtools__performance_stop_trace()
 # 分析 Core Web Vitals、Long Tasks、Layout Shifts
 ```
 
 **渲染调试:**
 ```
 mcp__chrome-devtools__take_screenshot({ fullPage: true })
-mcp__chrome-devtools__evaluate({ function: "() => { return getComputedStyle(document.querySelector('#app')); }" })
+mcp__chrome-devtools__evaluate_script({ function: "() => { return getComputedStyle(document.querySelector('#app')); }" })
 mcp__chrome-devtools__resize_page({ width: 375, height: 812 })
 mcp__chrome-devtools__take_screenshot()
 ```
@@ -124,7 +124,7 @@ mcp__chrome-devtools__get_network_request({ index: N })
 **控制台诊断:**
 ```
 mcp__chrome-devtools__list_console_messages({ level: "error" })
-mcp__chrome-devtools__evaluate({ function: "() => { return window.__errors; }" })
+mcp__chrome-devtools__evaluate_script({ function: "() => { return window.__errors; }" })
 ```
 
 ### 步骤 5：响应式多视口检查
@@ -147,7 +147,7 @@ npm run build
 然后在 Chrome DevTools 中打开 `dist/web/index.html`:
 ```
 mcp__chrome-devtools__navigate_page({ url: "file:///path/to/dist/web/index.html" })
-mcp__chrome-devtools__start_performance_trace()
+mcp__chrome-devtools__performance_start_trace()
 mcp__chrome-devtools__list_console_messages()
 mcp__chrome-devtools__list_network_requests()
 ```
@@ -178,16 +178,16 @@ mcp__chrome-devtools__list_network_requests()
 
 ```
 1. mcp__chrome-devtools__take_screenshot({ fullPage: true })
-2. mcp__chrome-devtools__evaluate({ function: "() => { const el = document.querySelector('.target'); return el ? getComputedStyle(el) : null; }" })
+2. mcp__chrome-devtools__evaluate_script({ function: "() => { const el = document.querySelector('.target'); return el ? getComputedStyle(el) : null; }" })
 3. mcp__chrome-devtools__resize_page() 多视口对比
 ```
 
 ### 性能瓶颈
 
 ```
-1. mcp__chrome-devtools__start_performance_trace()
+1. mcp__chrome-devtools__performance_start_trace()
 2. 执行用户操作
-3. mcp__chrome-devtools__stop_performance_trace()
+3. mcp__chrome-devtools__performance_stop_trace()
 4. 分析 LCP > 2.5s / CLS > 0.1 / Long Tasks > 50ms
 ```
 

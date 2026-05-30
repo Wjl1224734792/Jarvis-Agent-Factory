@@ -3,7 +3,7 @@ name: release
 description: 发布指令——RL0环境检测→RL1质量门→RL2版本递增→RL3发布执行→RL4发布验证，5Gate发布流程
 model: inherit
 argument-hint: [版本类型：patch|minor|major，默认patch]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate"]
 ---
 
 # 发布（Tag + Push）
@@ -78,7 +78,7 @@ git branch --show-current
 ===================
 ```
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RL1" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "RL1" })`
 
 ---
 
@@ -130,7 +130,7 @@ git branch --show-current
 2. **立即停止**，不继续后续步骤
 3. 向用户报告：哪个检查失败、具体错误、修复建议
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RL2" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "RL2" })`
 
 ---
 
@@ -152,7 +152,7 @@ git branch --show-current
 
 输出：`版本递增：v<CUR_VER> → v<NEW_VER>（类型：<patch|minor|major>）`
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RL3" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "RL3" })`
 
 ---
 
@@ -186,7 +186,7 @@ git branch --show-current
 
 > 推送失败时报告错误并停止。Tag 已存在时提示用户确认是否覆盖。
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "RL4" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "RL4" })`
 
 ---
 

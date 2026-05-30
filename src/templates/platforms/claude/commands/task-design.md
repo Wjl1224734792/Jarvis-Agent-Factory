@@ -3,7 +3,7 @@ name: task-design
 description: 任务分解——DDD领域分析/BDD场景生成/TDD任务包，三模式可独立使用或链式执行
 argument-hint: "[--mode ddd|bdd|tdd] [需求文档路径]"
 model: inherit
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 任务分解设计
@@ -48,6 +48,8 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-e
 
 需标注对基础设施的依赖（Repository 接口、外部服务接口）。
 
+DDD 领域分析完成后，调用 `mcp__jarvis-engine__gate_enforce` 验证 Gate 条件，通过后调用 `mcp__jarvis-engine__advance_gate` 推进至下一 Gate。
+
 ---
 
 ## BDD 模式
@@ -71,6 +73,8 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-e
 
 每个 Feature 至少覆盖正常路径、异常路径、边界条件。
 
+BDD 场景生成完成后，调用 `mcp__jarvis-engine__gate_enforce` 验证 Gate 条件，通过后调用 `mcp__jarvis-engine__advance_gate` 推进至下一 Gate。
+
 ---
 
 ## TDD 模式
@@ -88,3 +92,5 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-e
 ```
 
 每个 TASK-XXX 映射至少 1 个 REQ-XXX。分类：DDD（领域建模）、TDD（测试驱动）、BDD（行为验证）。
+
+TDD 任务包生成完成后，调用 `mcp__jarvis-engine__gate_enforce` 验证 Gate 条件，通过后调用 `mcp__jarvis-engine__advance_gate` 推进至下一 Gate。

@@ -1,9 +1,9 @@
 ---
 name: improve
-description: 自主迭代改进——IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代，对标OMC self-improve+autoresearch+ralph
+description: 自主迭代改进——IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代
 model: inherit
 argument-hint: [改进目标/优化方向]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__gate_jump"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__gate_jump"]
 ---
 
 # 自主迭代改进
@@ -23,7 +23,7 @@ Skill("refactoring")
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作和 Agent 调度策略
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
 
-> **核心理念**：参考 OMC 插件 `self-improve`（锦标赛选择进化引擎）、`autoresearch`（状态化改进循环）、`ralph`（自引用循环直到完成）。**度量驱动迭代**——定义指标→研究→计划→执行→评估→循环直到达标。
+> **核心理念**：**度量驱动迭代**——定义指标→研究→计划→执行→评估→循环直到达标。
 
 ---
 

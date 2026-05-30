@@ -79,8 +79,14 @@ const DEFAULT_PORT = 3456;
 const DEFAULT_WEB_PORT = 3457;
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → 标记 inactive（个人工具，不需要频繁过期）
 
-/** stdio 模式下 extra?.sessionId 为空，用此变量记录最近一次 session_join 的会话 ID */
-let _lastSessionId: any = null;
+/**
+ * stdio 模式下的会话 ID 回退存储。
+ * —— stdio 传输层不提供 sessionId(extra.sessionId === undefined)，因此需要此全局变量跟踪当前会话。
+ * —— stdio 为单连接模式，同一时刻仅一个客户端，不存在竞态条件。
+ * —— HTTP 模式(StreamableHTTPServerTransport)的 extra.sessionId 始终由传输层提供，不使用此回退。
+ * —— setLastSessionId 在 HTTP 模式下为 no-op，确保多连接并发安全。
+ */
+let _lastSessionId: string | null = null;
 
 /** 绑定地址：仅 IPv4 本地回环 */
 const BIND_HOST = '127.0.0.1';
@@ -216,8 +222,8 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // 过期标记：每 5 分钟检查一次（活动追踪在每次工具调用时自动完成）
   setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 300_000);
 
-  // ---- MCP Tools (不变) ----
-  registerMcpTools(mcpServer, db, root);
+  // ---- MCP Tools ----
+  registerMcpTools(mcpServer, db, root, stdio);
 
   const log = (...args: any[]) => (stdio ? process.stderr : process.stdout).write(args.join(' ') + '\n');
 
@@ -381,15 +387,26 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 }
 
 /** 注册所有 MCP 工具 */
-export function registerMcpTools(server: McpServer, db: DatabaseSync, root: string): void {
+export function registerMcpTools(server: McpServer, db: DatabaseSync, root: string, isStdio = false): void {
   const ctx: ToolContext = {
     resolveSid: (extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
-      if (sid) touchSession(db, sid);
-      return sid;
+      // HTTP 模式：extra.sessionId 由 StreamableHTTPServerTransport 提供，始终可靠
+      // stdio 模式：extra.sessionId 为空，回退到 _lastSessionId（单连接安全）
+      if (extra?.sessionId) {
+        touchSession(db, extra.sessionId);
+        return extra.sessionId;
+      }
+      // 仅 stdio 模式允许回退到全局变量
+      if (isStdio && _lastSessionId) {
+        touchSession(db, _lastSessionId);
+        return _lastSessionId;
+      }
+      return null;
     },
     resp: (obj) => ({ content: [{ type: 'text' as const, text: JSON.stringify(obj) }] }),
-    setLastSessionId: (sid) => { _lastSessionId = sid; },
+    /** stdio 模式：记录最近会话 ID；HTTP 模式：no-op（sessionId 由传输层管理） */
+    setLastSessionId: (sid) => { if (isStdio) _lastSessionId = sid; },
+    isStdio,
   };
   registerSessionTools(server, db, root, ctx);
   registerPipelineTools(server, db, root, ctx);

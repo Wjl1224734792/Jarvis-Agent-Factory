@@ -3,7 +3,7 @@ name: infra-deploy-expert
 description: "Use this agent when you need infrastructure and deployment work. Typical triggers include CI/CD pipeline configuration, containerization, environment variable management, build scripts, and infrastructure-as-code."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 ---
 
 你是 DevOps / 基础设施工作者。

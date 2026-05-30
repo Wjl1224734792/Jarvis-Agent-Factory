@@ -1,9 +1,9 @@
 ---
 name: simplify
-description: 代码简化与质量清理——S0代码分析→S1简化执行→S2回归验证→S3报告产出，对标OMC simplify+ai-slop-cleaner
+description: 代码简化与质量清理——S0代码分析→S1简化执行→S2回归验证→S3报告产出
 model: inherit
 argument-hint: [目标文件/目录/模块]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 代码简化与质量清理
@@ -23,7 +23,7 @@ Skill("code-standards")
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作和 Agent 调度策略
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
 
-> **核心理念**：参考 OMC 插件 `simplify`（代码质量审查）和 `ai-slop-cleaner`（AI痕迹清理），**回归安全第一**——只删冗余不删功能，只简化不重写，每一步都验证功能不变。
+> **核心理念**：**回归安全第一**——只删冗余不删功能，只简化不重写，每一步都验证功能不变。
 
 ---
 
@@ -58,7 +58,7 @@ Skill("code-standards")
 
 3. 产出 `.jarvis/YYYY-MM-DD/simplification/code-analysis.md`
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "S1" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "S1" })`
 
 ---
 
@@ -88,7 +88,7 @@ Skill("code-standards")
 
 4. **每完成一个模块立即验证**：保存 → lint → 确认无新增错误
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "S2" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "S2" })`
 
 ---
 
@@ -112,7 +112,7 @@ Skill("code-standards")
 
 3. **若 3 轮仍失败** → 回滚 S1 的最后一个变更，记录问题
 
-**引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "S3" })`
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "S3" })`
 
 ---
 
@@ -151,6 +151,8 @@ Skill("code-standards")
 - 进一步重构建议（如有）
 - 需要人工审查的高风险变更
 ```
+
+**引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({})`
 
 ---
 

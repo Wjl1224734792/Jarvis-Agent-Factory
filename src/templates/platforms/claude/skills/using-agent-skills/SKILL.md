@@ -1,8 +1,8 @@
 ---
 name: using-agent-skills
 description: "使用智能体技能系统——元技能指南：了解技能体系的结构、如何加载技能、技能如何与 Agent 配合、何时加载哪些技能。用于指导用户和编排者正确使用本项目的技能系统。"
-version: "4.3.8"
-updated: "2026-05-20"
+version: "4.3.9"
+updated: "2026-05-30"
 ---
 
 # 使用智能体技能系统
@@ -58,6 +58,7 @@ Jarvis 按流程调度子 Agent
 | `spec-driven-development` | 结构化需求规格编写 | Jarvis |
 | `behavioral-guidelines` | 四项核心行为准则 | 所有 Agent |
 | `context-engineering` | 选择性上下文传递 | Jarvis（传递上下文时） |
+| `session-memory` | 跨会话记忆与上下文注入 | 所有 Agent |
 | `chinese-documentation` | 中文文档排版与术语规范 | Jarvis（写文档时） |
 
 ### 阶段 2：任务分解
@@ -70,12 +71,12 @@ Jarvis 按流程调度子 Agent
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
 | `behavioral-guidelines` | 行为准则 | planner Agent |
+| `concurrency-policy` | 并发调用与 Team/Subagent 分配规范 | Jarvis（编排者） |
 
 ### 阶段 4：探索（按需）
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
 | `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | external-resource-expert Agent |
-| `find-docs` | 搜索和安装开源 Agent 技能 | external-resource-expert Agent |
 
 ### 阶段 5：实现
 | 技能 | 用途 | 加载者 |
@@ -179,32 +180,32 @@ Skill(skill="<技能名>")
 | 3 | `code-review-and-quality` | 审查 | 五轴审查框架、严重度分级 |
 | 4 | `code-simplification` | 质量 | 降低复杂度、消除重复 |
 | 5 | `context-engineering` | 基础 | 选择性上下文、混淆管理 |
-| 6 | `debugging-and-error-recovery` | 调试 | 系统化调试流程与根因追踪 |
-| 7 | `documentation-and-adrs` | 架构 | 架构决策记录 |
-| 8 | `find-docs` | 探索 | 文档查询（WebSearch/WebFetch） |
-| 9 | `find-docs` | 探索 | 搜索和安装开源 Agent 技能 |
-| 10 | `finishing-a-development-branch` | 流程 | 分支合并、清理、部署验证 |
-| 11 | `git-workflow-and-versioning` | 流程 | Git 工作流与版本管理 |
-| 12 | `idea-refine` | 梳理 | 模糊想法 → 结构化问题 |
-| 13 | `incremental-implementation` | 实现 | 小步增量交付 |
-| 14 | `planning-and-task-breakdown` | 规划 | 垂直切片、风险标注、并行识别 |
-| 15 | `security-and-hardening` | 安全 | 安全漏洞修复与加固 |
-| 16 | `shipping-and-launch` | 流程 | 上线检查清单与灰度策略 |
-| 17 | `source-driven-development` | 实现 | 先读代码再写代码 |
-| 18 | `spec-driven-development` | 需求 | 结构化需求规格编写 |
-| 19 | `test-driven-development` | 测试 | Red→Green→Refactor 方法论 |
-| 20 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
-| 21 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |
-| 22 | `browser-testing` | 浏览器 | 浏览器测试方法论（用例/执行/报告/修复闭环） |
-| 23 | `code-quality-gate` | 质量 | Gate C1 四项检查（Lint/Type-check/Build/Deps） |
-| 24 | `mcp-builder` | 基础设施 | MCP 服务器构建方法论 |
-| 25 | `writing-skills` | 元技能 | 技能文件编写与验证 |
-| 26 | `debugging-and-error-recovery` | 调试 | 调试与错误恢复方法论（含 Chrome DevTools MCP 调试，性能追踪/渲染分析/网络诊断/控制台调试） |
-| 27 | `code-standards` | 实现 | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） |
-| 28 | `debugging-deep` | 调试 | 深度调试：内存泄漏/并发竞态/死锁/性能瓶颈 |
-| 29 | `frontend-design` | 实现 | 前端 UI/UX 设计方法论与组件设计原则 |
-| 30 | `perf-testing` | 测试 | 性能测试方法论（基准测试/负载测试/剖析） |
-| 31 | `refactoring` | 实现 | 安全重构流程与模式（准备/执行/验证三阶段） |
-| 32 | `security-testing` | 安全 | 安全测试方法论（OWASP Top 10/渗透测试/安全审计） |
+| 6 | `documentation-and-adrs` | 架构 | 架构决策记录 |
+| 7 | `find-docs` | 探索 | 文档查询（WebSearch/WebFetch） |
+| 8 | `finishing-a-development-branch` | 流程 | 分支合并、清理、部署验证 |
+| 9 | `git-workflow-and-versioning` | 流程 | Git 工作流与版本管理 |
+| 10 | `idea-refine` | 梳理 | 模糊想法 → 结构化问题 |
+| 11 | `incremental-implementation` | 实现 | 小步增量交付 |
+| 12 | `planning-and-task-breakdown` | 规划 | 垂直切片、风险标注、并行识别 |
+| 13 | `security-and-hardening` | 安全 | 安全漏洞修复与加固 |
+| 14 | `shipping-and-launch` | 流程 | 上线检查清单与灰度策略 |
+| 15 | `source-driven-development` | 实现 | 先读代码再写代码 |
+| 16 | `spec-driven-development` | 需求 | 结构化需求规格编写 |
+| 17 | `test-driven-development` | 测试 | Red→Green→Refactor 方法论 |
+| 18 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
+| 19 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |
+| 20 | `browser-testing` | 浏览器 | 浏览器测试方法论（用例/执行/报告/修复闭环） |
+| 21 | `code-quality-gate` | 质量 | Gate C1 四项检查（Lint/Type-check/Build/Deps） |
+| 22 | `mcp-builder` | 基础设施 | MCP 服务器构建方法论 |
+| 23 | `writing-skills` | 元技能 | 技能文件编写与验证 |
+| 24 | `debugging-and-error-recovery` | 调试 | 调试与错误恢复方法论（含 Chrome DevTools MCP 调试，性能追踪/渲染分析/网络诊断/控制台调试） |
+| 25 | `code-standards` | 实现 | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） |
+| 26 | `concurrency-policy` | 基础 | 并发调用与 Team/Subagent 分配规范 |
+| 27 | `debugging-deep` | 调试 | 深度调试：内存泄漏/并发竞态/死锁/性能瓶颈 |
+| 28 | `frontend-design` | 实现 | 前端 UI/UX 设计方法论与组件设计原则 |
+| 29 | `perf-testing` | 测试 | 性能测试方法论（基准测试/负载测试/剖析） |
+| 30 | `refactoring` | 实现 | 安全重构流程与模式（准备/执行/验证三阶段） |
+| 31 | `security-testing` | 安全 | 安全测试方法论（OWASP Top 10/渗透测试/安全审计） |
+| 32 | `session-memory` | 基础 | 跨会话记忆与上下文注入 |
 | 33 | `test-data-factory` | 测试 | 测试数据工厂（fixture/builder/mock/faker 策略） |
 | 34 | `jarvis-reference` | 参考 | Jarvis 统一能力索引（Agent/命令/Skill/流水线/工具） |

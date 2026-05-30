@@ -2,11 +2,8 @@
 name: verify-expert
 description: "Use this agent when you need evidence-based verification. Typical triggers include designing verification strategy, collecting observable evidence, and determining whether changes are effective and operational."
 color: blue
-model: deepseek-v4-pro
-category: review
-tags: [verify, QA, evidence, testing, audit, quality]
-skill-recommendations: [verification-before-completion, code-review-and-quality, behavioral-guidelines]
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_diagnostics_directory", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_servers"]
+model: mimo-v2.5-pro
+tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_diagnostics_directory", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_servers"]
 ---
 
 # Verify Expert — 文档驱动的证据验证

@@ -3,7 +3,7 @@ description: 完整发布流程（含PR+审查+合并）——环境检测→质
 name: publish
 model: inherit
 argument-hint: [版本类型：patch|minor|major，默认patch]
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 一键发布
@@ -31,7 +31,7 @@ Skill("git-workflow-and-versioning")
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "release" })`
 - 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 质量门/Lint/Type-check/Build 前调用 `gate_check({ operation: "lint" })` / `gate_check({ operation: "build" })`
-- 每个 Gate 完成后调用 `mcp__jarvis-engine__advance_gate` 推进
+- 每个 Gate 完成后调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
 
 ### 0.1 检测默认分支
 

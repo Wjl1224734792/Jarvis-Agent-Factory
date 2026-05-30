@@ -3,7 +3,7 @@ name: cancel
 description: 取消指令——中止活跃流水线运行，清理会话状态，安全退出；支持保留会话以开始新任务
 model: inherit
 argument-hint: [--leave | --force]
-tools: ["Read", "Bash", "Skill"]
+tools: ["Read", "Bash", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_status", "mcp__jarvis-engine__pipeline_cancel", "mcp__jarvis-engine__session_list", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate"]
 ---
 
 # 取消流水线运行
@@ -17,8 +17,11 @@ Skill("behavioral-guidelines")
 ```
 
 **引擎会话注册**：
-- `mcp__jarvis-engine__session_join({ platform: "claude" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
 - 若当前无活跃会话，`session_join` 会自动创建；若已有会话则复用
+
+**获取上下文**：
+- `mcp__jarvis-engine__pipeline_guide()` — 获取当前 Gate 上下文，了解当前运行状态
 
 ---
 
@@ -31,6 +34,8 @@ Skill("behavioral-guidelines")
 | (默认) | 仅取消活跃 run，保留会话 | 取消当前任务，准备开始新任务 |
 
 ---
+
+在读取状态前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 ## 步骤 1：诊断当前状态
 
@@ -93,6 +98,10 @@ mcp__jarvis-engine__pipeline_status()
 - [ ] 无残留活跃 run
 - [ ] （--leave 模式）会话已移除
 - [ ] 可开始新任务
+
+## 取消完成
+
+取消完成后调用 `mcp__jarvis-engine__gate_enforce` 验证终止条件，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到终端状态 `Complete`，表示会话已结束。
 
 ---
 

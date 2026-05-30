@@ -2,6 +2,20 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "disableBypassPermissionsMode": false,
+  "hooks": {
+    "PreToolUse": [
+      { "type": "command", "command": "jarvis hook gate-check" }
+    ],
+    "PostToolUse": [
+      { "type": "command", "command": "jarvis hook gate-check" }
+    ],
+    "Stop": [
+      { "type": "command", "command": "jarvis hook status" }
+    ],
+    "SessionStart": [],
+    "UserPromptSubmit": []
+  },
   "permissions": {
     "allow": [
       "Bash(git:*)",

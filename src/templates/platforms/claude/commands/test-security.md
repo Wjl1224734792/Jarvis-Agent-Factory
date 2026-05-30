@@ -3,7 +3,7 @@ name: test-security
 description: 安全测试(DAST)指令——OWASP ZAP 动态扫描，检测运行时安全漏洞，生成安全报告
 model: inherit
 argument-hint: [测试目标URL或应用名称]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 安全测试 (DAST)
@@ -19,6 +19,7 @@ Skill("security-testing")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- 会话注册后调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文与阶段指引
 - 扫描前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 - 扫描过程中只读，不修改代码
 
@@ -31,6 +32,8 @@ Skill("security-testing")
 - [ ] 已获得安全测试授权（书面或系统记录）
 - [ ] 测试数据是隔离的，不包含真实用户数据
 - [ ] 已通知运维团队（避免误触发安全告警）
+
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证授权 Gate 通过，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到工具准备阶段。
 
 ## 步骤 2：选择扫描工具
 
@@ -60,6 +63,8 @@ ZAP API: POST /JSON/spider/action/scan/
 ```
 爬取目标应用的所有页面和端点。
 
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证爬取阶段通过，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到主动扫描阶段。
+
 ### 3.2 主动扫描（Active Scan）
 ```
 ZAP API: POST /JSON/ascan/action/scan/
@@ -76,12 +81,16 @@ ZAP API: POST /JSON/ascan/action/scan/
 | **安全配置错误 (A05)** | 默认密码、不必要的 HTTP 方法 | Medium |
 | **访问控制失效 (A01)** | IDOR、路径遍历、权限提升 | Critical |
 
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证扫描阶段通过，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到 AJAX 爬虫/分析阶段。
+
 ### 3.3 AJAX 蜘蛛（SPA 应用）
 ```
 ZAP API: POST /JSON/ajaxSpider/action/scan/
 参数: url=<目标URL>, maxCrawlStates=10
 ```
 用于 React/Vue/Angular 等 SPA 应用。
+
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证扫描执行阶段通过，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到结果分析阶段。
 
 ## 步骤 4：分析扫描结果
 
@@ -103,6 +112,8 @@ curl "http://localhost:8080/OTHER/core/other/htmlreport/" > security-report.html
 | **Low** | 记录技术债务，非阻塞 |
 | **Info** | 参考信息，无需处理 |
 
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证分析阶段通过，通过后调用 `mcp__jarvis-engine__advance_gate` 推进到报告生成阶段。
+
 ## 步骤 5：生成安全报告
 
 输出 `.jarvis/YYYY-MM-DD/testing/security-test-report.md`：
@@ -119,6 +130,8 @@ curl "http://localhost:8080/OTHER/core/other/htmlreport/" > security-report.html
 ## 修复验证
 - 修复后重新扫描结果
 ```
+
+**阶段完成——Gate 推进**：调用 `mcp__jarvis-engine__gate_enforce` 验证报告阶段通过，通过后调用 `mcp__jarvis-engine__advance_gate` 完成安全测试流水线。
 
 ## 闭环图示
 ```

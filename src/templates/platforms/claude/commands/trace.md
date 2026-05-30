@@ -1,6 +1,6 @@
 ---
 name: trace
-description: 因果追踪——T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案，假设驱动的科学根因定位，对标OMC trace
+description: 因果追踪——T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案，假设驱动的科学根因定位
 model: inherit
 argument-hint: [异常/问题/症状描述]
 tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
@@ -23,7 +23,7 @@ Skill("debugging-and-error-recovery")
 - 写文档前调用 `mcp__jarvis-engine__gate_check({ operation: "write_doc" })`
 - spawn Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })`
 
-> **核心理念**：参考 OMC 插件 `trace`（证据驱动追踪），用科学方法定位根因——生成竞态假设→收集证据→贝叶斯更新→逐步缩小根因范围。不做无方向的随机探索。
+> **核心理念**：用科学方法定位根因——生成竞态假设→收集证据→贝叶斯更新→逐步缩小根因范围。不做无方向的随机探索。
 
 ---
 

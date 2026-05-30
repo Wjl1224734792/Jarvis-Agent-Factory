@@ -3,7 +3,7 @@ name: ask
 description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束。支持 --* 标志位指定模式。
 model: inherit
 argument-hint: [--interview|--direct|--consensus|--review] <需求/想法/计划/指令>
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 需求探询（4 模式自适应 · 文档驱动 · Flag 可控）
@@ -36,7 +36,7 @@ Skill("spec-driven-development")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
-> **核心理念**：参考 OMC 插件指令编排模式（ralplan/planner/architect/critic），根据输入清晰度自动选择最优工作模式。每个 Gate 产出明确文档，每轮 Agent 调度有据可查。
+> **核心理念**：根据输入清晰度自动选择最优工作模式。每个 Gate 产出明确文档，每轮 Agent 调度有据可查。
 
 ---
 
@@ -150,7 +150,6 @@ Skill("spec-driven-development")
 
 1. 编排者分析当前流程结构（不 spawn Agent）：
    - 识别流程瓶颈和冗余步骤
-   - 对比 OMC 插件最佳实践（ralplan/ultrawork/autopilot 调度模式）
    - 检查 Agent Team/Subagent 调度是否合理
    - 检查文档驱动是否完整（每个 Gate 是否有对应产出）
 
@@ -188,7 +187,7 @@ Skill("spec-driven-development")
 
 3. 产出 `.jarvis/YYYY-MM-DD/requirements/direct-plan.md`
 
-### Consensus 模式——多角色审查循环（参考 OMC ralplan）
+### Consensus 模式——多角色审查循环
 
 **角色分配（关键）**：
 - **编排者 = Planner + Critic**（同一人，不 spawn Critic Agent）
@@ -233,7 +232,6 @@ Skill("spec-driven-development")
    - Gate 设计：Gate 序列和检查条件是否恰当？是否有可跳过的 Gate？
    - 文档驱动：每个 Gate 是否有明确的文档产出？
    - 红线合规：是否遵守项目约束？
-   - 对比 OMC 插件最佳实践（ralplan 共识流程、ultrawork 并行调度、autopilot 自主执行）
 
 2. 产出优化建议：
    - 具体改进点（按优先级 P0/P1/P2 排序）
@@ -246,19 +244,19 @@ Skill("spec-driven-development")
 
 ## 评分与权重框架（所有模式通用）
 
-参考 OMC 插件的数学化评分模式（`deep-interview` 歧义门控 ≤20%、`trace` 贝叶斯更新 P(H|E)、`self-improve` 锦标赛评分+平台期检测、`ralplan` 共识投票），在 K2 产出中引入量化评分：
+在 K2 产出中引入量化评分：
 
 ### 需求评分矩阵（Requirements Scoring Matrix）
 
 每个功能需求按 5 维度评分（1-10），加权计算总分：
 
-| 维度 | 说明 | 权重 | OMC 参考 |
+| 维度 | 说明 | 权重 |
 |------|------|:---:|---------|
-| **业务价值** (BV) | 对用户/业务目标的核心贡献度 | 30% | deep-interview: 歧义越低价值越高 |
-| **实现成本** (EF) | 预估工作量(人时)的倒数得分(低成本=高分) | 25% | self-improve: 收益率 = 改善/成本 |
-| **技术风险** (RS) | 技术不确定性(低风险=高分) | 20% | trace: 根因概率越低风险越高 |
-| **用户影响** (UI) | 终端用户可见的体验改善程度 | 15% | ralplan: 共识度越高影响越确定 |
-| **依赖耦合** (DC) | 独立模块得分(无外部依赖=10分) | 10% | autopilot: 模块隔离度 |
+| **业务价值** (BV) | 对用户/业务目标的核心贡献度 | 30% |
+| **实现成本** (EF) | 预估工作量(人时)的倒数得分(低成本=高分) | 25% |
+| **技术风险** (RS) | 技术不确定性(低风险=高分) | 20% |
+| **用户影响** (UI) | 终端用户可见的体验改善程度 | 15% |
+| **依赖耦合** (DC) | 独立模块得分(无外部依赖=10分) | 10% |
 
 **加权总分** = BV×0.30 + EF×0.25 + RS×0.20 + UI×0.15 + DC×0.10
 
@@ -269,7 +267,7 @@ Skill("spec-driven-development")
 | FR-01 | ... | 8 | 7 | 6 | 9 | 8 | **7.45** | P0 |
 | FR-02 | ... | 5 | 4 | 9 | 6 | 10 | **6.15** | P1 |
 
-> **歧义门控**（参考 deep-interview）：若任一需求的任意维度评分依据不充分（"猜的"），标注 `⚠ 歧义` 并限制其优先级不超过 P1。歧义 > 20% 的需求回退到 K0 重新澄清。
+> **歧义门控**：若任一需求的任意维度评分依据不充分（"猜的"），标注 `⚠ 歧义` 并限制其优先级不超过 P1。歧义 > 20% 的需求回退到 K0 重新澄清。
 
 ### 方案对比矩阵（Solution Comparison Matrix）
 
@@ -285,7 +283,7 @@ Skill("spec-driven-development")
 | **加权总分** | — | **7.30** | **6.65** | **6.55** |
 | **排名** | — | 🥇 推荐 | 🥈 | 🥉 |
 
-> **置信度**（参考 trace）：若方案间总分差 < 0.5，标注 `⚠ 低置信度`，建议补充证据后重新对比。总分差 < 0.2 视为统计平局，由编排者基于非量化因素（战略方向/技术愿景）做最终裁决。
+> **置信度**：若方案间总分差 < 0.5，标注 `⚠ 低置信度`，建议补充证据后重新对比。总分差 < 0.2 视为统计平局，由编排者基于非量化因素（战略方向/技术愿景）做最终裁决。
 
 ### 权重调整规则
 
@@ -365,7 +363,7 @@ Skill("spec-driven-development")
 
 ## Agent Team 与 Subagent 调度约束
 
-参考 OMC 插件编排模式，严格按 `pipeline_guide` 返回的 `team_strategy` 选择调度方式：
+严格按 `pipeline_guide` 返回的 `team_strategy` 选择调度方式：
 
 | Gate | 引擎策略 | 调度方式 | 约束 |
 |------|---------|---------|------|

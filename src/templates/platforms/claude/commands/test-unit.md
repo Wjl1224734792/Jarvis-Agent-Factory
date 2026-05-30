@@ -3,7 +3,7 @@ name: test-unit
 description: 单元测试生成与执行——自动检测测试框架，生成覆盖率门禁测试用例，验证核心逻辑正确性
 model: inherit
 argument-hint: [测试范围或模块路径]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 单元测试生成与执行
@@ -19,8 +19,10 @@ Skill("test-data-factory")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- 每个阶段开始时调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 - 执行测试前调用 `mcp__jarvis-engine__gate_check({ operation: "lint" })` 确保代码质量
+- 每个阶段完成后调用 `mcp__jarvis-engine__gate_enforce({})` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({})` 推进
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
@@ -57,6 +59,8 @@ Skill("test-data-factory")
    | 异常路径 | 无效参数 | throws ValidationError | 错误处理 |
    ```
 
+**Gate 推进**：代码分析阶段完成，调用 `mcp__jarvis-engine__gate_enforce({})` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({})` 推进到测试生成阶段。
+
 ## 步骤 3：生成测试用例（TDD Red 阶段）
 
 1. 按框架约定创建/扩展测试文件（如 `*.test.ts`、`*_test.go`）
@@ -70,6 +74,8 @@ Skill("test-data-factory")
 - Jest/Vitest: `describe('模块名', () => { it('应<行为>当<条件>', () => {}) })`
 - Pytest: `def test_<函数名>_<场景描述>():`
 - Go: `func Test<函数名>_<场景>(t *testing.T) {}`
+
+**Gate 推进**：测试用例生成完成，调用 `mcp__jarvis-engine__gate_enforce({})` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({})` 推进到测试执行阶段。
 
 ## 步骤 4：运行测试并验证覆盖率（Green 阶段）
 
@@ -93,11 +99,15 @@ go test ./... -coverprofile=coverage.out
 
 **不通过时**：分析未覆盖分支，补充测试用例后重新运行。最多 2 轮。
 
+**Gate 推进**：测试执行与覆盖率验证完成，调用 `mcp__jarvis-engine__gate_enforce({})` 验证条件，通过后 `mcp__jarvis-engine__advance_gate({})` 推进到重构报告阶段。
+
 ## 步骤 5：重构测试代码（Refactor 阶段）
 
 - 提取重复的 Arrange 逻辑到 setup/helper
 - 合并相似场景使用 `it.each` / `@pytest.mark.parametrize` / table-driven tests
 - 确保测试文件可读性：描述性名称 > 简洁名称
+
+**Gate 推进**：重构阶段完成，调用 `mcp__jarvis-engine__gate_enforce({})` 最终验证，通过后 `mcp__jarvis-engine__advance_gate({})` 完成全流程。
 
 ## 闭环图示
 ```

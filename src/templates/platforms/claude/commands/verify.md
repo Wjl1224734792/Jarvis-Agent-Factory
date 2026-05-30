@@ -3,7 +3,7 @@ description: 文档驱动的改动验证 — 基于项目 AGENTS.md 层级文档
 name: verify
 argument-hint: "[what to verify]"
 model: inherit
-tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition"]
+tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # Verify — 文档驱动验证
@@ -18,6 +18,17 @@ tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "WebFetch", "Skill", "m
 4. **独立审查**：验证者不是实现者，用独立的视角审视改动
 
 ## 执行流程
+
+### 第 0 步：引擎会话注册
+
+注册引擎会话（硬约束——不可绕过）：
+
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })` — 注册当前会话到引擎
+- `mcp__jarvis-engine__pipeline_guide()` — 获取上下文（在流水线内时获取当前 Gate 上下文，独立使用时获取基础引导）
+
+产物输出目录: `.jarvis/YYYY-MM-DD/verify/`
+
+在开始验证前调用 `mcp__jarvis-engine__gate_check({ operation: "verify" })` 验证当前 Gate 条件。
 
 ### 第 1 步：文档定位
 
@@ -88,6 +99,12 @@ GAP    — P0 通过但有 PARTIAL 项，需补充验证
 ### 建议
 APPROVE / REQUEST_CHANGES / NEEDS_MORE_EVIDENCE
 ```
+
+## 验证完成
+
+验证完成后：
+- `mcp__jarvis-engine__gate_enforce` — 验证 Gate 通过条件
+- 通过后 `mcp__jarvis-engine__advance_gate` — 推进到下一 Gate（或结束流水线）
 
 ## 非可绕过红线
 

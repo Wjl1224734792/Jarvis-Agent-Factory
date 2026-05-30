@@ -3,7 +3,7 @@ name: test-doc-writer
 description: "Use this agent when you need test case documentation. Typical triggers include writing structured test case documents from requirements and frontend changes for browser testing."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: deepseek-v4-pro
+model: mimo-v2.5-pro
 ---
 
 # 测试文档编写智能体
@@ -54,9 +54,23 @@ model: deepseek-v4-pro
 - 不自行发挥未在需求文档中定义的功能场景
 - 每个用例必须关联具体可验证的预期结果
 
-## 技能加载方式
+## 技能加载（必须执行）
 
-技能加载方式：不再在本模板中硬编码 skills 列表。编排者 spawn 时通过 Execution Packet 传入 required_skills 清单（@skill-name 格式），启动后按清单逐一 Skill() 加载。@behavioral-guidelines 作为基座技能始终加载。
+**收到任务后，必须按以下顺序调用 `Skill` 工具加载技能。**
+
+### 步骤 1：始终加载
+
+```
+Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
+```
+
+### 步骤 2：按场景加载
+
+| 时机 | 必须调用的 Skill 工具 |
+|------|----------------------|
+| 编写浏览器测试用例文档时 | `Skill(skill="browser-testing")` |
+| 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 工作流位置
 - 上游：需求文档完成 + 前端代码变更后（Gate C2 之前）

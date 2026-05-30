@@ -3,7 +3,7 @@ name: skill-flow
 description: 会话流程导出 — 将当前会话的流水线流程（Gate序列+Agent spawn+产物）导出为可复用的 Skill 模板
 model: inherit
 argument-hint: "[子命令: export|save|list|apply] [名称]"
-tools: ["Read", "Glob", "Grep", "Bash(gh:*)", "Bash(git:*)", "Bash(npm:*)", "Edit", "Write", "mcp__jarvis-engine__session_export", "mcp__jarvis-engine__flow_skill_save", "mcp__jarvis-engine__flow_skill_list", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash(gh:*)", "Bash(git:*)", "Bash(npm:*)", "Edit", "Write", "mcp__jarvis-engine__session_export", "mcp__jarvis-engine__flow_skill_save", "mcp__jarvis-engine__flow_skill_list", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__report_status"]
 ---
 
 # /skill-flow — 会话流程 Skill 化
@@ -22,6 +22,8 @@ mcp__jarvis-engine__session_join({
   task_name: "[skill-flow] " + (用户输入 || "流程导出")
 })
 ```
+
+产物输出目录: `.jarvis/YYYY-MM-DD/skills/`
 
 ## 步骤 1：识别子命令
 
@@ -62,7 +64,7 @@ mcp__jarvis-engine__session_export({})
      agent_spawns: "<Agent记录JSON>",
      skill_loads: "<Skill加载JSON>"
    })
-3. 将保存的 Skill 输出为 .md 文件到 .claude/skills/flow-<名称>/SKILL.md
+3. 将保存的 Skill 输出为 .md 文件到 .jarvis/YYYY-MM-DD/skills/flow-<名称>/SKILL.md
 4. 产出：可复用的 Skill 模板文件
 ```
 
@@ -115,14 +117,18 @@ mcp__jarvis-engine__flow_skill_list({})
 | 子命令 | 产出 |
 |--------|------|
 | `export` | 控制台输出完整的流程 JSON 摘要 |
-| `save` | `.claude/skills/flow-<名称>/SKILL.md` 文件 |
+| `save` | `.jarvis/YYYY-MM-DD/skills/flow-<名称>/SKILL.md` 文件 |
 | `list` | 已保存 Skill 列表 + 统计 |
 | `apply` | 加载指示 + Gate 对齐建议 |
+
+## Gate 协议
+
+**每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进。
 
 ## 红线约束
 
 1. **export 为只读操作** — 不修改任何文件
-2. **save 写入 .claude/skills/ 目录** — 不影响源码和模板
+2. **save 写入 .jarvis/YYYY-MM-DD/skills/ 目录** — 不影响源码和模板
 3. **flow_skill 名称仅含 [a-z0-9_-]** — 防止路径穿越
 4. **agent_spawns/skill_loads 使用 JSON 格式** — 结构化存储
 5. **生成的 Skill 遵循 AGENTS.md 约束** — 包含完整 Gate 序列和 Skill 加载清单

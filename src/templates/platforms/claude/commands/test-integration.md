@@ -3,7 +3,7 @@ name: test-integration
 description: 集成测试/API 测试指令——基于 OpenAPI 契约生成集成测试，启动测试环境，验证 API 端点行为
 model: inherit
 argument-hint: [API 端点或服务名称]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 集成测试 / API 测试
@@ -19,8 +19,10 @@ Skill("test-data-factory")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 - 启动测试环境前调用 `mcp__jarvis-engine__gate_check({ operation: "build" })`
+- **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
@@ -38,6 +40,8 @@ Skill("test-data-factory")
 - 请求 Body/Query/Params Schema
 - 响应 Status Code + Body Schema
 - 认证要求（Bearer Token、API Key、Session）
+
+**Gate 推进**：`mcp__jarvis-engine__gate_enforce()` 验证通过后 `mcp__jarvis-engine__advance_gate()` 推进，然后 `mcp__jarvis-engine__pipeline_guide()` 获取下一 Gate 上下文。
 
 ## 步骤 2：启动测试环境
 
@@ -60,6 +64,8 @@ docker-compose up -d
 - 数据库连接正常（测试数据库，隔离生产数据）
 - 环境变量已设置（`NODE_ENV=test`、`DATABASE_URL=test_db`）
 
+**Gate 推进**：`mcp__jarvis-engine__gate_enforce()` 验证通过后 `mcp__jarvis-engine__advance_gate()` 推进，然后 `mcp__jarvis-engine__pipeline_guide()` 获取下一 Gate 上下文。
+
 ## 步骤 3：生成集成测试用例
 
 为每个 API 端点生成测试，覆盖：
@@ -80,6 +86,8 @@ docker-compose up -d
 - Python: httpx + Pytest
 - Go: httptest + testing
 
+**Gate 推进**：`mcp__jarvis-engine__gate_enforce()` 验证通过后 `mcp__jarvis-engine__advance_gate()` 推进，然后 `mcp__jarvis-engine__pipeline_guide()` 获取下一 Gate 上下文。
+
 ## 步骤 4：运行集成测试
 
 ```bash
@@ -99,12 +107,16 @@ go test ./tests/integration/... -v
 - 无竞态条件导致的 flaky 测试
 - 测试之间互相隔离（可独立运行、不可依赖执行顺序）
 
+**Gate 推进**：`mcp__jarvis-engine__gate_enforce()` 验证通过后 `mcp__jarvis-engine__advance_gate()` 推进，然后 `mcp__jarvis-engine__pipeline_guide()` 获取下一 Gate 上下文。
+
 ## 步骤 5：清理测试环境
 
 ```bash
 docker-compose down -v    # 清理测试数据库
 kill %1                   # 停止测试服务器
 ```
+
+**Gate 推进**：`mcp__jarvis-engine__gate_enforce()` 验证通过后 `mcp__jarvis-engine__advance_gate()` 推进，然后 `mcp__jarvis-engine__pipeline_guide()` 获取下一 Gate 上下文。
 
 ## 闭环图示
 ```

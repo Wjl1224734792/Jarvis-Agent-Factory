@@ -3,7 +3,7 @@ description: Bug 修复闭环——浏览器复现→定位根因→修复→浏
 name: bug-fix
 model: inherit
 argument-hint: [Bug 描述、URL 或复现步骤]
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_wait_for"]
 ---
 
 # Bug 修复闭环（浏览器复现 → 修复 → 验证）
@@ -19,11 +19,14 @@ Skill("browser-testing")
 **引擎会话注册**（硬约束——引擎确保修复操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
 - 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
+- 使用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 修复代码前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
 - 质量检查（Lint/Type-check/Build）作为修复验证的一部分执行，非独立操作；修复前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
 - 修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate 条件
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
+
+产物输出目录: `.jarvis/YYYY-MM-DD/bug-fix/`
 
 ## 步骤 1：收集 Bug 信息（不可绕过）
 向用户确认（如未提供）：
@@ -66,6 +69,7 @@ browser_network_requests                # 失败的网络请求
 尝试至少 1 个变体操作确认 Bug 触发边界。
 
 **复现成功 → 进入步骤 3**
+调用 `mcp__jarvis-engine__advance_gate` 推进到下一 Gate
 **复现失败 → 回问用户补充复现条件，最多 2 轮**
 
 ## 步骤 3：定位根因（不可绕过）
@@ -83,9 +87,13 @@ browser_network_requests                # 失败的网络请求
 - 修复方案：<具体的代码修改方案>
 ```
 
+根因分析完成后调用 `mcp__jarvis-engine__advance_gate` 推进到下一 Gate
+
 ## 步骤 4：修复代码（不可绕过）
 按最小改动原则修复：只改必须改的文件，遵循现有代码风格，不引入新依赖或重构无关代码。
 修复后立即自查：改动是否正确、是否影响其他功能。
+
+修复完成后调用 `mcp__jarvis-engine__advance_gate` 推进到下一 Gate
 
 ## 步骤 5：代码质量验证——Lint + Type-check + Build（不可绕过）
 ```
@@ -118,6 +126,7 @@ browser_console_messages --level error
 - 未引入新问题（相关功能抽查通过）
 
 **通过 → 进入步骤 7；失败 → 回到步骤 3 重新分析（最多 2 轮回退）**
+验证通过后调用 `mcp__jarvis-engine__advance_gate` 推进到下一 Gate
 
 ## 步骤 7：关闭 Bug
 输出 `.jarvis/YYYY-MM-DD/bug-fix/<bug-title>-bug-fix-report.md`：

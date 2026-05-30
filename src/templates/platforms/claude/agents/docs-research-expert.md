@@ -38,7 +38,6 @@ model: deepseek-v4-flash
 ```
 Skill(skill="behavioral-guidelines")
 Skill(skill="find-docs")
-Skill(skill="find-docs")
 ```
 
 ## 反合理化表

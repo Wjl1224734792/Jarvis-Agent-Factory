@@ -1,9 +1,9 @@
 ---
 name: auto
-description: 智能自动路由编排——自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配Team/Subagent，对标OMC autopilot+ralplan自动路由模式
+description: 智能自动路由编排——自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配Team/Subagent
 model: inherit
 argument-hint: "[任务描述]"
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
 ---
 
 # 智能自动路由编排
@@ -22,7 +22,7 @@ Skill("concurrency-policy")
 Skill("session-memory")
 ```
 
-> **核心理念**：参考 OMC 插件 `autopilot`（全自动执行）和 `ralplan`（共识路由）的自动路由模式。**你输入什么，我自动检测 → 自动选流水线 → 自动跳过无关 Gate → 自动分配 Agent**。不需要你告诉我"这是 bug 修复"或"这是重构"。
+> **核心理念**：**你输入什么，我自动检测 → 自动选流水线 → 自动跳过无关 Gate → 自动分配 Agent**。不需要你告诉我"这是 bug 修复"或"这是重构"。
 
 ---
 
@@ -84,6 +84,7 @@ mcp__jarvis-engine__session_join({
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 的 `team_strategy` 和允许的操作
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
 - spawn Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })`
+- 路由确定后调用 `mcp__jarvis-engine__gate_enforce()` 记录起始 Gate 条件状态，通过后 `mcp__jarvis-engine__advance_gate()` 推进到入口 Gate
 
 ### 2.1 加载会话上下文
 
@@ -168,7 +169,7 @@ spawn 审查 Agent，领域审查+综合签核。
 
 ## 步骤 4：Agent 调度策略
 
-参考 OMC 插件编排模式，根据任务复杂度自动选择调度方式：
+根据任务复杂度自动选择调度方式：
 
 ### 小任务（< 3 文件变更）
 
@@ -225,7 +226,7 @@ spawn 审查 Agent，领域审查+综合签核。
 | 维度 | `/jarvis` | `/auto` |
 |------|----------|---------|
 | 模式 | **全流程严格模式** | **智能路由模式** |
-| Gate 序列 | A→B→B1→C→C-impl→C1→C1.5→C2→D→E **全部强制执行** | **自动判断**，无关 Gate 跳过 |
+| Gate 序列 | A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E **全部强制执行** | **自动判断**，无关 Gate 跳过 |
 | 适用场景 | 中大型功能开发 | **一切场景**（自动适配） |
 | 流水线选择 | 固定 `full` | **自动路由** 15 条流水线 |
 | 推荐用法 | 明确的功能开发 | 日常所有任务的默认入口 |

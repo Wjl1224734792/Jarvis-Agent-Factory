@@ -3,7 +3,7 @@ name: test-perf
 description: 性能测试指令——k6/Artillery 负载测试，对比基线，定位性能瓶颈
 model: inherit
 argument-hint: [测试目标端点或场景描述]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 性能测试
@@ -19,6 +19,7 @@ Skill("perf-testing")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
@@ -114,6 +115,8 @@ artillery run --output baseline.json load-test.yml
 
 保存基线数据到 `.jarvis/YYYY-MM-DD/testing/perf-baseline-YYYY-MM-DD.json`。
 
+**基线 Gate 完成**：调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进到负载测试阶段。
+
 ## 步骤 5：执行性能测试
 
 ```bash
@@ -130,6 +133,8 @@ artillery report results.json
 - P95 劣化 > 20% → 必须定位根因
 - P99 劣化 > 30% → 阻塞发布
 
+**负载测试 Gate 完成**：调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进到瓶颈分析阶段。
+
 ## 步骤 6：定位性能瓶颈
 
 若性能劣化，按优先级排查：
@@ -139,6 +144,8 @@ artillery report results.json
 3. **序列化**：大 JSON 序列化/反序列化开销
 4. **内存**：内存泄漏、GC 压力
 5. **网络**：带宽限制、DNS 解析延迟
+
+**瓶颈分析 Gate 完成**：调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进到报告阶段。
 
 ## 闭环图示
 ```
@@ -150,6 +157,18 @@ artillery report results.json
                               ↓
                          不达标 → 定位瓶颈 → 修复 → 重测(最多2轮)
 ```
+
+## 步骤 7：生成性能测试报告
+
+汇总测试结果：
+- 基线指标 vs 当前指标
+- 各阶段对比数据
+- 瓶颈分析结论
+- 修复建议
+
+将报告输出到 `.jarvis/YYYY-MM-DD/testing/perf-report-YYYY-MM-DD.md`。
+
+**报告 Gate 完成**：调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 完成性能测试全流程。
 
 ## 红线
 - 对生产环境直接做负载测试（必须在 staging/测试环境）

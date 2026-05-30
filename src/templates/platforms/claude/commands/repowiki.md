@@ -3,7 +3,7 @@ name: repowiki
 description: 项目知识库——持久化、可搜索的 Markdown Wiki，支持增/查/改/删/健康检查
 model: inherit
 argument-hint: [add <title> | ingest <title> | query <keyword> | list | read <page> | delete <page> | lint]
-tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__repowiki_add", "mcp__jarvis-engine__repowiki_ingest", "mcp__jarvis-engine__repowiki_query", "mcp__jarvis-engine__repowiki_list", "mcp__jarvis-engine__repowiki_read", "mcp__jarvis-engine__repowiki_delete", "mcp__jarvis-engine__repowiki_lint"]
+tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__repowiki_add", "mcp__jarvis-engine__repowiki_ingest", "mcp__jarvis-engine__repowiki_query", "mcp__jarvis-engine__repowiki_list", "mcp__jarvis-engine__repowiki_read", "mcp__jarvis-engine__repowiki_delete", "mcp__jarvis-engine__repowiki_lint"]
 ---
 
 # 项目知识库（RepoWiki）
@@ -13,8 +13,12 @@ tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "Agent", "AskU
 ## 步骤 0：注册引擎会话
 
 ```
-mcp__jarvis-engine__session_join({ platform: "claude" })
+mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })
 ```
+
+调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前操作上下文（若引擎有活跃流水线）。
+
+在操作前调用 `mcp__jarvis-engine__gate_check({ operation: "repowiki" })` 验证当前 Gate 条件。
 
 ---
 
@@ -115,6 +119,12 @@ mcp__jarvis-engine__repowiki_lint()
 - **查询历史决策**: `query` → `category: "decision"`
 - **会话知识持久化**: `ingest` → `category: "session-log"`, 带 `sources` 记录来源会话 ID
 - **知识库健康维护**: `lint` → 修复发现的问题
+
+## 操作完成
+
+Wiki 操作完成后：
+- `mcp__jarvis-engine__gate_enforce` — 验证操作完成条件
+- 通过后 `mcp__jarvis-engine__advance_gate` — 推进到下一 Gate（或结束流水线）
 
 ## 红线
 

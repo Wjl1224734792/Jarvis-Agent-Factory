@@ -3,7 +3,7 @@ name: cleanup
 description: 安全卸载/清理 Jarvis — 细粒度移除项目或全局的 Jarvis 配置和引擎数据，不误删用户自有文件
 model: inherit
 argument-hint: [--dry-run] [--engine] [--global] [--force]
-tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep"]
+tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 安全清理 Jarvis
@@ -15,6 +15,14 @@ tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep"]
 Skill("behavioral-guidelines")
 Skill("chinese-documentation")
 ```
+
+**引擎会话注册**：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite", task_name: "清理: <清理目标>" })`
+- `mcp__jarvis-engine__pipeline_guide()`
+
+产物输出目录: `.jarvis/YYYY-MM-DD/cleanup/`
+
+在开始清理前调用 `mcp__jarvis-engine__gate_check({ operation: "cleanup" })` 验证当前 Gate 条件。
 
 ## 步骤 1：确认清理范围
 
@@ -84,6 +92,12 @@ jarvis doctor
 | `.jarvis/priority-context.md` | ❌ | ✅ | 全局路径 |
 | 用户自建 agents/commands/skills | ❌ | ❌ | ❌ |
 | 用户添加的其他 MCP server | ❌ | ❌ | ❌ |
+
+## 清理完成
+
+清理完成后：
+- `mcp__jarvis-engine__gate_enforce` — 验证清理完成条件
+- 通过后 `mcp__jarvis-engine__advance_gate` — 推进到下一 Gate（或结束流水线）
 
 ## 红线
 - **绝不删除用户自有文件** — 所有模板文件通过 hash 匹配，hash 不匹配的跳过
