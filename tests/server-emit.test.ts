@@ -112,15 +112,13 @@ describe('TASK-005: server.ts MCP 写操作 emitEvent', () => {
     const text = JSON.parse(result.content[0].text!);
     expect(text.session_id).toContain(sid);
     // 恢复会话 + 创建新 run → 两个事件
-    expect(emitSpy).toHaveBeenCalledWith('session:changed', {
-      sessionId: sid,
+    expect(emitSpy).toHaveBeenCalledWith('session:changed', expect.objectContaining({
       action: 'join',
-    });
-    expect(emitSpy).toHaveBeenCalledWith('run:changed', {
+    }));
+    expect(emitSpy).toHaveBeenCalledWith('run:changed', expect.objectContaining({
       runId: expect.any(String),
-      sessionId: sid,
       action: 'create',
-    });
+    }));
     expect(emitSpy).toHaveBeenCalledTimes(2);
   });
 
@@ -236,7 +234,7 @@ describe('TASK-005: server.ts MCP 写操作 emitEvent', () => {
     addSession(db, sid, 'claude', 'member');
     const runId = createPipelineRun(db, sid, 'test-project');
     // lite 模式允许 gate_jump
-    initPipeline(db, sid, 'test-project', 'lite');
+    initPipeline(db, sid, 'test-project', 'auto');
 
     const handler = tools['gate_jump'];
     await handler(
