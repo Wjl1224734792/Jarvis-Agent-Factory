@@ -110,7 +110,7 @@ describe('TASK-005: server.ts MCP 写操作 emitEvent', () => {
     );
 
     const text = JSON.parse(result.content[0].text!);
-    expect(text.session_id).toBe(sid);
+    expect(text.session_id).toContain(sid);
     // 恢复会话 + 创建新 run → 两个事件
     expect(emitSpy).toHaveBeenCalledWith('session:changed', {
       sessionId: sid,

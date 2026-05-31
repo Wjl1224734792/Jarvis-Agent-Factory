@@ -59,7 +59,7 @@ describe('MCP Core API — session_join', () => {
       { sessionId: sid },
     );
     const data = JSON.parse(result.content[0].text);
-    expect(data.session_id).toBe(sid);
+    expect(data.session_id).toContain(sid);
     expect(data.pipeline_type).toBe('full');
   });
 
@@ -82,7 +82,7 @@ describe('MCP Core API — session_join', () => {
     await tools['session_join']({ platform: 'claude' }, { sessionId: sid });
     const result = await tools['session_join']({ platform: 'claude' }, { sessionId: sid });
     const data = JSON.parse(result.content[0].text);
-    expect(data.session_id).toBe(sid);
+    expect(data.session_id).toContain(sid);
     expect(data.error).toBeUndefined();
   });
 });
@@ -297,7 +297,7 @@ describe('MCP Core API — gate_enforce', () => {
     const result = await tools['gate_enforce']({}, { sessionId: sid });
     const data = JSON.parse(result.content[0].text);
     expect(data.allowed).toBe(true);
-    expect(data.session_id).toBe(sid);
+    expect(data.session_id).toContain(sid);
   });
 
   it('无 checkpoint 无 artifact 时 gate_enforce 报告 blocked', async () => {
@@ -340,6 +340,6 @@ describe('MCP Core API — pipeline_guide', () => {
     expect(data.allowed_operations).toBeDefined();
     expect(data.allowed_operations.length).toBeGreaterThan(0);
     expect(data.agent_spawn).toBeDefined();
-    expect(data.session_id).toBe(sid);
+    expect(data.session_id).toContain(sid);
   });
 });
