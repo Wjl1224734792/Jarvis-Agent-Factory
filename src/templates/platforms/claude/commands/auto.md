@@ -44,11 +44,11 @@ Skill("session-memory")
 | 任务性质 | 路由流水线 | 入口 Gate | 说明 |
 |---------|-----------|-----------|------|
 | 新功能开发 | `full` | Gate A | 完整需求→实现→测试→评审→发布流程 |
-| Bug修复 | `lite` | Gate C | 使用 lite 流水线（allow_jump），gate_jump 到 Gate C 直接修复 |
-| 小修改(<3文件) | `lite` | Gate C-impl | 使用 lite 流水线（allow_jump），gate_jump 到 Gate C-impl 直接实现 |
+| Bug修复 | `auto` | Gate C | 使用 auto 流水线（allow_jump），gate_jump 到 Gate C 直接修复 |
+| 小修改(<3文件) | `auto` | Gate C-impl | 使用 auto 流水线（allow_jump），gate_jump 到 Gate C-impl 直接实现 |
 | 重构 | `refactor` | R1 | R1边界→R2基线→R3重构→R4漂移→R5报告 |
 | 紧急修复 | `hotfix` | H0 | H0声明→H1修复→H2验证→H3审计 |
-| 代码审查 | `lite` | Gate D | 使用 lite 流水线（allow_jump），gate_jump 到 Gate D 直接审查 |
+| 代码审查 | `auto` | Gate D | 使用 auto 流水线（allow_jump），gate_jump 到 Gate D 直接审查 |
 | 技术调研 | `research` | RS0 | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 |
 | 调试诊断 | `debug` | D0 | D0信息→D1复现→D2会话→D3诊断→D4报告 |
 | 代码简化 | `simplify` | S0 | S0分析→S1简化→S2验证→S3报告 |
@@ -57,6 +57,15 @@ Skill("session-memory")
 | 技术评估 | `evaluate` | E0 | E0标准→E1原型→E2指标→E3报告 |
 | 发布上线 | `release` | RL0 | RL0检测→RL1质量→RL2版本→RL3发布→RL4验证 |
 | 前端开发 | `frontend` | Gate A | 全流程（含强制 C1.5 视觉验证） |
+| Flutter开发 | `frontend` | Gate A | 全流程：flutter-dev/ui/state/test/review-expert + mobile-architect |
+| Expo开发 | `frontend` | Gate A | 全流程：expo-dev/ui/state/test/review-expert + mobile-architect |
+| Swift开发 | `frontend` | Gate A | 全流程：swift-dev/ui/state/test/review-expert + mobile-architect |
+| Kotlin开发 | `frontend` | Gate A | 全流程：kotlin-dev/ui/state/test/review-expert + mobile-architect |
+| Taro开发 | `frontend` | Gate A | 全流程：taro-dev/ui/state/test/review-expert + frontend-architect |
+| 小程序开发 | `frontend` | Gate A | 全流程：miniprogram-dev/ui/state/test/review-expert + frontend-architect |
+| uni-app开发 | `frontend` | Gate A | 全流程：uni-app-dev/ui/state/test/review-expert + frontend-architect |
+| React开发 | `frontend` | Gate A | 全流程：react-dev/ui/state/test/review-expert + frontend-architect |
+| Vue开发 | `frontend` | Gate A | 全流程：vue-dev/ui/state/test/review-expert + frontend-architect |
 | 后端开发 | `backend` | Gate A | 全流程（跳过 C1.5 视觉验证） |
 | 无法分类 | `full` | Gate A | 默认全流程，编排者逐步澄清 |
 
@@ -79,7 +88,7 @@ mcp__jarvis-engine__session_join({
 })
 ```
 
-- 若路由到 `lite` 流水线且非 Gate A 入口 → 使用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>" })` 直接跳转（lite 支持 allow_jump）
+- 若路由到 `auto` 流水线且非 Gate A 入口 → 使用 `mcp__jarvis-engine__gate_jump({ gate: "<入口Gate>" })` 直接跳转（auto 支持 allow_jump）
 - 若路由到 `full`/`frontend`/`backend` 流水线 → 从 Gate A 开始按序列推进（这些流水线不支持 gate_jump，须经完整 Gate 序列）
 - 每个 Gate 开始前调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 的 `team_strategy` 和允许的操作
 - 写代码前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })`
@@ -163,7 +172,7 @@ spawn 审查 Agent，领域审查+综合签核。
 
 ### Gate E：发布上线
 
-质量重检 → 版本递增 → 上线。
+质量重检 → spawn docs-engineer（文档同步）→ spawn infra-deploy-expert（CI验证）→ 版本递增 → 上线。
 
 ---
 
@@ -256,3 +265,12 @@ spawn 审查 Agent，领域审查+综合签核。
 | 新功能开发 | `/jarvis` | 全流程严格模式，Gate 全部强制执行 |
 | 只读审查 | `/review-only` | 审查代码/项目，不修改任何文件 |
 | 审查+修复 | `/review-fix` | 初审→规划→执行→验证→复审闭环 |
+| Flutter开发 | `/flutter` | Flutter 跨端移动端开发 |
+| Expo开发 | `/expo` | Expo/React Native 跨端移动端开发 |
+| Swift开发 | `/swift` | Swift/SwiftUI iOS 原生开发 |
+| Kotlin开发 | `/kotlin` | Kotlin/Compose Android 原生开发 |
+| Taro开发 | `/taro` | Taro 跨端小程序/H5 开发 |
+| 小程序开发 | `/miniprogram` | 微信小程序原生开发 |
+| uni-app开发 | `/uni-app` | uni-app 跨端开发 |
+| React开发 | `/react` | React Web 开发 |
+| Vue开发 | `/vue` | Vue Web 开发 |

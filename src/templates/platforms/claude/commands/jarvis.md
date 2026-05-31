@@ -59,7 +59,7 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "Team
 
 - **pipeline_type**: `full`
 - **Gate 序列**: A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（12 道闸门）
-- **可用代理**: 全部 47 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
+- **可用代理**: 全部 88 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
 - **典型 Batch 结构**:
   ```
   Batch 1: [frontend-ui-expert, frontend-state-expert, backend-api-expert, backend-data-expert]
@@ -83,6 +83,7 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "Team
 Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 **引擎验证**：spawn 前 `gate_check({ operation: "read" })` 确认允许读取探索
 ```
+├── docs-research-expert（调研现有文档/AGENTS/README/CHANGELOG，确认当前统计基线）
 ├── code-explore-expert × N（各自探索不同模块/目录）
 │   ├── code-explore-expert（前端 src/ 目录）
 │   ├── code-explore-expert（后端 src/ 目录）
@@ -152,11 +153,13 @@ spawn database-architect（数据库架构评审）
 
 **流程**：
 1. `spawn planner` Agent，传入需求文档 + 任务文档路径
-2. 产出：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
-3. 验证：含 parallel_batches、Execution Packet 完整、共享区域有唯一责任方
+2. `spawn skill-assignment-expert` Agent（与 planner 并行），传入任务文档路径，推荐每个实现 Agent 需要的技能清单
+3. 产出：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
+4. 验证：含 parallel_batches、Execution Packet 完整、共享区域有唯一责任方
 
 ``` [可并行]
 planner 执行期间可并行准备：
+├── skill-assignment-expert（推荐各实现 Agent 所需技能清单）
 └── 预加载代码库上下文（为后续实现 Agent 准备）
 ```
 
@@ -208,14 +211,65 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 | 后端业务 | `backend-logic-expert` |
 | 后端数据 | `backend-data-expert` |
 | 任务分解 | `task-design`（DDD模式/BDD模式/TDD模式） |
-| 移动端 | `android-dev-expert` / `ios-dev-expert` / `flutter-dev-expert` / `taro-dev-expert` / `react-native-dev-expert` |
+| 移动端 | `kotlin-dev-expert` / `swift-dev-expert` / `flutter-dev-expert` / `expo-dev-expert` / `taro-dev-expert` / `miniprogram-dev-expert` / `uni-app-dev-expert` |
 | 测试 | `frontend-test-expert` / `backend-test-expert` / `api-test-expert` / `perf-test-expert` / `e2e-test-expert` / `browser-test-expert` / `test-doc-writer` / `test-executor` |
-| 移动端测试 | `android-test-expert` / `ios-test-expert` / `flutter-test-expert` / `taro-test-expert` / `react-native-test-expert` |
-| 移动端审查 | `android-review-expert` / `ios-review-expert` / `flutter-review-expert` / `taro-review-expert` / `react-native-review-expert` |
-| 移动端 UI | `android-ui-expert` / `ios-ui-expert` / `flutter-ui-expert` / `taro-ui-expert` / `react-native-ui-expert` |
-| 移动端状态 | `android-state-expert` / `ios-state-expert` / `flutter-state-expert` / `taro-state-expert` / `react-native-state-expert` |
+| 移动端测试 | `kotlin-test-expert` / `swift-test-expert` / `flutter-test-expert` / `expo-test-expert` / `taro-test-expert` / `miniprogram-test-expert` / `uni-app-test-expert` |
+| 移动端审查 | `kotlin-review-expert` / `swift-review-expert` / `flutter-review-expert` / `expo-review-expert` / `taro-review-expert` / `miniprogram-review-expert` / `uni-app-review-expert` |
+| 移动端 UI | `kotlin-ui-expert` / `swift-ui-expert` / `flutter-ui-expert` / `expo-ui-expert` / `taro-ui-expert` / `miniprogram-ui-expert` / `uni-app-ui-expert` |
+| 移动端状态 | `kotlin-state-expert` / `swift-state-expert` / `flutter-state-expert` / `expo-state-expert` / `taro-state-expert` / `miniprogram-state-expert` / `uni-app-state-expert` |
+| Flutter 全栈 | `flutter-dev-expert` |
+| Flutter UI | `flutter-ui-expert` |
+| Flutter 状态 | `flutter-state-expert` |
+| Flutter 测试 | `flutter-test-expert` |
+| Flutter 审查 | `flutter-review-expert` |
+| Expo 全栈 | `expo-dev-expert` |
+| Expo UI | `expo-ui-expert` |
+| Expo 状态 | `expo-state-expert` |
+| Expo 测试 | `expo-test-expert` |
+| Expo 审查 | `expo-review-expert` |
+| Swift 全栈 | `swift-dev-expert` |
+| Swift UI | `swift-ui-expert` |
+| Swift 状态 | `swift-state-expert` |
+| Swift 测试 | `swift-test-expert` |
+| Swift 审查 | `swift-review-expert` |
+| Kotlin 全栈 | `kotlin-dev-expert` |
+| Kotlin UI | `kotlin-ui-expert` |
+| Kotlin 状态 | `kotlin-state-expert` |
+| Kotlin 测试 | `kotlin-test-expert` |
+| Kotlin 审查 | `kotlin-review-expert` |
+| Taro 全栈 | `taro-dev-expert` |
+| Taro UI | `taro-ui-expert` |
+| Taro 状态 | `taro-state-expert` |
+| Taro 测试 | `taro-test-expert` |
+| Taro 审查 | `taro-review-expert` |
+| 小程序全栈 | `miniprogram-dev-expert` |
+| 小程序 UI | `miniprogram-ui-expert` |
+| 小程序 状态 | `miniprogram-state-expert` |
+| 小程序 测试 | `miniprogram-test-expert` |
+| 小程序 审查 | `miniprogram-review-expert` |
+| uni-app 全栈 | `uni-app-dev-expert` |
+| uni-app UI | `uni-app-ui-expert` |
+| uni-app 状态 | `uni-app-state-expert` |
+| uni-app 测试 | `uni-app-test-expert` |
+| uni-app 审查 | `uni-app-review-expert` |
+| React 全栈 | `react-dev-expert` |
+| React UI | `react-ui-expert` |
+| React 状态 | `react-state-expert` |
+| React 测试 | `react-test-expert` |
+| React 审查 | `react-review-expert` |
+| Vue 全栈 | `vue-dev-expert` |
+| Vue UI | `vue-ui-expert` |
+| Vue 状态 | `vue-state-expert` |
+| Vue 测试 | `vue-test-expert` |
+| Vue 审查 | `vue-review-expert` |
+| 移动端架构 | `mobile-architect` |
+| Web全栈 | `react-dev-expert` / `vue-dev-expert` |
+| Web测试 | `react-test-expert` / `vue-test-expert` |
+| Web审查 | `react-review-expert` / `vue-review-expert` |
+| Web UI | `react-ui-expert` / `vue-ui-expert` |
+| Web状态 | `react-state-expert` / `vue-state-expert` |
 | 审查 | `qa-review-expert` / `security-review-expert` / `perf-review-expert` / `change-review-expert` / `diff-review-expert` / `frontend-review-expert` / `backend-review-expert` / `project-review-expert` / `review-only` |
-| 架构 | `frontend-architect` / `backend-architect` / `database-architect` |
+| 架构 | `frontend-architect` / `backend-architect` / `database-architect` / `mobile-architect` |
 | 文档 | `api-contract-expert` / `docs-engineer` |
 | 修复 | `remediation-expert` / `remediation-planner` / `review-fix-optimize` |
 | 算法 | `algorithm-expert` |
@@ -286,6 +340,7 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 ``` [可并行 - 步骤 1]
 **引擎验证**：spawn 前 `gate_check({ operation: "spawn_test" })` 确认 Gate C2 允许测试
+├── spawn test-doc-writer（测试用例文档编写，产出测试计划文档）
 ├── spawn backend-test-expert（单元+集成测试）
 ├── spawn frontend-test-expert（单元+组件测试）
 ├── spawn browser-test-expert（浏览器交互测试，如有前端变更）
@@ -301,7 +356,13 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 4. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
 5. 若失败与共享区域相关 → 先提交 plan patch 再修复
 
-步骤 1 全部通过后继续步骤 3。
+步骤 1 全部通过后继续：
+
+``` [步骤 2]
+└── spawn test-executor（按测试文档执行用例，汇总结果）
+```
+
+步骤 2 完成后继续步骤 3：
 
 ``` [最后 - 步骤 3]
 └── spawn e2e-test-expert（端到端测试，需完整集成环境）
@@ -338,6 +399,11 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 **步骤 2 — 综合签核（等待步骤 1 全部完成）**：
 ```
 └── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚5个领域报告）
+```
+
+**步骤 2.5 — 修复闭环验证（qa-review-expert 通过后）**：
+```
+└── spawn verify-expert（验证所有修复已闭环：初审 findings 逐项关闭 + Lint/Test 通过 + 无新增回归）
 ```
 
 **步骤 3 — 审查失败回退循环**：
@@ -383,6 +449,16 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 │          → 回到步骤 1（重跑全部，不可只跑失败项）           │
 │  2 轮仍失败 → 标记 ABORT，汇总失败报告向用户报告           │
 └─────────────────────────────────────────────────────────┘
+```
+
+**步骤 1.5 — 文档同步（质量重检通过后，不可跳过）**：
+```
+└── spawn docs-engineer（同步 AGENTS.md Agent列表/统计、README.md 版本号/特性列表/统计、CHANGELOG.md 版本条目、.jarvis/README.md 迭代批次、docs/flows/AGENTS.md 文件引用）
+```
+
+**步骤 1.6 — 基础设施验证（与文档同步并行）**：
+```
+└── spawn infra-deploy-expert（验证 CI 配置、环境变量、构建脚本，确认 tag push 后 CI workflow 可正常触发 npm publish）
 ```
 
 **发布条件**：

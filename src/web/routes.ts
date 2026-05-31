@@ -135,6 +135,8 @@ function buildSessionPipeline(db: any, session: any, root: string) {
     completed: gates.filter(g => g.passed).map(g => g.gate),
     gates,
     _display: formatGateDisplay(gates, current),
+    heartbeat: session.last_heartbeat || null,
+    task_name: run?.task_name || null,
   };
 }
 
@@ -294,7 +296,19 @@ export function setupApiRoutes(app, db, root) {
     const gateList = getPipelineGates(pt);
     const currentGate = pstate?.current_gate || gateList[0];
     const currentIdx = gateList.indexOf(currentGate);
-    const targetIdx = currentIdx + 1;
+    const requestedGate = body.gate || null;
+    let targetIdx = currentIdx + 1;
+    if (requestedGate) {
+      const requestedIdx = gateList.indexOf(requestedGate);
+      if (requestedIdx === targetIdx) {
+        // 显式指定下一Gate，与默认行为一致
+      } else if (requestedIdx === currentIdx) {
+        // 重新推进当前Gate（幂等）
+        targetIdx = currentIdx;
+      } else {
+        return c.json({ allowed: false, error: `gate_jump not allowed: ${currentGate} -> ${requestedGate} (use gate_jump for allow_jump pipelines)` }, 400);
+      }
+    }
     if (targetIdx >= gateList.length) {
       return c.json({ allowed: false, error: 'Pipeline complete' });
     }
@@ -816,7 +830,7 @@ function readVersion() { return readPackageVersion(import.meta.dirname); }
 function inferPipelineType(content: string): string {
   const lower = content.toLowerCase();
   // Check specific pipeline types FIRST (narrow keyword match), then generic (may appear in any template)
-  if (lower.includes('name: auto')) return 'lite';
+  if (lower.includes('name: auto')) return 'auto';
   if (lower.includes('pipeline_type: "simplify"') || (lower.includes('simplify') && lower.includes('s0'))) return 'simplify';
   if (lower.includes('pipeline_type: "trace"') || (lower.includes('trace') && lower.includes('t0'))) return 'trace';
   if (lower.includes('pipeline_type: "improve"') || (lower.includes('improve') && lower.includes('im0'))) return 'improve';
@@ -828,11 +842,12 @@ function inferPipelineType(content: string): string {
   if (lower.includes('pipeline_type: "migrate"') || (lower.includes('migrate') && lower.includes('m1'))) return 'migrate';
   if (lower.includes('pipeline_type: "evaluate"') || (lower.includes('evaluate') && lower.includes('e0'))) return 'evaluate';
   if (lower.includes('pipeline_type: "debug"') || (lower.includes('debug') && lower.includes('d0'))) return 'debug';
-  if (lower.includes('pipeline_type: "lite"') || (lower.includes('auto') && lower.includes('pipeline_type'))) return 'lite';
+  if (lower.includes('pipeline_type: "auto"') || (lower.includes('auto') && lower.includes('pipeline_type'))) return 'auto';
+  if (lower.includes('name: deepinit') || lower.includes('pipeline_type: "deepinit"')) return 'deepinit';
+  if (lower.includes('name: consult') || lower.includes('pipeline_type: "consult"')) return 'consult';
   // Generic fallbacks (broader keyword matching, may catch false positives)
   if (lower.includes('frontend')) return 'frontend';
   if (lower.includes('backend')) return 'backend';
-  if (lower.includes('jarvis-lite') || lower.includes('auto') || lower.includes('lite')) return 'lite';
   if (lower.includes('refactor')) return 'refactor';
   if (lower.includes('hotfix')) return 'hotfix';
   if (lower.includes('migrate')) return 'migrate';

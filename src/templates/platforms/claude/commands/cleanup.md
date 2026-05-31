@@ -17,12 +17,12 @@ Skill("chinese-documentation")
 ```
 
 **引擎会话注册**：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite", task_name: "清理: <清理目标>" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto", task_name: "清理: <清理目标>" })`
 - `mcp__jarvis-engine__pipeline_guide()`
 
 产物输出目录: `.jarvis/YYYY-MM-DD/cleanup/`
 
-在开始清理前调用 `mcp__jarvis-engine__gate_check({ operation: "cleanup" })` 验证当前 Gate 条件。
+在开始清理前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 ## 步骤 1：确认清理范围
 

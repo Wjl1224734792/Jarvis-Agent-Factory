@@ -16,7 +16,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Skill", "Agent
    - `Skill("code-review-and-quality")`
 
 2. 注册引擎会话（硬约束——引擎确保各阶段操作权限不可绕过）：
-   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
    - `mcp__jarvis-engine__gate_jump({ gate: "Gate D" })`
    - 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
    - 关键操作前调用 `gate_check`：审查→`review`，修复→`fix`，Lint→`lint`，构建→`build`
@@ -25,7 +25,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Skill", "Agent
 
    ### **阶段一：初审**（不可绕过）
    - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
-   - 可并发调用 `project-review-expert`、`diff-review-expert`、`perf-review-expert`、`frontend-architect`、`backend-architect`、`database-architect`、`code-explore-expert` 收集 findings
+   - 可并发调用 `project-review-expert`、`diff-review-expert`、`perf-review-expert`、`frontend-architect`、`backend-architect`、`database-architect`、`mobile-architect`、`code-explore-expert` 收集 findings
    - **涉及前端页面/交互的 Bug**：加载 `Skill("browser-testing")`，用 Playwright MCP 工具复现 Bug（browser_navigate→browser_snapshot→复现步骤→browser_take_screenshot 异常状态），复现证据作为 finding 附件
    - 所有只读 Agent 返回后再进入下一阶段
 

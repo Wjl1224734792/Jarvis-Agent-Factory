@@ -67,17 +67,22 @@ jarvis remove claude -g --engine --force # Global: all Jarvis files in user home
 | Review | `/review-only` | | Debug | `/debug` |
 | Simplify | `/simplify` | | Release | `/release` |
 | Cleanup | `/cleanup` | | Publish | `/publish` |
+| Flutter | `/flutter` | | Expo | `/expo` |
+| Swift | `/swift` | | Kotlin | `/kotlin` |
+| Taro | `/taro` | | MiniProgram | `/miniprogram` |
+| uni-app | `/uni-app` | | React | `/react` |
+| Vue | `/vue` | | | |
 
 ## Pipeline Types
 
-`full` `frontend` `backend` `lite` `refactor` `hotfix` `migrate` `evaluate` `debug` `research` `release` `ask` `simplify` `trace` `improve` — 15 total
+`full` `frontend` `backend` `auto` `refactor` `hotfix` `migrate` `evaluate` `debug` `research` `release` `ask` `simplify` `trace` `improve` — 15 total
 
 ## Stats
 
 | | Claude Code |
 |---|:--:|
 | Agents | 72 |
-| Commands | 35 |
+| Commands | 44 |
 | Skills | 35 |
 | CLI Commands | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
 | Pipelines | 15 |
@@ -88,7 +93,7 @@ jarvis remove claude -g --engine --force # Global: all Jarvis files in user home
 |-----------|-----------|---------|
 | Gate enforcement | FSM · `gate_check` · `gate_enforce` | Auto |
 | Advance gate | `advance_gate` | Manual |
-| Lite jump | `gate_jump` (lite/ask/improve) | Manual |
+| Auto jump | `gate_jump` (auto/ask/improve) | Manual |
 | Pipeline guide | `pipeline_guide` | On demand |
 | Session naming | `session_set_name` | On demand |
 | Web real-time | Dashboard + SSE | On demand |
@@ -124,7 +129,7 @@ Mermaid flowcharts per command (Gate sequence + Agent spawns) in `docs/flows/`:
 | | `/improve` | [improve.md](docs/flows/improve.md) | IM0-IM4 |
 | Session | `/cleanup` | [cleanup.md](docs/flows/cleanup.md) | Safe removal |
 | Testing | `/test-unit` `/test-integration` `/test-e2e` `/test-perf` `/test-security` | — | Various |
-| Mobile | `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` | — | A→E |
+| Framework | `/flutter` `/expo` `/swift` `/kotlin` `/taro` `/miniprogram` `/uni-app` `/react` `/vue` | — | A→E |
 
 ## License
 

@@ -111,14 +111,14 @@
   <h1>Jarvis Agent Factory</h1>
   <div class="tagline">
     多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
-    <strong>仅支持 Claude Code</strong> · 46 MCP 工具 · 34 指令 · 72 智能体 · 35 技能 · 15 流水线
+    <strong>仅支持 Claude Code</strong> · 46 MCP 工具 · 44 指令 · 88 智能体 · 35 技能 · 15 流水线
   </div>
   <span class="version">v4.7.57</span>
 </div>
 
 <div class="stats">
-  <div class="stat a"><div class="num">34</div><div class="label">指令 Commands</div></div>
-  <div class="stat g"><div class="num">72</div><div class="label">智能体 Agents</div></div>
+  <div class="stat a"><div class="num">44</div><div class="label">指令 Commands</div></div>
+  <div class="stat g"><div class="num">88</div><div class="label">智能体 Agents</div></div>
   <div class="stat p"><div class="num">35</div><div class="label">技能 Skills</div></div>
   <div class="stat o"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
   <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
@@ -145,7 +145,7 @@
   <ul style="margin:8px 0 0 20px; color:var(--text); line-height:2">
     <li><strong>指令 = 流水线入口</strong>：输入 <code>/jarvis 做一个用户登录</code>，自动启动 13-Gate 工程流水线</li>
     <li><strong>闸门不可绕过</strong>：引擎强制执行 Gate 权限表——Gate A 不能写代码，Gate E 不能再改实现</li>
-    <li><strong>Agent 按需 spawn</strong>：72 个 Agent 覆盖前端/后端/移动端/测试/审查/架构</li>
+    <li><strong>Agent 按需 spawn</strong>：88 个 Agent 覆盖前端/后端/移动端/测试/审查/架构</li>
     <li><strong>文档驱动</strong>：每个 Gate 产出结构化文档存入 <code>.jarvis/YYYY-MM-DD/</code></li>
     <li><strong>跨会话自动记忆</strong>：启动注入 + 归档 repowiki + Working Memory，上下文跨会话持久化</li>
     <li><strong>AST 结构化搜索</strong>：语法树匹配 17 种语言，比文本 Grep 精确；安全替换 dryRun 默认</li>
@@ -176,11 +176,11 @@
   <div class="arch-layer">
     <div class="arch-box user"><strong>用户输入</strong><br><span style="font-size:12px;color:var(--muted)">/jarvis "需求"</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
-    <div class="arch-box user"><strong>指令模板</strong><br><span style="font-size:12px;color:var(--muted)">34 条命令</span></div>
+    <div class="arch-box user"><strong>指令模板</strong><br><span style="font-size:12px;color:var(--muted)">44 条命令</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
     <div class="arch-box engine"><strong>编排引擎</strong><br><span style="font-size:12px;color:var(--muted)">FSM + SQLite</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
-    <div class="arch-box agent"><strong>72 个 Agent</strong><br><span style="font-size:12px;color:var(--muted)">专业 spawn</span></div>
+    <div class="arch-box agent"><strong>88 个 Agent</strong><br><span style="font-size:12px;color:var(--muted)">专业 spawn</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
     <div class="arch-box skill"><strong>35 个 Skill</strong><br><span style="font-size:12px;color:var(--muted)">行为规范</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
@@ -221,7 +221,7 @@
 <h2 id="pipelines">五、流水线体系</h2>
 
 <h3>5.1 标准流水线</h3>
-<p class="section-desc">full / frontend / backend / lite 共用此 Gate 序列。每个 Gate 有严格的<strong>操作权限表</strong>——引擎强制执行，不可绕过。</p>
+<p class="section-desc">full / frontend / backend / auto 共用此 Gate 序列。每个 Gate 有严格的<strong>操作权限表</strong>——引擎强制执行，不可绕过。</p>
 
 <div class="gate-flow" style="font-size:13px">
   <span class="gate gate-req">Gate A<br><small>需求</small></span><span class="arrow">→</span>
@@ -313,8 +313,8 @@
   <tr><td class="cmd">/jarvis</td><td>full</td><td class="gates">A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E</td><td>13</td><td>中大型功能开发，全部 Gate 强制执行</td></tr>
   <tr><td class="cmd">/frontend</td><td>frontend</td><td class="gates">同上，C1.5 视觉验证强制，前端专属 Agent</td><td>13</td><td>前端开发，React/Vue/Angular</td></tr>
   <tr><td class="cmd">/backend</td><td>backend</td><td class="gates">跳过 C1.5，后端专属 Agent</td><td>11</td><td>后端开发，API/数据库/业务逻辑</td></tr>
-  <tr><td class="cmd">/auto</td><td>lite</td><td class="gates">支持 gate_jump 跳过无关 Gate，智能路由</td><td>13</td><td>日常默认入口，99% 情况用它</td></tr>
-  <tr><td class="cmd">/mobile</td><td>frontend</td><td class="gates">同上，平台感知 Agent 选择（6 平台）</td><td>13</td><td>移动端/跨端开发</td></tr>
+  <tr><td class="cmd">/auto</td><td>auto</td><td class="gates">支持 gate_jump 跳过无关 Gate，智能路由</td><td>13</td><td>日常默认入口，99% 情况用它</td></tr>
+  <tr class="deprecated"><td class="cmd">/mobile <span class="tag tag-red">已废弃</span></td><td>frontend</td><td class="gates">同上，平台感知 Agent 选择（6 平台）</td><td>13</td><td>移动端/跨端开发 — 已拆分为独立框架命令</td></tr>
   <tr><td class="cmd">/refactor</td><td>refactor</td><td class="gates">R1(边界)→R2(基线)→R3(重构)→R4(漂移检测)→R5(报告)</td><td>5</td><td>代码重构，失败自动回滚</td></tr>
   <tr><td class="cmd">/hotfix</td><td>hotfix</td><td class="gates">H0(声明+审批)→H1(最小修复)→H2(验证+回滚)→H3(审计)</td><td>4</td><td>紧急故障恢复</td></tr>
   <tr><td class="cmd">/migrate</td><td>migrate</td><td class="gates">M1(规则)→M2(迁移)→M3(编译)→M4(Lint修复)</td><td>4</td><td>框架升级、依赖替换</td></tr>
@@ -329,7 +329,7 @@
 </table>
 
 <!-- ═══════════════════════════════════════ 6. COMMANDS -->
-<h2 id="commands">六、全部 34 条指令</h2>
+<h2 id="commands">六、全部 44 条指令</h2>
 
 <h3>编排入口（2 条）</h3>
 <div class="cmd-grid">
@@ -341,15 +341,24 @@
   <div class="cmd-card">
     <div class="cmd-name">/auto <span class="tag tag-green">日常默认</span></div>
     <div class="cmd-desc"><strong>智能路由模式</strong> — 自动检测 12 种任务类型→路由最优流水线→跳过无关 Gate→按复杂度分配 Team/Subagent。</div>
-    <div class="cmd-pipe">流水线：lite（支持 gate_jump）</div>
+    <div class="cmd-pipe">流水线：auto（支持 gate_jump）</div>
   </div>
 </div>
 
-<h3>平台开发（3 条）</h3>
+<h3>平台开发（12 条）</h3>
 <div class="cmd-grid">
   <div class="cmd-card"><div class="cmd-name">/frontend</div><div class="cmd-desc">前端开发 — C1.5 视觉验证强制。使用 frontend 专属 Agent 组。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
   <div class="cmd-card"><div class="cmd-name">/backend</div><div class="cmd-desc">后端开发 — 跳过 C1.5。使用 backend + database-architect 专属 Agent 组。</div><div class="cmd-pipe">流水线：backend（11 Gate）</div></div>
-  <div class="cmd-card"><div class="cmd-name">/mobile --platform=&lt;name&gt;</div><div class="cmd-desc">移动端/跨端统一入口 — 支持 android/ios/flutter/expo/react-native/taro。C1.5 强制。</div><div class="cmd-pipe">流水线：frontend 变体（平台感知）</div></div>
+  <div class="cmd-card deprecated"><div class="cmd-name">/mobile --platform=&lt;name&gt; <span class="tag tag-red">已废弃</span></div><div class="cmd-desc">移动端/跨端统一入口 — 已拆分为独立框架命令（/flutter /expo /swift /kotlin /taro /miniprogram /uni-app 等），请使用具体框架命令。</div><div class="cmd-pipe">流水线：frontend 变体（平台感知）· 不再推荐使用</div></div>
+  <div class="cmd-card"><div class="cmd-name">/flutter</div><div class="cmd-desc">Flutter 跨端移动端开发 — 使用 flutter-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/expo</div><div class="cmd-desc">Expo/React Native 跨端移动端开发 — 使用 expo-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/swift</div><div class="cmd-desc">Swift/SwiftUI iOS 原生开发 — 使用 swift-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/kotlin</div><div class="cmd-desc">Kotlin/Compose Android 原生开发 — 使用 kotlin-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/taro</div><div class="cmd-desc">Taro 跨端小程序/H5 开发 — 使用 taro-dev/ui/state/test/review-expert + frontend-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/miniprogram</div><div class="cmd-desc">微信小程序原生开发 — 使用 miniprogram-dev/ui/state/test/review-expert + frontend-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/uni-app</div><div class="cmd-desc">uni-app 跨端开发 — 使用 uni-app-dev/ui/state/test/review-expert + frontend-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/react</div><div class="cmd-desc">React Web 开发 — 使用 react-dev/ui/state/test/review-expert + frontend-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
+  <div class="cmd-card"><div class="cmd-name">/vue</div><div class="cmd-desc">Vue Web 开发 — 使用 vue-dev/ui/state/test/review-expert + frontend-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
 </div>
 
 <h3>需求与设计（3 条）</h3>
@@ -401,43 +410,49 @@
 </div>
 
 <!-- ═══════════════════════════════════════ 7. AGENTS -->
-<h2 id="agents">七、72 个智能体</h2>
+<h2 id="agents">七、88 个智能体</h2>
 
 <div class="card">
-  <h4>实现类（25 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C-impl spawn</span></h4>
+  <h4>实现类（43 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C-impl spawn</span></h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-purple">frontend-dev</span><span class="tag tag-purple">frontend-ui</span><span class="tag tag-purple">frontend-state</span>
     <span class="tag tag-green">backend-dev</span><span class="tag tag-green">backend-api</span><span class="tag tag-green">backend-logic</span><span class="tag tag-green">backend-data</span>
     <span class="tag tag-orange">android-dev/ui/state</span><span class="tag tag-blue">ios-dev/ui/state</span>
     <span class="tag tag-cyan">flutter-dev/ui/state</span><span class="tag tag-red">expo-dev/ui/state</span>
     <span class="tag tag-purple">react-native-dev/ui/state</span><span class="tag tag-green">taro-dev/ui/state</span>
+    <span class="tag tag-blue">swift-dev/ui/state</span><span class="tag tag-orange">kotlin-dev/ui/state</span>
+    <span class="tag tag-cyan">miniprogram-dev/ui/state</span><span class="tag tag-red">uni-app-dev/ui/state</span>
+    <span class="tag tag-purple">react-dev/ui/state</span><span class="tag tag-green">vue-dev/ui/state</span>
   </div>
 </div>
 <div class="card">
-  <h4>测试类（15 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C2 spawn</span></h4>
+  <h4>测试类（21 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C2 spawn</span></h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-red">frontend-test</span><span class="tag tag-red">backend-test</span>
     <span class="tag tag-red">android/ios/flutter/taro/expo/react-native-test</span>
+    <span class="tag tag-red">swift/kotlin/miniprogram/uni-app/react/vue-test</span>
     <span class="tag tag-red">browser-test</span><span class="tag tag-red">frontend-debug</span>
     <span class="tag tag-red">e2e-test</span><span class="tag tag-red">perf-test</span><span class="tag tag-red">api-test</span>
     <span class="tag tag-red">test-doc-writer</span><span class="tag tag-red">test-executor</span>
   </div>
 </div>
 <div class="card">
-  <h4>审查类（16 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate D spawn</span></h4>
+  <h4>审查类（22 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate D spawn</span></h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-cyan">frontend/backend-review</span>
     <span class="tag tag-cyan">android/ios/flutter/taro/expo/react-native-review</span>
+    <span class="tag tag-cyan">swift/kotlin/miniprogram/uni-app/react/vue-review</span>
     <span class="tag tag-cyan">diff-review</span><span class="tag tag-cyan">project-review</span><span class="tag tag-cyan">perf-review</span>
     <span class="tag tag-cyan">security-review</span><span class="tag tag-cyan">qa-review</span><span class="tag tag-cyan">change-review</span>
     <span class="tag tag-cyan">review-only</span><span class="tag tag-cyan">review-fix-optimize</span>
   </div>
 </div>
 <div class="card">
-  <h4>规划/架构/支撑（15 个）</h4>
+  <h4>规划/架构/支撑（16 个）</h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-blue">planner</span><span class="tag tag-blue">task-design</span><span class="tag tag-blue">skill-assignment</span><span class="tag tag-blue">remediation-planner</span>
     <span class="tag tag-orange">frontend-architect</span><span class="tag tag-orange">backend-architect</span><span class="tag tag-orange">database-architect</span><span class="tag tag-orange">algorithm-expert</span>
+    <span class="tag tag-orange">mobile-architect</span>
     <span class="tag tag-purple">code-explore</span><span class="tag tag-purple">external-resource</span><span class="tag tag-purple">api-contract</span><span class="tag tag-purple">docs-engineer</span>
     <span class="tag tag-purple">infra-deploy</span><span class="tag tag-purple">remediation-expert</span><span class="tag tag-purple">docs-research</span>
   </div>
@@ -451,7 +466,7 @@
   <div class="scenario-card"><h4>✨ 新功能开发</h4><p>日常用 <code>/auto</code>，中大型用 <code>/jarvis</code>（严格 13 Gate）。</p></div>
   <div class="scenario-card"><h4>🖥️ 前端页面</h4><p><code>/frontend</code>，C1.5 视觉验证强制，spawn frontend-dev/ui/state-expert。</p></div>
   <div class="scenario-card"><h4>🔧 后端 API</h4><p><code>/backend</code>，跳过 C1.5，spawn backend-dev/api/logic/data + database-architect。</p></div>
-  <div class="scenario-card"><h4>📱 移动端/跨端</h4><p><code>/mobile --platform=android|ios|flutter|expo|react-native|taro</code> 统一入口。</p></div>
+  <div class="scenario-card"><h4>📱 移动端/跨端</h4><p>直接使用对应框架命令：<code>/flutter</code> <code>/expo</code> <code>/swift</code> <code>/kotlin</code> <code>/taro</code> <code>/miniprogram</code> <code>/uni-app</code>。（<code>/mobile</code> 已废弃）</p></div>
   <div class="scenario-card"><h4>🔨 代码重构</h4><p><code>/refactor</code>（5 Gate 安全网），失败自动回滚。</p></div>
   <div class="scenario-card"><h4>🚨 紧急修复</h4><p><code>/hotfix</code>（H0-H3 紧急协议），需要审批确认。</p></div>
   <div class="scenario-card"><h4>🧹 代码清理</h4><p><code>/simplify</code>，消除冗余/死代码/过度抽象，失败自动回滚。</p></div>
@@ -498,7 +513,7 @@
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
   </p>
-  <p style="margin-top:8px">34 Commands · 72 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">44 Commands · 88 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>

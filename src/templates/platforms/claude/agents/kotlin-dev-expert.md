@@ -1,6 +1,6 @@
 ---
-name: android-dev-expert
-description: "Use this agent when you need Android/Kotlin/Jetpack Compose implementation. Typical triggers include feature development, code changes, component building, and Android/Kotlin/Jetpack Compose-specific tasks."
+name: kotlin-dev-expert
+description: "Use this agent when you need Kotlin/Android/Jetpack Compose implementation. Typical triggers include feature development, code changes, component building, and Kotlin/Android/Jetpack Compose-specific tasks."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
 model: deepseek-v4-pro
@@ -49,7 +49,7 @@ Skill(skill="code-standards")
 
 ## 输出文件
 
-`.jarvis/YYYY-MM-DD/implementation/<topic>-android-implementation.md`
+`.jarvis/YYYY-MM-DD/implementation/<topic>-kotlin-implementation.md`
 
 ## 红线
 

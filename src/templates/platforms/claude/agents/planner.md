@@ -140,15 +140,15 @@ Skill(skill="behavioral-guidelines")
 - Taro 小程序/H5（全栈）：taro-dev-expert
 - Taro 仅 UI/样式：taro-ui-expert
 - Taro 仅状态/数据：taro-state-expert
-- Android 原生（全栈）：android-dev-expert
-- Android 仅 UI/Compose：android-ui-expert
-- Android 仅状态/数据：android-state-expert
-- iOS 原生（全栈）：ios-dev-expert
-- iOS 仅 UI/SwiftUI：ios-ui-expert
-- iOS 仅状态/数据：ios-state-expert
-- Expo / React Native（全栈）：react-native-dev-expert
-- Expo 仅 UI：react-native-ui-expert
-- Expo 仅状态/数据：react-native-state-expert
+- Kotlin 原生（全栈）：kotlin-dev-expert
+- Kotlin 仅 UI/Compose：kotlin-ui-expert
+- Kotlin 仅状态/数据：kotlin-state-expert
+- Swift 原生（全栈）：swift-dev-expert
+- Swift 仅 UI/SwiftUI：swift-ui-expert
+- Swift 仅状态/数据：swift-state-expert
+- Expo（全栈）：expo-dev-expert
+- Expo 仅 UI：expo-ui-expert
+- Expo 仅状态/数据：expo-state-expert
 - Flutter（全栈）：flutter-dev-expert
 - Flutter 仅 UI/Widget：flutter-ui-expert
 - Flutter 仅状态/数据：flutter-state-expert

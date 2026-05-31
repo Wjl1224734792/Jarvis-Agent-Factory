@@ -341,18 +341,77 @@
 </main>
 
 <script>
-const GATES = ['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
 
 /** Gate 中文名称与说明 */
 const GATE_INFO = {
-  'Gate A':    { name: '需求澄清',  icon: 'clipboard-list',    desc: '梳理用户需求，输出需求文档，标注 REQ-XXX' },
-  'Gate B':    { name: '任务分解',  icon: 'list-tree',          desc: '将需求拆分为可执行任务，DDD/TDD 分类' },
-  'Gate C':    { name: '执行规划',  icon: 'git-branch',         desc: '制定并行批次、Execution Packet、共享区域归属' },
-  'Gate C1':   { name: '代码质量',  icon: 'shield-check',       desc: 'Lint + Type-check + Build + 依赖审计全部通过' },
-  'Gate C1.5': { name: '视觉验证',  icon: 'eye',                desc: '前端页面截图对比、响应式三视口验证' },
-  'Gate C2':   { name: '测试验证',  icon: 'flask-conical',      desc: '单元/集成/E2E 测试全部通过，覆盖率达标' },
-  'Gate D':    { name: '全面评审',  icon: 'search-check',       desc: '代码审查、安全审计、性能审计、REQ 追踪矩阵' },
-  'Gate E':    { name: '发布上线',  icon: 'rocket',             desc: '版本递增、changelog、数据库迁移、三平台发布' },
+  'Gate A':     { name: '需求澄清',  icon: 'clipboard-list',    desc: '梳理用户需求，输出需求文档，标注 REQ-XXX' },
+  'Gate B-DDD': { name: '领域分析',  icon: 'boxes',             desc: 'DDD 领域驱动分析：聚合根/实体/值对象/领域服务' },
+  'Gate B-BDD': { name: '行为驱动',  icon: 'file-text',         desc: 'BDD 行为驱动场景：Gherkin Given/When/Then' },
+  'Gate B-TDD': { name: '任务拆解',  icon: 'list-checks',       desc: 'TDD 测试驱动任务分解：TASK-XXX 映射 REQ-XXX' },
+  'Gate B1':    { name: '架构评审',  icon: 'building',          desc: '架构方案评审：spawn 对应架构师，产出评审报告' },
+  'Gate B':     { name: '任务分解',  icon: 'list-tree',          desc: '将需求拆分为可执行任务，DDD/TDD 分类' },
+  'Gate C':     { name: '执行规划',  icon: 'git-branch',         desc: '制定并行批次、Execution Packet、共享区域归属' },
+  'Gate C-impl':{ name: '并行实现',  icon: 'terminal',          desc: 'Team 模式 spawn 实现 Agent 并行编码，产出完成报告' },
+  'Gate C1':    { name: '代码质量',  icon: 'shield-check',       desc: 'Lint + Type-check + Build + 依赖审计全部通过' },
+  'Gate C1.5':  { name: '视觉验证',  icon: 'eye',                desc: '前端页面截图对比、响应式三视口验证' },
+  'Gate C2':    { name: '测试验证',  icon: 'flask-conical',      desc: '单元/集成/E2E 测试全部通过，覆盖率达标' },
+  'Gate D':     { name: '全面评审',  icon: 'search-check',       desc: '代码审查、安全审计、性能审计、REQ 追踪矩阵' },
+  'Gate E':     { name: '发布上线',  icon: 'rocket',             desc: '版本递增、changelog、数据库迁移、三平台发布' },
+  'R1':        { icon:'📐', name:'定义边界', desc:'重构边界与目标' },
+  'R2':        { icon:'📏', name:'基线测试', desc:'现有测试+覆盖率基线' },
+  'R3':        { icon:'🔧', name:'执行重构', desc:'在边界内重构代码' },
+  'R4':        { icon:'🔍', name:'漂移检测', desc:'覆盖率对比+行为漂移' },
+  'R5':        { icon:'📊', name:'重构报告', desc:'变更摘要+覆盖率对比' },
+  'H0':        { icon:'🚨', name:'紧急声明', desc:'审批+回滚预案' },
+  'H1':        { icon:'🏥', name:'最小修复', desc:'严格限定根因修复' },
+  'H2':        { icon:'✅', name:'快速验证', desc:'Lint+Build+Test重检' },
+  'H3':        { icon:'📋', name:'事后审计', desc:'根因分析+预防改进' },
+  'M1':        { icon:'🔄', name:'迁移评估', desc:'技术栈/依赖变更影响分析' },
+  'M2':        { icon:'📦', name:'迁移计划', desc:'分步迁移+回滚策略' },
+  'M3':        { icon:'🚬', name:'执行迁移', desc:'按计划执行迁移' },
+  'M4':        { icon:'📋', name:'迁移报告', desc:'迁移摘要+兼容性报告' },
+  'E0':        { icon:'📋', name:'评估申请', desc:'技术方案/方向评估申请' },
+  'E1':        { icon:'🔍', name:'调研分析', desc:'技术可行性+方案对比' },
+  'E2':        { icon:'📊', name:'评估报告', desc:'可行性报告+建议方案' },
+  'E3':        { icon:'🎯', name:'评估决策', desc:'最终决策+行动计划' },
+  'D0':        { icon:'🐛', name:'问题描述', desc:'Bug/异常现象详细描述' },
+  'D1':        { icon:'🔎', name:'诊断分析', desc:'日志/堆栈/现场分析' },
+  'D2':        { icon:'🔧', name:'根因定位', desc:'问题根源确认' },
+  'D3':        { icon:'📝', name:'修复验证', desc:'修复与回归测试' },
+  'D4':        { icon:'📋', name:'诊断报告', desc:'根因分析+修复摘要' },
+  'RS0':       { icon:'💡', name:'研究提问', desc:'明确研究问题与范围' },
+  'RS1':       { icon:'📚', name:'资料收集', desc:'文献+实践资料收集' },
+  'RS2':       { icon:'🔬', name:'深度分析', desc:'数据分析+解读' },
+  'RS3':       { icon:'📝', name:'研究初稿', desc:'初步发现与结论' },
+  'RS4':       { icon:'📊', name:'研究报告', desc:'完整研究报告+建议' },
+  'RL0':       { icon:'🚀', name:'发布准备', desc:'版本增递+changelog+迁移' },
+  'RL1':       { icon:'📦', name:'构建验证', desc:'Build+Test+安全审计' },
+  'RL2':       { icon:'🌐', name:'分阶段发布', desc:'灰度→全量分步发布' },
+  'RL3':       { icon:'📋', name:'发布验证', desc:'生产环境健康检查' },
+  'RL4':       { icon:'🏁', name:'发布完成', desc:'Tag+全平台发布完成' },
+  'K0':        { icon:'🤔', name:'问题探询', desc:'用户需求探询与澄清' },
+  'K1':        { icon:'💬', name:'方案研讨', desc:'多方案研讨与可行性' },
+  'K2':        { icon:'📝', name:'需求编写', desc:'需求文档写作与分解' },
+  'K3':        { icon:'✅', name:'探询完成', desc:'需求交付+后续计划' },
+  'S0':        { icon:'🖥', name:'现状分析', desc:'代码复杂度+重复模式分析' },
+  'S1':        { icon:'✂', name:'简化执行', desc:'提取重复+简化逻辑' },
+  'S2':        { icon:'📊', name:'简化报告', desc:'变更摘要+行数对比' },
+  'S3':        { icon:'🔄', name:'再简化', desc:'二次简化循环直至满意' },
+  'T0':        { icon:'📋', name:'问题描述', desc:'问题现象+影响范围' },
+  'T1':        { icon:'🔍', name:'依赖分析', desc:'代码依赖+调用链分析' },
+  'T2':        { icon:'📈', name:'根因追踪', desc:'问题传播路径追踪' },
+  'T3':        { icon:'📝', name:'追踪报告', desc:'追踪发现+修复建议' },
+  'T4':        { icon:'🔄', name:'闭环验证', desc:'修复后再追踪确认' },
+  'IM0':       { icon:'📋', name:'改进申请', desc:'改进方向+预期效果' },
+  'IM1':       { icon:'🔬', name:'改进分析', desc:'方案分析+风险评估' },
+  'IM2':       { icon:'🔧', name:'执行改进', desc:'执行改进方案' },
+  'IM3':       { icon:'📊', name:'改进报告', desc:'改进摘要+效果验证' },
+  'IM4':       { icon:'🔄', name:'持续改进', desc:'叠代改进循环' },
+  'DI0':       { icon:'📥', name:'初始化请求', desc:'项目初始化+环境配置' },
+  'DI1':       { icon:'🔧', name:'执行初始化', desc:'配置文件+依赖安装' },
+  'DI2':       { icon:'📋', name:'初始化报告', desc:'初始化摘要+目录结构' },
+  'DI3':       { icon:'✅', name:'初始化验证', desc:'环境可用性+配置验证' },
+  'C0':        { icon:'🏛', name:'架构咨询', desc:'架构评审+技术建议' },
 };
 
 /** 流水线类型中文名 */
@@ -360,7 +419,21 @@ const PIPELINE_NAMES = {
   'full': '完整流水线',
   'frontend': '前端流水线',
   'backend': '后端流水线',
-  'lite': '轻量流水线',
+  'auto': '自动路由',
+  'lite': '自动路由',       // 历史名称映射到 auto
+  'refactor': '重构',
+  'hotfix': '紧急热修复',
+  'migrate': '框架迁移',
+  'debug': '调试诊断',
+  'research': '深度研究',
+  'release': '快速发布',
+  'ask': '需求探询',
+  'simplify': '代码简化',
+  'trace': '因果追踪',
+  'improve': '自主改进',
+  'evaluate': '技术评估',
+  'deepinit': '深度初始化',
+  'consult': '架构咨询',
 };
 
 /** 指令标签：pipeline_type → { label, class } */
@@ -368,7 +441,20 @@ const COMMAND_LABELS = {
   'full':     { label: '/jarvis',       cls: 'indigo' },
   'frontend': { label: '/frontend',    cls: 'blue' },
   'backend':  { label: '/backend',     cls: 'green' },
-  'lite':     { label: '/jarvis-lite', cls: 'amber' },
+  'auto':     { label: '/auto', cls: 'amber' },
+  'refactor': { label: '/refactor', cls: 'amber' },
+  'hotfix':   { label: '/hotfix',   cls: 'red' },
+  'migrate':  { label: '/migrate',  cls: 'teal' },
+  'evaluate': { label: '/evaluate', cls: 'purple' },
+  'debug':    { label: '/debug',    cls: 'orange' },
+  'research': { label: '/research', cls: 'sky' },
+  'release':  { label: '/release',  cls: 'emerald' },
+  'ask':      { label: '/ask',      cls: 'violet' },
+  'simplify': { label: '/simplify', cls: 'lime' },
+  'trace':    { label: '/trace',    cls: 'rose' },
+  'improve':  { label: '/improve',  cls: 'cyan' },
+  'deepinit': { label: '/deepinit', cls: 'slate' },
+  'consult':  { label: '/consult',  cls: 'fuchsia' },
 };
 
 /** 指令标签颜色 → Tailwind 类名映射 */
@@ -377,6 +463,18 @@ const COMMAND_COLORS = {
   blue:    'bg-blue-100 text-blue-700',
   green:   'bg-emerald-100 text-emerald-700',
   amber:   'bg-amber-100 text-amber-700',
+  red:      'bg-red-100 text-red-700',
+  teal:     'bg-teal-100 text-teal-700',
+  purple:   'bg-purple-100 text-purple-700',
+  orange:   'bg-orange-100 text-orange-700',
+  sky:      'bg-sky-100 text-sky-700',
+  emerald:  'bg-emerald-100 text-emerald-700',
+  violet:   'bg-violet-100 text-violet-700',
+  lime:     'bg-lime-100 text-lime-700',
+  rose:     'bg-rose-100 text-rose-700',
+  cyan:     'bg-cyan-100 text-cyan-700',
+  slate:    'bg-slate-100 text-slate-700',
+  fuchsia:  'bg-fuchsia-100 text-fuchsia-700',
 };
 
 /** Gate → docs 子目录映射（与后端 gates.ts GATE_DIRS 保持同步） */
@@ -485,8 +583,7 @@ async function refresh() {
 
     const artifactsHtml = g.artifacts && g.artifacts.length > 0
       ? `<div class="flex flex-wrap gap-1 mt-2">${g.artifacts.map(a => {
-        var gateDir = GATE_DIRS_MAP[g.gate] || '';
-        var artFullPath = gateDir ? gateDir + '/' + a : a;
+        var artFullPath = a;
         var artFileName = a.split('/').pop();
         return '<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono cursor-pointer hover:bg-indigo-100 hover:text-indigo-600 transition-colors" title="点击查看: ' + escHtml(artFullPath) + '" onclick="event.stopPropagation();openDocDrawer(\'' + artFullPath + '\', \'' + artFileName + '\')">' + escHtml(artFileName) + '</span>';
       }).join('')}</div>`

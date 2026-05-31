@@ -4,10 +4,34 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.66 (2026-06-01)
+
+### 新增
+- **9 个框架专用指令**: /flutter /expo /swift /kotlin /taro /miniprogram /uni-app /react /vue
+- **mobile-architect**: 移动端架构师 Agent
+- **45 个框架专属 Agent**: 每个框架 5 件套（dev/ui/state/test/review）
+- **编排流程 Agent 补齐**: Gate A/C/C2/D/E 新增 7 个 Agent spawn 指令
+- **gates.test.ts**: 100 项测试覆盖 17 条流水线 + 55 个 Gate
+
+### 变更
+- **lite→auto 重命名**: 引擎+14 个命令模板同步
+- **Agent 重命名**: android→kotlin, ios→swift, react-native→expo
+- **SESSION_TIMEOUT 统一**: 三处统一为 2 小时
+- **14/14 开发类命令**: Gate E 统一 spawn docs-engineer 文档同步
+
+### 修复
+- **会话隔离 Bug**: 多终端 session_join 不再共享流水线状态
+- **文档与 Web 面板闭环**: README/AGENTS/CHANGELOG 计数同步, pipeline.html 双重路径修复
+- **全仓一致性审计**: 20 项发现全部关闭, 零冲突闭环
+- **僵尸 Session 清理**: >7 天 inactive 自动物理删除
+- **PID 文件清理 + heartbeat 参数**
+- **uniapp→uni-app**: jarvis.md 5 处拼写修复
+
 ## v4.7.65 (2026-05-30)
 
 ### 变更
 - **审查流程补充架构师多视角**: Gate D 审查阶段新增 `frontend-architect`、`backend-architect`、`database-architect` 参与，填补实现后架构一致性验证缺口
+- **review-fix/review-only 模板更新**: 审查 Agent 模板同步架构师多视角流程
 
 ## v4.7.64 (2026-05-30)
 

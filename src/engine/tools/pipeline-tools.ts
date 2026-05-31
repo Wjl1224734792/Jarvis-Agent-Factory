@@ -261,7 +261,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
     });
 
   server.tool('gate_jump',
-    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。跳转时可传入 task_name 设置会话标题。',
+    '【auto模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为auto时可用。跳转时可传入 task_name 设置会话标题。',
     { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，设置Web面板显示的会话标题') },
     async ({ gate, run_id, task_name }, extra) => {
       const sid = ctx.resolveSid(extra);
@@ -273,7 +273,7 @@ export function registerPipelineTools(server: McpServer, db: DatabaseSync, root:
       const p = getPipeline(db, sid);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const def = PIPELINE_DEFS[pt];
-      if (!def?.allow_jump) return ctx.resp({ allowed: false, error: `gate_jump 仅在 lite/ask/improve 模式可用。当前: ${pt}` });
+      if (!def?.allow_jump) return ctx.resp({ allowed: false, error: `gate_jump 仅在 auto/ask/improve 模式可用。当前: ${pt}` });
       const gateList = sessionGates(db, sid);
       const ti = gateList.indexOf(gate);
       if (ti === -1) return ctx.resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });

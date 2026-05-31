@@ -3,7 +3,7 @@ name: test-e2e
 description: 端到端测试指令——基于 Playwright 生成 E2E 脚本，验证核心流程从前端到后端完整性（交互式调试请使用 /frontend）
 model: inherit
 argument-hint: [用户故事描述或E2E测试范围]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 端到端测试（E2E）
@@ -19,7 +19,7 @@ Skill("test-driven-development")
 ```
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
 - 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - 调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`

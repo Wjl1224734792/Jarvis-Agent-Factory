@@ -30,7 +30,7 @@ tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_jo
 
 产物输出目录: `.jarvis/YYYY-MM-DD/consult/`
 
-在启动咨询前调用 `mcp__jarvis-engine__gate_check({ operation: "consult" })` 验证当前 Gate 条件。
+在启动咨询前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5
 

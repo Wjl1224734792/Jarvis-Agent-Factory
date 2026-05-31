@@ -49,8 +49,8 @@ const ICON_MAP = {
   'qa': 'eye', 'planner': 'map', 'plan': 'map', 'task': 'list', 'design': 'list',
   'architect': 'brain', 'algorithm': 'brain', 'expert': 'brain', 'explorer': 'globe',
   'researcher': 'globe', 'remediation': 'cog', 'worker': 'cog', 'infra': 'server',
-  'android': 'palette', 'ios': 'palette', 'flutter': 'palette', 'taro': 'palette',
-  'react-native': 'palette', 'expo': 'palette',
+  'flutter': 'palette', 'taro': 'palette',
+  'expo': 'palette', 'swift': 'palette', 'kotlin': 'palette', 'miniprogram': 'palette', 'uni-app': 'palette', 'vue': 'palette', 'react': 'palette', 'mobile-architect': 'brain',
   'state': 'database', 'ui': 'palette', 'jarvis': 'brain', 'orchestrator': 'brain',
 };
 
@@ -62,7 +62,7 @@ const CATEGORY_RULES = [
   { cat: '审查', keys: ['review-expert', 'review', 'review-only', 'security', 'qa'] },
   { cat: '架构', keys: ['architect', 'algorithm-expert'] },
   { cat: '浏览器', keys: ['browser-test', 'frontend-debug'] },
-  { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state', 'expo-dev-expert', 'expo-ui', 'expo-state'] },
+  { cat: '移动端', keys: ['flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'expo-dev-expert', 'expo-ui', 'expo-state', 'swift-dev-expert', 'swift-ui', 'swift-state', 'kotlin-dev-expert', 'kotlin-ui', 'kotlin-state', 'miniprogram-dev-expert', 'miniprogram-ui', 'miniprogram-state', 'uni-app-dev-expert', 'uni-app-ui', 'uni-app-state'] },
   { cat: '规划', keys: ['planner', 'task-design', 'skill-assignment', 'remediation-planner'] },
   { cat: '支撑', keys: ['external-resource', 'infra-deploy', 'code-explore-expert', 'api-contract', 'remediation', 'docs-engineer'] },
   { cat: '实现', keys: ['-dev-expert', '-ui-expert', '-state-expert', '-api-expert', '-logic-expert', '-data-expert'] },

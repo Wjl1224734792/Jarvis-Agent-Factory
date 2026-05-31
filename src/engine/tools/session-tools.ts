@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { DatabaseSync } from 'node:sqlite';
+import { appendFileSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from 'node:path';
 import type { ToolContext } from './types.js';
 import {
   getSession, addSession, getSessions, touchSession, removeSession, markStaleSessions,
@@ -14,7 +16,7 @@ import { getSessionContextSummary, cleanExpiredMemories } from '../session-archi
 import { getPriorityContextForInjection } from './memory-tools.js';
 import { clearRunFileClaims } from './file-claim-tools.js';
 
-const SESSION_TIMEOUT = 600_000; // 10分钟无心跳→inactive
+const SESSION_TIMEOUT = 7_200_000; // 2小时无心跳→inactive（与 server.ts/routes.ts 统一）
 
 export function registerSessionTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('session_join',
@@ -26,8 +28,14 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
       task_name: z.string().optional(),
     },
     async ({ platform, resume_session_id, pipeline_type, task_name }, extra) => {
-      const sid = extra?.sessionId || `s${Date.now()}`;
+      // 即使 extra.sessionId 相同（如同项目路径），每次 session_join 也生成唯一 session ID
+      const sid = extra?.sessionId ? `${extra.sessionId}-${Date.now().toString(36)}` : `s${Date.now()}`;
       ctx.setLastSessionId(sid);
+      // 写入 PID 文件供 hook 进程定位当前会话
+      try {
+        mkdirSync(join(root, '.jarvis'), { recursive: true });
+        appendFileSync(join(root, '.jarvis', '.session-pid'), `${process.pid}:${sid}:${Date.now()}\n`);
+      } catch { /* 写入失败不阻塞 session_join */ }
       const pt = pipeline_type || DEFAULT_PIPELINE;
       if (!VALID_PIPELINE_TYPES.includes(pt)) {
         return ctx.resp({ error: `Invalid pipeline_type: ${pt}. Valid: ${VALID_PIPELINE_TYPES.join(', ')}` });
@@ -40,6 +48,8 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
         }
       }
       cleanExpiredMemories(db);
+      // 清理超过7天无活动的僵尸session
+      db.prepare("DELETE FROM sessions WHERE status='inactive' AND last_heartbeat < datetime('now', '-7 days')").run();
       markStaleSessions(db, SESSION_TIMEOUT);
       const archiveSummary = getSessionContextSummary(db, root);
       const priorityNotes = getPriorityContextForInjection(root);
@@ -117,9 +127,10 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
       });
     });
 
-  server.tool('session_heartbeat', '心跳保活——活动追踪模式下仅标记当前会话活跃。', {},
-    async (_args, extra) => {
-      const sid = ctx.resolveSid(extra);
+  server.tool('session_heartbeat', '心跳保活——活动追踪模式下仅标记当前会话活跃。',
+    { session_id: z.string().optional().describe('可选：显式指定会话ID，stdio模式下用于精确定位会话') },
+    async ({ session_id }, extra) => {
+      const sid = session_id || ctx.resolveSid(extra);
       return ctx.resp({ ok: true, session_id: sid || 'unknown' });
     });
 
@@ -156,6 +167,16 @@ export function registerSessionTools(server: McpServer, db: DatabaseSync, root: 
         });
       }
       removeSession(db, sid);
+      // 清理 PID 文件中当前进程的条目
+      try {
+        const pidFile = join(root, '.jarvis', '.session-pid');
+        const content = readFileSync(pidFile, 'utf8');
+        const lines = content.split('\n').filter(line => {
+          const parts = line.split(':');
+          return parts[0] !== String(process.pid) && line.trim();
+        });
+        writeFileSync(pidFile, lines.join('\n') + (lines.length > 0 ? '\n' : ''));
+      } catch { /* best effort */ }
       emitEvent('session:changed', { sessionId: sid, action: 'leave' });
       logSessionEvent(db, sid, 'session_leave', { detail: 'session left' });
       return ctx.resp({

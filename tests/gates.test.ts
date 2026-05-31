@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
-import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, GATE_DIRS, GATE_CHECKS, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE, findSessionGateArtifacts } from '../src/engine/gates.js';
+import { getPipelineGates, getPipelineName, getGateOperations, getGateTeamStrategy, GATE_OPERATIONS, GATE_AGENT_GUIDE, GATE_DIRS, GATE_CHECKS, MAX_RETRY, GATE_ENTRY_CONDITIONS, GATE_CONFIG, PIPELINE_DEFS, DEFAULT_PIPELINE, findSessionGateArtifacts } from '../src/engine/gates.js';
 
 // ---- Mock setup for findSessionGateArtifacts filesystem + db ----
 const { mockFs, mockArtifacts } = vi.hoisted(() => {
@@ -68,8 +68,13 @@ describe('getPipelineGates', () => {
     expect(getPipelineGates('unknown')).toEqual(PIPELINE_DEFS[DEFAULT_PIPELINE].gates);
   });
 
-  it('lite 模式允许 jump', () => {
-    expect(PIPELINE_DEFS.lite.allow_jump).toBe(true);
+  it('auto 模式允许 jump（原 lite 已重命名为 auto）', () => {
+    expect(PIPELINE_DEFS.auto.allow_jump).toBe(true);
+    expect(getPipelineGates('auto')).toHaveLength(12);
+  });
+
+  it('lite 别名向后兼容，返回 auto 的 Gate 数组', () => {
+    expect(getPipelineGates('lite')).toEqual(getPipelineGates('auto'));
     expect(getPipelineGates('lite')).toHaveLength(12);
   });
 });
@@ -77,9 +82,20 @@ describe('getPipelineGates', () => {
 describe('getPipelineName', () => {
   it('返回中文名称', () => {
     expect(getPipelineName('full')).toBe('全流程');
-    expect(getPipelineName('lite')).toBe('轻量编排');
+    expect(getPipelineName('auto')).toBe('自动路由');
     expect(getPipelineName('frontend')).toBe('前端开发');
     expect(getPipelineName('backend')).toBe('后端开发');
+  });
+
+  it('覆盖更多流水线名称', () => {
+    expect(getPipelineName('deepinit')).toBe('深度初始化');
+    expect(getPipelineName('consult')).toBe('架构咨询');
+    expect(getPipelineName('ask')).toBe('需求探询');
+    expect(getPipelineName('simplify')).toBe('代码简化');
+    expect(getPipelineName('trace')).toBe('因果追踪');
+    expect(getPipelineName('improve')).toBe('自主迭代改进');
+    expect(getPipelineName('research')).toBe('深度研究');
+    expect(getPipelineName('release')).toBe('发布');
   });
 
   it('未知类型返回原始值', () => {
@@ -134,8 +150,8 @@ describe('GATE_OPERATIONS', () => {
     }
   });
 
-  it('共 62 个 Gate 有操作定义（12 原有 + 22 新增 + 14 research/release/ask + 14 simplify/trace/improve）', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(62);
+  it('GATE_OPERATIONS 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(Object.keys(GATE_CONFIG).length);
   });
 });
 
@@ -282,8 +298,8 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
     expect(getPipelineGates('full')).toHaveLength(12);
     expect(getPipelineGates('frontend')).toHaveLength(12);
     expect(getPipelineGates('backend')).toHaveLength(11);
-    expect(getPipelineGates('lite')).toHaveLength(12);
-    expect(PIPELINE_DEFS.lite.allow_jump).toBe(true);
+    expect(getPipelineGates('auto')).toHaveLength(12);
+    expect(PIPELINE_DEFS.auto.allow_jump).toBe(true);
   });
 
   it('7a. frontend 流水线包含 Gate C1.5 且位置在 C1 和 C2 之间', () => {
@@ -314,8 +330,8 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
 });
 
 describe('TASK-001: GATE_OPERATIONS 注册 22 个新 Gate', () => {
-  it('9. GATE_OPERATIONS 共 62 个条目（12 原有 + 22 新增 + 14 research/release/ask + 14 simplify/trace/improve）', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(62);
+  it('9. GATE_OPERATIONS 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(Object.keys(GATE_CONFIG).length);
   });
 
   it('10. 所有 22 个新 Gate 都允许 read', () => {
@@ -389,7 +405,7 @@ describe('TASK-001: GATE_AGENT_GUIDE 注册 22 个新 Gate', () => {
     expect(GATE_AGENT_GUIDE['H1'].can_spawn).toContain('remediation-expert');
   });
 
-  it('19. R3 can_spawn 包含全部 8 种核心实现 Agent + 6 平台移动端 Agent', () => {
+  it('19. R3 can_spawn 包含核心实现 Agent + 平台移动端 Agent', () => {
     const agents = GATE_AGENT_GUIDE['R3'].can_spawn;
     expect(agents).toContain('frontend-dev-expert');
     expect(agents).toContain('frontend-ui-expert');
@@ -399,13 +415,12 @@ describe('TASK-001: GATE_AGENT_GUIDE 注册 22 个新 Gate', () => {
     expect(agents).toContain('backend-logic-expert');
     expect(agents).toContain('backend-data-expert');
     expect(agents).toContain('remediation-expert');
-    expect(agents).toContain('android-dev-expert');
-    expect(agents).toContain('ios-dev-expert');
+    expect(agents).toContain('kotlin-dev-expert');
+    expect(agents).toContain('swift-dev-expert');
     expect(agents).toContain('flutter-dev-expert');
     expect(agents).toContain('taro-dev-expert');
-    expect(agents).toContain('react-native-dev-expert');
     expect(agents).toContain('expo-dev-expert');
-    expect(agents).toHaveLength(14);
+    expect(agents).toHaveLength(13);
   });
 
   it('20. H3 can_spawn 包含 security-review-expert / qa-review-expert / docs-engineer', () => {
@@ -514,6 +529,176 @@ describe('TASK-001: GATE_ENTRY_CONDITIONS 入口条件', () => {
 
   it('37. D1 入口条件包含 D0', () => {
     expect(GATE_ENTRY_CONDITIONS['D1']).toContain('D0');
+  });
+});
+
+// ==================================================================
+// REQ-003: 全 17 条流水线验证
+// ==================================================================
+describe('REQ-003: 全 17 条流水线类型验证', () => {
+  const ALL_PIPELINE_TYPES = [
+    'full', 'frontend', 'backend', 'auto', 'refactor', 'hotfix',
+    'migrate', 'evaluate', 'debug', 'research', 'release', 'ask',
+    'simplify', 'trace', 'improve', 'deepinit', 'consult',
+  ] as const;
+
+  it('PIPELINE_DEFS 包含全部 17 条流水线', () => {
+    expect(Object.keys(PIPELINE_DEFS)).toHaveLength(17);
+    for (const type of ALL_PIPELINE_TYPES) {
+      expect(PIPELINE_DEFS[type], `${type} 应存在于 PIPELINE_DEFS`).toBeDefined();
+    }
+  });
+
+  it('每条流水线都有 name 和 gates 属性', () => {
+    for (const type of ALL_PIPELINE_TYPES) {
+      const def = PIPELINE_DEFS[type];
+      expect(def.name, `${type} 应有 name`).toBeTruthy();
+      expect(def.gates, `${type} 应有 gates 数组`).toBeInstanceOf(Array);
+      expect(def.gates.length, `${type} gates 不应为空`).toBeGreaterThan(0);
+    }
+  });
+
+  it('getPipelineGates 对全部 17 条流水线都返回非空数组', () => {
+    for (const type of ALL_PIPELINE_TYPES) {
+      const gates = getPipelineGates(type);
+      expect(gates, `${type} 应返回 Gate 数组`).toBeInstanceOf(Array);
+      expect(gates.length, `${type} Gate 数组不应为空`).toBeGreaterThan(0);
+    }
+  });
+
+  it('getPipelineName 对全部 17 条流水线都返回中文名称', () => {
+    for (const type of ALL_PIPELINE_TYPES) {
+      const name = getPipelineName(type);
+      expect(name, `${type} 应返回中文名称`).toBeTruthy();
+      expect(name, `${type} 名称不应等于类型标识`).not.toBe(type);
+    }
+  });
+});
+
+// ==================================================================
+// REQ-003: can_spawn Agent 名称有效性（对照实际模板文件）
+// ==================================================================
+describe('REQ-003: can_spawn Agent 名称有效性', () => {
+  it('GATE_CONFIG 中所有 can_spawn 引用的 Agent 都有对应的 .md 模板文件', async () => {
+    // 使用 vi.importActual 获取真实 fs 模块（绕过全局 mock）
+    const realFs = await vi.importActual<typeof import('node:fs')>('node:fs');
+    const agentsDir = join(import.meta.dirname, '..', 'src', 'templates', 'platforms', 'claude', 'agents');
+    const agentFiles = realFs.readdirSync(agentsDir)
+      .filter((f: string) => f.endsWith('.md'))
+      .map((f: string) => f.replace(/\.md$/, ''));
+
+    const missing: string[] = [];
+    for (const [gate, config] of Object.entries(GATE_CONFIG)) {
+      for (const agent of config.agent_guide.can_spawn) {
+        if (!agentFiles.includes(agent)) {
+          missing.push(`${gate} -> ${agent}`);
+        }
+      }
+    }
+    expect(missing, `以下 can_spawn 引用无对应模板文件:\n${missing.join('\n')}`).toEqual([]);
+  });
+});
+
+// ==================================================================
+// REQ-004: 派生查找表一致性
+// ==================================================================
+describe('REQ-004: 派生查找表一致性', () => {
+  it('GATE_OPERATIONS 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(Object.keys(GATE_CONFIG).length);
+  });
+
+  it('GATE_AGENT_GUIDE 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_AGENT_GUIDE)).toHaveLength(Object.keys(GATE_CONFIG).length);
+  });
+
+  it('GATE_DIRS 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_DIRS)).toHaveLength(Object.keys(GATE_CONFIG).length);
+  });
+
+  it('GATE_CHECKS 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(GATE_CHECKS)).toHaveLength(Object.keys(GATE_CONFIG).length);
+  });
+
+  it('MAX_RETRY 条目数等于 GATE_CONFIG 条目数', () => {
+    expect(Object.keys(MAX_RETRY)).toHaveLength(Object.keys(GATE_CONFIG).length);
+  });
+
+  it('所有派生表的 key 集合与 GATE_CONFIG 一致', () => {
+    const configKeys = new Set(Object.keys(GATE_CONFIG));
+    expect(new Set(Object.keys(GATE_OPERATIONS))).toEqual(configKeys);
+    expect(new Set(Object.keys(GATE_AGENT_GUIDE))).toEqual(configKeys);
+    expect(new Set(Object.keys(GATE_DIRS))).toEqual(configKeys);
+    expect(new Set(Object.keys(GATE_CHECKS))).toEqual(configKeys);
+    expect(new Set(Object.keys(MAX_RETRY))).toEqual(configKeys);
+  });
+
+  it('GATE_ENTRY_CONDITIONS 是 GATE_CONFIG 的子集（仅含 entry_condition 的 Gate）', () => {
+    const configKeys = new Set(Object.keys(GATE_CONFIG));
+    for (const key of Object.keys(GATE_ENTRY_CONDITIONS)) {
+      expect(configKeys, `GATE_ENTRY_CONDITIONS 中的 ${key} 应存在于 GATE_CONFIG`).toContain(key);
+    }
+  });
+});
+
+// ==================================================================
+// REQ-005: allow_jump 属性
+// ==================================================================
+describe('REQ-005: allow_jump 属性', () => {
+  it('仅 auto、ask、improve 三条流水线启用 allow_jump=true', () => {
+    const jumpPipelines = Object.entries(PIPELINE_DEFS)
+      .filter(([, def]) => (def as any).allow_jump === true)
+      .map(([key]) => key)
+      .sort();
+    expect(jumpPipelines).toEqual(['ask', 'auto', 'improve']);
+  });
+
+  it('其他 14 条流水线的 allow_jump 为 undefined 或 false', () => {
+    const nonJumpTypes = ['full', 'frontend', 'backend', 'refactor', 'hotfix', 'migrate', 'evaluate', 'debug', 'research', 'release', 'simplify', 'trace', 'deepinit', 'consult'];
+    for (const type of nonJumpTypes) {
+      const def = PIPELINE_DEFS[type];
+      expect((def as any).allow_jump === undefined || (def as any).allow_jump === false, `${type} 不应启用 allow_jump`).toBe(true);
+    }
+  });
+});
+
+// ==================================================================
+// REQ-005: getGateTeamStrategy
+// ==================================================================
+describe('getGateTeamStrategy', () => {
+  it('Gate C-impl 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('Gate C-impl')).toBe('prefer_team');
+  });
+
+  it('Gate D 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('Gate D')).toBe('prefer_team');
+  });
+
+  it('Gate C2 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('Gate C2')).toBe('prefer_team');
+  });
+
+  it('Gate A 返回 subagent_only（无 team_strategy 时默认）', () => {
+    expect(getGateTeamStrategy('Gate A')).toBe('subagent_only');
+  });
+
+  it('Gate B-DDD 无 team_strategy，返回默认 subagent_only', () => {
+    expect(getGateTeamStrategy('Gate B-DDD')).toBe('subagent_only');
+  });
+
+  it('未知 Gate 返回默认 subagent_only', () => {
+    expect(getGateTeamStrategy('Gate X')).toBe('subagent_only');
+  });
+
+  it('R3 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('R3')).toBe('prefer_team');
+  });
+
+  it('S1 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('S1')).toBe('prefer_team');
+  });
+
+  it('RS1 返回 prefer_team', () => {
+    expect(getGateTeamStrategy('RS1')).toBe('prefer_team');
   });
 });
 

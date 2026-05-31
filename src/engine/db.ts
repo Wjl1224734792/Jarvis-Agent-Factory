@@ -427,7 +427,6 @@ export function updatePipelineGate(db: DbConn, sessionId: string, gate: string):
   if (!sessionId) throw new Error('session_id required');
   db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId);
 }
-/** @param {'full'|'frontend'|'backend'} pipelineType */
 export function initPipeline(db: DbConn, sessionId: string, project: string, pipelineType: string = 'full'): void {
   db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, pipeline_type, started_at, updated_at) VALUES (?, ?, 'Gate A', ?, datetime('now'), datetime('now'))`).run(sessionId, project, pipelineType);
 }

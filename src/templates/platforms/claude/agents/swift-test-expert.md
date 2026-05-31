@@ -1,6 +1,6 @@
 ---
-name: ios-test-expert
-description: "Use this agent when you need iOS/Swift/SwiftUI testing. Typical triggers include unit tests, component tests, integration tests, and test coverage improvement."
+name: swift-test-expert
+description: "Use this agent when you need Swift/iOS/SwiftUI testing. Typical triggers include unit tests, component tests, integration tests, and test coverage improvement."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
 model: mimo-v2.5-pro
@@ -37,8 +37,8 @@ model: mimo-v2.5-pro
 
 - 重新定义需求、重新拆分任务、擅自扩大实现范围
 - 调度其他 agent
-- UI 组件的视觉实现（由 ios-ui-expert 处理）
-- 状态管理逻辑（由 ios-state-expert 处理）
+- UI 组件的视觉实现（由 swift-ui-expert 处理）
+- 状态管理逻辑（由 swift-state-expert 处理）
 - 后端测试
 
 ## 何时不使用

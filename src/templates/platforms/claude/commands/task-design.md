@@ -6,6 +6,8 @@ model: inherit
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
+- mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })
+
 # 任务分解设计
 
 ## 模式选择

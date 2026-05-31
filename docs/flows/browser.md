@@ -15,7 +15,7 @@
 
 ## 流程步骤
 
-1. **加载技能 + 注册引擎**：`Skill("behavioral-guidelines")` + `Skill("browser-testing")` + `session_join(pipeline_type: "lite")`
+1. **加载技能 + 注册引擎**：`Skill("behavioral-guidelines")` + `Skill("browser-testing")` + `session_join(pipeline_type: "auto")`
 2. **spawn browser-test-expert**：agent-browser snapshot 看清页面 → Playwright MCP 稳定操作 → 截图验证
 3. **产出报告**：测试通过/失败报告（附截图证据）
 
@@ -39,7 +39,7 @@ Phase 3 (验证): Playwright MCP browser_take_screenshot → 截图留证
 ```mermaid
 flowchart TD
     START([用户输入 /browser]) --> LOAD[加载 behavioral-guidelines<br/>+ browser-testing]
-    LOAD --> JOIN[session_join<br/>pipeline_type: lite]
+    LOAD --> JOIN[session_join<br/>pipeline_type: auto]
     JOIN --> SPAWN[spawn browser-test-expert]
     SPAWN --> PHASE1[Phase 1: agent-browser<br/>snapshot -i 看清页面]
     PHASE1 --> PHASE2[Phase 2: Playwright MCP<br/>click/fill/type 稳定操作]

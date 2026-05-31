@@ -18,7 +18,7 @@ Skill("perf-testing")
 ```
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })`
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
 - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 

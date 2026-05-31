@@ -33,7 +33,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 
 | 特性 | 说明 |
 |------|------|
-| **MCP 编排引擎** | FSM 硬约束 Gate 序列，跳过/回退拒绝，15 条流水线按需路由 |
+| **MCP 编排引擎** | FSM 硬约束 Gate 序列，跳过/回退拒绝，17 条流水线按需路由 |
 | **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
 | **Agent Team** | Team + SubAgent 混合编排，按复杂度自动分配 |
 | **智能路由 `/auto`** | 自动检测任务类型 → 路由最优流水线 → 跳过无关 Gate |
@@ -70,12 +70,18 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | 安全清理 | `/cleanup` | | 发布 | `/release` |
 | 单元测试 | `/test-unit` | | E2E测试 | `/test-e2e` |
 | 集成测试 | `/test-integration` | | 性能测试 | `/test-perf` |
+| 安全测试 | `/test-security` | | 浏览器测试 | `/browser` |
+| Flutter | `/flutter` | | Expo | `/expo` |
+| Swift | `/swift` | | Kotlin | `/kotlin` |
+| Taro | `/taro` | | 小程序 | `/miniprogram` |
+| uni-app | `/uni-app` | | React | `/react` |
+| Vue | `/vue` | | | |
 
-→ 全部 35 条命令见 [命令流程图](#命令流程图)
+→ 全部 44 条命令见 [命令流程图](#命令流程图)
 
 ## 流水线类型
 
-`full` `frontend` `backend` `lite` `refactor` `hotfix` `migrate` `evaluate` `debug` `research` `release` `ask` `simplify` `trace` `improve` — 15 种
+`full` `frontend` `backend` `auto` `refactor` `hotfix` `migrate` `evaluate` `debug` `research` `release` `ask` `simplify` `trace` `improve` `deepinit` `consult` — 17 种
 
 ## Web 面板
 
@@ -94,11 +100,11 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 
 | | Claude Code |
 |---|:--:|
-| Agents | 72 |
-| Commands | 35 |
+| Agents | 88 |
+| Commands | 44 |
 | Skills | 34 |
 | CLI 命令 | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
-| 流水线 | 15 条 |
+| 流水线 | 17 条 |
 
 ## 引擎能力
 
@@ -107,7 +113,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | Gate 硬约束 | FSM · `gate_check` · `gate_enforce` | 自动 |
 | 操作前检查 | `gate_check` | 自动 |
 | 推进 Gate | `advance_gate` | 手动 |
-| 轻量跳转 | `gate_jump` (lite/ask/improve) | 手动 |
+| 轻量跳转 | `gate_jump` (auto/ask/improve) | 手动 |
 | 流程指引 | `pipeline_guide` | 按需 |
 | 会话命名 | `session_set_name` | 按需 |
 | Web 实时推送 | Dashboard + SSE | 按需 |
@@ -145,12 +151,22 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | | `/improve` | [improve.md](docs/flows/improve.md) | IM0-IM4 |
 | 会话 | `/cleanup` | [cleanup.md](docs/flows/cleanup.md) | 安全清理 |
 | | `/sync` | [sync.md](docs/flows/sync.md) | 文档同步 |
+| | `/deepinit` | [deepinit.md](docs/flows/deepinit.md) | 分层初始化 |
+| | `/repowiki` | [repowiki.md](docs/flows/repowiki.md) | 知识库生成 |
+| | `/verify` | [verify.md](docs/flows/verify.md) | 变更验证 |
 | 测试 | `/test-unit` | [test-unit.md](docs/flows/test-unit.md) | TDD |
 | | `/test-integration` | [test-integration.md](docs/flows/test-integration.md) | API测试 |
 | | `/test-e2e` | [test-e2e.md](docs/flows/test-e2e.md) | E2E |
 | | `/test-perf` | [test-perf.md](docs/flows/test-perf.md) | 性能 |
 | | `/test-security` | [test-security.md](docs/flows/test-security.md) | 安全 |
-| 移动端 | `/android` `/ios` `/flutter` `/expo` `/taro` `/react-native` | 各平台同 | A→E |
+| | `/browser` | [browser.md](docs/flows/browser.md) | 浏览器测试 |
+| 咨询 | `/consult` | [consult.md](docs/flows/consult.md) | 架构对话 |
+| 流程 | `/cancel` | [cancel.md](docs/flows/cancel.md) | 取消运行 |
+| | `/skill-flow` | [skill-flow.md](docs/flows/skill-flow.md) | Skill化 |
+| | `/task-design` | [task-design.md](docs/flows/task-design.md) | 任务分解 |
+| 发布 | `/publish` | [publish.md](docs/flows/publish.md) | 一键发布 |
+| 移动 | `/mobile` | [mobile.md](docs/flows/mobile.md) | 统一编排 |
+| 框架 | `/flutter` `/expo` `/swift` `/kotlin` `/taro` `/miniprogram` `/uni-app` `/react` `/vue` | 各框架同 | A→E |
 
 ## License
 

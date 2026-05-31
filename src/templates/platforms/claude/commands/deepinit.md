@@ -16,12 +16,20 @@ tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_jo
 - **架构优先**：输出包含架构角色、关键抽象、功能说明，不只是文件列表
 - **分层渐进**：从根到叶逐级生成，每层 CLAUDE.md 作为 AI 入口指向同层 AGENTS.md
 
+## 可用代理路由
+
+| 层级 | subagent_type |
+|------|--------------|
+| 架构设计 | `frontend-architect`、`backend-architect`、`mobile-architect` |
+| 只读探索 | `code-explore-expert`、`external-resource-expert` |
+
 ## 执行
 
 ### Step 1: 加载技能 + 注册引擎
 
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
+   - `Skill("using-agent-skills")`
 
 2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "deepinit" })`
@@ -29,7 +37,7 @@ tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_jo
 
 产物输出目录: `.jarvis/YYYY-MM-DD/deepinit/`
 
-在开始项目发现前调用 `mcp__jarvis-engine__gate_check({ operation: "init" })` 验证当前 Gate 条件。
+在开始项目发现前调用 `mcp__jarvis-engine__gate_check({ operation: "write_doc" })` 验证当前 Gate 条件。
 
 ### Step 2: 项目发现
 
@@ -166,8 +174,6 @@ Agent(module="src/cli", prompt="你是项目架构分析专家...目标是: src/
 <!-- Generated: ISO时间戳 | Parent: (root) -->
 
 # <项目名> — <一句话描述>
-
-> 入口：[CLAUDE.md](./CLAUDE.md) 引导到这里。
 
 ## 项目身份
 <项目是什么、做什么用>

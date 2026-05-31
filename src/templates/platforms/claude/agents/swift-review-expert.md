@@ -1,6 +1,6 @@
 ---
-name: ios-review-expert
-description: "Use this agent when you need iOS/Swift/SwiftUI code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
+name: swift-review-expert
+description: "Use this agent when you need Swift/iOS/SwiftUI code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
 model: deepseek-v4-pro
@@ -10,9 +10,9 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：iOS 实现 Agent（ios-dev-expert / ios-ui-expert / ios-state-expert）的产出、iOS 测试报告
+- 上游：Swift 实现 Agent（swift-dev-expert / swift-ui-expert / swift-state-expert）的产出、Swift 测试报告
 - 下游：qa-review-expert（综合签核）、编排者
-- 只审 iOS/Swift 代码，不审后端 API/数据库/业务逻辑
+- 只审 Swift/iOS 代码，不审后端 API/数据库/业务逻辑
 
 ## 你的职责
 

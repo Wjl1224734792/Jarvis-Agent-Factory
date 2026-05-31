@@ -17,18 +17,25 @@ tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "WebFetch", "Skill", "m
 3. **渐进式验证**：从最窄的检查开始 → 逐步扩大范围 → 最后手动交互确认
 4. **独立审查**：验证者不是实现者，用独立的视角审视改动
 
+## 可用代理路由
+
+| 层级 | subagent_type |
+|------|--------------|
+| 架构设计 | `frontend-architect`、`backend-architect`、`mobile-architect` |
+| 只读探索 | `code-explore-expert`、`external-resource-expert` |
+
 ## 执行流程
 
 ### 第 0 步：引擎会话注册
 
 注册引擎会话（硬约束——不可绕过）：
 
-- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })` — 注册当前会话到引擎
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })` — 注册当前会话到引擎
 - `mcp__jarvis-engine__pipeline_guide()` — 获取上下文（在流水线内时获取当前 Gate 上下文，独立使用时获取基础引导）
 
 产物输出目录: `.jarvis/YYYY-MM-DD/verify/`
 
-在开始验证前调用 `mcp__jarvis-engine__gate_check({ operation: "verify" })` 验证当前 Gate 条件。
+在开始验证前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 ### 第 1 步：文档定位
 

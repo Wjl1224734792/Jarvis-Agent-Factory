@@ -10,6 +10,8 @@
  */
 
 import { spawn } from 'child_process';
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from 'node:path';
 import { GATE_OPERATIONS } from './engine/gates.js';
 
 const ENGINE_URL = process.env.JARVIS_ENGINE_URL || 'http://localhost:3456';
@@ -32,6 +34,32 @@ async function api(path) {
 /** 最近心跳阈值（毫秒）：超过此时间无心跳的 session 视为僵尸，不计入 gate 执行 */
 const RECENT_HEARTBEAT_MS = 600_000; // 10分钟
 
+/** 从 .jarvis/.session-pid 文件读取当前终端对应的 session ID（支持多终端并发） */
+function getSessionFromPidFile() {
+  try {
+    const content = readFileSync(join('.jarvis', '.session-pid'), 'utf8').trim();
+    const lines = content.split('\n').filter(Boolean);
+    let best: { sid: string; ts: number } | null = null;
+    for (const line of lines) {
+      const parts = line.split(':');
+      const pid = Number(parts[0]);
+      const sid = parts[1];
+      const ts = Number(parts[2]) || 0;
+      if (isNaN(pid) || !sid) continue;
+      try { process.kill(pid, 0); } catch { continue; }
+      if (!best || ts > best.ts) best = { sid, ts };
+    }
+    // 清理死进程条目（保留最近 20 条）
+    if (lines.length > 20) {
+      const keep = lines.slice(-20).join('\n') + '\n';
+      try { writeFileSync(join('.jarvis', '.session-pid'), keep); } catch { /* best effort */ }
+    }
+    return best?.sid || null;
+  } catch {
+    return null;
+  }
+}
+
 /** 从 pipeline 响应中解析出最相关的 session */
 function pickSession(pipeline, explicitSid) {
   const sessions = pipeline.sessions || [];
@@ -47,7 +75,10 @@ function pickSession(pipeline, explicitSid) {
   const withHeartbeat = active.filter(s => s.heartbeat != null);
   if (withHeartbeat.length > 0) {
     const alive = withHeartbeat.filter(s => (now - s.heartbeat) < RECENT_HEARTBEAT_MS);
-    return alive.length > 0 ? alive[0] : null;
+    if (alive.length === 0) return null;
+    // 按心跳时间降序排列，选取最近活跃的 session
+    alive.sort((a, b) => (b.heartbeat || 0) - (a.heartbeat || 0));
+    return alive[0];
   }
   // 无心跳数据（旧版引擎或测试 Mock）：回退到旧行为
   return active[0];
@@ -65,7 +96,8 @@ export async function hookCommand(args) {
     const operation = opIdx >= 0 ? args[opIdx + 1] : null;
     try {
       const pipeline = await api('/api/pipeline');
-      const session = pickSession(pipeline, sessionId);
+      const effectiveSessionId = sessionId || getSessionFromPidFile();
+      const session = pickSession(pipeline, effectiveSessionId);
       if (!session) { process.exit(0); }
       const current = session.current_gate;
       if (current === 'Complete') { console.log('✅ All gates passed'); process.exit(0); }
@@ -106,7 +138,8 @@ export async function hookCommand(args) {
     const targetGate = gIdx >= 0 ? args[gIdx + 1] : null;
     try {
       const pipeline = await api('/api/pipeline');
-      const session = pickSession(pipeline, sessionId);
+      const effectiveSessionId = sessionId || getSessionFromPidFile();
+      const session = pickSession(pipeline, effectiveSessionId);
       if (!session) { process.exit(0); }
       const r = await fetch(`${ENGINE_URL}/api/gate/advance`, {
         method: 'POST',

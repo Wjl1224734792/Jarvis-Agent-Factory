@@ -1,6 +1,6 @@
 ---
-name: react-native-review-expert
-description: "Use this agent when you need React Native/Expo cross-platform code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
+name: expo-review-expert
+description: "Use this agent when you need Expo/React Native cross-platform code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
 model: deepseek-v4-pro
@@ -10,7 +10,7 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：React Native 实现 Agent（react-native-dev-expert / react-native-ui-expert / react-native-state-expert）的产出、React Native 测试报告
+- 上游：Expo 实现 Agent（expo-dev-expert / expo-ui-expert / expo-state-expert）的产出、Expo 测试报告
 - 下游：qa-review-expert（综合签核）、编排者
 - 只审 React Native 代码，不审后端 API/数据库/业务逻辑
 

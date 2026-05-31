@@ -13,12 +13,12 @@ tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "Agent", "AskU
 ## 步骤 0：注册引擎会话
 
 ```
-mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "lite" })
+mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })
 ```
 
 调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前操作上下文（若引擎有活跃流水线）。
 
-在操作前调用 `mcp__jarvis-engine__gate_check({ operation: "repowiki" })` 验证当前 Gate 条件。
+在操作前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 ---
 

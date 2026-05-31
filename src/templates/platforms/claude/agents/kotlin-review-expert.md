@@ -1,6 +1,6 @@
 ---
-name: android-review-expert
-description: "Use this agent when you need Android/Kotlin/Jetpack Compose code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
+name: kotlin-review-expert
+description: "Use this agent when you need Kotlin/Android/Jetpack Compose code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
 model: deepseek-v4-pro
@@ -10,9 +10,9 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：Android 实现 Agent（android-dev-expert / android-ui-expert / android-state-expert）的产出、Android 测试报告
+- 上游：Kotlin 实现 Agent（kotlin-dev-expert / kotlin-ui-expert / kotlin-state-expert）的产出、Kotlin 测试报告
 - 下游：qa-review-expert（综合签核）、编排者
-- 只审 Android/Kotlin 代码，不审后端 API/数据库/业务逻辑
+- 只审 Kotlin/Android 代码，不审后端 API/数据库/业务逻辑
 
 ## 你的职责
 

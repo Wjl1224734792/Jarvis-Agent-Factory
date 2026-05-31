@@ -29,11 +29,11 @@
 
 | 层级 | Agent 模式 | 示例（android） |
 |------|-----------|----------------|
-| 实现 | `{platform}-dev-expert` | android-dev-expert |
-| UI | `{platform}-ui-expert` | android-ui-expert |
-| 状态 | `{platform}-state-expert` | android-state-expert |
-| 测试 | `{platform}-test-expert` | android-test-expert |
-| 审查 | `{platform}-review-expert` | android-review-expert |
+| 实现 | `{platform}-dev-expert` | kotlin-dev-expert |
+| UI | `{platform}-ui-expert` | kotlin-ui-expert |
+| 状态 | `{platform}-state-expert` | kotlin-state-expert |
+| 测试 | `{platform}-test-expert` | kotlin-test-expert |
+| 审查 | `{platform}-review-expert` | kotlin-review-expert |
 | E2E | `e2e-test-expert` | (共享) |
 | 安全 | `security-review-expert` | (共享) |
 | 性能 | `perf-review-expert` | (共享) |

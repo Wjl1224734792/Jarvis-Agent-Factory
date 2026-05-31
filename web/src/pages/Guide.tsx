@@ -20,7 +20,7 @@ const PIPELINE_GROUPS = [
       { key: 'full', name: '全流程', color: '#52c41a', desc: '需求→任务→计划→实现→质量→测试→评审→发布', icon: <RocketOutlined /> },
       { key: 'frontend', name: '前端', color: '#ff4d4f', desc: '专注前端开发，含视觉验证', icon: <CodeOutlined /> },
       { key: 'backend', name: '后端', color: '#1677ff', desc: '专注后端开发，跳过视觉验证', icon: <CodeOutlined /> },
-      { key: 'lite', name: '轻量编排', color: '#faad14', desc: '智能跳过无关 Gate，适合日常小任务', icon: <ThunderboltOutlined /> },
+      { key: 'auto', name: '自动路由', color: '#faad14', desc: '智能检测任务类型自动跳过无关 Gate，适合日常所有任务', icon: <ThunderboltOutlined /> },
     ],
   },
   {
@@ -234,6 +234,48 @@ export default function Guide() {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* ── 框架命令 ── */}
+      <Card size="small">
+        <Title level={5} style={{ marginTop: 0 }}>
+          <CodeOutlined style={{ marginRight: 6 }} />框架命令
+        </Title>
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={12}>
+            <Text strong style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)' }}>移动端</Text>
+            <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
+              {[
+                { name: '/flutter', desc: 'Flutter/Dart 跨端移动端开发' },
+                { name: '/expo', desc: 'Expo/React Native 跨端移动端开发' },
+                { name: '/swift', desc: 'Swift/SwiftUI iOS 原生开发' },
+                { name: '/kotlin', desc: 'Kotlin/Jetpack Compose Android 原生开发' },
+                { name: '/taro', desc: 'Taro 跨端小程序/H5 开发' },
+                { name: '/miniprogram', desc: '微信小程序原生开发' },
+                { name: '/uni-app', desc: 'uni-app 跨端开发' },
+              ].map(cmd => (
+                <div key={cmd.name} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12 }}>
+                  <Text code style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{cmd.name}</Text>
+                  <Text type="secondary" style={{ fontSize: 11 }}>{cmd.desc}</Text>
+                </div>
+              ))}
+            </div>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Text strong style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)' }}>Web 开发</Text>
+            <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
+              {[
+                { name: '/react', desc: 'React/TypeScript Web 开发' },
+                { name: '/vue', desc: 'Vue 3/TypeScript Web 开发' },
+              ].map(cmd => (
+                <div key={cmd.name} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12 }}>
+                  <Text code style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{cmd.name}</Text>
+                  <Text type="secondary" style={{ fontSize: 11 }}>{cmd.desc}</Text>
+                </div>
+              ))}
+            </div>
+          </Col>
+        </Row>
       </Card>
 
       {/* ── 指令参考 ── */}

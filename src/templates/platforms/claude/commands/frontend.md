@@ -50,7 +50,7 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "Team
 
 | 层级 | subagent_type |
 |------|--------------|
-| 架构设计 | `frontend-architect` |
+| 架构设计 | `frontend-architect`、`mobile-architect`（移动端架构评审） |
 | 任务分解 | `task-design` |
 | 全栈实现 | `frontend-dev-expert` |
 | UI/布局/样式 | `frontend-ui-expert` |
@@ -171,6 +171,14 @@ Gate C-impl:
 1. 加载 `Skill("code-quality-gate")`，重跑 Lint + Type-check + Build + Deps Audit
 2. 重跑测试套件（`npm test`），确保无回归
 3. 两项全部通过后方可继续；失败 → 修复后重跑，最多 2 轮
+
+4. 🔴 **文档同步（质量重检通过后，不可跳过）**：
+   - spawn `docs-engineer` 同步项目文档：
+     - AGENTS.md — Agent列表/统计数据
+     - README.md — 版本号/特性列表/统计数据
+     - CHANGELOG.md — 版本条目
+     - .jarvis/README.md — 迭代批次
+     - docs/flows/AGENTS.md — 文件引用
 
 - spawn `security-review-expert`（如 Gate D 未执行）
 - spawn `perf-review-expert`（如 Gate D 未执行）
