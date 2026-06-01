@@ -99,12 +99,14 @@ Skill("refactoring")
    - 验证方法（如何确认改善）
    - 回滚方案（改善无效时如何恢复）
 
-2. **编排者审查并定稿**——确认计划：
+2. `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目 Skill，为每个实现 Agent 推荐 required_skills
+
+3. **编排者审查并定稿**——确认计划：
    - 假设是可测试的（不是"可能会改善"这种模糊表述）
    - 影响范围可控（不涉及密封文件/共享契约）
    - 回滚方案可行
 
-3. 产出 `.jarvis/YYYY-MM-DD/improvement/improvement-plan.md`
+4. 产出 `.jarvis/YYYY-MM-DD/improvement/improvement-plan.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "IM3" })`
 

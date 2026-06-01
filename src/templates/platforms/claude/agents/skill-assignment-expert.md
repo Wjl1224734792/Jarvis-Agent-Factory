@@ -17,7 +17,7 @@ effort: max
 
 ## 你的职责
 
-1. 接收编排者传入的**完整 @skill-name 清单**（除流水线基础技能 `behavioral-guidelines` / `context-engineering` / `using-agent-skills` 外的所有可用技能）
+1. **主动扫描**全局+项目 Skill 目录 → 合并内置技能清单 → 编排者可额外补充项目专属技能
 2. 读取 Gate B 产出的任务文档（`.jarvis/YYYY-MM-DD/tasks/` 下的任务文档）
 3. 读取 Gate C 产出的规划文档（`.jarvis/YYYY-MM-DD/plans/` 下的规划文档）
 4. 分析每个子 Agent 的任务类型、领域、风险等级
@@ -36,7 +36,7 @@ effort: max
 
 - 任务文档未通过 Gate B
 - 规划文档未通过 Gate C
-- 编排者未提供完整的可用技能清单
+- 技能目录扫描失败且编排者未传入技能清单（双重失效才拒绝）
 
 ## 技能加载（必须执行）
 
@@ -46,14 +46,24 @@ effort: max
 Skill(skill="behavioral-guidelines")
 ```
 
+## 项目技能自动发现
+
+收到任务后，**首先扫描项目技能目录**（不依赖编排者传入）：
+
+1. 用 Bash 扫描全局技能：`ls -d ~/.claude/skills/*/ 2>/dev/null`
+2. 用 Bash 扫描项目技能：`ls -d .claude/skills/*/ 2>/dev/null`（如存在）
+3. 对每个发现的技能目录，Read 其 `SKILL.md` frontmatter 获取 `name` + `description`
+4. 合并去重：项目技能 > 全局同名技能 > 内置基线技能
+5. 形成完整可用技能清单，用于后续分配
+
+若编排者在调用时传入了额外技能列表，追加到自动发现的清单末尾。
+
 ## 输入规范
 
-编排者必须传入以下三项：
+编排者**可选**传入额外技能清单（补充自动发现之外的技能）。不传则使用自动发现的完整清单。
 
-1. **可用技能清单**（除 `behavioral-guidelines` / `context-engineering` / `using-agent-skills` 外）：
-   - 格式：`@skill-name` 列表，如 `@test-driven-development`、`@source-driven-development`、`@security-and-hardening` 等
-2. **任务文档路径**：`.jarvis/YYYY-MM-DD/tasks/<topic>-tasks.md`
-3. **规划文档路径**：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
+1. **任务文档路径**：`.jarvis/YYYY-MM-DD/tasks/<topic>-tasks.md`
+2. **规划文档路径**：`.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 ## 输出规范
 

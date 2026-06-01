@@ -134,7 +134,8 @@ mcp__jarvis-engine__session_join({
 ### Gate C：执行规划
 
 1. `spawn planner` Agent 产出执行计划
-2. **跳过条件**：小修改(可直接实现) → 跳过
+2. `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目+全局 Skill，为每个实现 Agent 推荐 required_skills 清单
+3. **跳过条件**：小修改(可直接实现) → 跳过（planner 和 skill-assignment-expert 均跳过）
 
 ### Gate C-impl：并行实现
 
@@ -172,7 +173,9 @@ spawn 审查 Agent，领域审查+综合签核。
 
 ### Gate E：发布上线
 
-质量重检（Lint+Type-check+Build+Deps Audit+npm test，失败修复后重跑，最多2轮） → **CI 状态检查（项目有 CI 时强制执行）**：检测 CI 配置 → 检查 CI 状态 → CI 失败阻断 → CI 通过继续 → spawn docs-engineer（文档同步）→ spawn infra-deploy-expert（CI验证）→ 版本递增 → 上线。
+质量重检（Lint+Type-check+Build+Deps Audit+npm test，失败修复后重跑，最多2轮） → **CI 状态检查（项目有 CI 时强制执行）**：检测 CI 配置 → 检查 CI 状态 → CI 失败阻断 → CI 通过继续 → 🔴 **文档同步（质量重检通过后，不可跳过）**：
+└── spawn docs-engineer（同步 AGENTS.md/README.md/CHANGELOG.md/.jarvis/README.md/docs/flows/）
+→ spawn infra-deploy-expert（CI验证）→ 版本递增 → 上线。
 
 ---
 
@@ -227,6 +230,7 @@ spawn 审查 Agent，领域审查+综合签核。
 - **测试不通过就推进**（Gate C2 是硬门禁）
 - **Agent 递归 spawn**（子 Agent 不得再生成其他子 Agent）
 - **混淆流水线边界**（refactor/hotfix/debug/research 等专业流水线不可与 full 流水线混合）
+- **发布前不执行文档同步**（Gate E docs-engineer spawn 不可跳过）
 
 ---
 

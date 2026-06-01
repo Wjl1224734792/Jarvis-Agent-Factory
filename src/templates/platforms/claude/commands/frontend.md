@@ -103,11 +103,12 @@ Gate C-impl:
 ### Gate C：批量并行 spawn（同 jarvis 协议）
 
 1. Read planner 产出 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
-2. 提取 `parallel_batches`
-3. **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过
-4. 每个任务 → `Agent()` 调用，选择前端代理路由表中的 `subagent_type`
-5. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
-6. 等待整批完成，检查 plan patch
+2. `spawn skill-assignment-expert` Agent，自动发现项目 Skill，为每个实现 Agent 推荐 required_skills
+3. 提取 `parallel_batches`
+4. **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过
+5. 每个任务 → `Agent()` 调用，选择前端代理路由表中的 `subagent_type`
+6. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
+7. 等待整批完成，检查 plan patch
 
 ### Gate C1.5：视觉验证（强制，不可跳过）
 

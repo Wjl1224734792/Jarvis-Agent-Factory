@@ -70,6 +70,8 @@ Skill("code-standards")
 
 ### 步骤
 
+0. `spawn skill-assignment-expert` Agent，自动发现项目 Skill，为所有执行 Agent 推荐 required_skills
+
 1. **按优先级执行简化**（从安全的开始）：
    - 🟢 先处理：删除死代码、移除无意义注释、合并重复导入
    - 🟡 再处理：提取公共逻辑为工具函数（3+ 次重复）

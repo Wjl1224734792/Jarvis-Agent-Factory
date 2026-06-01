@@ -111,15 +111,15 @@
   <h1>Jarvis Agent Factory</h1>
   <div class="tagline">
     多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
-    <strong>仅支持 Claude Code</strong> · 46 MCP 工具 · ~44 指令 · 88 智能体 · 35 技能 · 17 流水线
+    <strong>仅支持 Claude Code</strong> · 49 MCP 工具 · 44 指令 · 88 智能体 · 34 技能 · 17 流水线
   </div>
-  <span class="version">v4.7.69</span>
+  <span class="version">v4.7.73</span>
 </div>
 
 <div class="stats">
   <div class="stat a"><div class="num">44</div><div class="label">指令 Commands</div></div>
   <div class="stat g"><div class="num">88</div><div class="label">智能体 Agents</div></div>
-  <div class="stat p"><div class="num">35</div><div class="label">技能 Skills</div></div>
+  <div class="stat p"><div class="num">34</div><div class="label">技能 Skills</div></div>
   <div class="stat o"><div class="num">17</div><div class="label">流水线 Pipelines</div></div>
   <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
 </div>
@@ -182,7 +182,7 @@
     <span style="font-size:20px;color:var(--muted)">→</span>
     <div class="arch-box agent"><strong>88 个 Agent</strong><br><span style="font-size:12px;color:var(--muted)">专业 spawn</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
-    <div class="arch-box skill"><strong>35 个 Skill</strong><br><span style="font-size:12px;color:var(--muted)">行为规范</span></div>
+    <div class="arch-box skill"><strong>34 个 Skill</strong><br><span style="font-size:12px;color:var(--muted)">行为规范</span></div>
     <span style="font-size:20px;color:var(--muted)">→</span>
     <div class="arch-box doc"><strong>文档产物</strong><br><span style="font-size:12px;color:var(--muted)">.jarvis/日期/</span></div>
   </div>
@@ -192,7 +192,7 @@
   <h4>引擎内部组件</h4>
   <table class="pipe-table">
     <tr><th style="width:140px">组件</th><th>职责</th></tr>
-    <tr><td><strong>MCP stdio 服务</strong></td><td>通过 MCP 协议与 Claude Code 通信，暴露 46 个编排工具</td></tr>
+    <tr><td><strong>MCP stdio 服务</strong></td><td>通过 MCP 协议与 Claude Code 通信，暴露 49 个编排工具</td></tr>
     <tr><td><strong>FSM 闸门引擎</strong></td><td>强制执行 Gate 序列——跳过/回退一律拒绝</td></tr>
     <tr><td><strong>SQLite WAL 数据库</strong></td><td>会话管理、流水线运行、SSE 事件日志、跨会话持久化</td></tr>
     <tr><td><strong>REST API + Web 面板</strong></td><td>端口 3456，提供看板/Agent 配置/归档/指令列表</td></tr>
@@ -507,12 +507,12 @@
 <!-- ═══════════════════════════════════════ FOOTER -->
 <div class="footer">
   <p>
-    <strong>Jarvis Agent Factory v4.7.69</strong> &nbsp;·&nbsp;
+    <strong>Jarvis Agent Factory v4.7.73</strong> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
   </p>
-  <p style="margin-top:8px">~44 Commands · 88 Agents · 35 Skills · 17 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">44 Commands · 88 Agents · 34 Skills · 17 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>

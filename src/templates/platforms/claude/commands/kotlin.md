@@ -112,6 +112,7 @@ Gate C-impl:
 ### Gate C：执行规划
 
 - spawn `task-design` planner 产出 `parallel_batches`
+- `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目 Skill，为每个实现 Agent 推荐 required_skills
 - 产出到 `.jarvis/YYYY-MM-DD/plans/`
 
 ### Gate C-impl：并行实现

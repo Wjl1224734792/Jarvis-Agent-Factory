@@ -119,6 +119,7 @@ Gate C-impl:
 ### Gate C：执行规划
 
 - spawn `planner` Agent
+- `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目 Skill，为每个实现 Agent 推荐 required_skills
 - 产出 `parallel_batches` 和 Execution Packet（含 `allowed_paths`、验证命令、文件声明清单）
 - 使用 `file_claim_check` / `file_claim_register` / `file_claim_release` 防冲突
 

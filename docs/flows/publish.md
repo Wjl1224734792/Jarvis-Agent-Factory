@@ -66,13 +66,13 @@ updated: "2026-05-30"
 
 ### 5. 打 Tag
 
-在 `main` 分支上创建语义化版本 Tag（如 `v4.7.65`），推送到远端仓库。Tag push 自动触发 CI workflow 执行 npm publish。
+在 `main` 分支上创建语义化版本 Tag（如 `v4.7.73`），推送到远端仓库。推送前强制通过 CI 检查（`npm run check`：Lint + Typecheck + Test + Audit）。Tag push 自动触发 CI workflow 执行 npm publish。
 
 ### 6. CI 自动发布
 
 CI workflow（`.github/workflows/ci.yml`）在检测到 tag push 后自动执行：
 1. 安全校验（Tag 在 main 分支上）
-2. 质量门复检（Lint + Type-check + Test + Audit + Build）
+2. 质量门复检（Lint + Type-check + Test + Audit + Build）——强制零失败
 3. 生成 Changelog → 创建 GitHub Release
 4. npm publish（使用 CI secrets 中的 NPM_TOKEN）
 

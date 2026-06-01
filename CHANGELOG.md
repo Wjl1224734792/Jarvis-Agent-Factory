@@ -4,6 +4,37 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.73 (2026-06-01)
+
+### 修复
+- **工程化审计 34 项 findings 修复**：关闭 5 CRITICAL + 14 IMPORTANT + 3 SUGGESTION
+- **命令工具补全**：补充缺失工具注册（Agent/Team/Write/Skill/gate_jump），消除 Agent 自相矛盾（test-executor）
+- **Hook 实现 CI 检查**：引擎宕机 fail-closed + 安装 3 个缺失 hook
+- **Engine 类型修正**：projectRoot 传递 + hooks 目录扫描修正
+
+## v4.7.72 (2026-06-01)
+
+### 修复
+- **全局 MCP 安装路径修正**：`~/.claude/.mcp.json` → `~/.claude.json`（install.ts/doctor.ts/remove.ts 三处统一）
+
+## v4.7.71 (2026-06-01)
+
+### 变更
+- **CI 门禁改造 12 文件**：所有 push/release/publish 流程强制 CI 通过检查
+- **Gate E/RL3 引擎定义全覆盖**：5 命令 + 4 技能 + 1 Agent + 1 Hook 全面覆盖
+
+## v4.7.70 (2026-06-01)
+
+### 修复
+- **模板回退 pro/flash**：回退至 pro(85)/flash(3) 两层模型分配
+- **syncAgentFile 全局路径**：修正模板同步时路径解析
+- **guide.html 修复**：版本号与统计数据同步修正
+
+## v4.7.69 (2026-06-01)
+
+### 变更
+- **Agent 模型四层分配**：pro(60)/mimo-v2.5-pro(23)/qwen3.6-plus(2)/flash(3)
+
 ## v4.7.68 (2026-06-01)
 
 ### 变更
