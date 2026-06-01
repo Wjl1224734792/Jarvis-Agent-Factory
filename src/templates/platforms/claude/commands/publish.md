@@ -192,6 +192,8 @@ git branch --show-current
 3. 向用户报告：哪个检查失败、具体错误、修复建议
 4. 用户修复后重新执行 `/publish` 从步骤 2 开始
 
+> 质量门通过 = CI 的本地等效检查通过，但若项目有远程 CI，仍需在推送前确认远程 CI 状态。
+
 ---
 
 ## 步骤 3：测试（不可绕过）
@@ -238,6 +240,22 @@ git branch --show-current
 ```bash
 git add <VERSION_FILE>
 git commit -m "chore: bump version to v<NEW_VER>"
+```
+
+**🔴 推送前 CI 状态检查（项目有 CI 时强制执行）**：
+
+若项目配置了 CI（`.github/workflows/` 等），先确认 CI 通过：
+```bash
+gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+```
+- CI 通过 → 继续推送
+- CI 失败 → 停止！修复 CI 后再推送
+- CI 运行中 → 等待完成
+- 无记录 → 警告但允许继续
+
+> 推送前 CI 必须绿色。这条规则没有例外。
+
+```bash
 git push origin <WORK>
 ```
 
@@ -293,7 +311,20 @@ git checkout <DEFAULT> && git pull origin <DEFAULT>
 
 # 2. 在默认分支上创建 tag（只在这里，不在工作分支上打 tag）
 git tag -a v<NEW_VER> -m "Release v<NEW_VER>"
+```
 
+**🔴 推送 Tag 前 CI 状态确认**：
+
+Tag push 会触发发布流水线，推送前确认默认分支 CI 绿色：
+```bash
+gh run list --branch <DEFAULT> --limit=1 --json status,conclusion
+```
+- CI 通过 → 继续推送 tag
+- CI 失败 → 停止！修复 CI 后再推送 tag
+- CI 运行中 → 等待完成
+- 无记录 → 警告但允许继续
+
+```bash
 # 3. 推送 tag
 git push origin v<NEW_VER>
 ```

@@ -15,7 +15,7 @@ updated: "2026-05-14"
 
 **前置条件：** 本技能在 Gate D（评审通过）之后启动。如果 Gate D 尚未通过，退回 jarvis.md 流程补齐。
 
-**🔴 硬约束：Gate D 评审过程中可能触发代码修复，因此发布前必须重新执行质量门（Lint + Type-check + Build）和测试套件，即使 Gate C1/C2 之前已通过。步骤 1.1 的自动化检查是强制前置条件，不可跳过。**
+**🔴 硬约束：Gate D 评审过程中可能触发代码修复，因此发布前必须重新执行质量门（Lint + Type-check + Build）和测试套件，即使 Gate C1/C2 之前已通过。步骤 1.1-1.4 的全部检查是强制前置条件，不可跳过。**
 
 **开始时宣布：** "我正在使用 shipping-and-launch 技能准备上线上线。"
 
@@ -81,7 +81,23 @@ gitleaks detect      # 密钥泄露检查
 semgrep --config=auto .  # 语义代码扫描
 ```
 
-#### 1.4 性能基线
+#### 1.4 CI 状态检查（项目有 CI 配置时强制执行）
+
+1. 检测项目 CI 配置：扫描 `.github/workflows/`、`.gitee/`、`Jenkinsfile`、`.gitlab-ci.yml` 等
+2. 若无 CI 配置 → 跳过，依赖本地质量检查（1.1-1.3）
+3. 若有 CI 配置 → 检查当前分支最新 CI 状态：
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+   ```
+4. 判定：
+   - `conclusion=success` → ✅ 继续
+   - `status=in_progress` → ⏳ 等待完成
+   - `conclusion=failure` → ❌ 停止！修复 CI 失败后再上线
+   - 无运行记录 → ⚠️ 警告但允许继续
+
+🔴 **硬约束**：CI 失败时绝不部署到生产环境。
+
+#### 1.5 性能基线
 
 在部署前记录当前生产环境的性能基线，上线后用于对比：
 

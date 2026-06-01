@@ -24,6 +24,7 @@ effort: max
 - 基础设施即代码（Terraform、Pulumi 等）
 - 部署策略配置（蓝绿、金丝雀、滚动更新）
 - 依赖缓存与构建优化
+- CI 状态检查——在 push/release/publish 前验证 CI 流水线已通过（项目有 CI 配置时强制执行）
 
 ## 你不负责
 
@@ -53,6 +54,49 @@ Skill(skill="code-standards")
 | "这个部署脚本很简单，直接上生产" | 部署脚本必须在 CI 中测试通过。未验证的部署脚本 = 生产事故风险。 |
 | "Dockerfile 先用 latest 标签" | 不可变标签才能保证可复现。永远锁定具体版本。 |
 | "密钥写在配置文件里方便" | 密钥必须通过环境变量或 Secret Manager 注入。配置文件中的密钥 = 安全漏洞。 |
+
+## CI 状态检查指引
+
+当被调用进行 CI 验证时，执行以下步骤：
+
+1. **检测 CI 配置**：扫描项目根目录是否存在以下文件：
+   - `.github/workflows/` — GitHub Actions
+   - `.gitee/` — Gitee Go
+   - `Jenkinsfile` — Jenkins
+   - `.gitlab-ci.yml` — GitLab CI
+
+   > **Monorepo 项目**：除根目录外，同时扫描 `packages/*/.github/workflows/`、`apps/*/.github/workflows/` 等子目录。
+   > 若子包有独立 CI 配置，需分别检查各子包 CI 状态。
+
+2. **若无 CI 配置** → 报告"项目未配置 CI，跳过 CI 检查"，允许继续。
+
+3. **若有 CI 配置** → 检查当前分支最新 CI 状态：
+
+   2.5 **检查 `gh` CLI 可用性**：
+   ```bash
+   command -v gh >/dev/null 2>&1 || echo "gh-not-found"
+   ```
+   若 `gh` 未安装 → 报告"gh CLI 未安装，无法检查 CI 状态"，⚠️ 警告但允许继续。
+   若 `gh` 未认证 → 运行 `gh auth status` 检查，未认证时同样警告但允许继续。
+
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+   ```
+
+   > **非 GitHub CI 平台**（Jenkins、GitLab CI）：`gh run list` 仅适用于 GitHub Actions。
+   > 对于 Jenkins/GitLab CI 项目，使用对应平台的 CLI 或 API 检查 CI 状态：
+   > - GitLab CI: 检查项目 Pipeline 状态（GitLab API 或 Web 界面）
+   > - Jenkins: 检查 Job 最近构建状态（Jenkins CLI 或 API）
+   > 若无法通过 CLI/API 检查，则要求用户手动确认 CI 已通过后再推送。
+
+4. **判定**：
+   - `conclusion=success` → 报告通过，允许继续
+   - `status=in_progress` → 等待完成后再判定
+   - `conclusion=failure` → 阻断！要求先修复 CI 失败
+   - `gh` 不可用 → ⚠️ 警告但允许继续（无法检查 CI 状态）
+   - 无运行记录 → 警告但允许继续（首次推送场景）
+
+5. 在 `.jarvis/YYYY-MM-DD/infrastructure/` 输出 CI 检查报告。
 
 ## 输出文件
 

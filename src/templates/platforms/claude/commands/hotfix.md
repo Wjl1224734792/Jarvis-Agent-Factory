@@ -93,6 +93,13 @@ Skill("debugging-and-error-recovery")
    - Test：运行现有测试套件，确保无回归
    - 失败 → 修复后重跑，最多 2 轮
 
+1.5 **🔴 CI 状态检查（项目有 CI 时）**：
+   若项目配置了 CI，先确认 CI 通过再部署：
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+   ```
+   紧急情况下 CI 失败时需明确记录风险并获审批，方可继续。
+
 2. 功能验证：
    - 确认故障现象消失
    - 抽查受影响功能的正常路径
@@ -107,6 +114,8 @@ Skill("debugging-and-error-recovery")
    git revert --no-commit HEAD  # 试运行，不提交
    git revert --abort           # 取消试运行
    ```
+
+> 🔴 **部署前 CI 状态确认**：合并前确认 CI 已通过（若项目有 CI 配置）。CI 失败 → 记录风险+获审批后方可继续。
 
 4. 快速部署：
    - 合并到 main 分支
@@ -160,6 +169,7 @@ Skill("debugging-and-error-recovery")
 - 修复后不补回归测试（同一个故障允许发生两次）
 - 跳过事后审计（不分析根因 = 下次还会发生）
 - 在生产环境调试（调试流量影响真实用户）
+- CI 失败不记录风险就推送（紧急情况也需明确审批）
 
 ---
 ## Agent 编排参考

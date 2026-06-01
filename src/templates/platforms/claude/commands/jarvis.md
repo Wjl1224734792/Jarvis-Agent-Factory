@@ -452,6 +452,12 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 └─────────────────────────────────────────────────────────┘
 ```
 
+**CI 状态检查（质量重检通过后强制，项目有 CI 时不可跳过）**：
+
+- **CI 状态检查（项目有 CI 时强制执行）**：
+  检测项目 CI 配置 → 检查当前分支 CI 状态 → CI 未通过则阻断发布
+  （使用 infra-deploy-expert 执行 CI 验证，或在质量重检后直接 `gh run list` 检查）
+
 **步骤 1.5 — 文档同步（质量重检通过后，不可跳过）**：
 ```
 └── spawn docs-engineer（同步 AGENTS.md Agent列表/统计、README.md 版本号/特性列表/统计、CHANGELOG.md 版本条目、.jarvis/README.md 迭代批次、docs/flows/AGENTS.md 文件引用）

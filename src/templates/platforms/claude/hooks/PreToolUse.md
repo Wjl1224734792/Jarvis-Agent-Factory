@@ -18,7 +18,7 @@ updated: "2026-05-24"
 | Bash(npm run build) | `build` | 按 Gate allow/deny 列表检查 |
 | Bash(npm run lint) | `lint` | 按 Gate allow/deny 列表检查 |
 | Bash(npm test) | `spawn_test` | 按 Gate allow/deny 列表检查 |
-| Bash(git push) | `deploy` | 按 Gate allow/deny 列表检查 |
+| Bash(git push) | `deploy` | 按 Gate allow/deny 列表检查 + CI 状态验证 |
 | Bash(npm publish) | `deploy` | 按 Gate allow/deny 列表检查 |
 | Bash(git commit) | `write_code` | 按 Gate allow/deny 列表检查 |
 | Bash(npx *) | `write_code` | 按 Gate allow/deny 列表检查 |
@@ -45,3 +45,9 @@ updated: "2026-05-24"
 - 绝不拦截引擎自身工具（会造成死锁）
 - 绝不拦截 Read/Glob/Grep（会阻断信息流）
 - 拦截时给出明确指引："当前Gate不允许此操作，先完成当前Gate条件"
+
+## CI 门禁规则
+
+当 `git push` 被触发时，除 Gate 权限检查外，编排者必须额外执行 CI 状态检查：
+- 项目有 CI 配置且 CI 未通过 → 即使 Gate 允许 deploy，也必须阻断推送
+- 项目无 CI 配置 → 仅依赖 Gate 权限检查

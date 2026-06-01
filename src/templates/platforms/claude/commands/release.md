@@ -125,12 +125,32 @@ git branch --show-current
 
 **全部通过 → 进入 RL2**
 
+> 质量门通过后、版本递增前，若项目有 CI 配置必须先确认 CI 通过。
+
 **任意项失败**：
 1. 输出失败项的详细错误信息
 2. **立即停止**，不继续后续步骤
 3. 向用户报告：哪个检查失败、具体错误、修复建议
 
 **引擎推进**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "RL2" })`
+
+---
+
+### CI 状态检查（项目有 CI 配置时强制执行）
+
+1. **检测 CI 配置**：扫描项目根目录是否存在 `.github/workflows/`、`.gitee/`、`Jenkinsfile`、`.gitlab-ci.yml` 等 CI 配置文件
+2. **若无 CI 配置** → 跳过此步骤，继续推送流程
+3. **若有 CI 配置** → 检查当前分支 CI 状态：
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+   ```
+4. **判定**：
+   - CI 通过（`conclusion=success`）→ ✅ 继续
+   - CI 运行中（`status=in_progress`）→ ⏳ 等待完成后再判定
+   - CI 失败（`conclusion=failure`）→ ❌ 停止！先修复 CI 失败，再推送
+   - 无 CI 运行记录 → ⚠️ 警告但允许继续（首次推送或 CI 未触发）
+
+🔴 **红线**：CI 失败时绝不推送。推送前 CI 必须绿色。
 
 ---
 
@@ -173,13 +193,20 @@ git branch --show-current
    git tag -a v<NEW_VER> -m "v<NEW_VER>"
    ```
 
-3. **推送代码和 Tag**：
+3. **🔴 CI 状态确认（项目有 CI 时强制执行）**：
+   若项目配置了 CI，必须先确认 CI 通过：
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+   ```
+   CI 失败 → 停止发布，修复 CI 后再重试。
+
+4. **推送代码和 Tag**：
    ```bash
    git push origin <CURRENT>
    git push origin v<NEW_VER>
    ```
 
-4. **发布到 Registry**（如适用）：
+5. **发布到 Registry**（如适用）：
    ```bash
    npm publish --access public
    ```
@@ -201,10 +228,15 @@ git branch --show-current
    git tag -l "v<NEW_VER>"
    ```
 
-2. **检查 CI 状态**（如有 GitHub Actions）：
+2. **检查 CI 状态**（如有 GitHub Actions，发布后验证，非阻断性）：
    ```bash
    gh run list --limit=3
    ```
+
+   > ⚠️ **CI 失败回滚**：若发布后 CI 失败，需要评估影响并决定回滚方案：
+   > 1. 功能性问题 → `npm unpublish <package>@<version>`（24h 内）或发布补丁版本
+   > 2. 构建/测试问题 → 修复后重新发布 patch 版本
+   > 3. 标签问题 → `git push --delete origin v<NEW_VER>` 后重新打 tag
 
 3. **验证 Registry 版本**（如适用）：
    ```bash

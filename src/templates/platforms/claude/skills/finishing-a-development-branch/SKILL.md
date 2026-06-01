@@ -26,6 +26,13 @@ npm test  # 或 cargo test / pytest / go test ./...
 **测试失败 → 停止，不继续。** 显示失败信息，要求先修复。
 **测试通过 → 继续步骤 2。**
 
+**🔴 CI 状态检查（项目有 CI 时）**：
+若项目配置了 CI（`.github/workflows/` 等），先确认当前分支 CI 通过：
+```bash
+gh run list --branch $(git branch --show-current) --limit=1 --json status,conclusion
+```
+CI 失败 → 停止流程，先修复 CI。测试通过 ≠ CI 通过。
+
 ## 步骤 2：确定基础分支
 
 ```bash
@@ -62,6 +69,8 @@ git branch -d <feature-branch>
 ```
 
 ### 选项 2：推送并创建 PR
+
+> 🔴 推送前确认：CI 已通过（若项目有 CI 配置）。CI 失败时绝不要推送。
 
 **Gitee：**
 ```bash
@@ -144,6 +153,7 @@ git push origin --delete <feature-branch>
 ## 验证清单
 
 - [ ] 测试全部通过（步骤 1）
+- [ ] CI 通过（若项目已配置 CI）
 - [ ] 代码审查已完成且意见已处理
 - [ ] Gate C1 + Gate C2 全部通过
 - [ ] 已合并到目标分支
@@ -163,6 +173,7 @@ git push origin --delete <feature-branch>
 ## 红线
 
 - 测试失败时绝不继续
+- CI 失败时绝不推送（测试通过不等于 CI 会通过）
 - 合并不验证测试结果
 - 不确认就删除工作成果
 - 未经明确请求就强制推送

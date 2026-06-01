@@ -144,6 +144,7 @@ MAJOR：不兼容 API 变更    MINOR：向后兼容新功能    PATCH：Bug 修
 
 ```bash
 git tag -a v1.0.0 -m "v1.0.0：新增用户注册和登录"
+> 🔴 **CI 门禁**：推送 tag 前确认 CI 已通过。Tag push 会触发 CI 发布流水线，CI 未通过时推送 tag 会导致发布失败。
 git push origin v1.0.0
 ```
 
@@ -219,3 +220,18 @@ git diff develop..feat/x      # 分支对比
 - 共享分支 force push
 - hotfix 不走分支流程
 - 未测试就提交
+
+## CI 门禁规则
+
+### 推送前检查
+
+| 操作 | CI 要求 |
+|------|--------|
+| `git push`（分支） | CI 通过（若有 CI） |
+| `git push`（tag） | CI 通过（若有 CI）；tag push 触发发布流水线，CI 失败会导致发布失败 |
+| PR/MR 创建 | CI 通过（若有 CI） |
+
+### 红线
+- CI 未通过不打 tag、不推送分支
+- tag push 前必须确认 CI 绿色
+- 不允许 `--no-verify` 跳过 CI 检查

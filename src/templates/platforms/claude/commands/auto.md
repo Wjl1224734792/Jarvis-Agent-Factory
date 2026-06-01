@@ -172,7 +172,7 @@ spawn 审查 Agent，领域审查+综合签核。
 
 ### Gate E：发布上线
 
-质量重检 → spawn docs-engineer（文档同步）→ spawn infra-deploy-expert（CI验证）→ 版本递增 → 上线。
+质量重检 → **CI 状态检查（项目有 CI 时强制执行）**：检测 CI 配置 → 检查 CI 状态 → CI 失败阻断 → CI 通过继续 → spawn docs-engineer（文档同步）→ spawn infra-deploy-expert（CI验证）→ 版本递增 → 上线。
 
 ---
 
