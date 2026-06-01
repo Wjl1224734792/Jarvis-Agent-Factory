@@ -48,6 +48,9 @@ updated: "2026-05-24"
 
 ## CI 门禁规则
 
-当 `git push` 被触发时，除 Gate 权限检查外，编排者必须额外执行 CI 状态检查：
-- 项目有 CI 配置且 CI 未通过 → 即使 Gate 允许 deploy，也必须阻断推送
-- 项目无 CI 配置 → 仅依赖 Gate 权限检查
+当 `git push` 被触发时（deploy 操作），Gate 权限检查通过后，hook 自动执行 CI 状态检查：
+- `.github/workflows/` 存在时，调用 `gh run list` 检查当前分支最新 run
+- CI 状态为 `failure` → 阻断推送（exit code 2），提示 CI 未通过
+- CI 状态为 `in_progress` → 阻断推送（exit code 2），提示等待 CI 完成
+- `gh` CLI 不可用时 → 警告但允许推送（exit code 0），建议手动确认 CI 状态
+- 无 CI 配置时 → 跳过 CI 检查，仅依赖 Gate 权限

@@ -3,7 +3,7 @@ name: simplify
 description: 代码简化与质量清理——S0代码分析→S1简化执行→S2回归验证→S3报告产出
 model: inherit
 argument-hint: [目标文件/目录/模块]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 代码简化与质量清理

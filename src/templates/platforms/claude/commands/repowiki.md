@@ -3,7 +3,7 @@ name: repowiki
 description: 项目知识库——持久化、可搜索的 Markdown Wiki，支持增/查/改/删/健康检查
 model: inherit
 argument-hint: [add <title> | ingest <title> | query <keyword> | list | read <page> | delete <page> | lint]
-tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__repowiki_add", "mcp__jarvis-engine__repowiki_ingest", "mcp__jarvis-engine__repowiki_query", "mcp__jarvis-engine__repowiki_list", "mcp__jarvis-engine__repowiki_read", "mcp__jarvis-engine__repowiki_delete", "mcp__jarvis-engine__repowiki_lint"]
+tools: ["Read", "Bash", "Write", "Edit", "Glob", "Grep", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__repowiki_add", "mcp__jarvis-engine__repowiki_ingest", "mcp__jarvis-engine__repowiki_query", "mcp__jarvis-engine__repowiki_list", "mcp__jarvis-engine__repowiki_read", "mcp__jarvis-engine__repowiki_delete", "mcp__jarvis-engine__repowiki_lint"]
 ---
 
 # 项目知识库（RepoWiki）

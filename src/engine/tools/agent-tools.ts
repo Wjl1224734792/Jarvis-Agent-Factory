@@ -8,7 +8,7 @@ import { resolvePlatformInfo } from '../platform-info.js';
 
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
-export function registerAgentTools(server: McpServer, db: DatabaseSync, _root: string, ctx: ToolContext) {
+export function registerAgentTools(server: McpServer, db: DatabaseSync, root: string, ctx: ToolContext) {
   server.tool('agent_config', 'Agent模型+思考等级配置。',
     { agent_id: z.string().optional(), model: z.string().optional(), effort: z.string().optional() },
     async ({ agent_id, model, effort }) => {
@@ -17,7 +17,7 @@ export function registerAgentTools(server: McpServer, db: DatabaseSync, _root: s
         return ctx.resp({ ok: true, agent_id, model, effort: effort || 'high' });
       }
       const cfg = getAgentConfig(db);
-      const agents = getAgentList(true);
+      const agents = getAgentList(true, root);
       return ctx.resp({
         agents: agents.map(a => {
           const c = cfg[a.id];

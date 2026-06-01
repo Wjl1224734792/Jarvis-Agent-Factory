@@ -3,7 +3,7 @@ name: test-unit
 description: 单元测试生成与执行——自动检测测试框架，生成覆盖率门禁测试用例，验证核心逻辑正确性
 model: inherit
 argument-hint: [测试范围或模块路径]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 单元测试生成与执行
@@ -19,6 +19,7 @@ Skill("test-data-factory")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
+- `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - 每个阶段开始时调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 - 执行测试前调用 `mcp__jarvis-engine__gate_check({ operation: "lint" })` 确保代码质量

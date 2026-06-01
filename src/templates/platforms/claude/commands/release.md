@@ -201,6 +201,7 @@ git branch --show-current
    CI 失败 → 停止发布，修复 CI 后再重试。
 
 4. **推送代码和 Tag**：
+   > 🔴 **Tag 推送前 CI 确认**：确认 CI 通过后再推送 tag。
    ```bash
    git push origin <CURRENT>
    git push origin v<NEW_VER>

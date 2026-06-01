@@ -3,7 +3,7 @@ name: test-perf
 description: 性能测试指令——k6/Artillery 负载测试，对比基线，定位性能瓶颈
 model: inherit
 argument-hint: [测试目标端点或场景描述]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "WebFetch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 性能测试
@@ -19,6 +19,7 @@ Skill("perf-testing")
 
 **引擎会话注册**（硬约束——引擎确保测试操作按 Gate 权限执行）：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
+- `mcp__jarvis-engine__gate_jump({ gate: "Gate C2" })`
 - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
 - 生成测试前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 

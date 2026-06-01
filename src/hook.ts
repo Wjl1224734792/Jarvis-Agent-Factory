@@ -9,8 +9,8 @@
  *   jarvis hook agent-config [--agent-id <id>] [--model <model>] [--effort <effort>]
  */
 
-import { spawn } from 'child_process';
-import { readFileSync, writeFileSync } from "node:fs";
+import { execSync, spawn } from 'child_process';
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from 'node:path';
 import { GATE_OPERATIONS } from './engine/gates.js';
 
@@ -107,6 +107,44 @@ export async function hookCommand(args) {
         const ops = GATE_OPERATIONS[current] || { allow: [], deny: [] };
         if (ops.allow.includes(operation)) {
           console.log(`✅ ${current}: 操作 "${operation}" 允许执行 (${session.pipeline_name})`);
+
+          // CI 状态检查：仅对 deploy 操作强制执行
+          if (operation === 'deploy') {
+            const ciDir = join(process.cwd(), '.github', 'workflows');
+            if (existsSync(ciDir)) {
+              try {
+                const branch = execSync('git branch --show-current', {
+                  encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+                }).trim();
+                if (branch) {
+                  try {
+                    const result = JSON.parse(execSync(
+                      `gh run list --branch ${branch} --limit=1 --json status,conclusion`,
+                      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+                    ));
+                    const run = Array.isArray(result) ? result[0] : result;
+                    if (run) {
+                      if (run.conclusion === 'failure') {
+                        console.error('🚫 CI is failing — deploy blocked');
+                        console.error(`   最新 CI run 状态: ${run.conclusion}`);
+                        process.exit(2);
+                      }
+                      if (run.status === 'in_progress') {
+                        console.error('⏳ CI is in progress — deploy blocked');
+                        console.error('   等待 CI 完成后再试');
+                        process.exit(2);
+                      }
+                    }
+                  } catch {
+                    console.error('⚠️ gh CLI 不可用 — 无法检查 CI 状态，如确认 CI 已通过可继续部署');
+                  }
+                }
+              } catch {
+                console.error('⚠️ 无法获取 git 分支用于 CI 检查，如确认 CI 已通过可继续部署');
+              }
+            }
+          }
+
           process.exit(0);
         }
         console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
@@ -126,6 +164,12 @@ export async function hookCommand(args) {
         process.exit(2);
       }
     } catch {
+      // deploy 操作：引擎不可用时拒绝执行（安全优先）
+      if (operation === 'deploy') {
+        console.error('🚫 Engine unavailable — deploy blocked for safety');
+        console.error('   请先启动引擎: jarvis engine start');
+        process.exit(2);
+      }
       console.error('⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.');
       tryStartEngine();
       process.exit(0);
@@ -281,8 +325,48 @@ export async function hookCommand(args) {
     }
   }
 
+  else if (sub === 'user-prompt-submit') {
+    // 从参数或 stdin 读取用户提示词
+    let prompt = args.slice(1).join(' ');
+    if (!prompt.trim()) {
+      try {
+        const buf = readFileSync(0, 'utf-8'); // fd 0 = stdin
+        if (buf) prompt = buf.trim();
+      } catch { /* stdin 不可用 */ }
+    }
+
+    // 从关键词检测 pipeline_type
+    const routingTable: Record<string, string> = {
+      '/frontend': 'frontend', '/backend': 'backend', '/hotfix': 'hotfix',
+      '/refactor': 'refactor', '/release': 'release', '/publish': 'release',
+      '/debug': 'debug', '/research': 'research', '/ask': 'ask',
+      '/simplify': 'simplify', '/trace': 'trace', '/improve': 'improve',
+      '/evaluate': 'evaluate', '/migrate': 'migrate', '/deepinit': 'deepinit',
+      '/jarvis': 'full', '/auto': 'auto', '/consult': 'consult',
+    };
+    let pipelineType = '';
+    for (const [keyword, type] of Object.entries(routingTable)) {
+      if (prompt.includes(keyword)) { pipelineType = type; break; }
+    }
+    console.log(JSON.stringify({ pipeline_type: pipelineType || null }));
+    process.exit(0);
+  }
+
+  else if (sub === 'session-start') {
+    console.log(JSON.stringify({ action: 'remind', message: '调用 session_join 注册引擎会话' }));
+    process.exit(0);
+  }
+
+  else if (sub === 'post-tool-use') {
+    const toolName = args[1] || '';
+    if (toolName === 'Write' || toolName === 'Edit') {
+      console.log(JSON.stringify({ action: 'remind', message: '注册产出文件到引擎 artifacts', tool_name: toolName }));
+    }
+    process.exit(0);
+  }
+
   else {
-    console.log('Usage: jarvis hook <gate-check|gate-advance|status|report-status|agent-config> [--json] [--session <id>] [--operation <op>] [--gate <gate>] [--agent-id <id>] [--model <model>] [--effort <effort>]');
+    console.log('Usage: jarvis hook <gate-check|gate-advance|status|report-status|agent-config|user-prompt-submit|session-start|post-tool-use> [--json] [--session <id>] [--operation <op>] [--gate <gate>] [--agent-id <id>] [--model <model>] [--effort <effort>]');
     process.exit(0);
   }
 }

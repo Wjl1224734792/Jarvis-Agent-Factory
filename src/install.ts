@@ -259,6 +259,15 @@ function installHooks(platform: string, target: string, isGlobal: boolean, force
       { matcher: 'Bash(node *)', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
     ],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
+    UserPromptSubmit: [
+      { matcher: '', hooks: [{ type: 'command', command: 'jarvis hook user-prompt-submit' }] },
+    ],
+    SessionStart: [
+      { matcher: '', hooks: [{ type: 'command', command: 'jarvis hook session-start' }] },
+    ],
+    PostToolUse: [
+      { matcher: 'Write|Edit', hooks: [{ type: 'command', command: 'jarvis hook post-tool-use' }] },
+    ],
   };
 
   if (platform === 'claude') {

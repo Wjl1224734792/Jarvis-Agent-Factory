@@ -104,7 +104,7 @@ function isPortInUse(port) {
 /** 从 session 获取该会话的 Gate 序列 */
 /** 扫描冲突文件：检测 .claude/agents/、commands/、skills/ 下含 <<<<<<< user 标记的 .md 文件 */
 function scanConflictFiles(projectRoot: string): void {
-  const baseDirs = ['.claude/agents', '.claude/commands', '.claude/skills'];
+  const baseDirs = ['.claude/agents', '.claude/commands', '.claude/skills', '.claude/hooks'];
   let scanned = 0;
   const MAX = 200;
   const conflictPaths: string[] = [];

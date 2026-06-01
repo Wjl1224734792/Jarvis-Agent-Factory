@@ -3,7 +3,7 @@ name: migrate
 description: 框架迁移指令——M1规则验证→M2应用迁移→M3编译验证→M4自动修复Lint，4Gate迁移流程
 model: inherit
 argument-hint: [迁移描述，如"Express→Fastify"或"Vue2→Vue3"]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 框架 / 依赖迁移

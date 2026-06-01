@@ -117,7 +117,7 @@ export const DEFAULT_PIPELINE = 'full';
 export const GATES = PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
 
 /** 按流水线类型获取 Gate 序列 */
-export function getPipelineGates(type: any) {
+export function getPipelineGates(type: string) {
   if (type === "lite") type = "auto"; // 向后兼容：lite 已重命名为 auto
   const def = PIPELINE_DEFS[type];
   return def ? def.gates : PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
