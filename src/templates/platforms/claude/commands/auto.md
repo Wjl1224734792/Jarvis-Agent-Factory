@@ -155,6 +155,25 @@ mcp__jarvis-engine__session_join({
 | 中(3-10文件) | Subagent 并行 ×2-3 | 同发 2-3 个 |
 | 大(>10文件或跨≥3目录) | **Team 模式** | TeamCreate → 按模块分配 |
 
+### required_skills 注入
+
+编排者读取 skill-assignment 文档 → 复制 `Skill(skill="...")` 指令 → 粘贴到 Agent() prompt 中：
+
+```
+Agent({
+  ...
+  prompt: `
+## 额外技能
+Skill(skill="<从skill-assignment文档复制>")
+
+## 任务
+...
+`
+})
+```
+
+> 只注入 skill-assignment 文档中的 "额外加载" 项。模板已有的通用技能不重复注入。
+
 ### Gate C1：代码质量门
 
 Lint → Type-check → Build → Deps Audit，全部通过后推进。

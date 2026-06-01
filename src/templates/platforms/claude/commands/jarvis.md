@@ -200,6 +200,35 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 - `input_documents`
 - `escalation_rule`：需变更共享区域时先提交 plan patch
 
+### required_skills 注入模板
+
+编排者从 skill-assignment 文档读取每个子 Agent 的 "额外加载" 列表，直接复制 `Skill(skill="...")` 指令到 Agent() 的 prompt 参数中：
+
+```
+Agent({
+  subagent_type: "backend-api-expert",
+  description: "实现用户登录API",
+  prompt: `
+你的任务：实现用户登录 API 路由。
+
+## 启动后执行
+Skill(skill="behavioral-guidelines")
+
+## 额外技能（来自 skill-assignment-expert 分配）
+Skill(skill="security-and-hardening")
+Skill(skill="my-project-auth-skill")
+
+## 任务
+...
+
+## 完成后执行
+Skill(skill="verification-before-completion")
+`
+})
+```
+
+> 🔴 模板已有技能（behavioral-guidelines/code-standards/source-driven-development/incremental-implementation/verification-before-completion）已由 Agent 模板自动处理，不需要在 prompt 中重复。只注入 skill-assignment 文档中 "额外加载" 列出的 Skill。
+
 **Agent 类型速查**：
 | 领域 | subagent_type |
 |------|--------------|
