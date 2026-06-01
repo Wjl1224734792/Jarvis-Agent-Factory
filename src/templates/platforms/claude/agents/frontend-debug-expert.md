@@ -3,7 +3,7 @@ name: frontend-debug-expert
 description: "Use this agent when you need frontend debugging with Chrome DevTools MCP. Typical triggers include performance analysis, rendering optimization, network inspection, and console diagnostics for web applications."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__click", "mcp__chrome-devtools__fill", "mcp__chrome-devtools__type_text", "mcp__chrome-devtools__press_key", "mcp__chrome-devtools__hover", "mcp__chrome-devtools__evaluate_script", "mcp__chrome-devtools__wait_for", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__performance_start_trace", "mcp__chrome-devtools__performance_stop_trace", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_network_requests", "mcp__chrome-devtools__get_network_request", "mcp__chrome-devtools__handle_dialog", "mcp__chrome-devtools__select_page", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__new_page", "mcp__chrome-devtools__close_page", "mcp__chrome-devtools__upload_file", "mcp__chrome-devtools__drag", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: qwen3.6-plus
+model: deepseek-v4-pro
 effort: max
 ---
 

@@ -2,9 +2,10 @@
  * Agent file sync — writes model/effort back to .md and .toml files.
  * File mappings auto-generated from template directory scan.
  */
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { getAgentFiles } from './agent-registry.js';
+import { getAgentFiles, resolveTemplatesDir } from './agent-registry.js';
 
 const YAML_MODEL_RE = /^model:\s*.+$/m;
 const YAML_EFFORT_RE = /^effort:\s*.+$/m;
@@ -29,8 +30,23 @@ export function syncAgentFile(root: string, agentId: string, model: string, effo
   const mapping = AGENT_FILES[agentId];
   if (!mapping) return false;
 
-  const filePath = resolve(root, mapping.base);
-  if (!existsSync(filePath)) return false;
+  // Priority: project-level > global > templates (read-only)
+  const projectPath = resolve(root, mapping.base);
+  const globalPath = resolve(homedir(), mapping.base);
+  const templatesDir = resolveTemplatesDir();
+  const templatePath = templatesDir ? resolve(templatesDir, mapping.base) : null;
+
+  let filePath: string;
+  if (existsSync(projectPath)) {
+    filePath = projectPath;
+  } else if (existsSync(globalPath)) {
+    filePath = globalPath;
+  } else if (templatePath && existsSync(templatePath)) {
+    // Templates are read-only — do not write back
+    return false;
+  } else {
+    return false;
+  }
 
   let content = readFileSync(filePath, 'utf-8');
   let changed = false;

@@ -111,16 +111,16 @@
   <h1>Jarvis Agent Factory</h1>
   <div class="tagline">
     多智能体 AI 编程助手配置工厂 — 从想法到交付的完整软件开发流水线<br>
-    <strong>仅支持 Claude Code</strong> · 46 MCP 工具 · 44 指令 · 88 智能体 · 35 技能 · 15 流水线
+    <strong>仅支持 Claude Code</strong> · 46 MCP 工具 · ~44 指令 · 88 智能体 · 35 技能 · 17 流水线
   </div>
-  <span class="version">v4.7.57</span>
+  <span class="version">v4.7.69</span>
 </div>
 
 <div class="stats">
   <div class="stat a"><div class="num">44</div><div class="label">指令 Commands</div></div>
   <div class="stat g"><div class="num">88</div><div class="label">智能体 Agents</div></div>
   <div class="stat p"><div class="num">35</div><div class="label">技能 Skills</div></div>
-  <div class="stat o"><div class="num">15</div><div class="label">流水线 Pipelines</div></div>
+  <div class="stat o"><div class="num">17</div><div class="label">流水线 Pipelines</div></div>
   <div class="stat"><div class="num">62</div><div class="label">闸门 Gates</div></div>
 </div>
 
@@ -306,7 +306,7 @@
   <strong>关键设计：</strong>Gate 操作权限表是<strong>硬约束</strong>——引擎在 <code>gate_check</code> 时比对操作与当前 Gate 的允许列表，不匹配直接拒绝。Gate A 阶段无法写代码，Gate E 阶段无法改实现。这就是"规范驱动、文档驱动的严格工程化流水线"的技术基础。
 </div>
 
-<h3>5.2 全部 15 条流水线</h3>
+<h3>5.2 全部 17 条流水线</h3>
 
 <table class="pipe-table">
   <tr><th>指令</th><th>流水线</th><th>Gate 序列</th><th style="width:50px">门数</th><th>适用场景</th></tr>
@@ -417,10 +417,9 @@
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-purple">frontend-dev</span><span class="tag tag-purple">frontend-ui</span><span class="tag tag-purple">frontend-state</span>
     <span class="tag tag-green">backend-dev</span><span class="tag tag-green">backend-api</span><span class="tag tag-green">backend-logic</span><span class="tag tag-green">backend-data</span>
-    <span class="tag tag-orange">android-dev/ui/state</span><span class="tag tag-blue">ios-dev/ui/state</span>
+    <span class="tag tag-orange">kotlin-dev/ui/state</span><span class="tag tag-blue">swift-dev/ui/state</span>
     <span class="tag tag-cyan">flutter-dev/ui/state</span><span class="tag tag-red">expo-dev/ui/state</span>
-    <span class="tag tag-purple">react-native-dev/ui/state</span><span class="tag tag-green">taro-dev/ui/state</span>
-    <span class="tag tag-blue">swift-dev/ui/state</span><span class="tag tag-orange">kotlin-dev/ui/state</span>
+	    <span class="tag tag-green">taro-dev/ui/state</span>
     <span class="tag tag-cyan">miniprogram-dev/ui/state</span><span class="tag tag-red">uni-app-dev/ui/state</span>
     <span class="tag tag-purple">react-dev/ui/state</span><span class="tag tag-green">vue-dev/ui/state</span>
   </div>
@@ -429,7 +428,7 @@
   <h4>测试类（21 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate C2 spawn</span></h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-red">frontend-test</span><span class="tag tag-red">backend-test</span>
-    <span class="tag tag-red">android/ios/flutter/taro/expo/react-native-test</span>
+    <span class="tag tag-red">kotlin/swift/flutter/taro/expo-test</span>
     <span class="tag tag-red">swift/kotlin/miniprogram/uni-app/react/vue-test</span>
     <span class="tag tag-red">browser-test</span><span class="tag tag-red">frontend-debug</span>
     <span class="tag tag-red">e2e-test</span><span class="tag tag-red">perf-test</span><span class="tag tag-red">api-test</span>
@@ -440,7 +439,7 @@
   <h4>审查类（22 个）<span style="font-weight:400;font-size:13px;color:var(--muted)"> — Gate D spawn</span></h4>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
     <span class="tag tag-cyan">frontend/backend-review</span>
-    <span class="tag tag-cyan">android/ios/flutter/taro/expo/react-native-review</span>
+    <span class="tag tag-cyan">kotlin/swift/flutter/taro/expo-review</span>
     <span class="tag tag-cyan">swift/kotlin/miniprogram/uni-app/react/vue-review</span>
     <span class="tag tag-cyan">diff-review</span><span class="tag tag-cyan">project-review</span><span class="tag tag-cyan">perf-review</span>
     <span class="tag tag-cyan">security-review</span><span class="tag tag-cyan">qa-review</span><span class="tag tag-cyan">change-review</span>
@@ -508,12 +507,12 @@
 <!-- ═══════════════════════════════════════ FOOTER -->
 <div class="footer">
   <p>
-    <strong>Jarvis Agent Factory v4.7.57</strong> &nbsp;·&nbsp;
+    <strong>Jarvis Agent Factory v4.7.69</strong> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory">GitHub</a> &nbsp;·&nbsp;
     <a href="https://www.npmjs.com/package/jarvis-agent-factory">npm</a> &nbsp;·&nbsp;
     <a href="https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/AGENTS.md">AGENTS.md</a>
   </p>
-  <p style="margin-top:8px">44 Commands · 88 Agents · 35 Skills · 15 Pipelines · 62 Gates · MIT License</p>
+  <p style="margin-top:8px">~44 Commands · 88 Agents · 35 Skills · 17 Pipelines · 62 Gates · MIT License</p>
 </div>
 
 </body>

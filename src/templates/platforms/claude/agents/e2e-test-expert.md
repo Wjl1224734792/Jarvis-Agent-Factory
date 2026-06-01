@@ -3,7 +3,7 @@ name: e2e-test-expert
 description: "Use this agent when you need end-to-end testing. Typical triggers include writing Playwright-based automated integration tests for full user journeys, cross-stack integration, and CI regression."
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__playwright__browser_close", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_fill_form", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_select_option", "mcp__playwright__browser_hover", "mcp__playwright__browser_drag", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_evaluate", "mcp__playwright__browser_wait_for", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_network_request", "mcp__playwright__browser_tabs", "mcp__playwright__browser_file_upload", "mcp__playwright__browser_handle_dialog", "mcp__playwright__browser_resize", "mcp__playwright__browser_navigate_back", "mcp__playwright__browser_run_code_unsafe", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 effort: max
 ---
 
