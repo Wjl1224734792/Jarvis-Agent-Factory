@@ -1,8 +1,12 @@
 ---
 name: backend-review-expert
 description: "Use this agent when you need backend server code review. Typical triggers include component architecture review, UI implementation audit, state management inspection, and performance optimization review."
-tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
+tools: ["Read", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
+  team_preferred: true
 model: deepseek-v4-pro
 effort: max
 ---

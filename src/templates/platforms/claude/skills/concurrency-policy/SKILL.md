@@ -1,7 +1,7 @@
 ---
 name: concurrency-policy
 description: "并发调用与 Team/Subagent 分配规范——无依赖并行、同层并行跨层串行、Team 按规模选择、Gate 级并发规则"
-version: "4.7.57"
+version: "4.7.77"
 updated: "2026-05-22"
 ---
 
@@ -120,6 +120,76 @@ file_claim_release({ run_id, agent_name: "T1-frontend-login" })
 - 同 Batch 内所有 Agent 的路径互不重叠（含子目录）
 - 冲突检测基于路径前缀匹配：`src/a/b.ts` 与 `src/a/` 冲突
 - pipeline_guide 返回当前 run 的 `file_claims`，编排者可据此调度
+
+## Worktree 隔离规范
+
+对于大任务（>10文件或跨≥3目录），spawn Agent 时使用 Claude Code 原生 worktree 隔离：
+
+```
+
+Agent({
+  subagent_type: "backend-api-expert",
+  isolation: "worktree",
+  ...
+})
+```
+
+- **何时用 worktree 隔离**：变更>10文件 或 跨≥3目录 或 Team 模式并行
+- **何时用 file_claim**：≤10文件 且 单模块（worktree 有创建开销）
+- **worktree vs file_claim**：worktree 是操作系统级隔离（强制），file_claim 是行为协议（协商）
+- pipeline_guide 的 `isolation_guide` 字段会返回当前 Gate 的推荐隔离策略
+
+## Agent 模型覆盖规范
+
+用户可通过 `agent_config` MCP 工具为每个 Agent 配置专属 model。编排者 spawn Agent 时需遵守：
+
+1. spawn 前调用 `agent_config` 查询该 agent_type 的模型偏好
+2. 将查询到的 `model` 值作为 `Agent()` 的 `model` 参数传入
+3. 若未配置（`is_custom: false`），使用默认模型（不传 model 参数）
+
+```
+
+Agent({
+  subagent_type: "backend-api-expert",
+  model: "opus",
+  ...
+})
+```
+
+> pipeline_guide 的 `model_guide` 字段会提示此流程。不传 model 参数会导致所有 Agent 使用当前会话模型，用户配置的模型偏好将被忽略。
+
+## 代码智能工具选择指南
+
+Claude Code 内置 LSP 工具与 Jarvis MCP LSP 工具各有侧重，Agent 实现时按场景选择：
+
+| 场景 | 优先使用 | 说明 |
+|------|---------|------|
+| 跳转到定义 | 内置 LSP(goToDefinition) | 原生支持，无需 MCP 往返 |
+| 查找所有引用 | 内置 LSP(findReferences) | 原生支持 |
+| 类型/文档悬停 | 内置 LSP(hover) | 原生支持 |
+| 文件内符号 | 内置 LSP(documentSymbol) | 原生支持 |
+| 项目级符号搜索 | 内置 LSP(workspaceSymbol) | 原生支持 |
+| 查找实现 | 内置 LSP(goToImplementation) | 原生支持 |
+| 调用层级 | 内置 LSP(prepareCallHierarchy) | 原生支持 |
+| AST 结构化搜索 | jarvis_ast_search | 语法树匹配，比文本 Grep 精确 |
+| AST 安全替换 | jarvis_ast_replace | dryRun 预览后再应用 |
+| 秒级诊断 | jarvis_lsp_diagnostics | 无需编译，快速反馈 |
+| 重命名符号 | jarvis_lsp_prepare_rename/rename | 全仓同步 |
+| 代码操作 | jarvis_lsp_code_actions | 自动修复/重构 |
+
+> 内置 LSP 用于**导航和理解**，Jarvis MCP LSP 用于**诊断和重构**。两者互补，不可互相替代。
+
+## Plan Mode 集成规范
+
+对于需要用户审批的关键 Gate（Gate A 需求确认、Gate C 执行计划），强制使用 Claude Code 原生 Plan Mode：
+
+1. 产出文档后 → `EnterPlanMode` 进入计划模式
+2. 呈现核心内容（需求列表/执行计划/关键决策）给用户审批
+3. 用户 approve → `ExitPlanMode` → `advance_gate` 推进
+4. 用户 reject → 调整文档 → 回到步骤 1（最多 2 轮）
+5. pipeline_guide 的 `plan_mode` 字段指示当前 Gate 是否需要 Plan Mode
+
+> Plan Mode 提供结构化的 approve/reject 交互，优于纯文本确认。
 
 ## 反模式（禁止）
 

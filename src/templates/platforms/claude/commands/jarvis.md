@@ -93,6 +93,12 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
     └── external-resource-expert（后端框架/库最新文档）
 ```
 
+**🔴 Plan Mode 审批**：需求文档产出后：
+1. 调用 `EnterPlanMode` 进入计划模式
+2. 将需求文档核心内容（REQ 列表、关键假设、范围边界）呈现给用户审批
+3. 用户 approve → `ExitPlanMode` → 继续推进
+4. 用户 reject → 根据反馈调整需求，重新审批
+
 **引擎验证**：需求确认后，推进时设置任务标题：
 `mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "Gate B-DDD", task_name: "<需求澄清后的任务摘要>" })`
 
@@ -164,6 +170,11 @@ planner 执行期间可并行准备：
 ```
 
 **引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate C-impl" })`
+**🔴 Plan Mode 审批（强制）**：planner 产出执行计划后：
+1. 调用 `EnterPlanMode` 进入计划模式
+2. 将计划文档核心内容（parallel_batches、Agent 分配、关键决策）呈现给用户审批
+3. 用户 approve → `ExitPlanMode` → `advance_gate({ gate: "Gate C-impl" })`
+4. 用户 reject → 根据反馈调整计划，重新审批（最多 2 轮）
 
 ---
 
@@ -188,6 +199,8 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 5. 冲突 → 调整路径范围或将冲突 Agent 移到不同 Batch
 
 **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过。
+
+**🔴 模型覆盖**：spawn 前调用 `agent_config` 查询 Agent 模型偏好，将 `model` 值作为 `Agent()` 的 `model` 参数传入。不传则所有 Agent 使用当前会话模型，忽略用户配置。
 
 每个 Agent() 调用携带：
 - `task_id` 和 `requirement_ids`
@@ -579,11 +592,13 @@ Gate D 评审过程中可能触发代码修复，因此发布前**必须**重新
 5. 每个成员独占文件/模块，无重叠
 ```
 
-**代码智能工具（Agent 实现时使用）：**
-- `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，理解现有代码结构
-- `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true，先预览再应用）
-- `mcp__jarvis-engine__jarvis_lsp_hover` / `mcp__jarvis-engine__jarvis_lsp_goto_definition` / `mcp__jarvis-engine__jarvis_lsp_find_references` — 理解现有 API 和引用链
-- `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 修改后秒级诊断，无需等待完整编译
+**代码智能工具（Agent 可用）：**
+- 内置 `LSP(goToDefinition/findReferences/hover/documentSymbol/workspaceSymbol/goToImplementation/prepareCallHierarchy)` — 代码导航（原生，优先使用）
+- `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，比 Grep 精确
+- `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true）
+- `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 秒级诊断，无需编译
+- `mcp__jarvis-engine__jarvis_lsp_prepare_rename` / `mcp__jarvis-engine__jarvis_lsp_rename` — 全仓重命名
+- `mcp__jarvis-engine__jarvis_lsp_code_actions` — 自动修复/重构
 
 **Batch 同发示例**：
 ```

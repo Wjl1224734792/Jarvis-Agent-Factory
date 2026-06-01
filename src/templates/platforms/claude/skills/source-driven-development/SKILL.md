@@ -34,6 +34,9 @@ updated: "2026-05-14"
 | 场景 | 推荐工具 | 代替 |
 |------|---------|------|
 | 搜索代码模式 | `mcp__jarvis-engine__jarvis_ast_search` | Grep（文本搜索会匹配注释/字符串） |
+| 跳转到定义 | 内置 `LSP(goToDefinition)` | 原生支持，无 MCP 往返 |
+| 查找引用 | 内置 `LSP(findReferences)` | 原生支持 |
+| 类型查看 | 内置 `LSP(hover)` | 原生支持 |
 | 理解现有类型 | `mcp__jarvis-engine__jarvis_lsp_hover` / `mcp__jarvis-engine__jarvis_lsp_goto_definition` | 读文件+人眼推断 |
 | 追踪引用链 | `mcp__jarvis-engine__jarvis_lsp_find_references` | Grep 搜符号名（容易漏/误匹配） |
 | 查看文件结构 | `mcp__jarvis-engine__jarvis_lsp_document_symbols` | 读全文件找函数/类 |

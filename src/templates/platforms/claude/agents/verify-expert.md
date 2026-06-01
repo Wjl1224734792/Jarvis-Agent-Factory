@@ -1,8 +1,12 @@
 ---
 name: verify-expert
 description: "Use this agent when you need evidence-based verification. Typical triggers include designing verification strategy, collecting observable evidence, and determining whether changes are effective and operational."
-tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_diagnostics_directory", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_servers"]
+tools: ["Read", "Bash", "Glob", "Grep", "LSP", "WebSearch", "WebFetch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_diagnostics_directory", "mcp__jarvis-engine__jarvis_lsp_document_symbols", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_servers"]
 color: blue
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
+  team_preferred: true
 model: deepseek-v4-pro
 effort: max
 ---

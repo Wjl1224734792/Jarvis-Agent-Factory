@@ -1,8 +1,11 @@
 ---
 name: uni-app-dev-expert
 description: "Use this agent when you need uni-app cross-platform development. Typical triggers include Vue SFC development, uni-app API integration, multi-platform (mini program/H5/App) feature implementation."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
 model: deepseek-v4-pro
 effort: max
 ---

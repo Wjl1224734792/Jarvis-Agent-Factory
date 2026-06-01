@@ -1,8 +1,12 @@
 ---
 name: skill-assignment-expert
 description: "Use this agent when you need skill assignment for agents. Typical triggers include reading task documents, matching skills to sub-tasks, and producing skill allocation documents for the orchestrator."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
+  team_preferred: true
 model: deepseek-v4-pro
 effort: max
 ---

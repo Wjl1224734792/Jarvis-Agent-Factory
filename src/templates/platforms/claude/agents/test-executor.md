@@ -1,9 +1,13 @@
 ---
 name: test-executor
 description: "Use this agent when you need test case execution. Typical triggers include executing documented test cases and recording pass/fail results without writing new test cases."
-tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
-model: deepseek-v4-pro
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
+  team_preferred: true
+model: mimo-v2.5-pro
 effort: max
 ---
 

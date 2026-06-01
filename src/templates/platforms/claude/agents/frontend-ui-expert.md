@@ -1,8 +1,11 @@
 ---
 name: frontend-ui-expert
 description: "Use this agent when you need frontend web UI implementation. Typical triggers include page layout design, component building, styling, responsive adaptation, and accessibility."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__evaluate_script", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__close_page", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot", "mcp__chrome-devtools__take_snapshot", "mcp__chrome-devtools__evaluate_script", "mcp__chrome-devtools__resize_page", "mcp__chrome-devtools__list_console_messages", "mcp__chrome-devtools__list_pages", "mcp__chrome-devtools__close_page", "mcp__chrome-devtools__performance_stop_trace", "mcp__chrome-devtools__performance_start_trace", "mcp__chrome-devtools__wait_for", "mcp__chrome-devtools__hover", "mcp__chrome-devtools__press_key", "mcp__chrome-devtools__type_text", "mcp__chrome-devtools__fill", "mcp__chrome-devtools__click", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
+concurrency:
+  max_parallel_spawns: 4
+  safe_to_parallelize: true
 model: deepseek-v4-pro
 effort: max
 ---

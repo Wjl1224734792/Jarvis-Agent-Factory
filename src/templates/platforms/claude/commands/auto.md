@@ -121,6 +121,12 @@ mcp__jarvis-engine__session_join({
 2. 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`
 3. **跳过条件**：Bug修复（已明确知道修什么）/小修改（<3文件，无新增功能）/审查/调试 → 跳过 Gate A
 
+**🔴 Plan Mode 审批**：需求文档产出后（仅 Gate A 未跳过的场景）：
+1. 调用 `EnterPlanMode` 进入计划模式
+2. 将需求文档核心内容（REQ 列表、关键假设、范围边界）呈现给用户审批
+3. 用户 approve → `ExitPlanMode` → 继续推进
+4. 用户 reject → 根据反馈调整需求，重新审批
+
 ### Gate B-DDD/B-BDD/B-TDD：任务分解（新功能/大改动时执行）
 
 1. `spawn task-design` Agent 产出 DDD/BDD/TDD 文档
@@ -136,17 +142,25 @@ mcp__jarvis-engine__session_join({
 1. `spawn planner` Agent 产出执行计划
 2. `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目+全局 Skill，为每个实现 Agent 推荐 required_skills 清单
 3. **跳过条件**：小修改(可直接实现) → 跳过（planner 和 skill-assignment-expert 均跳过）
+**🔴 Plan Mode 审批（强制）**：planner 产出执行计划后：
+1. 调用 `EnterPlanMode` 进入计划模式
+2. 将计划文档核心内容（parallel_batches、Agent 分配、关键决策）呈现给用户审批
+3. 用户 approve → `ExitPlanMode` → `advance_gate({ gate: "Gate C-impl" })`
+4. 用户 reject → 根据反馈调整计划，重新审批（最多 2 轮）
 
 ### Gate C-impl：并行实现
 
 **核心原则**：编排者不写代码，所有代码变更通过 spawn Agent 完成。
 **并发规范**：详见 `Skill("concurrency-policy")` — 无依赖=并行，同 batch 同发，Team 按规模触发。
+**🔴 模型覆盖**：spawn 前调用 `agent_config` 查询 Agent 模型偏好，将 `model` 值作为 `Agent()` 的 `model` 参数传入。不传则所有 Agent 使用当前会话模型，忽略用户配置。
 
 **代码智能工具（Agent 可用）：**
+- 内置 `LSP(goToDefinition/findReferences/hover/documentSymbol/workspaceSymbol/goToImplementation/prepareCallHierarchy)` — 代码导航（原生，优先使用）
 - `mcp__jarvis-engine__jarvis_ast_search` — AST 语法树搜索，比 Grep 精确
 - `mcp__jarvis-engine__jarvis_ast_replace` — 安全替换（dryRun 默认 true）
-- `mcp__jarvis-engine__jarvis_lsp_hover` / `mcp__jarvis-engine__jarvis_lsp_goto_definition` / `mcp__jarvis-engine__jarvis_lsp_find_references` — 理解现有代码
 - `mcp__jarvis-engine__jarvis_lsp_diagnostics` — 秒级诊断，无需编译
+- `mcp__jarvis-engine__jarvis_lsp_prepare_rename` / `mcp__jarvis-engine__jarvis_lsp_rename` — 全仓重命名
+- `mcp__jarvis-engine__jarvis_lsp_code_actions` — 自动修复/重构
 
 按复杂度选择调度策略：
 | 复杂度 | 调度方式 | 首条消息 |

@@ -281,6 +281,8 @@ updated: "2026-05-20"
 
 ## 审查工具速查
 
+> 代码导航优先使用 Claude Code 内置 LSP 工具（goToDefinition/findReferences/hover），诊断和重构使用 Jarvis MCP LSP。详见 concurrency-policy 技能。
+
 | 审查维度 | 推荐工具 | 用途 |
 |---------|---------|------|
 | 变更影响范围 | `mcp__jarvis-engine__jarvis_lsp_find_references` | 追踪符号引用链，避免遗漏 |

@@ -147,8 +147,15 @@ export async function hookCommand(args) {
 
           process.exit(0);
         }
-        console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
-        console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        // 如果 write_code 被拒但 write_doc 被允许，给出提示
+        if (operation === 'write_code' && ops.allow.includes('write_doc')) {
+          console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
+          console.error(`  提示：当前 Gate 允许 write_doc。如需写文档，请先推进到允许 write_code 的 Gate。`);
+          console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        } else {
+          console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
+          console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        }
         process.exit(2);
       }
 
@@ -170,7 +177,14 @@ export async function hookCommand(args) {
         console.error('   请先启动引擎: jarvis engine start');
         process.exit(2);
       }
-      console.error('⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.');
+      // 引擎不可用时：只有纯读操作放行，其他操作一律拒绝（安全优先）
+      const safeOps = ['read'];
+      if (operation && !safeOps.includes(operation)) {
+        console.error('🚫 Engine unavailable — operation blocked for safety: ' + (operation || 'unknown'));
+        console.error('   请先启动引擎: jarvis engine start');
+        process.exit(2);
+      }
+      console.error('⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE (read-only).');
       tryStartEngine();
       process.exit(0);
     }

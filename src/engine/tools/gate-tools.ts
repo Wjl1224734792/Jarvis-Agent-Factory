@@ -71,6 +71,13 @@ export function registerGateTools(server: McpServer, db: DatabaseSync, root: str
         agent_mode: getGateTeamStrategy(cur) === 'prefer_team' ? '推荐使用 Agent Team(TeamCreate) 并行调度,轻量任务用 Agent 工具(spawn agent)' : '使用 Agent 工具(spawn subagent)',
         team_rules: agentGuide?.team_rules || '团队成员按模块/区域独立,禁止共享文件或模块',
         gate_requirement: GATE_CHECKS[cur]?.check || '',
+        model_guide: 'spawn Agent 前调用 agent_config 查询该 Agent 的模型偏好，将返回的 model 值作为 Agent() 的 model 参数传入。不传 model 则所有 Agent 使用当前会话模型，忽略用户配置。',
+        isolation_guide: getGateTeamStrategy(cur) === 'prefer_team'
+          ? '大任务(>10文件/跨≥3目录) spawn Agent 时建议传入 isolation: "worktree" 实现文件级隔离，小任务用 file_claim 系统即可'
+          : '当前Gate规模较小，使用 file_claim 系统管理文件边界即可',
+        plan_mode: (cur === 'Gate A' || cur === 'Gate C')
+          ? '当前 Gate 产出文档后，应使用 EnterPlanMode 进入计划模式，将文档内容呈现给用户进行结构化审批。用户 approve 后调用 ExitPlanMode 退出，再 advance_gate 推进。'
+          : null,
         next_gate: gateList[ci + 1] || 'Complete',
         previous_gate: ci > 0 ? gateList[ci - 1] : null,
         fix_loop: (cur === 'Gate C1' || cur === 'Gate C1.5' || cur === 'Gate C2' || cur === 'Gate D')

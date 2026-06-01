@@ -3,7 +3,7 @@ description: Vue 开发生命周期——需求→任务→计划→实现→质
 name: vue
 model: inherit
 argument-hint: "[Vue需求描述]"
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"]
 ---
 
 # Vue 开发生命周期
