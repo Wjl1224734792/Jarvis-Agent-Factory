@@ -48,7 +48,6 @@
 |------|------------|---------|------|
 | `/frontend` | run→aborted | C1.5 截图丢失 | 重启 `/frontend` |
 | `/backend` | run→aborted | DB schema 变更如已执行不可回滚 | 重启 `/backend` |
-| `/mobile --platform=X` | run→aborted | C1.5 模拟器截图丢失 | 重启 `/mobile` |
 
 ### 维护流程
 

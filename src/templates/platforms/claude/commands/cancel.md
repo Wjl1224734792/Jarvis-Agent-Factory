@@ -119,7 +119,7 @@ mcp__jarvis-engine__pipeline_status()
 
 ## 中断各指令全表
 
-以下表格定义 `/cancel` 对全部 44 条指令的中断行为。所有指令均通过 `session_join` 注册引擎会话，`/cancel` 统一调用 `pipeline_cancel` 清理。
+以下表格定义 `/cancel` 对全部 43 条指令的中断行为。所有指令均通过 `session_join` 注册引擎会话，`/cancel` 统一调用 `pipeline_cancel` 清理。
 
 ### 编排入口（2条）
 
@@ -128,13 +128,12 @@ mcp__jarvis-engine__pipeline_status()
 | `/jarvis` | pipeline_run + Gate 进度 + Agent spawn | `pipeline_cancel` — run→aborted, 清除 resume 数据 | 当前 Gate 进度丢失，已产出文档保留在 `.jarvis/` | 重启 `/jarvis` 新建 run |
 | `/auto` | 路由检测→pipeline_run + Gate 进度 | `pipeline_cancel` — 路由到的流水线 run→aborted | 同上，按路由结果清理 | 重启 `/auto` 重新路由 |
 
-### 平台开发（12条）
+### 平台开发（11条）
 
 | 指令 | 活跃状态 | Cancel 清理 | 中断影响 | 恢复 |
 |------|---------|------------|---------|------|
 | `/frontend` | pipeline_run + Gate A→E | `pipeline_cancel` | C1.5 视觉验证中途取消则截图丢失 | 重启 `/frontend` |
 | `/backend` | pipeline_run + Gate A→E（跳过 C1.5） | `pipeline_cancel` | 数据库 schema 变更如已执行不可回滚 | 重启 `/backend` |
-| `/mobile --platform=X` | pipeline_run + 平台 Agent spawn | `pipeline_cancel` | C1.5 模拟器截图丢失，需重新获取 | 重启 `/mobile --platform=X` |
 | `/flutter` | 活跃流水线 | Gate C-impl→Archived | 调用 `session_leave`，活跃 run abort | 重启 `/flutter` |
 | `/expo` | 活跃流水线 | Gate C-impl→Archived | 调用 `session_leave`，活跃 run abort | 重启 `/expo` |
 | `/swift` | 活跃流水线 | Gate C-impl→Archived | 调用 `session_leave`，活跃 run abort | 重启 `/swift` |
@@ -215,7 +214,7 @@ mcp__jarvis-engine__pipeline_status()
 | 指令类别 | 数量 | Cancel 安全性 | 备注 |
 |---------|------|-------------|------|
 | 编排入口 | 2 | 安全（文档保留） | 已产出 `.jarvis/` 文档不受影响 |
-| 平台开发 | 12 | 安全（文档保留） | C1.5 截图需重新获取 |
+| 平台开发 | 11 | 安全（文档保留） | C1.5 截图需重新获取 |
 | 维护流程 | 5 | 中等（代码部分保留） | 建议 `git diff` 检查改动 |
 | 测试 | 5 | 安全（代码未变更） | 仅测试结果丢失 |
 | 审查 | 2 | 安全（review-only 只读） / 中等（review-fix 代码保留） | — |

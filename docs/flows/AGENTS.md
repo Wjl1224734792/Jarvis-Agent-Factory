@@ -36,7 +36,6 @@ This directory contains the flows module of the project.
 | miniprogram.md | Markdown documentation |
 | jarvis.md | Markdown documentation |
 | migrate.md | Markdown documentation |
-| mobile.md | Markdown documentation |
 | publish.md | Markdown documentation |
 | react.md | Markdown documentation |
 | uni-app.md | Markdown documentation |

@@ -314,7 +314,6 @@
   <tr><td class="cmd">/frontend</td><td>frontend</td><td class="gates">同上，C1.5 视觉验证强制，前端专属 Agent</td><td>13</td><td>前端开发，React/Vue/Angular</td></tr>
   <tr><td class="cmd">/backend</td><td>backend</td><td class="gates">跳过 C1.5，后端专属 Agent</td><td>11</td><td>后端开发，API/数据库/业务逻辑</td></tr>
   <tr><td class="cmd">/auto</td><td>auto</td><td class="gates">支持 gate_jump 跳过无关 Gate，智能路由</td><td>13</td><td>日常默认入口，99% 情况用它</td></tr>
-  <tr class="deprecated"><td class="cmd">/mobile <span class="tag tag-red">已废弃</span></td><td>frontend</td><td class="gates">同上，平台感知 Agent 选择（6 平台）</td><td>13</td><td>移动端/跨端开发 — 已拆分为独立框架命令</td></tr>
   <tr><td class="cmd">/refactor</td><td>refactor</td><td class="gates">R1(边界)→R2(基线)→R3(重构)→R4(漂移检测)→R5(报告)</td><td>5</td><td>代码重构，失败自动回滚</td></tr>
   <tr><td class="cmd">/hotfix</td><td>hotfix</td><td class="gates">H0(声明+审批)→H1(最小修复)→H2(验证+回滚)→H3(审计)</td><td>4</td><td>紧急故障恢复</td></tr>
   <tr><td class="cmd">/migrate</td><td>migrate</td><td class="gates">M1(规则)→M2(迁移)→M3(编译)→M4(Lint修复)</td><td>4</td><td>框架升级、依赖替换</td></tr>
@@ -329,7 +328,7 @@
 </table>
 
 <!-- ═══════════════════════════════════════ 6. COMMANDS -->
-<h2 id="commands">六、全部 44 条指令</h2>
+<h2 id="commands">六、全部 43 条指令</h2>
 
 <h3>编排入口（2 条）</h3>
 <div class="cmd-grid">
@@ -345,11 +344,10 @@
   </div>
 </div>
 
-<h3>平台开发（12 条）</h3>
+<h3>平台开发（11 条）</h3>
 <div class="cmd-grid">
   <div class="cmd-card"><div class="cmd-name">/frontend</div><div class="cmd-desc">前端开发 — C1.5 视觉验证强制。使用 frontend 专属 Agent 组。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
   <div class="cmd-card"><div class="cmd-name">/backend</div><div class="cmd-desc">后端开发 — 跳过 C1.5。使用 backend + database-architect 专属 Agent 组。</div><div class="cmd-pipe">流水线：backend（11 Gate）</div></div>
-  <div class="cmd-card deprecated"><div class="cmd-name">/mobile --platform=&lt;name&gt; <span class="tag tag-red">已废弃</span></div><div class="cmd-desc">移动端/跨端统一入口 — 已拆分为独立框架命令（/flutter /expo /swift /kotlin /taro /miniprogram /uni-app 等），请使用具体框架命令。</div><div class="cmd-pipe">流水线：frontend 变体（平台感知）· 不再推荐使用</div></div>
   <div class="cmd-card"><div class="cmd-name">/flutter</div><div class="cmd-desc">Flutter 跨端移动端开发 — 使用 flutter-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
   <div class="cmd-card"><div class="cmd-name">/expo</div><div class="cmd-desc">Expo/React Native 跨端移动端开发 — 使用 expo-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
   <div class="cmd-card"><div class="cmd-name">/swift</div><div class="cmd-desc">Swift/SwiftUI iOS 原生开发 — 使用 swift-dev/ui/state/test/review-expert + mobile-architect。</div><div class="cmd-pipe">流水线：frontend（13 Gate）</div></div>
@@ -465,7 +463,7 @@
   <div class="scenario-card"><h4>✨ 新功能开发</h4><p>日常用 <code>/auto</code>，中大型用 <code>/jarvis</code>（严格 13 Gate）。</p></div>
   <div class="scenario-card"><h4>🖥️ 前端页面</h4><p><code>/frontend</code>，C1.5 视觉验证强制，spawn frontend-dev/ui/state-expert。</p></div>
   <div class="scenario-card"><h4>🔧 后端 API</h4><p><code>/backend</code>，跳过 C1.5，spawn backend-dev/api/logic/data + database-architect。</p></div>
-  <div class="scenario-card"><h4>📱 移动端/跨端</h4><p>直接使用对应框架命令：<code>/flutter</code> <code>/expo</code> <code>/swift</code> <code>/kotlin</code> <code>/taro</code> <code>/miniprogram</code> <code>/uni-app</code>。（<code>/mobile</code> 已废弃）</p></div>
+  <div class="scenario-card"><h4>📱 移动端/跨端</h4><p>直接使用对应框架命令：<code>/flutter</code> <code>/expo</code> <code>/swift</code> <code>/kotlin</code> <code>/taro</code> <code>/miniprogram</code> <code>/uni-app</code>。</p></div>
   <div class="scenario-card"><h4>🔨 代码重构</h4><p><code>/refactor</code>（5 Gate 安全网），失败自动回滚。</p></div>
   <div class="scenario-card"><h4>🚨 紧急修复</h4><p><code>/hotfix</code>（H0-H3 紧急协议），需要审批确认。</p></div>
   <div class="scenario-card"><h4>🧹 代码清理</h4><p><code>/simplify</code>，消除冗余/死代码/过度抽象，失败自动回滚。</p></div>
