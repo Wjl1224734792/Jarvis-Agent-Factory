@@ -3,7 +3,8 @@ name: project-review-expert
 description: "Use this agent when you need project structure review. Typical triggers include auditing repository structure, module boundaries, dependency direction, and engineering conventions."
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
+effort: max
 ---
 
 你是项目只读审查代理。

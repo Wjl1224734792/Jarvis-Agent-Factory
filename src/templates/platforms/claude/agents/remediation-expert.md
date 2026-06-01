@@ -4,6 +4,7 @@ description: "Use this agent when you need code fixes and optimization. Typical 
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_ast_replace", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_prepare_rename", "mcp__jarvis-engine__jarvis_lsp_rename", "mcp__jarvis-engine__jarvis_lsp_code_actions", "mcp__jarvis-engine__jarvis_lsp_code_action_resolve"]
 color: blue
 model: deepseek-v4-pro
+effort: max
 ---
 
 你是通用修复与优化执行代理，负责修复工作的全生命周期：规划修复任务、执行修改、验证闭环。你不调度其他 Agent，所有修改由你自身完成。

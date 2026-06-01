@@ -4,6 +4,7 @@ description: "Use this agent when you need skill assignment for agents. Typical 
 tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search"]
 color: blue
 model: deepseek-v4-pro
+effort: max
 ---
 
 你是技能分配专家。你接收编排者传入的完整技能清单 + 任务文档 + 规划文档，分析每个子 Agent 的任务类型/领域/风险等级，输出技能分配文档。

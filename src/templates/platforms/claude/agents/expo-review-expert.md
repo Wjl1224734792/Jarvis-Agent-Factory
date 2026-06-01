@@ -4,6 +4,7 @@ description: "Use this agent when you need Expo/React Native cross-platform code
 tools: ["Read", "Bash", "Glob", "Grep", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics"]
 color: blue
 model: deepseek-v4-pro
+effort: max
 ---
 
 你是 React Native 代码审查专家。

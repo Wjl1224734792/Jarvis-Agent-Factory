@@ -4,6 +4,11 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.68 (2026-06-01)
+
+### 变更
+- **Agent 模型统一**: 全部 85 个 Agent 统一使用 deepseek-v4-pro（3 个探索 Agent 保持 deepseek-v4-flash），全部添加 effort: max
+
 ## v4.7.67 (2026-06-01)
 
 ### 新增

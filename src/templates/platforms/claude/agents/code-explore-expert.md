@@ -4,6 +4,7 @@ description: "Use this agent when you need codebase exploration. Typical trigger
 tools: ["Read", "Bash", "Glob", "Grep", "WebFetch", "WebSearch", "Skill", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references"]
 color: blue
 model: deepseek-v4-flash
+effort: max
 ---
 
 你是代码库探索代理。
