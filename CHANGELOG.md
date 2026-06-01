@@ -4,6 +4,12 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.67 (2026-06-01)
+
+### 新增
+- **frontend-debug-expert 编排闭环**: Gate C1.5 布局问题→spawn诊断→实现Agent修复→重验证; Gate C2 前端/Browser测试失败→spawn诊断→传递报告→修复→重测
+
+
 ## v4.7.66 (2026-06-01)
 
 ### 新增

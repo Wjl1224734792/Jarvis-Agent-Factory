@@ -327,7 +327,7 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 
 **不通过**：
 1. **证据缺失** → 退回实现 Agent 补充截图/样式验证数据
-2. **布局问题**（溢出/重叠/错位）→ 诊断根因，修复源文件，重新截图验证
+2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools诊断：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新截图验证
 3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ---
@@ -350,11 +350,12 @@ Read 打开 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
 **步骤 2**：等待以上全部通过。
 
 **任一步骤 1 agent 测试失败**：
-1. 分析失败报告，定位需修复的实现 Agent + 源文件
-2. spawn 原实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
-3. 最多 2 轮修复-重测循环
-4. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
-5. 若失败与共享区域相关 → 先提交 plan patch 再修复
+1. 涉及前端/Browser测试失败 → spawn `frontend-debug-expert`（Chrome DevTools：性能追踪/渲染分析/网络诊断/控制台调试），定位根因后生成诊断报告
+2. 分析失败报告，定位需修复的实现 Agent + 源文件
+3. spawn 原实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+4. 最多 2 轮修复-重测循环
+5. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
+6. 若失败与共享区域相关 → 先提交 plan patch 再修复
 
 步骤 1 全部通过后继续：
 
