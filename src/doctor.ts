@@ -65,14 +65,14 @@ export function doctor({ target, platforms, pkgRoot, ..._rest }: {
   }
 
   // Check MCP config conflicts（全局 vs 项目级 jarvis-engine 冲突检测）
-  const globalMcp = resolve(homedir(), '.claude', '.mcp.json');
+  const globalMcp = resolve(homedir(), '.claude.json');
   const projectMcp = resolve(target, '.mcp.json');
   if (existsSync(globalMcp) && existsSync(projectMcp)) {
     try {
       const gCfg = JSON.parse(readFileSync(globalMcp, 'utf-8'));
       const pCfg = JSON.parse(readFileSync(projectMcp, 'utf-8'));
       if (gCfg.mcpServers?.['jarvis-engine'] && pCfg.mcpServers?.['jarvis-engine']) {
-        console.log('  ⚠️  MCP 冲突: 全局 (~/.claude/.mcp.json) 和项目 (.mcp.json) 都定义了 jarvis-engine');
+        console.log('  ⚠️  MCP 冲突: 全局 (~/.claude.json) 和项目 (.mcp.json) 都定义了 jarvis-engine');
         console.log('     全局安装的 jarvis 可能干扰当前项目的引擎。');
         console.log('     建议: 项目开发模式保留 .mcp.json 中的 jarvis-engine (JARVIS_DEV=1)，');
         console.log('     全局仅用于其他项目 (jarvis init -g)。');

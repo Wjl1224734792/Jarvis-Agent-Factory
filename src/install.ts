@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { getHashFilePath } from './hash-paths.js';
-import { readMcpConfig, writeMcpConfig } from './shared/mcp-config.js';
+import { readMcpConfig, writeMcpConfig, type McpConfig } from './shared/mcp-config.js';
 import { FM_SEARCH_LIMIT, readFrontmatter, splitMarkdownSections, computeSectionHashes, isSectionHashRecord } from './shared/markdown-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -126,6 +126,7 @@ function globalTarget(platform) {
 function mcpGlobalDest(platform) {
   if (platform === 'codex') return resolve(homedir(), '.codex', 'config.toml');
   if (platform === 'opencode') return resolve(homedir(), '.config', 'opencode', 'opencode.json');
+  if (platform === 'claude') return resolve(homedir(), '.claude.json');
   return resolve(globalTarget(platform), '.mcp.json');
 }
 
@@ -445,20 +446,32 @@ function installMcp(platform, target, force) {
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     writeMcpJson(dest, content, force, t.file);
   } else {
-    // Claude JSON: .mcp.json at project root — 深度合并所有 MCP server
+    // Claude JSON: .mcp.json (project) or ~/.claude.json (global)
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
-    const projectRoot = dirname(dest);
+    const projectRoot = target ? dirname(dest) : dirname(dest);
     if (!existsSync(projectRoot)) mkdirSync(projectRoot, { recursive: true });
 
     const nJson = JSON.parse(content);
     const nKey = nJson.mcpServers ? 'mcpServers' : 'mcp';
-    const existingConfig = readMcpConfig(projectRoot);
+    const isGlobalSettings = !target; // ~/.claude.json 是完整 settings 文件，不仅仅是 MCP
+
+    // 读取现有配置：项目用 .mcp.json 格式，全局用 ~/.claude.json 格式
+    let existingConfig: Record<string, unknown> | null = null;
+    if (isGlobalSettings) {
+      // ~/.claude.json 是完整 settings 文件，读取全部字段
+      if (existsSync(dest)) {
+        try {
+          existingConfig = JSON.parse(readFileSync(dest, 'utf-8')) as Record<string, unknown>;
+        } catch { existingConfig = null; }
+      }
+    } else {
+      existingConfig = readMcpConfig(projectRoot) as Record<string, unknown> | null;
+    }
 
     if (existingConfig && !force) {
-      const eKey = existingConfig.mcpServers ? 'mcpServers' : 'mcp';
-      const existingServers: Record<string, unknown> = (existingConfig as Record<string, unknown>)[eKey] as Record<string, unknown> || {};
+      const eKey = (existingConfig as Record<string, unknown>).mcpServers ? 'mcpServers' : 'mcp';
+      const existingServers: Record<string, unknown> = ((existingConfig as Record<string, unknown>)[eKey] as Record<string, unknown>) || {};
 
-      // 深度合并：新增、删除（白名单保护）、修改（按类型递归合并）
       const { merged, added, removed, updated } = mergeMcpServers(
         (nJson[nKey] || {}) as Record<string, unknown>,
         existingServers,
@@ -466,19 +479,28 @@ function installMcp(platform, target, force) {
 
       if (added > 0 || removed > 0 || updated > 0) {
         (existingConfig as Record<string, unknown>)[eKey] = merged;
-        writeMcpConfig(projectRoot, existingConfig);
+        if (isGlobalSettings) {
+          // 写回完整 settings 文件，保留所有非 MCP 字段
+          writeFileSync(dest, JSON.stringify(existingConfig, null, 2));
+        } else {
+          writeMcpConfig(projectRoot, existingConfig as McpConfig);
+        }
         const parts: string[] = [];
         if (added > 0) parts.push(`+${added}`);
         if (removed > 0) parts.push(`-${removed}`);
         if (updated > 0) parts.push(`~${updated}`);
-        console.log(`  ~ ${t.file.padEnd(22)} MCP servers: ${parts.join(' ')}`);
+        console.log(`  ~ ${(isGlobalSettings ? '~/.claude.json' : t.file).padEnd(22)} MCP servers: ${parts.join(' ')}`);
       } else {
-        console.log(`  ~ ${t.file.padEnd(22)} already configured`);
+        console.log(`  ~ ${(isGlobalSettings ? '~/.claude.json' : t.file).padEnd(22)} already configured`);
       }
     } else {
-      // 新安装、force 覆盖、或原有文件 JSON 无效
-      writeMcpConfig(projectRoot, nJson);
-      console.log(`  + ${t.file.padEnd(22)} → ${dest}`);
+      if (isGlobalSettings) {
+        // 新全局安装：写入完整 settings 文件（仅含 mcpServers）
+        writeFileSync(dest, JSON.stringify(nJson, null, 2));
+      } else {
+        writeMcpConfig(projectRoot, nJson as McpConfig);
+      }
+      console.log(`  + ${(isGlobalSettings ? '~/.claude.json' : t.file).padEnd(22)} → ${dest}`);
     }
   }
 }

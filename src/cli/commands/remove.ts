@@ -345,16 +345,23 @@ function removeJarvisMcp(platform: string, target: string, isGlobal: boolean, dr
   if (platform !== 'claude') return;
 
   const projectRoot = isGlobal ? GLOBAL_ROOTS.claude : target;
-  const mcpFile = resolve(projectRoot, '.mcp.json');
+  const mcpFile = isGlobal ? resolve(homedir(), '.claude.json') : resolve(projectRoot, '.mcp.json');
 
   if (!existsSync(mcpFile)) return;
 
   try {
-    const existing = readMcpConfig(projectRoot);
-    if (!existing) return;
+    // 全局安装：读取完整 settings 文件；项目安装：读取 .mcp.json
+    let existing: Record<string, unknown>;
+    if (isGlobal) {
+      existing = JSON.parse(readFileSync(mcpFile, 'utf-8')) as Record<string, unknown>;
+    } else {
+      const config = readMcpConfig(projectRoot);
+      if (!config) return;
+      existing = config as unknown as Record<string, unknown>;
+    }
 
     const mcpKey = existing.mcpServers ? 'mcpServers' : 'mcp';
-    const servers = existing[mcpKey];
+    const servers = existing[mcpKey] as Record<string, unknown> | undefined;
     if (!servers) return;
 
     let changed = false;
@@ -371,7 +378,12 @@ function removeJarvisMcp(platform: string, target: string, isGlobal: boolean, dr
         delete existing[mcpKey];
       }
       if (!dryRun) {
-        writeFileSync(mcpFile, JSON.stringify(existing, null, 2) + '\n');
+        // 全局安装：写回完整 settings 文件；项目安装：写回 .mcp.json
+        if (isGlobal) {
+          writeFileSync(mcpFile, JSON.stringify(existing, null, 2) + '\n');
+        } else {
+          writeFileSync(mcpFile, JSON.stringify(existing, null, 2) + '\n');
+        }
       }
     }
   } catch { /* ignore */ }
