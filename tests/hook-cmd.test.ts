@@ -38,7 +38,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate A', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'write_code']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'write_code']);
       expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
@@ -49,7 +49,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate C-impl', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'write_code']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'write_code']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -60,7 +60,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate A', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'spawn_impl']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'spawn_impl']);
       expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
@@ -71,7 +71,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate C', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'spawn_impl']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'spawn_impl']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -82,7 +82,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate C2', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'spawn_test']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'spawn_test']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -93,7 +93,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate D', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'review']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'review']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -104,7 +104,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Complete', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check', '--operation', 'spawn_impl']);
+      await hookCommand(['gate-check', '--session', 's1', '--operation', 'spawn_impl']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
@@ -124,7 +124,7 @@ describe('hookCommand', () => {
         ok: true,
         json: () => Promise.resolve({ allowed: true })
       });
-      await hookCommand(['gate-check']);
+      await hookCommand(['gate-check', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Gate A'));
     });
@@ -136,7 +136,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate C-impl', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check']);
+      await hookCommand(['gate-check', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -147,7 +147,7 @@ describe('hookCommand', () => {
           sessions: [{ session_id: 's1', current_gate: 'Gate C', pipeline_name: '全流程', status: 'active' }]
         })
       });
-      await hookCommand(['gate-check']);
+      await hookCommand(['gate-check', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
@@ -161,13 +161,13 @@ describe('hookCommand', () => {
         ok: true,
         json: () => Promise.resolve({ sessions: [] })
       });
-      await hookCommand(['gate-check']);
+      await hookCommand(['gate-check', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
     it('12 | Engine 不可用 → exit(0) + 尝试自启动', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-      await hookCommand(['gate-check']);
+      await hookCommand(['gate-check', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
@@ -187,7 +187,7 @@ describe('hookCommand', () => {
         ok: true,
         json: () => Promise.resolve({ allowed: true, previous: 'Gate A', current: 'Gate B-DDD', next: 'Gate B-BDD' })
       });
-      await hookCommand(['gate-advance', '--gate', 'Gate B-DDD']);
+      await hookCommand(['gate-advance', '--session', 's1', '--gate', 'Gate B-DDD']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -202,13 +202,13 @@ describe('hookCommand', () => {
         ok: true,
         json: () => Promise.resolve({ allowed: false, error: 'missing artifacts' })
       });
-      await hookCommand(['gate-advance']);
+      await hookCommand(['gate-advance', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(2);
     });
 
     it('15 | Engine 不可用 → exit(0) + 尝试自启动', async () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-      await hookCommand(['gate-advance']);
+      await hookCommand(['gate-advance', '--session', 's1']);
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
