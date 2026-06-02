@@ -602,10 +602,8 @@ export function updateRunGateEnteredAt(db: DbConn, runId: string, isoTime: strin
   db.prepare('UPDATE pipeline_runs SET gate_entered_at=? WHERE id=?').run(isoTime, runId);
 }
 
-/** 完成 run，同时计算总耗时 */
-export function completeRun(db: DbConn, runId: string): void {
-  db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
-  // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
+/** 计算 run 耗时，更新 total_duration_seconds（started_at/completed_at 缺失时不报错） */
+function getRunDuration(db: DbConn, runId: string): void {
   db.prepare(`
     UPDATE pipeline_runs SET total_duration_seconds = CAST(
       (julianday(completed_at) - julianday(started_at)) * 86400 AS INTEGER
@@ -614,16 +612,16 @@ export function completeRun(db: DbConn, runId: string): void {
   `).run(runId);
 }
 
+/** 完成 run，同时计算总耗时 */
+export function completeRun(db: DbConn, runId: string): void {
+  db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
+  getRunDuration(db, runId);
+}
+
 /** 中止 run，同时计算总耗时 */
 export function abortRun(db: DbConn, runId: string): void {
   db.prepare("UPDATE pipeline_runs SET status='aborted', completed_at=datetime('now') WHERE id=?").run(runId);
-  // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
-  db.prepare(`
-    UPDATE pipeline_runs SET total_duration_seconds = CAST(
-      (julianday(completed_at) - julianday(started_at)) * 86400 AS INTEGER
-    )
-    WHERE id = ? AND started_at IS NOT NULL AND completed_at IS NOT NULL
-  `).run(runId);
+  getRunDuration(db, runId);
 }
 
 /**
@@ -719,7 +717,7 @@ export function deleteRun(db: DbConn, runId: string): { ok: boolean } {
     db.exec('COMMIT');
     return { ok: result.changes > 0 };
   } catch (e) {
-    try { db.exec('ROLLBACK'); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB migration error:", String(e)); }
+    try { db.exec('ROLLBACK'); } catch (e: unknown) { if (!/already exists/i.test(String(e))) console.error("DB delete error:", String(e)); }
     throw e;
   }
 }

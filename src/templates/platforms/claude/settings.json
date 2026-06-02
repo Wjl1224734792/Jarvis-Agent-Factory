@@ -5,10 +5,10 @@
   "disableBypassPermissionsMode": false,
   "hooks": {
     "PreToolUse": [
-      { "type": "command", "command": "jarvis hook gate-check" }
+      { "type": "command", "command": "jarvis hook gate-check --operation spawn_impl" }
     ],
     "PostToolUse": [
-      { "type": "command", "command": "jarvis hook gate-check" }
+      { "type": "command", "command": "jarvis hook gate-check --operation write_code" }
     ],
     "Stop": [
       { "type": "command", "command": "jarvis hook status" }

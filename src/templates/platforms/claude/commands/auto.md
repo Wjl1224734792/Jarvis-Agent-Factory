@@ -3,7 +3,7 @@ name: auto
 description: 智能自动路由编排——自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配Team/Subagent
 model: inherit
 argument-hint: "[任务描述]"
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
 ---
 
 # 智能自动路由编排
@@ -142,11 +142,7 @@ mcp__jarvis-engine__session_join({
 1. `spawn planner` Agent 产出执行计划
 2. `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目+全局 Skill，为每个实现 Agent 推荐 required_skills 清单
 3. **跳过条件**：小修改(可直接实现) → 跳过（planner 和 skill-assignment-expert 均跳过）
-**🔴 Plan Mode 审批（强制）**：planner 产出执行计划后：
-1. 调用 `EnterPlanMode` 进入计划模式
-2. 将计划文档核心内容（parallel_batches、Agent 分配、关键决策）呈现给用户审批
-3. 用户 approve → `ExitPlanMode` → `advance_gate({ gate: "Gate C-impl" })`
-4. 用户 reject → 根据反馈调整计划，重新审批（最多 2 轮）
+计划文档产出后，编排者与用户确认关键决策（parallel_batches、Agent 分配），确认无误后推进到 Gate C-impl。
 
 ### Gate C-impl：并行实现
 

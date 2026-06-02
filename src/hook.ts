@@ -199,10 +199,13 @@ export async function hookCommand(args) {
       const effectiveSessionId = sessionId || getSessionFromPidFile();
       const session = pickSession(pipeline, effectiveSessionId);
       if (!session) { process.exit(0); }
+      const payload: any = { session_id: session.session_id };
+      if (targetGate) payload.gate = targetGate;
+      // 不传 gate 时服务器默认推进到 current_gate + 1
       const r = await fetch(`${ENGINE_URL}/api/gate/advance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gate: targetGate || session.current_gate, session_id: session.session_id }),
+        body: JSON.stringify(payload),
       });
       const g = await r.json();
       if (g.allowed) {

@@ -3,7 +3,7 @@ name: evaluate
 description: 技术评估指令——E0定义标准→E1生成原型→E2收集指标→E3生成报告，4Gate评估流程
 model: inherit
 argument-hint: [评估对象，如"是否采用Bun替代Node.js"或"React vs Vue技术选型"]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 技术评估

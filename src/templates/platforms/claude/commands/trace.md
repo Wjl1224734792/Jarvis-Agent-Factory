@@ -3,7 +3,7 @@ name: trace
 description: 因果追踪——T0问题框架→T1假设生成→T2证据收集→T3因果分析→T4解决方案，假设驱动的科学根因定位
 model: inherit
 argument-hint: [异常/问题/症状描述]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
 ---
 
 # 因果追踪

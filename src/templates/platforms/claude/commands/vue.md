@@ -20,6 +20,10 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuesti
    - `Skill("frontend-design")`
    - `Skill("idea-refine")`
    - `Skill("context-engineering")`
+   - `Skill("incremental-implementation")`
+   - `Skill("verification-before-completion")`
+   - `Skill("concurrency-policy")`
+   - `Skill("session-memory")`
 
 2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "frontend" })`

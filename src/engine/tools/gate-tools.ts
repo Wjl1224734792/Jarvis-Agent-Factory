@@ -75,13 +75,13 @@ export function registerGateTools(server: McpServer, db: DatabaseSync, root: str
         isolation_guide: getGateTeamStrategy(cur) === 'prefer_team'
           ? '大任务(>10文件/跨≥3目录) spawn Agent 时建议传入 isolation: "worktree" 实现文件级隔离，小任务用 file_claim 系统即可'
           : '当前Gate规模较小，使用 file_claim 系统管理文件边界即可',
-        plan_mode: (cur === 'Gate A' || cur === 'Gate C')
+        plan_mode: (cur === 'Gate A')
           ? '当前 Gate 产出文档后，应使用 EnterPlanMode 进入计划模式，将文档内容呈现给用户进行结构化审批。用户 approve 后调用 ExitPlanMode 退出，再 advance_gate 推进。'
           : null,
         next_gate: gateList[ci + 1] || 'Complete',
         previous_gate: ci > 0 ? gateList[ci - 1] : null,
         fix_loop: (cur === 'Gate C1' || cur === 'Gate C1.5' || cur === 'Gate C2' || cur === 'Gate D')
-          ? '当前Gate支持修复回退循环，最多2轮。调用 gate_check("fix") 确认修复操作已允许。' : null,
+          ? `当前Gate支持修复回退循环，最多${GATE_CHECKS[cur]?.max_retry || 2}轮。调用 gate_check("fix") 确认修复操作已允许。` : null,
         file_claims: runId ? getRunFileClaims(runId) : {},
         file_claim_hint: 'spawn Agent 前用 file_claim_check 检测路径冲突，spawn 后用 file_claim_register 注册独占路径，Agent 完成后用 file_claim_release 释放。',
       });

@@ -17,6 +17,10 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "EnterPlanMode
    - `Skill("using-agent-skills")`
    - `Skill("idea-refine")`
    - `Skill("context-engineering")`
+   - `Skill("incremental-implementation")`
+   - `Skill("verification-before-completion")`
+   - `Skill("concurrency-policy")`
+   - `Skill("session-memory")`
 
 2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "backend" })`
@@ -106,7 +110,7 @@ Gate C-impl:
 6. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
 7. 等待整批完成，检查 plan patch / contract change request
 
-**Plan Mode 审批**：planner 产出计划后，EnterPlanMode → 呈现计划 → 用户审批 → ExitPlanMode。
+
 
 ### Gate C2：测试
 
