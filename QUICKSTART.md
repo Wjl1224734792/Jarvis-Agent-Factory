@@ -1,6 +1,6 @@
 # Jarvis Agent Factory — 快速开始
 
-[![Version](https://img.shields.io/badge/version-v4.7.78-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v4.7.79-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 
 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，**仅支持 Claude Code**。

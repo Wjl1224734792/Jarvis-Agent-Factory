@@ -1,5 +1,5 @@
 /**
- * 会话归档 — 自动消费 session_events + working_memory → 生成摘要 → 写入 repowiki
+ * 会话归档 — 自动消费 session_events + working_memory → 生成摘要 → 写入 session-logs
  * 实现 OMC 风格"被动收集+自动注入"的跨会话知识传递
  */
 import type { DatabaseSync } from 'node:sqlite';
@@ -7,7 +7,7 @@ import {
   getSessionEvents, getWorkingMemory, saveSessionContext,
   getRecentSessionContexts, pruneWorkingMemory,
 } from './db.js';
-import { ingestWikiPage } from './wiki-store.js';
+import { saveSessionLog } from './session-log-store.js';
 
 interface ArchiveResult {
   archived: boolean;
@@ -18,7 +18,7 @@ interface ArchiveResult {
 }
 
 /**
- * 归档会话：消费事件日志 + 工作记忆 → 生成摘要 → 写入 repowiki + session_context 表
+ * 归档会话：消费事件日志 + 工作记忆 → 生成摘要 → 写入 session-logs + session_context 表
  */
 export async function archiveSession(
   root: string,
@@ -67,18 +67,23 @@ export async function archiveSession(
   // 写入 session_context 表
   saveSessionContext(db, sessionId, runId, summary, decisions, pending);
 
-  // 写入 repowiki（追加模式）
+  // 写入 session-logs 目录（独立于 RepoWiki）
   try {
-    const result = await ingestWikiPage(
-      root,
-      `会话记录：${taskLabel}`,
+    const slug = `会话记录-${taskLabel.replace(/[^a-zA-Z0-9一-鿿-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 64)}`;
+    const logContent = [
+      '---',
+      `title: "会话记录：${taskLabel}"`,
+      'tags: ["session-log", "auto-archived"]',
+      `created: "${new Date().toISOString()}"`,
+      `updated: "${new Date().toISOString()}"`,
+      'category: session-log',
+      `session_id: "${sessionId}"`,
+      '---',
+      '',
       summary,
-      ['session-log', 'auto-archived'],
-      'session-log',
-      [sessionId],
-      'medium',
-    );
-    return { archived: true, summary, decisions, pending, wikiSlug: result.slug };
+    ].join('\n');
+    saveSessionLog(root, slug, logContent);
+    return { archived: true, summary, decisions, pending, wikiSlug: slug };
   } catch {
     return { archived: true, summary, decisions, pending };
   }
