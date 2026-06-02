@@ -34,13 +34,16 @@ Skill("git-workflow-and-versioning")
 
 ### 步骤
 
-#### 0.1 检测当前分支
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目环境配置：package.json版本、.github/workflows CI配置、CHANGELOG.md最近版本、git分支状态")
+
+#### 0.2 检测当前分支
 ```bash
 git branch --show-current
 ```
 当前分支记作 `<CURRENT>`。
 
-#### 0.2 检测包管理器
+#### 0.3 检测包管理器
 按优先级检测锁文件：
 | 锁文件 | 包管理器 | 运行脚本命令 |
 |--------|---------|-------------|
@@ -51,7 +54,7 @@ git branch --show-current
 
 若无任何锁文件，默认使用 `npm`。对应前缀记作 `<PKG>`。
 
-#### 0.3 检测版本文件
+#### 0.4 检测版本文件
 按优先级检测：
 | 文件 | 项目类型 | 版本字段 |
 |------|---------|---------|
@@ -61,13 +64,13 @@ git branch --show-current
 
 检测到的文件记作 `<VERSION_FILE>`，当前版本记作 `<CUR_VER>`。
 
-#### 0.4 检测测试命令
+#### 0.5 检测测试命令
 ```bash
 <PKG> test -- --listTests 2>/dev/null && echo "found" || echo "not found"
 ```
 若 `package.json` 含 `scripts.test` 则使用 `<PKG> test`，否则按 `Makefile test` → `pytest` → `cargo test` → `go test ./...` 优先级查找。
 
-#### 0.5 汇总检测结果
+#### 0.6 汇总检测结果
 ```
 === 环境检测结果 ===
 当前分支: <CURRENT>

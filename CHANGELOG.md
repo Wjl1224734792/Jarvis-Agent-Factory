@@ -4,6 +4,66 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.81 (2026-06-02)
+
+### 变更
+- **Plan Mode 全量移除**: 6个命令模板+2个Agent模板+引擎 pipeline_guide+concurrency-policy技能中移除 EnterPlanMode/ExitPlanMode，Gate A直接产出需求文档
+- **全指令探索阶段补齐**: 44个命令模板全部添加并行信息收集阶段（code-explore-expert/external-resource-expert/docs-research-expert），收集→规划→实现→验证闭环
+- **安全加固**: install.ts 新增18个Bash危险模式匹配器（rm/mv/curl|bash/node -e/npm install/git reset/docker/ssh等），总计51个
+- **Gate C 全自动化**: planner自动读取Gate B任务文档+skill-assignment-expert并行推荐技能，无需用户确认
+
+### 修复
+- Gate R加入auto流水线gate列表（13门），/review-only gate_jump不再失败
+- R1 gate新增spawn_impl+code-explore-expert，重构边界定义前先探索代码
+- refactor/hotfix/migrate/evaluate/debug/simplify/improve命令全部添加探索Agent阶段
+
+### 文档
+- 全量文档同步：README/AGENTS/CHANGELOG/.jarvis/docs/flows/Web Guide
+- 流水线类型统计 15→17，命令统计 44→43
+
+## v4.7.80 (2026-06-02)
+
+### 变更
+- **Gate/Hook/Agent 权限全系统对齐**: Hook 路由表补全 22 个缺失命令条目, auto.md bug-fix 路由 Gate C→C2 修正
+- **审查流程拆分**: 只读审查→Gate R (auto 流水线第 13 门), 审查修复→Gate D, review-only→Gate R 闭环
+- **Gate C 文档澄清**: planner 读取 Gate B 的 DDD/BDD/TDD 任务文档自动生成执行计划, skill-assignment-expert 并行分配 required_skills, 全程无人确认
+
+### 修复
+- **流水线类型修正**: sync.md/skill-flow.md 从 full→auto, cleanup.md Gate C-impl 入口跳转补齐
+- **命令统计更新**: 移除废弃 mobile 命令后文档统计 44→43
+
+## v4.7.79 (2026-06-01)
+
+### 变更
+- **会话归档与 Wiki 存储分离**: 会话归档与知识库 Wiki 独立数据库存储隔离
+
+## v4.7.78 (2026-06-01)
+
+### 变更
+- **全系统审查修复 + 闭环验证**: review-only 模板→Gate R 只读审查, review-fix 模板→Gate D 修复闭环
+
+## v4.7.77 (2026-06-01)
+
+### 变更
+- **安全加固**: install.ts 新增 18 个 Bash PreToolUse 匹配器 (rm/mv/curl|bash/node -e/npm install/git reset/docker/ssh), 总计 51 个 Hook 匹配器 (原 33)
+- **Plan Mode 移除**: EnterPlanMode/ExitPlanMode 从全部 command/agent/skill 模板中移除, 引擎 plan_mode 始终返回 null
+- **Gate A/C 自动推进**: Gate A 直接写入需求文档无中断, Gate C 自动生成执行计划不确认
+
+## v4.7.76 (2026-06-01)
+
+### 清理
+- **废弃 mobile 命令**: 删除 /mobile 命令及所有关联引用, Agent 模板同步清理
+
+## v4.7.75 (2026-06-01)
+
+### 变更
+- **skill-assignment→Agent prompt 注入闭环**: 打通 skill-assignment-expert 产出→Agent prompt 完整注入链路
+
+## v4.7.74 (2026-06-01)
+
+### 变更
+- **全量编排补齐**: Gate C skill-assignment-expert 集成 + Gate E docs-engineer 硬约束强制调用
+
 ## v4.7.73 (2026-06-01)
 
 ### 修复

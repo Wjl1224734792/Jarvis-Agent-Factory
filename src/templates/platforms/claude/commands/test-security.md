@@ -26,6 +26,9 @@ Skill("security-testing")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描安全配置（CSP/CORS/认证中间件）、现有安全测试配置和依赖漏洞清单")
+
 ## 步骤 1：确认测试范围与授权（不可绕过）
 
 **安全测试前必须确认**：

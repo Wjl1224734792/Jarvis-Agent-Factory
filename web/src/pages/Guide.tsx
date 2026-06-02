@@ -161,7 +161,7 @@ export default function Guide() {
       {/* ── 流水线类型 ── */}
       <Card size="small" style={{ marginBottom: 12 }}>
         <Title level={5} style={{ marginTop: 0 }}>
-          <ThunderboltOutlined style={{ marginRight: 6 }} />流水线类型（15 种）
+          <ThunderboltOutlined style={{ marginRight: 6 }} />流水线类型（17 种）
         </Title>
         {PIPELINE_GROUPS.map(group => (
           <div key={group.title} style={{ marginBottom: 12 }}>

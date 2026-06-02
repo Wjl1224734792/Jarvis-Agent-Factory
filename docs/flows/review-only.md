@@ -46,7 +46,8 @@ updated: "2026-05-21"
    - `Skill("code-review-and-quality")`
 
 2. 注册引擎会话（硬约束——引擎确保只读纪律不可绕过）：
-   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
+   - `mcp__jarvis-engine__gate_jump({ gate: "Gate R" })`  // 跳转只读审查 Gate
    - `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
    - 读取文件前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })`
    - 生成审查报告前调用 `mcp__jarvis-engine__gate_check({ operation: "write_doc" })`

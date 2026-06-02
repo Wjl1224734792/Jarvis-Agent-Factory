@@ -8,6 +8,10 @@ tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuesti
 
 - mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "探索项目代码结构和架构模式，为DDD领域分析提供代码上下文")
+Agent(docs-research-expert, "调研项目现有文档（AGENTS.md/README.md/需求文档），确认当前架构基线")
+
 # 任务分解设计
 
 ## 模式选择

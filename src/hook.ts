@@ -359,10 +359,18 @@ export async function hookCommand(args) {
     // 从关键词检测 pipeline_type
     const routingTable: Record<string, string> = {
       '/frontend': 'frontend', '/backend': 'backend', '/hotfix': 'hotfix',
-      '/refactor': 'refactor', '/release': 'release', '/publish': 'release',
+      '/refactor': 'refactor', '/release': 'release',
+      '/review-only': 'auto', '/review-fix': 'auto', '/bug-fix': 'auto',
+      '/browser': 'auto', '/test-unit': 'auto', '/test-e2e': 'auto',
+      '/test-integration': 'auto', '/test-perf': 'auto', '/test-security': 'auto',
+      '/verify': 'auto', '/cleanup': 'auto', '/repowiki': 'auto',
+      '/skill-flow': 'full', '/task-design': 'auto',
       '/debug': 'debug', '/research': 'research', '/ask': 'ask',
       '/simplify': 'simplify', '/trace': 'trace', '/improve': 'improve',
       '/evaluate': 'evaluate', '/migrate': 'migrate', '/deepinit': 'deepinit',
+      '/flutter': 'frontend', '/expo': 'frontend', '/swift': 'frontend',
+      '/kotlin': 'frontend', '/taro': 'frontend', '/miniprogram': 'frontend',
+      '/uni-app': 'frontend', '/react': 'frontend', '/vue': 'frontend',
       '/jarvis': 'full', '/auto': 'auto', '/consult': 'consult',
     };
     let pipelineType = '';

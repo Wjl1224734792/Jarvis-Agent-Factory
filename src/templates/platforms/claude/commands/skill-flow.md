@@ -3,7 +3,7 @@ name: skill-flow
 description: 会话流程导出 — 将当前会话的流水线流程（Gate序列+Agent spawn+产物）导出为可复用的 Skill 模板
 model: inherit
 argument-hint: "[子命令: export|save|list|apply] [名称]"
-tools: ["Read", "Glob", "Grep", "Bash", "Edit", "Write", "Skill", "mcp__jarvis-engine__session_export", "mcp__jarvis-engine__flow_skill_save", "mcp__jarvis-engine__flow_skill_list", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Edit", "Write", "Skill", "mcp__jarvis-engine__session_export", "mcp__jarvis-engine__flow_skill_save", "mcp__jarvis-engine__flow_skill_list", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__report_status"]
 ---
 
 # /skill-flow — 会话流程 Skill 化
@@ -18,14 +18,19 @@ Skill("behavioral-guidelines")
 
 mcp__jarvis-engine__session_join({
   platform: "claude",
-  pipeline_type: "full",
+  pipeline_type: "auto",
   task_name: "[skill-flow] " + (用户输入 || "流程导出")
 })
+
+使用 mcp__jarvis-engine__gate_jump({ gate: "Gate C-impl" })
 ```
 
 产物输出目录: `.jarvis/YYYY-MM-DD/skills/`
 
-## 步骤 1：识别子命令
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目的 .jarvis/ 目录和 skills/ 目录，收集现有的 Skill 模板、会话归档记录和流水线运行历史")
+
+## 步骤 2：识别子命令
 
 从用户输入解析子命令：
 
@@ -36,7 +41,7 @@ mcp__jarvis-engine__session_join({
 | `list` | 列出所有已保存的流程 Skill | `/skill-flow list` |
 | `apply <名称>` | 将已保存的 Skill 模板应用到当前会话 | `/skill-flow apply my-release` |
 
-## 步骤 2：执行操作
+## 步骤 3：执行操作
 
 ### 2a. export — 导出当前会话流程
 
@@ -112,7 +117,7 @@ mcp__jarvis-engine__flow_skill_list({})
 4. 报告匹配状态和建议操作
 ```
 
-## 步骤 3：产出
+## 步骤 4：产出
 
 | 子命令 | 产出 |
 |--------|------|

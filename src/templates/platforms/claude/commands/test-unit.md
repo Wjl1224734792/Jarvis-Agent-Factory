@@ -27,6 +27,9 @@ Skill("test-data-factory")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描目标模块的现有测试文件和测试框架配置，识别测试覆盖缺口、mock策略和断言模式")
+
 ## 步骤 1：检测测试框架（不可绕过）
 
 自动检测项目中使用的测试框架：

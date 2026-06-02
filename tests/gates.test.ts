@@ -70,12 +70,12 @@ describe('getPipelineGates', () => {
 
   it('auto 模式允许 jump（原 lite 已重命名为 auto）', () => {
     expect(PIPELINE_DEFS.auto.allow_jump).toBe(true);
-    expect(getPipelineGates('auto')).toHaveLength(12);
+    expect(getPipelineGates('auto')).toHaveLength(13); // +Gate R
   });
 
   it('lite 别名向后兼容，返回 auto 的 Gate 数组', () => {
     expect(getPipelineGates('lite')).toEqual(getPipelineGates('auto'));
-    expect(getPipelineGates('lite')).toHaveLength(12);
+    expect(getPipelineGates('lite')).toHaveLength(13); // +Gate R
   });
 });
 
@@ -298,7 +298,7 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
     expect(getPipelineGates('full')).toHaveLength(12);
     expect(getPipelineGates('frontend')).toHaveLength(12);
     expect(getPipelineGates('backend')).toHaveLength(11);
-    expect(getPipelineGates('auto')).toHaveLength(12);
+    expect(getPipelineGates('auto')).toHaveLength(13); // +Gate R
     expect(PIPELINE_DEFS.auto.allow_jump).toBe(true);
   });
 

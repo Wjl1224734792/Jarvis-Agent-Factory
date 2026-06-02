@@ -77,7 +77,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | uni-app | `/uni-app` | | React | `/react` |
 | Vue | `/vue` | | | |
 
-→ 全部 44 条命令见 [命令流程图](#命令流程图)
+→ 全部 43 条命令见 [命令流程图](#命令流程图)
 
 ## 流水线类型
 
@@ -101,7 +101,7 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | | Claude Code |
 |---|:--:|
 | Agents | 88 |
-| Commands | 44 |
+| Commands | 43 |
 | Skills | 34 |
 | CLI 命令 | 10 (`init` `add` `remove` `upgrade` `diff` `engine` `web` `hook` `doctor` `resolve`) |
 | 流水线 | 17 条 |
@@ -131,8 +131,8 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 
 | 分类 | 命令 | 流程图 | Gate |
 |------|------|--------|------|
-| 核心 | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | 10门 |
-| | `/auto` | [auto.md](docs/flows/auto.md) | 智能路由 |
+| 核心 | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | 12门 |
+| | `/auto` | [auto.md](docs/flows/auto.md) | 13门（含Gate R） |
 | 前端 | `/frontend` | [frontend.md](docs/flows/frontend.md) | C1.5强制 |
 | 后端 | `/backend` | [backend.md](docs/flows/backend.md) | 跳过C1.5 |
 | 审查 | `/review-only` | [review-only.md](docs/flows/review-only.md) | 只读 |

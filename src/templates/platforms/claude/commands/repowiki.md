@@ -18,6 +18,10 @@ mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })
 
 调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前操作上下文（若引擎有活跃流水线）。
 
+### 步骤 0：信息收集
+调用 mcp__jarvis-engine__repowiki_list() 列出已有 Wiki 页面，了解当前知识库状态。
+Agent(code-explore-expert, "扫描 .jarvis/wiki/pages/ 目录结构和内容概要")
+
 在操作前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
 
 ---

@@ -3,7 +3,7 @@ name: auto
 description: 智能自动路由编排——自动检测任务类型→路由最优流水线→智能跳过无关Gate→按复杂度分配Team/Subagent
 model: inherit
 argument-hint: "[任务描述]"
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
 ---
 
 # 智能自动路由编排
@@ -44,11 +44,12 @@ Skill("session-memory")
 | 任务性质 | 路由流水线 | 入口 Gate | 说明 |
 |---------|-----------|-----------|------|
 | 新功能开发 | `full` | Gate A | 完整需求→实现→测试→评审→发布流程 |
-| Bug修复 | `auto` | Gate C | 使用 auto 流水线（allow_jump），gate_jump 到 Gate C 直接修复 |
+| Bug修复 | `auto` | Gate C2 | 使用 auto 流水线（allow_jump），gate_jump 到 Gate C2 直接修复 |
 | 小修改(<3文件) | `auto` | Gate C-impl | 使用 auto 流水线（allow_jump），gate_jump 到 Gate C-impl 直接实现 |
 | 重构 | `refactor` | R1 | R1边界→R2基线→R3重构→R4漂移→R5报告 |
 | 紧急修复 | `hotfix` | H0 | H0声明→H1修复→H2验证→H3审计 |
-| 代码审查 | `auto` | Gate D | 使用 auto 流水线（allow_jump），gate_jump 到 Gate D 直接审查 |
+| 只读审查 | `auto` | Gate R | 使用 auto 流水线（allow_jump），gate_jump 到 Gate R 只读审查（禁止修复） |
+| 审查修复 | `auto` | Gate D | 使用 auto 流水线（allow_jump），gate_jump 到 Gate D 审查+修复闭环 |
 | 技术调研 | `research` | RS0 | RS0课题→RS1收集→RS2分析→RS3验证→RS4报告 |
 | 调试诊断 | `debug` | D0 | D0信息→D1复现→D2会话→D3诊断→D4报告 |
 | 代码简化 | `simplify` | S0 | S0分析→S1简化→S2验证→S3报告 |
@@ -107,6 +108,19 @@ mcp__jarvis-engine__session_join({
 
 > 这个步骤消除了 Jarvis 的"冷启动"问题——每次新会话自动获得上次会话的上下文。
 
+### 2.2 路由后信息收集
+
+若路由到 Gate C-impl / Gate C2 / Gate D（需要写代码或审查的 Gate），在 gate_jump 之前先并行收集信息：
+
+```
+# 同一消息同时发出（Gate A 允许 spawn_impl）
+Agent(code-explore-expert, "探索相关代码区域，收集现有实现模式、文件结构和依赖关系")
+Agent(external-resource-expert, "搜索相关技术最新文档和最佳实践")  
+Agent(docs-research-expert, "调研项目现有文档和架构决策记录")
+```
+
+探索 Agent 返回后，整理上下文摘要，再 gate_jump 到目标 Gate。这样进入目标 Gate 时已有完整上下文，后续 Agent 工作效率大幅提升。
+
 ---
 
 ## 步骤 3：按 Gate 智能推进
@@ -121,11 +135,7 @@ mcp__jarvis-engine__session_join({
 2. 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`
 3. **跳过条件**：Bug修复（已明确知道修什么）/小修改（<3文件，无新增功能）/审查/调试 → 跳过 Gate A
 
-**🔴 Plan Mode 审批**：需求文档产出后（仅 Gate A 未跳过的场景）：
-1. 调用 `EnterPlanMode` 进入计划模式
-2. 将需求文档核心内容（REQ 列表、关键假设、范围边界）呈现给用户审批
-3. 用户 approve → `ExitPlanMode` → 继续推进
-4. 用户 reject → 根据反馈调整需求，重新审批
+**与用户确认需求后**，产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`，然后调用 `gate_enforce` → `advance_gate` 推进。
 
 ### Gate B-DDD/B-BDD/B-TDD：任务分解（新功能/大改动时执行）
 
@@ -139,10 +149,10 @@ mcp__jarvis-engine__session_join({
 
 ### Gate C：执行规划
 
-1. `spawn planner` Agent 产出执行计划
-2. `spawn skill-assignment-expert` Agent（与 planner 并行），自动发现项目+全局 Skill，为每个实现 Agent 推荐 required_skills 清单
+1. `spawn planner` Agent：读取 Gate B 产出的 DDD/BDD/TDD 任务文档，自动生成执行计划（含 parallel_batches、Execution Packet、共享区域责任方），产出到 `.jarvis/YYYY-MM-DD/plans/<topic>-plan.md`
+2. `spawn skill-assignment-expert` Agent（与 planner 并行）：自动发现项目+全局 Skill，为每个实现 Agent 推荐 required_skills 清单
 3. **跳过条件**：小修改(可直接实现) → 跳过（planner 和 skill-assignment-expert 均跳过）
-计划文档产出后，编排者与用户确认关键决策（parallel_batches、Agent 分配），确认无误后推进到 Gate C-impl。
+4. 计划文档产出后，调用 `gate_enforce` → `advance_gate({ gate: "Gate C-impl" })` 自动推进，无需用户确认
 
 ### Gate C-impl：并行实现
 

@@ -26,7 +26,7 @@
 立即执行以下初始化步骤：
 
 1. 注册引擎会话：
-   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
    - `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
 2. 测试执行前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
 3. 测试完成后调用 `mcp__jarvis-engine__gate_enforce()` 验证 Gate 条件

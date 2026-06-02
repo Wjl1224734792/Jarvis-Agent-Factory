@@ -30,11 +30,16 @@ Skill("source-driven-development")
 **Gate 检查条件**：评估标准文档已产出，含评估维度+权重+用例清单
 
 ### 步骤
+### 步骤 0：并行信息收集（同一消息同时发出）
+spawn code-explore-expert → 扫描当前项目技术栈，识别与评估对象相关的现有代码、依赖和架构模式
+spawn external-resource-expert → 搜索所有备选方案的最新对比数据（性能基准、社区活跃度、已知问题）
+
+### 步骤 1：定义评估标准
 1. 明确评估对象和备选方案：
    - 方案 A：当前方案（基线）
    - 方案 B / C / D：备选方案
 
-2. 定义评估维度（至少 4 个维度）：
+3. 定义评估维度（至少 4 个维度）：
 
    | 维度 | 权重 | 评分标准 |
    |------|------|---------|
@@ -44,7 +49,7 @@ Skill("source-driven-development")
    | **生态兼容** | 15% | 现有工具链集成、依赖迁移成本 |
    | **运维成本** | 10% | 部署复杂度、监控、日志 |
 
-3. 设计验证用例清单（对每个备选方案执行相同的任务）：
+4. 设计验证用例清单（对每个备选方案执行相同的任务）：
    ```
    | 用例ID | 场景描述 | 输入 | 预期输出 | 验证维度 |
    |--------|---------|------|---------|---------|
@@ -53,7 +58,7 @@ Skill("source-driven-development")
    | UC-03 | 并行请求处理 | 100并发 | 0 错误 | 吞吐量 |
    ```
 
-4. 输出 `.jarvis/YYYY-MM-DD/evaluation/evaluation-criteria.md`
+5. 输出 `.jarvis/YYYY-MM-DD/evaluation/evaluation-criteria.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "E1" })`
 

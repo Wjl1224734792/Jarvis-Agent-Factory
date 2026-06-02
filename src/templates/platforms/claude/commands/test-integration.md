@@ -27,6 +27,9 @@ Skill("test-data-factory")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描API路由定义、OpenAPI契约文件和现有集成测试，识别端点覆盖缺口")
+
 ## 步骤 1：识别 API 契约（不可绕过）
 
 按优先级查找 API 定义：

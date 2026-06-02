@@ -26,6 +26,9 @@ Skill("test-driven-development")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目的路由结构、页面组件和现有 Playwright E2E 测试脚本，识别核心用户流程和测试覆盖缺口")
+
 ## 步骤 1：提取用户故事和核心流程（不可绕过）
 
 从需求文档或用户输入中提取：

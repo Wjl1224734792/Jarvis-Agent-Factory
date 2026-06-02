@@ -31,6 +31,11 @@ Skill("source-driven-development")
 **Gate 检查条件**：迁移规则文档已产出，规则覆盖率验证通过
 
 ### 步骤
+### 步骤 0：并行信息收集（同一消息同时发出）
+spawn code-explore-expert → 扫描项目所有源文件，识别当前框架/库的使用模式（API调用、导入路径、配置方式），输出使用清单
+spawn external-resource-expert → 搜索目标框架的最新迁移指南和最佳实践
+
+### 步骤 1：分析并定义规则
 1. 定义迁移规则表：
    ```
    | 规则ID | 源模式 | 目标模式 | 适用文件 | 优先级 |
@@ -41,12 +46,12 @@ Skill("source-driven-development")
    | M004 | req.body | req.body (fastify已内置) | src/**/*.ts | P1 |
    ```
 
-2. 验证规则覆盖率：
+3. 验证规则覆盖率：
    - `grep -rn "源模式" --include="*.ts"` 找出所有匹配位置
    - 确保每个匹配位置都有对应迁移规则
    - 补充遗漏的规则
 
-3. 输出 `.jarvis/YYYY-MM-DD/migration/migration-rules.md`
+4. 输出 `.jarvis/YYYY-MM-DD/migration/migration-rules.md`
 
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "M2" })`
 

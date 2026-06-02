@@ -15,7 +15,7 @@
 
 ## 流程步骤
 
-1. **加载技能 + 注册引擎**：`session_join(pipeline_type: "full")`
+1. **加载技能 + 注册引擎**：`session_join(pipeline_type: "auto")`
 2. **模式选择**：从 `--mode` 参数或自动判断（ddd/bdd/tdd）
 3. **Spawn Agent**：
    - ddd 模式：spawn `task-designer`（DDD 模式）→ 产出领域模型
@@ -38,7 +38,7 @@
 
 ```mermaid
 flowchart TD
-    START([用户输入 /task-design]) --> JOIN[session_join<br/>pipeline_type: full]
+    START([用户输入 /task-design]) --> JOIN[session_join<br/>pipeline_type: auto]
     JOIN --> MODE{选择模式}
     MODE --> |ddd| DDD[spawn task-design<br/>DDD 领域分析]
     MODE --> |bdd| BDD[spawn task-design<br/>BDD 行为场景]

@@ -25,6 +25,9 @@ Skill("perf-testing")
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目性能配置（k6/Artillery脚本）、现有性能基线和关键API端点")
+
 ## 步骤 1：定义性能测试目标（不可绕过）
 
 明确性能成功标准：

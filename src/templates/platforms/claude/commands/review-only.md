@@ -16,10 +16,10 @@ tools: ["Read", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Skill", "Agent
 
 2. 注册引擎会话（硬约束——引擎确保只读纪律不可绕过）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
-   - `mcp__jarvis-engine__gate_jump({ gate: "Gate D" })`
+   - `mcp__jarvis-engine__gate_jump({ gate: "Gate R" })`
    - `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
    - 读取文件前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })`
-   - 生成审查报告前调用 `mcp__jarvis-engine__gate_check({ operation: "write_doc" })`
+   - 输出审查报告前调用 `mcp__jarvis-engine__gate_check({ operation: "review" })`
 
 3. 确认进入**只读审查模式**（不可绕过）。核心纪律：
    - **不修改任何文件** — 不编辑、不格式化、不 stage、不 commit

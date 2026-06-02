@@ -33,7 +33,10 @@ Skill("git-workflow-and-versioning")
 - 质量门/Lint/Type-check/Build 前调用 `gate_check({ operation: "lint" })` / `gate_check({ operation: "build" })`
 - 每个 Gate 完成后调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
 
-### 0.1 检测默认分支
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目环境：默认分支、CI配置、package.json版本、CHANGELOG.md、git远程仓库状态")
+
+### 0.2 检测默认分支
 
 ```bash
 git remote show origin | grep "HEAD branch" | awk '{print $NF}'
@@ -43,7 +46,7 @@ git remote show origin | grep "HEAD branch" | awk '{print $NF}'
 
 若 `git remote show origin` 失败（无远程仓库），报告用户先配置远程仓库。
 
-### 0.2 检测工作分支
+### 0.3 检测工作分支
 
 ```bash
 git branch --show-current
@@ -59,7 +62,7 @@ git branch --show-current
   若 `dev` 已存在（本地或远程），改为 `git checkout dev && git pull origin dev`。
   若用户指定了其他名称，使用用户指定的名称。记作 `<WORK>`。
 
-### 0.3 检测包管理器
+### 0.4 检测包管理器
 
 按优先级检测锁文件，优先使用已有锁文件的包管理器：
 
@@ -71,7 +74,7 @@ git branch --show-current
 
 若无任何锁文件，默认使用 `npm`。对应的前缀记作 `<PKG>`。以下各步骤中的脚本调用统一为 `<PKG> <script>` 格式。审计命令为 `<PKG> audit`。
 
-### 0.4 检测版本文件
+### 0.5 检测版本文件
 
 按优先级检测版本声明文件：
 
@@ -83,7 +86,7 @@ git branch --show-current
 
 若多个文件同时存在，优先使用 `package.json`。检测到的文件记作 `<VERSION_FILE>`，当前版本记作 `<CUR_VER>`。
 
-### 0.5 检测测试命令
+### 0.6 检测测试命令
 
 ```bash
 # 若 package.json 存在且含 test 脚本
@@ -98,7 +101,7 @@ git branch --show-current
 
 若无法自动检测，提示用户指定测试命令。
 
-### 0.6 汇总检测结果
+### 0.7 汇总检测结果
 
 向用户展示并确认：
 

@@ -28,6 +28,9 @@ Skill("browser-testing")
 
 产物输出目录: `.jarvis/YYYY-MM-DD/bug-fix/`
 
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "根据Bug描述探索相关代码区域：定位可能的根因文件、分析调用链、检查相关测试用例和最近的git变更")
+
 ## 步骤 1：收集 Bug 信息（不可绕过）
 向用户确认（如未提供）：
 - **Bug 描述**：预期行为 vs 实际行为

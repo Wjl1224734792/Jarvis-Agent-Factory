@@ -3,7 +3,7 @@ name: cleanup
 description: 安全卸载/清理 Jarvis — 细粒度移除项目或全局的 Jarvis 配置和引擎数据，不误删用户自有文件
 model: inherit
 argument-hint: [--dry-run] [--engine] [--global] [--force]
-tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
+tools: ["Read", "Bash", "Write", "Edit", "Skill", "Glob", "Grep", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce"]
 ---
 
 # 安全清理 Jarvis
@@ -18,13 +18,17 @@ Skill("chinese-documentation")
 
 **引擎会话注册**：
 - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto", task_name: "清理: <清理目标>" })`
+- 使用 `mcp__jarvis-engine__gate_jump({ gate: "Gate C-impl" })`
 - `mcp__jarvis-engine__pipeline_guide()`
 
 产物输出目录: `.jarvis/YYYY-MM-DD/cleanup/`
 
-在开始清理前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 验证当前 Gate 条件。
+在开始清理前调用 `mcp__jarvis-engine__gate_check({ operation: "write_code" })` 验证当前 Gate 条件。
 
-## 步骤 1：确认清理范围
+### 步骤 0：并行信息收集（同一消息同时发出）
+Agent(code-explore-expert, "扫描项目中的临时文件、未跟踪文件、过时的jarvis安装产物、重复配置文件")
+
+## 步骤 2：确认清理范围
 
 向用户确认要清理的范围：
 
@@ -40,7 +44,7 @@ Skill("chinese-documentation")
 - settings.json 只移除 `_jarvisManagedHooks` 标记的 hook，保留用户自定义 hook
 - 引擎数据（`.jarvis/`）只在显式传 `--engine` 时才删除
 
-## 步骤 2：预览（建议先 dry-run）
+## 步骤 3：预览（建议先 dry-run）
 
 ```bash
 # 查看当前项目会被移除的文件
@@ -52,7 +56,7 @@ jarvis remove claude --global --dry-run --list
 
 如果用户不确定，**必须先 dry-run 预览再执行**。
 
-## 步骤 3：执行清理
+## 步骤 4：执行清理
 
 ```bash
 # 仅移除配置（安全）
@@ -68,7 +72,7 @@ jarvis remove claude --global
 jarvis remove claude --global --engine --force
 ```
 
-## 步骤 4：验证清理结果
+## 步骤 5：验证清理结果
 
 ```bash
 jarvis doctor

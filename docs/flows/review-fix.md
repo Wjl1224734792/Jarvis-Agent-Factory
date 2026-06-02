@@ -48,7 +48,8 @@ updated: "2026-05-21"
    - `Skill("code-review-and-quality")`
 
 2. 注册引擎会话（硬约束——引擎确保各阶段操作权限不可绕过）：
-   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "auto" })`
+   - `mcp__jarvis-engine__gate_jump({ gate: "Gate D" })`  // 跳转审查修复 Gate
    - 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
    - 关键操作前调用 `gate_check`：审查→`review`，修复→`fix`，Lint→`lint`，构建→`build`
 
