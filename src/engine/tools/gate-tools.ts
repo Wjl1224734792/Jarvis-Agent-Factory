@@ -33,6 +33,15 @@ export function registerGateTools(server: McpServer, db: DatabaseSync, root: str
         });
       }
       const ops = getGateOperations(cur);
+      // write_code 降级：如果 write_doc 或 fix 在 allow 中则放行
+      if (operation === 'write_code' && !ops.allow.includes('write_code')) {
+        if (ops.allow.includes('write_doc')) {
+          return ctx.resp({ allowed: true, gate: cur, operation, session_id: sid, run_id: runId, message: `${cur}: write_code 被禁但 write_doc 允许 → 降级放行（仅写文档）`, downgrade: 'write_doc' });
+        }
+        if (ops.allow.includes('fix')) {
+          return ctx.resp({ allowed: true, gate: cur, operation, session_id: sid, run_id: runId, message: `${cur}: write_code 被禁但 fix 允许 → 降级放行（仅修复）`, downgrade: 'fix' });
+        }
+      }
       const allowed = ops.allow.includes(operation);
       if (allowed) return ctx.resp({ allowed: true, gate: cur, operation, session_id: sid, run_id: runId, message: `${operation} 在 ${cur} 允许执行` });
       return ctx.resp({

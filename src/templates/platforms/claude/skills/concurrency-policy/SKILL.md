@@ -1,7 +1,7 @@
 ---
 name: concurrency-policy
 description: "并发调用与 Team/Subagent 分配规范——无依赖并行、同层并行跨层串行、Team 按规模选择、Gate 级并发规则"
-version: "4.7.79"
+version: "4.7.80"
 updated: "2026-05-22"
 ---
 
@@ -80,7 +80,7 @@ updated: "2026-05-22"
 | Gate A | 需求澄清 → 并行探索（explore × N） | 探索可并行 |
 | Gate B-DDD/B-BDD/B-TDD | 串行 | DDD → BDD → TDD 依赖链 |
 | Gate B1 | 并行架构评审 | frontend-architect + backend-architect + database-architect |
-| Gate C | 串行 planner | 单 Agent 产出计划 |
+| Gate C | planner + skill-assignment 并行 | planner 和 skill-assignment-expert 同发 |
 | Gate C-impl | 按 batch 内并行 | 同 batch 无冲突 → 同发；batch 间串行 |
 | Gate C1 | 并行质量检查 | lint + typecheck + build + audit 同发 |
 | Gate C2 | 并行测试 | unit + integration + e2e 同发 |

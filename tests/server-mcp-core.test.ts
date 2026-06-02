@@ -120,7 +120,9 @@ describe('MCP Core API — gate_check', () => {
     expect(JSON.parse(writeDoc.content[0].text).allowed).toBe(true);
 
     const writeCode = await tools['gate_check']({ operation: 'write_code' }, { sessionId: sid });
-    expect(JSON.parse(writeCode.content[0].text).allowed).toBe(false);
+    const wc = JSON.parse(writeCode.content[0].text);
+    expect(wc.allowed).toBe(true); // Gate A has write_doc in allow → write_code downgrade
+    expect(wc.downgrade).toBe('write_doc');
 
     const spawnImpl = await tools['gate_check']({ operation: 'spawn_impl' }, { sessionId: sid });
     expect(JSON.parse(spawnImpl.content[0].text).allowed).toBe(true);

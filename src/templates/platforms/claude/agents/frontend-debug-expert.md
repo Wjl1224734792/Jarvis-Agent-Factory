@@ -6,7 +6,7 @@ color: blue
 concurrency:
   max_parallel_spawns: 4
   safe_to_parallelize: true
-model: deepseek-v4-pro
+model: qwen3.6-plus
 effort: max
 ---
 

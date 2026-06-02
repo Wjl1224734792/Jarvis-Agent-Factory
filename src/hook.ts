@@ -147,15 +147,19 @@ export async function hookCommand(args) {
 
           process.exit(0);
         }
-        // 如果 write_code 被拒但 write_doc 被允许，给出提示
-        if (operation === 'write_code' && ops.allow.includes('write_doc')) {
-          console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
-          console.error(`  提示：当前 Gate 允许 write_doc。如需写文档，请先推进到允许 write_code 的 Gate。`);
-          console.error(`  允许的操作: ${ops.allow.join(', ')}`);
-        } else {
-          console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
-          console.error(`  允许的操作: ${ops.allow.join(', ')}`);
+        // write_code 被拒但 write_doc 或 fix 允许时：降级放行
+        if (operation === "write_code" && ops.allow.includes("write_doc")) {
+          console.log(`✅ ${current}: write_code 被禁，但 write_doc 允许 → 放行 (${session.pipeline_name})`);
+          console.log(`   ⚠ 当前 Gate 仅允许写文档，禁止写代码文件`);
+          process.exit(0);
         }
+        if (operation === "write_code" && ops.allow.includes("fix")) {
+          console.log(`✅ ${current}: write_code 被禁，但 fix 允许 → 放行 (${session.pipeline_name})`);
+          console.log(`   ⚠ 当前 Gate 仅允许修复操作，禁止新增功能代码`);
+          process.exit(0);
+        }
+        console.error(`🚫 ${current}: 操作 "${operation}" 被禁止 (${session.pipeline_name})`);
+        console.error(`  允许的操作: ${ops.allow.join(", ")}`);
         process.exit(2);
       }
 
