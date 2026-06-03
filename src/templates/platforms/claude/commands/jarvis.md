@@ -358,18 +358,24 @@ Skill(skill="verification-before-completion")
 
 **触发条件**：涉及前端页面/组件变更。纯后端/逻辑/算法任务跳过。
 
-**条件**：
-- 预览服务器已启动（`.claude/launch.json` + `preview_start`）
-- 修改前/后对比截图已附
-- 响应式三视口截图已附（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
-- 关键样式属性已通过 `preview_inspect` 验证
-- 无可见布局问题
+**流程**：
+
+```
+spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
+└── spawn browser-test-expert（浏览器视觉验证）
+    ├── agent-browser snapshot 精确获取页面结构
+    ├── Playwright MCP 执行截图+交互验证
+    ├── 响应式三视口截图（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
+    ├── 修改前/后对比截图
+    ├── 关键样式属性验证（布局/颜色/字体/间距）
+    └── 产出视觉验证报告到 .jarvis/YYYY-MM-DD/testing/<topic>-visual-verification.md
+```
 
 **通过**：`advance_gate({ gate: "Gate C2" })`
 
 **不通过**：
-1. **证据缺失** → 退回实现 Agent 补充截图/样式验证数据
-2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools诊断：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新截图验证
+1. **证据缺失** → 退回 browser-test-expert 补充截图/样式验证数据
+2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools诊断：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新走视觉验证
 3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ---

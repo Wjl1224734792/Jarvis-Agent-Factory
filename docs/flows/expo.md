@@ -39,7 +39,7 @@ flowchart TD
     CI --> CI1[Batch 1: expo-ui-expert<br/>expo-state-expert]
     CI1 --> CI2[Batch 2: expo-dev-expert]
     CI2 --> C1[Gate C1: Lint+Build<br/>eslint+tsc+expo export]
-    C1 --> C15[Gate C1.5: 视觉验证<br/>Expo Go截图+多平台+Safe Area]
+    C1 --> C15[Gate C1.5: 视觉验证<br/>Expo Go截图+多平台+Safe Area<br/>Web端: spawn browser-test-expert]
     C15 --> C2[Gate C2: 测试]
     C2 --> C2A[expo-test-expert<br/>Jest+RNTL]
     C2A --> C2B[browser-test-expert<br/>Web端浏览器测试]

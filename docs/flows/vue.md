@@ -46,7 +46,7 @@ flowchart TD
     CI --> CI1[Batch 1: vue-ui-expert<br/>vue-state-expert]
     CI1 --> CI2[Batch 2: vue-dev-expert]
     CI2 --> C1[Gate C1: Lint+Type-check+Build<br/>eslint+vue-tsc+vite build]
-    C1 --> C15[Gate C1.5: 视觉验证<br/>多视口截图+响应式检查]
+    C1 --> C15[Gate C1.5: 视觉验证<br/>spawn browser-test-expert<br/>多视口截图+响应式检查]
     C15 --> C2[Gate C2: 测试]
     C2 --> C2A[vue-test-expert<br/>Vitest+Vue Test Utils]
     C2A --> C2B[browser-test-expert<br/>Playwright]

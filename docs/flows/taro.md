@@ -39,7 +39,7 @@ flowchart TD
     CI --> CI1[Batch 1: taro-ui-expert<br/>taro-state-expert]
     CI1 --> CI2[Batch 2: taro-dev-expert]
     CI2 --> C1[Gate C1: Lint+Build<br/>eslint+tsc+taro build]
-    C1 --> C15[Gate C1.5: 视觉验证<br/>H5截图+小程序截图+多端对比]
+    C1 --> C15[Gate C1.5: 视觉验证<br/>spawn browser-test-expert(H5)<br/>小程序开发者工具截图+多端对比]
     C15 --> C2[Gate C2: 测试]
     C2 --> C2A[taro-test-expert<br/>Jest]
     C2A --> C2B[browser-test-expert<br/>H5端浏览器测试]

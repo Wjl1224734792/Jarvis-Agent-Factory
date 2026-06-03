@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.85 (2026-06-03)
+
+### 修复
+- **Gate C1.5 browser-test-expert 集成**: 引擎层 `can_spawn` 从空数组扩展为 `['browser-test-expert', 'frontend-debug-expert']`，`operations.allow` 新增 `spawn_test`，Gate C1.5 现可 spawn browser-test-expert 执行视觉验证（截图+多视口+样式检查）
+
+### 文档
+- `/auto`、`/jarvis`、`/frontend` 三条命令的 Gate C1.5 段落全面重写：加入 browser-test-expert spawn 流程、触发条件、验证标准、失败回退
+- 10 个流程文档 (docs/flows/) C1.5 节点加入 browser-test-expert 引用
+- jarvis-reference SKILL.md：C1.5 操作列表补全 + Agent 编排策略表新增 C1.5 行
+- Web 面板 guide.html + pipeline.html：C1.5 描述和操作列表同步
+- AGENTS.md 全面刷新（根目录 + 5 个核心模块）
+
 ## v4.7.81 (2026-06-02)
 
 ### 变更

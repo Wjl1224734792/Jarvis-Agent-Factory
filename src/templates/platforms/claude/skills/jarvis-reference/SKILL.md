@@ -367,7 +367,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 | C | 执行规划 | read, write_doc, spawn_impl | spawn_test, build, deploy |
 | C-impl | 并行实现 | read, write_code, spawn_impl | spawn_test, build, deploy |
 | C1 | 代码质量门 | read, lint, build, fix | spawn_impl, spawn_test, deploy, write_code |
-| C1.5 | 视觉验证（条件性） | read, preview, fix | spawn_impl, build, deploy, write_code |
+| C1.5 | 视觉验证（条件性） | read, preview, fix, spawn_test | spawn_impl, build, deploy, write_code |
 | C2 | 测试验证 | read, spawn_test, fix | spawn_impl, deploy, write_code |
 | D | 评审 | read, review, audit, fix, spawn_impl | spawn_test, build, deploy, write_code |
 | E | 发布上线 | read, deploy, write_doc, lint, build, spawn_impl | write_code, spawn_test |
@@ -401,6 +401,7 @@ Gate A → Gate B-DDD → Gate B-BDD → Gate B-TDD → Gate B1
 | B1 | subagent_only | Agent 工具直接 spawn 架构师 |
 | C | subagent_only | Agent 工具 spawn planner |
 | C-impl | prefer_team | TeamCreate + Agent(team_name) |
+| C1.5 | subagent_only | Agent 工具 spawn browser-test-expert（视觉截图+多视口+样式验证） |
 | C2 | prefer_team | TeamCreate + Agent(team_name) |
 | D | prefer_team | TeamCreate + Agent(team_name) |
 | E | subagent_only | Agent 工具直接 spawn |

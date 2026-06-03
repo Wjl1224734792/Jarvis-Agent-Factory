@@ -39,7 +39,7 @@ flowchart TD
     CI --> CI1[Batch 1: flutter-ui-expert<br/>flutter-state-expert]
     CI1 --> CI2[Batch 2: flutter-dev-expert]
     CI2 --> C1[Gate C1: Lint+Build<br/>flutter analyze+build]
-    C1 --> C15[Gate C1.5: 视觉验证<br/>模拟器截图+多平台]
+    C1 --> C15[Gate C1.5: 视觉验证<br/>模拟器截图+多平台<br/>Web端: spawn browser-test-expert]
     C15 --> C2[Gate C2: 测试]
     C2 --> C2A[flutter-test-expert<br/>flutter test+WidgetTester]
     C2A --> C2B[browser-test-expert<br/>Web端浏览器测试]

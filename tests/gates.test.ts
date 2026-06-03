@@ -311,13 +311,21 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
     expect(c2Idx).toBeGreaterThan(c15Idx);
   });
 
-  it('7b. Gate C1.5 的 GATE_OPERATIONS 允许 preview、fix 禁止 write_code', () => {
+  it('7b. Gate C1.5 的 GATE_OPERATIONS 允许 preview、fix、spawn_test 禁止 write_code', () => {
     const ops = getGateOperations('Gate C1.5');
     expect(ops.allow).toContain('preview');
     expect(ops.allow).toContain('fix');
+    expect(ops.allow).toContain('spawn_test');
     expect(ops.deny).toContain('write_code');
     expect(ops.deny).toContain('spawn_impl');
     expect(ops.deny).toContain('deploy');
+  });
+
+  it('7c. Gate C1.5 的 GATE_AGENT_GUIDE 可 spawn browser-test-expert + frontend-debug-expert', () => {
+    const guide = GATE_AGENT_GUIDE['Gate C1.5'];
+    expect(guide.can_spawn).toContain('browser-test-expert');
+    expect(guide.can_spawn).toContain('frontend-debug-expert');
+    expect(guide.note).toContain('视觉验证');
   });
 
   it('8. getPipelineName 返回新流水线中文名称', () => {

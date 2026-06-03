@@ -36,7 +36,7 @@ flowchart TD
     CI_B1 --> CI_B2[Batch 2:<br/>frontend-dev-expert]
     CI_B2 --> CI_B3[Batch 3:<br/>frontend-test-expert]
     CI_B3 --> C1[Gate C1: Lint+Build]
-    C1 --> C15[Gate C1.5: 视觉验证<br/>强制: 三视口截图]
+    C1 --> C15[Gate C1.5: 视觉验证<br/>spawn browser-test-expert<br/>三视口截图+样式检查]
     C15 --> C2[Gate C2: 测试]
     C2 --> D[Gate D: 评审]
     D --> D1[frontend-review-expert]

@@ -221,7 +221,33 @@ Lint → Type-check → Build → Deps Audit，全部通过后推进。
 
 ### Gate C1.5：视觉验证（条件性）
 
-纯后端/逻辑任务 → 跳过。
+**触发条件**：涉及前端页面/组件/样式变更、UI 框架开发、移动端开发。纯后端/逻辑/算法/配置任务 → 跳过。
+
+**条件**：
+- 预览服务器已启动（通过 Playwright MCP 连接浏览器）
+- 修改前/后对比截图已附
+- 响应式三视口截图已附（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
+- 关键样式属性已验证（布局/颜色/字体/间距）
+- 无可见布局问题（溢出/重叠/错位）
+
+**流程**：
+
+```
+spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
+└── spawn browser-test-expert（浏览器视觉验证：截图+响应式多视口+样式检查）
+    ├── 模式：agent-browser snapshot 精确获取页面 + Playwright MCP 稳定执行截图
+    ├── 响应式三视口截图（mobile/tablet/desktop）
+    ├── 修改前/后对比截图
+    ├── 关键样式属性验证
+    └── 产出视觉验证报告到 .jarvis/YYYY-MM-DD/testing/<topic>-visual-verification.md
+```
+
+**通过**：`advance_gate({ gate: "Gate C2" })`
+
+**不通过**：
+1. **证据缺失** → 退回 browser-test-expert 补充截图/样式验证数据
+2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新走视觉验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ### Gate C2：测试验证
 

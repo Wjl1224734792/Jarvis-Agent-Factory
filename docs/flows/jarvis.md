@@ -75,8 +75,8 @@ flowchart TD
     CI5 --> C1[Gate C1: 代码质量门]
     C1 --> C1A[Lint + Type-check<br/>+ Build + Deps Audit]
     
-    C1A --> C15[Gate C1.5: 视觉验证]
-    C15 --> C15A[preview_start + 截图<br/>mobile/tablet/desktop]
+    C1A --> C15[Gate C1.5: 视觉验证<br/>spawn browser-test-expert]
+    C15 --> C15A[Playwright 截图<br/>mobile/tablet/desktop]
     
     C15A --> C2[Gate C2: 测试验证]
     C2 --> C2A[backend-test + frontend-test]
