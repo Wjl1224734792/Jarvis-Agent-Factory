@@ -1,39 +1,16 @@
-<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-22T08:28:05.565Z -->
+<!-- Generated: 2026-06-03 -->
 <!-- Parent: ../AGENTS.md -->
 
-# src — Full-stack source code (client + server)
-
-## Purpose
-This directory contains the src module of the project.
-
-## Key Files
-| File | Description |
-|------|-------------|
-| AGENTS.md | Markdown documentation |
-| CLAUDE.md | Markdown documentation |
-| doctor.ts | TypeScript source — Exports: doctor |
-| hash-paths.ts | TypeScript source — Exports: getHashFilePath |
-| hook.ts | TypeScript source — No exports |
-| install.ts | TypeScript source — No exports |
-| suppress-warnings.ts | TypeScript source — No exports |
-
+# src — 源代码
 
 ## Subdirectories
 | Directory | Description | AGENTS |
 |-----------|-------------|--------|
-| cli/ | CLI entry point | [AGENTS.md](cli/AGENTS.md) |
-| engine/ | Core engine logic | [AGENTS.md](engine/AGENTS.md) |
-| shared/ | Shared utilities | [AGENTS.md](shared/AGENTS.md) |
-| templates/ | Code templates | [AGENTS.md](templates/AGENTS.md) |
-| web/ | Web frontend | [AGENTS.md](web/AGENTS.md) |
-
-
-## For AI Agents
-
-
-## Dependencies
-- **Internal:** cli/, engine/, shared/, templates/, web/
-- **External:** See package.json for full dependency list
+| engine/ | MCP 编排引擎核心 | [AGENTS.md](./engine/AGENTS.md) |
+| cli/ | CLI 命令入口 | [AGENTS.md](./cli/AGENTS.md) |
+| templates/ | Agent/Command/Skill 模板 | [AGENTS.md](./templates/AGENTS.md) |
+| web/ | Web 面板后端 API | [AGENTS.md](./web/AGENTS.md) |
+| shared/ | 共享工具函数 | [AGENTS.md](./shared/AGENTS.md) |
 
 <!-- MANUAL:START -->
 <!-- MANUAL:END -->

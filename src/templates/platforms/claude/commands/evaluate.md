@@ -60,6 +60,14 @@ spawn external-resource-expert → 搜索所有备选方案的最新对比数据
 
 5. 输出 `.jarvis/YYYY-MM-DD/evaluation/evaluation-criteria.md`
 
+### 步骤 2：澄清后靶向探索（评估标准确认后，同一消息同时发出）
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：各备选方案在当前项目中的集成点、受影响模块、迁移成本估算
+- `external-resource-expert`：各备选方案的最新基准测试数据、已知迁移案例、潜在风险
+
+探索结果整理为"评估靶向上下文"，注入 E1 原型实现。
+
 **引擎推进**：`mcp__jarvis-engine__advance_gate({ gate: "E1" })`
 
 ---

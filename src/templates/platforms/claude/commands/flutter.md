@@ -93,11 +93,29 @@ Gate C-impl:
 
 ### Gate A：需求澄清
 
-- 与用户确认需求，至少确认 1 个关键假设
-- 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`
-- **Gate A 通过后可并行探索**（spawn 前 `gate_check("read")`）：
-  - `code-explore-expert` × N（多目录并行探索现有代码库）
-  - `external-resource-expert` × N（Flutter/Dart 最新文档与最佳实践并行搜索）
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：项目全景——技术栈、目录结构、已有 Widget/页面、路由配置、状态管理模式、平台适配代码
+- `external-resource-expert`：Flutter/Dart 最新版本、Widget 库更新、Material Design 规范
+
+探索结果回来后，整理为"项目上下文摘要"，用于后续需求对话。
+
+**Step 2：需求澄清**
+
+- 基于 Step 1 的项目上下文，与用户确认需求，至少确认 1 个关键假设
+- 模糊时加载 `Skill("idea-refine")`
+- 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`，标注 `REQ-XXX`
+
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：需求涉及的特定 Widget/模块、相关代码路径、依赖链路、可复用组件
+- `external-resource-expert`：需求相关的 pub.dev 包文档、平台兼容性（iOS/Android）、技术方案参考
+
+探索结果整理为"靶向上下文摘要"，注入 Gate B 任务分解和 Gate C 实现规划。
+
+`gate_enforce()` → `advance_gate({ gate: "Gate B-DDD" })`
 
 ### Gate B-DDD / B-BDD / B-TDD：任务分解
 

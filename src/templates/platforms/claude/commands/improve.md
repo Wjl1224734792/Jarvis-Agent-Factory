@@ -33,7 +33,12 @@ Skill("refactoring")
 
 ### 步骤
 
-1. **目标澄清**——若用户输入模糊，使用 `AskUserQuestion` 逐问澄清：
+0. **澄清前并行探索（目标定义前，同一消息同时发出）**——spawn `code-explore-expert` + `external-resource-expert`：
+   - `code-explore-expert`：项目全景——技术栈、目录结构、已识别性能热点/复杂模块/代码质量基线
+   - `external-resource-expert`：改进方向相关的行业基准数据、最佳实践、工具链更新
+   - 探索结果整理为"改进上下文摘要"，用于后续目标定义
+
+1. **目标澄清**——若用户输入模糊，基于 Step 0 上下文，使用 `AskUserQuestion` 逐问澄清：
    - 要改进什么？（性能/质量/可维护性/大小/其他）
    - 当前状态是什么？（基准值）
    - 期望达到什么状态？（目标值）

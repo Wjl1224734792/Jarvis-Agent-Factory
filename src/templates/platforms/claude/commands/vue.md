@@ -99,12 +99,29 @@ Gate C-impl:
 
 ### Gate A：需求澄清
 
-- 与用户对话澄清需求，至少确认 1 个关键假设；模糊时加载 `Skill("idea-refine")`
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：项目全景——技术栈、目录结构、已有 Vue 页面/组件、路由配置、状态管理模式
+- `external-resource-expert`：Vue 3 官方文档、Composition API 最佳实践、相关库最新版本
+
+探索结果回来后，整理为"项目上下文摘要"，用于后续需求对话。
+
+**Step 2：需求澄清**
+
+- 基于 Step 1 的项目上下文，与用户对话澄清需求，至少确认 1 个关键假设
+- 模糊时加载 `Skill("idea-refine")`
 - 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`，标注 `REQ-XXX`
-- **并行探索**: spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）
-  - `code-explore-expert`：项目结构、已有 Vue 页面/组件、路由配置、状态管理模式
-  - `external-resource-expert`：Vue 3 官方文档、Composition API 最佳实践、相关库文档
-- `gate_enforce()` → `advance_gate({ gate: "Gate B-DDD" })`
+
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：需求涉及的特定组件、相关代码路径、依赖链路、可复用 Composables/组件
+- `external-resource-expert`：需求相关的 Vue API 文档、兼容性注意事项、技术方案参考
+
+探索结果整理为"靶向上下文摘要"，注入 Gate B 任务分解和 Gate C 实现规划。
+
+`gate_enforce()` → `advance_gate({ gate: "Gate B-DDD" })`
 
 ### Gate B-DDD → B-BDD → B-TDD：任务分解
 

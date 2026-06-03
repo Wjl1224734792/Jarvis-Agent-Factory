@@ -88,6 +88,32 @@ Gate C-impl:
 
 **关键差异**：跳过 Gate C1.5（视觉验证），后端无前端页面/组件变更需求。
 
+### Gate A：需求澄清
+
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：项目全景——技术栈、目录结构、已有服务/路由/中间件、数据层 Schema、API 契约
+- `external-resource-expert`：后端框架最新文档、最佳实践、版本变更
+
+探索结果回来后，整理为"项目上下文摘要"，用于后续需求对话。
+
+**Step 2：需求澄清**
+
+- 基于 Step 1 的项目上下文，与用户对话澄清需求，至少确认 1 个关键假设
+- 模糊时加载 `Skill("idea-refine")`
+- 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`，标注 `REQ-XXX`
+
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+
+spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
+- `code-explore-expert`：需求涉及的特定服务/模块、相关代码路径、数据模型、API 依赖链路
+- `external-resource-expert`：需求相关的库 API 文档、数据库版本兼容性、技术方案参考
+
+探索结果整理为"靶向上下文摘要"，注入 Gate B 任务分解和 Gate C 实现规划。
+
+`gate_enforce()` → `advance_gate({ gate: "Gate B-DDD" })`
+
 ### 每 Gate 并行机会速查
 
 | Gate | 可并行操作 |

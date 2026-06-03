@@ -1,35 +1,16 @@
-<!-- Generated: 2026-05-22T08:28:05.565Z | Updated: 2026-05-25T00:20:00.000Z -->
+<!-- Generated: 2026-06-03 -->
 <!-- Parent: ../AGENTS.md -->
 
-# scripts — Build/tooling scripts
-
-## Purpose
-构建/工具脚本 — 版本同步、资源复制、GitHub Release 同步、开发启动等辅助脚本。
+# scripts — 构建与 CI 脚本
 
 ## Key Files
-| File | Description |
-|------|-------------|
-| AGENTS.md | Markdown documentation |
-| CLAUDE.md | Markdown documentation |
-| copy-assets.js | JavaScript source — No exports |
-| dev-start.ps1 | Project file |
-| dev-start.sh | Project file |
-| release.sh | Project file |
-| sync-github-releases.js | JavaScript source — No exports |
-| sync-version.mjs | 版本号同步脚本 — 从 package.json 读取版本并同步到 QUICKSTART.md、guide.html 等文件 |
-
-
-## Subdirectories
-| Directory | Description | AGENTS |
-|-----------|-------------|--------|
-
-
-## For AI Agents
-
-
-## Dependencies
-- **Internal:** None
-- **External:** See package.json for full dependency list
+| File | Role | Description |
+|------|------|-------------|
+| dev-start.sh / dev-start.ps1 | 开发启动 | 启动引擎 + Web 面板开发服务器 |
+| copy-assets.js | 资源复制 | 构建时将模板文件复制到 dist/ |
+| release.sh | 发布脚本 | 版本递增 + npm publish |
+| sync-version.mjs | 版本同步 | 同步 package.json version 到其他文件 |
+| sync-github-releases.js | GitHub Release 同步 | 发布到 GitHub Releases |
 
 <!-- MANUAL:START -->
 <!-- MANUAL:END -->

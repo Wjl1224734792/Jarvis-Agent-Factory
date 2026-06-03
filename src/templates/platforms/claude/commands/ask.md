@@ -59,6 +59,11 @@ Skill("spec-driven-development")
 
 ### 步骤
 
+0. **澄清前并行探索（需求摄入前，同一消息同时发出）**——spawn `code-explore-expert` + `docs-research-expert`：
+   - `code-explore-expert`：项目全景——技术栈、目录结构、已有模块/页面/组件、路由、状态管理模式
+   - `docs-research-expert`：项目 AGENTS.md/README.md/架构决策记录、历史需求文档
+   - 探索结果整理为"项目上下文摘要"，用于后续模式选择和需求澄清
+
 1. **解析 Flag**——从用户输入中提取 `--*` 标志位：
 
    ```

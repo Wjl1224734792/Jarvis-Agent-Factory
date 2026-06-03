@@ -38,7 +38,7 @@
 
 ```mermaid
 flowchart TD
-    START([用户输入 /react]) --> A[Gate A: 需求澄清]
+    START([用户输入 /react]) --> A[Gate A: 需求澄清<br/>探索→澄清→靶向探索]
     A --> B[Gate B: 任务分解<br/>DDD→BDD→TDD]
     B --> B1[Gate B1: 架构评审<br/>条件性]
     B1 --> C[Gate C: 执行规划<br/>spawn planner]
