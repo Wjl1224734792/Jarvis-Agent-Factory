@@ -145,7 +145,7 @@ spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check
 ### Gate C1.5：视觉验证（强制，不可跳过）
 
 **前端任务必须过此门。** 条件：
-- 预览服务器已启动（通过 Playwright MCP 连接浏览器）
+- 预览服务器已启动（dev server 运行中）
 - 修改前/后对比截图已附
 - 响应式三视口截图已附（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
 - 关键样式属性已验证（布局/颜色/字体/间距）
@@ -155,7 +155,19 @@ spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check
 
 ```
 spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
-└── spawn browser-test-expert（浏览器视觉验证）
+└── spawn frontend-debug-expert（主力：Chrome DevTools MCP 深度视觉验证）
+    ├── Chrome DevTools MCP：navigate → snapshot → screenshot（含多视口）
+    ├── 性能追踪（performance_start_trace）+ 控制台/网络诊断
+    ├── 响应式三视口截图（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
+    ├── 修改前/后对比截图
+    ├── 关键样式属性验证（evaluate_script 读取 computed styles）
+    └── 产出视觉验证报告到 .jarvis/YYYY-MM-DD/testing/<topic>-visual-verification.md
+```
+
+**兜底（CDP 不可用或仅需快速页面验证时）**：
+
+```
+spawn browser-test-expert（兜底：agent-browser snapshot + Playwright MCP）
     ├── agent-browser snapshot 精确获取页面结构
     ├── Playwright MCP 执行截图（browser_take_screenshot）+ 快照验证（browser_snapshot）
     ├── 响应式三视口截图（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
@@ -167,8 +179,8 @@ spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
 **通过**：进入 Gate C2
 
 **不通过**：
-1. **证据缺失** → 退回 browser-test-expert 补充截图/样式验证数据
-2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools诊断：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新走视觉验证
+1. **证据缺失** → 退回执行 agent 补充截图/样式验证数据
+2. **布局问题**（溢出/重叠/错位）→ frontend-debug-expert 定位根因（Chrome DevTools：元素定位/样式追踪/布局分析）→ spawn 原实现 Agent 修复源文件 → 重新走视觉验证
 3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ### Gate C2：测试

@@ -165,7 +165,6 @@ jarvis remove claude -g --engine --force # 全局级：用户目录全部 Jarvis
 | | `/skill-flow` | [skill-flow.md](docs/flows/skill-flow.md) | Skill化 |
 | | `/task-design` | [task-design.md](docs/flows/task-design.md) | 任务分解 |
 | 发布 | `/publish` | [publish.md](docs/flows/publish.md) | 一键发布 |
-| 移动 | `/mobile` | [mobile.md](docs/flows/mobile.md) | 统一编排 |
 | 框架 | `/flutter` `/expo` `/swift` `/kotlin` `/taro` `/miniprogram` `/uni-app` `/react` `/vue` | 各框架同 | A→E |
 
 ## License

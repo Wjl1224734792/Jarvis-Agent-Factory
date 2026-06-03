@@ -219,12 +219,14 @@ Skill(skill="<从skill-assignment文档复制>")
 
 Lint → Type-check → Build → Deps Audit，全部通过后推进。
 
-### Gate C1.5：视觉验证（条件性）
+### Gate C1.5：视觉验证（前端任务强制执行，不询问）
 
-**触发条件**：涉及前端页面/组件/样式变更、UI 框架开发、移动端开发。纯后端/逻辑/算法/配置任务 → 跳过。
+**触发条件**：涉及前端页面/组件/样式变更、UI 框架开发、移动端开发 → **直接执行，不询问用户**。纯后端/逻辑/算法/配置任务 → 跳过。
+
+> **设计意图**：开发调试本身就需要视觉验证，暂停询问是多余的中断。前端任务默认执行 C1.5，不做"要不要验证"的判断。
 
 **条件**：
-- 预览服务器已启动（通过 Playwright MCP 连接浏览器）
+- 预览服务器已启动（dev server 运行中）
 - 修改前/后对比截图已附
 - 响应式三视口截图已附（mobile 375x812 / tablet 768x1024 / desktop 1280x800）
 - 关键样式属性已验证（布局/颜色/字体/间距）
@@ -234,7 +236,19 @@ Lint → Type-check → Build → Deps Audit，全部通过后推进。
 
 ```
 spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
-└── spawn browser-test-expert（浏览器视觉验证：截图+响应式多视口+样式检查）
+└── spawn frontend-debug-expert（主力：Chrome DevTools MCP 深度视觉验证）
+    ├── Chrome DevTools MCP：navigate → snapshot → screenshot（含多视口）
+    ├── 性能追踪（performance_start_trace）+ 控制台/网络诊断
+    ├── 响应式三视口截图（mobile/tablet/desktop）
+    ├── 修改前/后对比截图
+    ├── 关键样式属性验证（evaluate_script 读取 computed styles）
+    └── 产出视觉验证报告到 .jarvis/YYYY-MM-DD/testing/<topic>-visual-verification.md
+```
+
+**兜底（CDP 不可用或仅需快速页面验证时）**：
+
+```
+spawn browser-test-expert（兜底：agent-browser snapshot + Playwright MCP）
     ├── 模式：agent-browser snapshot 精确获取页面 + Playwright MCP 稳定执行截图
     ├── 响应式三视口截图（mobile/tablet/desktop）
     ├── 修改前/后对比截图
@@ -245,8 +259,8 @@ spawn 前 gate_check({ operation: "spawn_test" }) 确认 Gate C1.5 允许测试
 **通过**：`advance_gate({ gate: "Gate C2" })`
 
 **不通过**：
-1. **证据缺失** → 退回 browser-test-expert 补充截图/样式验证数据
-2. **布局问题**（溢出/重叠/错位）→ spawn `frontend-debug-expert`（Chrome DevTools：元素定位/样式追踪/布局分析）定位根因 → spawn 原实现 Agent 修复源文件 → 重新走视觉验证
+1. **证据缺失** → 退回执行 agent 补充截图/样式验证数据
+2. **布局问题**（溢出/重叠/错位）→ frontend-debug-expert 定位根因（Chrome DevTools：元素定位/样式追踪/布局分析）→ spawn 原实现 Agent 修复源文件 → 重新走视觉验证
 3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ### Gate C2：测试验证

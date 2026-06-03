@@ -4,6 +4,17 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.86 (2026-06-03)
+
+### 变更
+- **Gate C1.5 视觉验证 agent 主备角色交换**: `frontend-debug-expert`（Chrome DevTools MCP）作为主力——支持性能追踪/渲染分析/网络诊断/JS 调试；`browser-test-expert`（Playwright MCP）作为兜底——CDP 不可用时降级使用。涉及 `/auto` `/jarvis` `/frontend` `/react` `/vue` 5 条命令模板
+- **C1.5 前端任务不再询问**: `/auto` 和 `/jarvis` 中 C1.5 由"条件性（AI 判断→询问用户）"改为"前端任务强制执行不询问"
+
+### 修复
+- **README 移除 `/mobile` 废弃行**: 命令已在 v4.7.80 移除，README 残留死链已清理
+- **guide.html 补全**: 新增 `/deepinit` + `/cleanup` 卡片；统计数字 44→43 Commands
+- **3 个缺失流程文档**: `docs/flows/deepinit.md` `docs/flows/repowiki.md` `docs/flows/verify.md`
+
 ## v4.7.85 (2026-06-03)
 
 ### 修复
