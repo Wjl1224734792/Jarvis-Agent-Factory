@@ -2,7 +2,7 @@
  * Agent Registry — 动态扫描模板目录，生成完整 Agent 列表与文件映射（TASK-009：仅 claude 平台）。
  * 替代硬编码的 AGENT_LIST 和 AGENT_FILES。
  */
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { resolve, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -370,4 +370,157 @@ export function getPlatformModels(force?: boolean): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (const [p, s] of Object.entries(models)) result[p] = [...s];
   return result;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Skill Registry — 三层技能动态发现（模板 → 全局用户 → 项目级）
+// 与 Agent Registry 镜像：弥补 PLATFORM_CONFIG.subdirs 未包含 skills 的漏洞
+// ════════════════════════════════════════════════════════════════════
+
+export type SkillItem = {
+  id: string;
+  name: string;
+  description: string;
+  platform: string;
+  version?: string;
+  updated?: string;
+  /** 配置来源：template（模板默认）/ global（全局用户） / project（项目级） */
+  source?: 'template' | 'global' | 'project';
+  category?: string;
+};
+
+let _skillList: SkillItem[] | null = null;
+/** 缓存记录的最后一次 projectRoot，用于检测变化时刷新 */
+let _skillLastProjectRoot: string | undefined = undefined;
+
+/**
+ * 扫描单个目录下的技能子目录。
+ * 每个技能是一个子目录，内含 SKILL.md 文件（含 frontmatter）。
+ *
+ * @param dirPath - 技能目录的绝对路径（如 ~/.claude/skills）
+ * @param platformKey - 平台标识（claude）
+ * @param source - 配置来源标记
+ * @param projectName - 项目名称（仅项目级来源时传入）
+ * @returns SkillItem 数组
+ */
+function scanSkillDir(
+  dirPath: string,
+  platformKey: string,
+  source: 'template' | 'global' | 'project',
+  projectName?: string,
+): SkillItem[] {
+  if (!existsSync(dirPath)) return [];
+  let entries: string[];
+  try {
+    entries = readdirSync(dirPath);
+  } catch {
+    return [];
+  }
+  const result: SkillItem[] = [];
+  for (const e of entries) {
+    const entryPath = join(dirPath, e);
+    try { if (!statSync(entryPath).isDirectory()) continue; } catch { continue; }
+    const skillMdPath = join(entryPath, 'SKILL.md');
+    if (!existsSync(skillMdPath)) continue;
+    try {
+      const content = readFileSync(skillMdPath, 'utf-8');
+      const { meta: fm } = parseMdFrontmatter(content);
+      const name = (fm.name as string) || e;
+      const description = (fm.description as string) || '';
+      const category = source === 'global' ? '全局配置'
+        : source === 'project' ? (projectName || '项目配置')
+        : '模板默认';
+      result.push({
+        id: e,
+        name,
+        description,
+        platform: platformKey,
+        version: fm.version as string | undefined,
+        updated: fm.updated as string | undefined,
+        source,
+        category,
+      });
+    } catch { /* skip unparseable */ }
+  }
+  return result;
+}
+
+/**
+ * 获取合并后的技能列表（三层配置：模板默认 → 全局用户 → 项目级）。
+ * 去重规则：项目技能 > 全局同名技能 > 模板技能。
+ *
+ * @param force - 是否强制刷新缓存
+ * @param projectRoot - 项目根目录（传入后启用全局/项目级配置合并）
+ * @returns 合并后的技能列表
+ */
+export function getSkillList(force?: boolean, projectRoot?: string): SkillItem[] {
+  if (force || !_skillList || (projectRoot !== _skillLastProjectRoot)) {
+    _skillLastProjectRoot = projectRoot;
+    const templatesDir = resolveTemplatesDir();
+
+    // 一层：模板默认
+    _skillList = [];
+    for (const [key, config] of Object.entries(PLATFORM_CONFIG)) {
+      const platformDir = resolve(templatesDir, config.dir);
+      const skillsDir = join(platformDir, 'skills');
+      const templateSkills = scanSkillDir(skillsDir, key, 'template');
+      _skillList.push(...templateSkills);
+    }
+
+    // 二层 & 三层：全局用户 + 项目级（需要 projectRoot）
+    if (projectRoot) {
+      const globalSkillsDir = resolve(homedir(), '.claude', 'skills');
+      const globalSkills = scanSkillDir(globalSkillsDir, 'claude', 'global');
+
+      const projectSkillsDir = resolve(projectRoot, '.claude', 'skills');
+      const projectSkills = scanSkillDir(projectSkillsDir, 'claude', 'project', basename(projectRoot));
+
+      // 合并：项目 > 全局 > 模板
+      const projectIds = new Set(projectSkills.map(s => s.id));
+      const globalOverrideIds = new Set([
+        ...globalSkills.map(s => s.id),
+        ...projectSkills.map(s => s.id),
+      ]);
+
+      _skillList = [
+        // 模板中未被全局或项目覆盖的
+        ..._skillList.filter(s => !globalOverrideIds.has(s.id)),
+        // 全局中未被项目覆盖的
+        ...globalSkills.filter(s => !projectIds.has(s.id)),
+        // 项目技能（最高优先级）
+        ...projectSkills,
+      ];
+    }
+  }
+  return _skillList;
+}
+
+/**
+ * 收集所有模板技能 SKILL.md frontmatter 的 name 值（去重）。
+ */
+export function getSkillNames(): string[] {
+  const templatesDir = resolveTemplatesDir();
+  const names = new Set<string>();
+  for (const [, config] of Object.entries(PLATFORM_CONFIG)) {
+    const skillsDir = join(templatesDir, config.dir, 'skills');
+    if (!existsSync(skillsDir)) continue;
+    let entries: string[];
+    try {
+      entries = readdirSync(skillsDir);
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const entryPath = join(skillsDir, entry);
+      if (!statSync(entryPath).isDirectory()) continue;
+      const skillMdPath = join(entryPath, 'SKILL.md');
+      if (!existsSync(skillMdPath)) continue;
+      try {
+        const content = readFileSync(skillMdPath, 'utf-8');
+        const { meta: fm } = parseMdFrontmatter(content);
+        if (fm.name) names.add(fm.name as string);
+      } catch { /* skip */ }
+    }
+  }
+  return [...names];
 }

@@ -1,7 +1,7 @@
 ---
 name: skill-assignment-expert
 description: "Use this agent when you need skill assignment for agents. Typical triggers include reading task documents, matching skills to sub-tasks, and producing skill allocation documents for the orchestrator."
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "LSP", "Skill", "mcp__jarvis-engine__skill_list", "mcp__jarvis-engine__jarvis_priority_context", "mcp__jarvis-engine__jarvis_ast_search", "mcp__jarvis-engine__jarvis_lsp_hover", "mcp__jarvis-engine__jarvis_lsp_goto_definition", "mcp__jarvis-engine__jarvis_lsp_find_references", "mcp__jarvis-engine__jarvis_lsp_diagnostics", "mcp__jarvis-engine__jarvis_lsp_document_symbols"]
 color: blue
 concurrency:
   max_parallel_spawns: 4
@@ -52,8 +52,20 @@ Skill(skill="behavioral-guidelines")
 
 ## 项目技能自动发现
 
-收到任务后，**首先扫描项目技能目录**（不依赖编排者传入）：
+收到任务后，**首先获取完整技能清单**（不依赖编排者传入）。
 
+### 主路径：MCP 工具（引擎三层动态发现）
+
+调用 `mcp__jarvis-engine__skill_list` 获取完整技能清单——引擎自动聚合三层：
+1. 模板默认技能（`src/templates/platforms/claude/skills/`）
+2. 全局用户技能（`~/.claude/skills/`）
+3. 项目级技能（`.claude/skills/`）
+
+去重规则已由引擎处理：项目技能 > 全局同名技能 > 模板技能。
+
+### 回退路径：Bash 目录扫描（MCP 工具不可用时）
+
+若 `skill_list` 不可用，手动扫描：
 1. 用 Bash 扫描全局技能：`ls -d ~/.claude/skills/*/ 2>/dev/null`
 2. 用 Bash 扫描项目技能：`ls -d .claude/skills/*/ 2>/dev/null`（如存在）
 3. 对每个发现的技能目录，Read 其 `SKILL.md` frontmatter 获取 `name` + `description`

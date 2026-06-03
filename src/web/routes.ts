@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, updateRunGate, updateRunGateEnteredAt, getPipelineRun, getArtifactsByRun, getArtifactsByRunAndGate } from '../engine/db.js';
 import { GATE_CHECKS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
-import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues } from '../engine/agent-registry.js';
+import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents, getAgentModelValues, getSkillList, getSkillNames } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
 import type { PubSubEventType } from '../engine/pubsub.js';
@@ -598,6 +598,38 @@ export function setupApiRoutes(app, db, root) {
       platform_models: platformModels,
       categories: getCategories(db),
       total_count: allAgents.length,
+      source_counts: sourceCounts,
+      project_name: projectName,
+    });
+  });
+
+  // ---- Skills API（三层动态发现：模板默认 → 全局用户 → 项目级）----
+  app.get('/api/skills', (c) => {
+    const platform = c.req.query('platform');
+    const source = c.req.query('source'); // template | global | project
+    const search = (c.req.query('search') || '').toLowerCase();
+    // 模板默认 + 全局用户 + 项目级
+    const skillList = getSkillList(true, root);
+    const availableNames = getSkillNames();
+
+    let list = [...skillList];
+    if (platform) list = list.filter(s => s.platform === platform);
+    if (source) list = list.filter(s => (s.source || 'template') === source);
+    if (search) list = list.filter(s => s.name.toLowerCase().includes(search) || s.id.toLowerCase().includes(search) || s.description.toLowerCase().includes(search));
+
+    // 统计各来源数量
+    const sourceCounts: Record<string, number> = { '模板默认': 0, '全局配置': 0 };
+    for (const s of skillList) {
+      const cat = s.category || '模板默认';
+      sourceCounts[cat] = (sourceCounts[cat] || 0) + 1;
+    }
+    // 项目名称
+    const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
+    return c.json({
+      skills: list,
+      available_names: availableNames,
+      platforms: [...new Set(skillList.map(s => s.platform))],
+      total_count: skillList.length,
       source_counts: sourceCounts,
       project_name: projectName,
     });
