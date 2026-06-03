@@ -6,7 +6,7 @@ color: blue
 concurrency:
   max_parallel_spawns: 4
   safe_to_parallelize: true
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 effort: max
 ---
 

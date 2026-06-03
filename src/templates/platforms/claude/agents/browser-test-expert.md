@@ -7,7 +7,7 @@ concurrency:
   max_parallel_spawns: 4
   safe_to_parallelize: true
   team_preferred: true
-model: qwen3.6-plus
+model: deepseek-v4-pro
 effort: max
 ---
 

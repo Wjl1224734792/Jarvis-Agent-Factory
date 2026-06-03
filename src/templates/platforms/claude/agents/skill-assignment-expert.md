@@ -7,7 +7,7 @@ concurrency:
   max_parallel_spawns: 4
   safe_to_parallelize: true
   team_preferred: true
-model: deepseek-v4-pro
+model: deepseek-v4-flash
 effort: max
 ---
 
