@@ -311,13 +311,13 @@ describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
     expect(c2Idx).toBeGreaterThan(c15Idx);
   });
 
-  it('7b. Gate C1.5 的 GATE_OPERATIONS 允许 preview、fix、spawn_test 禁止 write_code', () => {
+  it('7b. Gate C1.5 的 GATE_OPERATIONS 允许 preview、fix、spawn_test、spawn_impl 禁止 write_code', () => {
     const ops = getGateOperations('Gate C1.5');
     expect(ops.allow).toContain('preview');
     expect(ops.allow).toContain('fix');
     expect(ops.allow).toContain('spawn_test');
+    expect(ops.allow).toContain('spawn_impl');
     expect(ops.deny).toContain('write_code');
-    expect(ops.deny).toContain('spawn_impl');
     expect(ops.deny).toContain('deploy');
   });
 

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-04T10:30:00+08:00 | Parent: (root) -->
+<!-- Generated: 2026-06-04T17:05:00+08:00 | Parent: (root) -->
 
 # Jarvis Agent Factory — AI 编程助手配置集 + MCP 编排引擎
 

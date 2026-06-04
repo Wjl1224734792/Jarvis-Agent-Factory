@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-04T10:30:00+08:00 -->
+<!-- Generated: 2026-06-04T17:05:00+08:00 -->
 <!-- Parent: ../AGENTS.md -->
 
 # src/engine — MCP 编排引擎核心

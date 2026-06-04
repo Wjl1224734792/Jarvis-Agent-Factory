@@ -4,6 +4,13 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.88 (2026-06-04)
+
+### 修复
+- **Gate C1.5 spawn 权限修复**: Hook 永远用 `spawn_impl` 检查，但 Gate C1.5 以前 deny 了 `spawn_impl`（只 allow `spawn_test`）。导致 17 条命令模板在 C1.5 阶段 spawn browser-test-expert/frontend-debug-expert 全部被阻断。修复：`spawn_impl` 移入 allow、移除 deny
+- **K0/T0/IM0 探索权限补齐**: 三个第一 Gate 以前 deny `spawn_impl`，命令模板写的 spawn 探索 Agent 全被 Hook 拦截。修复：全部 allow `spawn_impl` 并填入 can_spawn 清单（K0: 3 个, T0: 1 个, IM0: 2 个）
+- **gates.test.ts 同步**: C1.5 断言从 `deny spawn_impl` 改为 `allow spawn_impl`
+
 ## v4.7.87 (2026-06-04)
 
 ### 变更
