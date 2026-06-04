@@ -3,7 +3,7 @@ name: evaluate
 description: 技术评估指令——E0定义标准→E1生成原型→E2收集指标→E3生成报告，4Gate评估流程
 model: inherit
 argument-hint: [评估对象，如"是否采用Bun替代Node.js"或"React vs Vue技术选型"]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 技术评估
@@ -30,9 +30,10 @@ Skill("source-driven-development")
 **Gate 检查条件**：评估标准文档已产出，含评估维度+权重+用例清单
 
 ### 步骤
-### 步骤 0：并行信息收集（同一消息同时发出）
+### 步骤 0：并行信息收集（同一消息同时发出，最多 10 个）
 spawn code-explore-expert → 扫描当前项目技术栈，识别与评估对象相关的现有代码、依赖和架构模式
 spawn external-resource-expert → 搜索所有备选方案的最新对比数据（性能基准、社区活跃度、已知问题）
+# 若涉及多个独立模块或备选方案，分别派出独立 Agent
 
 ### 步骤 1：定义评估标准
 1. 明确评估对象和备选方案：
@@ -60,7 +61,7 @@ spawn external-resource-expert → 搜索所有备选方案的最新对比数据
 
 5. 输出 `.jarvis/YYYY-MM-DD/evaluation/evaluation-criteria.md`
 
-### 步骤 2：澄清后靶向探索（评估标准确认后，同一消息同时发出）
+### 步骤 2：澄清后靶向探索（评估标准确认后，同一消息同时发出，最多 10 个）
 
 spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
 - `code-explore-expert`：各备选方案在当前项目中的集成点、受影响模块、迁移成本估算

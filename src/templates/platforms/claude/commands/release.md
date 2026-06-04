@@ -3,7 +3,7 @@ name: release
 description: 发布指令——RL0环境检测→RL1质量门→RL2版本递增→RL3发布执行→RL4发布验证，5Gate发布流程
 model: inherit
 argument-hint: [版本类型：patch|minor|major，默认patch]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 发布（Tag + Push）

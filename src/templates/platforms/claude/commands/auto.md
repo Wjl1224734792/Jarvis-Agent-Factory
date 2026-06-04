@@ -113,10 +113,12 @@ mcp__jarvis-engine__session_join({
 若路由到 Gate C-impl / Gate C2 / Gate D（需要写代码或审查的 Gate），在 gate_jump 之前先并行收集信息：
 
 ```
-# 同一消息同时发出（Gate A 允许 spawn_impl）
+# 根据实际需要派出（最多 10 个），同一消息同时发出
 Agent(code-explore-expert, "探索相关代码区域，收集现有实现模式、文件结构和依赖关系")
 Agent(external-resource-expert, "搜索相关技术最新文档和最佳实践")  
 Agent(docs-research-expert, "调研项目现有文档和架构决策记录")
+# 若涉及多个独立模块，每个模块派出独立 code-explore-expert
+# 若涉及多个外部技术栈，每个技术栈派出独立 external-resource-expert
 ```
 
 探索 Agent 返回后，整理上下文摘要，再 gate_jump 到目标 Gate。这样进入目标 Gate 时已有完整上下文，后续 Agent 工作效率大幅提升。
@@ -133,12 +135,12 @@ Agent(docs-research-expert, "调研项目现有文档和架构决策记录")
 
 **🔴 设计类任务硬约束**：路由到 `full`/`frontend`/`backend` 流水线 Gate A 入口的任务，**必须先与用户确认需求再产出文档**。跳过确认直接写需求文档 → 违反红线。
 
-**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出，按需派出，最多 10 个）**
 
-spawn `code-explore-expert` + `external-resource-expert` + `docs-research-expert`（spawn 前 `gate_check("read")`）：
-- `code-explore-expert`：项目全景——技术栈、目录结构、已有模块/页面/组件、路由、状态管理模式
-- `external-resource-expert`：相关技术最新文档、版本变更、最佳实践
-- `docs-research-expert`：项目 AGENTS.md/README.md/架构决策记录、历史需求文档
+spawn 前 `gate_check("read")`，根据实际需要派出探索 Agent：
+- `code-explore-expert`（必选）：项目全景——技术栈、目录结构、已有模块/页面/组件、路由、状态管理模式。若项目涉及多个独立子系统，每个子系统派一个独立 Agent
+- `external-resource-expert`（按需）：涉及外部技术选型/框架/库/API 时，搜索相关最新文档、版本变更、最佳实践
+- `docs-research-expert`（按需）：项目 AGENTS.md/README.md/架构决策记录、历史需求文档
 
 探索结果回来后，整理为"项目上下文摘要"，用于后续需求澄清。
 
@@ -148,11 +150,11 @@ spawn `code-explore-expert` + `external-resource-expert` + `docs-research-expert
 - 模糊时加载 `Skill("idea-refine")`
 - 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/<topic>.md`，标注 `REQ-XXX`
 
-**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出，按需派出，最多 10 个）**
 
-spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
-- `code-explore-expert`：需求涉及的特定模块、相关代码路径、依赖链路、可复用组件
-- `external-resource-expert`：需求相关的库 API 文档、兼容性注意事项、技术方案参考
+spawn 前 `gate_check("read")`，根据确认后的需求范围和涉及模块数量派出 Agent：
+- `code-explore-expert`（必选）：需求涉及的特定模块、相关代码路径、依赖链路、可复用组件。涉及多个独立模块时每个模块独立派一个 Agent
+- `external-resource-expert`（按需）：需求相关的库 API 文档、兼容性注意事项、技术方案参考。涉及多个外部技术栈时每个派一个 Agent
 
 探索结果整理为"靶向上下文摘要"，注入 Gate B 任务分解和 Gate C 实现规划。
 

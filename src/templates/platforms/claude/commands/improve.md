@@ -3,7 +3,7 @@ name: improve
 description: 自主迭代改进——IM0目标定义→IM1研究分析→IM2计划制定→IM3执行验证→IM4评估迭代
 model: inherit
 argument-hint: [改进目标/优化方向]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__gate_jump"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 自主迭代改进
@@ -33,7 +33,7 @@ Skill("refactoring")
 
 ### 步骤
 
-0. **澄清前并行探索（目标定义前，同一消息同时发出）**——spawn `code-explore-expert` + `external-resource-expert`：
+0. **澄清前并行探索（目标定义前，同一消息同时发出，最多 10 个）**——spawn `code-explore-expert` + `external-resource-expert`：
    - `code-explore-expert`：项目全景——技术栈、目录结构、已识别性能热点/复杂模块/代码质量基线
    - `external-resource-expert`：改进方向相关的行业基准数据、最佳实践、工具链更新
    - 探索结果整理为"改进上下文摘要"，用于后续目标定义

@@ -3,7 +3,7 @@ name: migrate
 description: 框架迁移指令——M1规则验证→M2应用迁移→M3编译验证→M4自动修复Lint，4Gate迁移流程
 model: inherit
 argument-hint: [迁移描述，如"Express→Fastify"或"Vue2→Vue3"]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 框架 / 依赖迁移
@@ -31,9 +31,10 @@ Skill("source-driven-development")
 **Gate 检查条件**：迁移规则文档已产出，规则覆盖率验证通过
 
 ### 步骤
-### 步骤 0：并行信息收集（同一消息同时发出）
+### 步骤 0：并行信息收集（同一消息同时发出，最多 10 个）
 spawn code-explore-expert → 扫描项目所有源文件，识别当前框架/库的使用模式（API调用、导入路径、配置方式），输出使用清单
 spawn external-resource-expert → 搜索目标框架的最新迁移指南和最佳实践
+# 若项目包含多个独立服务/包，每个派独立 Agent
 
 ### 步骤 1：分析并定义规则
 1. 定义迁移规则表：

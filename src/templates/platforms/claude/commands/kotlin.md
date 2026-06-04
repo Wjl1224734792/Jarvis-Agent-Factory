@@ -3,7 +3,7 @@ description: Kotlin 开发生命周期——需求→任务→计划→实现→
 name: kotlin
 model: inherit
 argument-hint: "[Kotlin需求描述]"
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # Kotlin 开发生命周期
@@ -94,7 +94,7 @@ Gate C-impl:
 
 ### Gate A：需求澄清
 
-**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出，最多 10 个）**
 
 spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
 - `code-explore-expert`：项目全景——技术栈、目录结构、已有 Composable/页面、导航配置、状态管理模式、Gradle 配置
@@ -108,7 +108,7 @@ spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check
 - 模糊时加载 `Skill("idea-refine")`
 - 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`，标注 `REQ-XXX`
 
-**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出，最多 10 个）**
 
 spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
 - `code-explore-expert`：需求涉及的特定 Composable/模块、相关代码路径、依赖链路、可复用组件
@@ -280,7 +280,7 @@ spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check
 
 | Gate | 可并行操作 |
 |------|-----------|
-| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索）+ `external-resource-expert` × N（多源并行搜索） |
+| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，最多 10 个）+ `external-resource-expert` × N（多源并行搜索，最多 10 个） |
 | Gate B：DDD→BDD→TDD | `task-design` 按顺序 spawn，不可并行但可连续 |
 | Gate B1 | `mobile-architect`（架构评审，条件性触发） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |

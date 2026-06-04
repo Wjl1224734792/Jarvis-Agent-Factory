@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.87 (2026-06-04)
+
+### 变更
+- **`/ask` K0 流程重构**: 探索从盲扫改为靶向。增加 session_context + priority_context 加载步骤，模式确定后基于关键主题词限定探索范围，K0 调度表更新为允许并行 subagent 探索
+- **36 个命令补全 WebFetch/WebSearch 工具**: ask/auto/jarvis/frontend/backend + 9 框架命令 + research/improve/evaluate/trace/refactor/migrate/simplify/debug/hotfix/bug-fix/browser/consult/deepinit/release/publish/verify + 4 测试命令。WebSearch/WebFetch 作为基础探索能力不再受限于特定命令
+- **探索 Agent 数量上限统一**: 全部 20 个命令 46 处探索步骤统一标注"最多 10 个"，调度表 × N 标记同步限制
+- **23 个命令补全 session_context/priority_context**: 所有第一 Gate 需探索的命令补齐上下文加载能力
+
+### 文档
+- **DeepInit 全量刷新**: 7 个 AGENTS.md 基于 6 并行 Agent 深度源码分析重新生成（根/ src/ src/cli/ src/engine/ src/engine/tools/ tests/ web/）
+- **docs/flows/ask.md**: 4 个模式流程图更新——加入会话上下文加载 + 靶向探索步骤
+
 ## v4.7.86 (2026-06-03)
 
 ### 变更

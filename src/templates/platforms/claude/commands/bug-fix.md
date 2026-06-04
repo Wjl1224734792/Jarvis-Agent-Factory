@@ -3,7 +3,7 @@ description: Bug 修复闭环——浏览器复现→定位根因→修复→浏
 name: bug-fix
 model: inherit
 argument-hint: [Bug 描述、URL 或复现步骤]
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_wait_for"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_jump", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__advance_gate", "mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_click", "mcp__playwright__browser_type", "mcp__playwright__browser_press_key", "mcp__playwright__browser_take_screenshot", "mcp__playwright__browser_console_messages", "mcp__playwright__browser_network_requests", "mcp__playwright__browser_wait_for", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # Bug 修复闭环（浏览器复现 → 修复 → 验证）
@@ -28,8 +28,9 @@ Skill("browser-testing")
 
 产物输出目录: `.jarvis/YYYY-MM-DD/bug-fix/`
 
-### 步骤 0：并行信息收集（同一消息同时发出）
+### 步骤 0：并行信息收集（同一消息同时发出，最多 10 个）
 Agent(code-explore-expert, "根据Bug描述探索相关代码区域：定位可能的根因文件、分析调用链、检查相关测试用例和最近的git变更")
+# 若涉及多个独立模块，每个模块派出独立 code-explore-expert
 
 ## 步骤 1：收集 Bug 信息（不可绕过）
 向用户确认（如未提供）：

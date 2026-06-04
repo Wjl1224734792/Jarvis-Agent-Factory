@@ -3,7 +3,7 @@ description: Vue 开发生命周期——需求→任务→计划→实现→质
 name: vue
 model: inherit
 argument-hint: "[Vue需求描述]"
-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"]
+tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__file_claim_check", "mcp__jarvis-engine__file_claim_register", "mcp__jarvis-engine__file_claim_release", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # Vue 开发生命周期
@@ -99,7 +99,7 @@ Gate C-impl:
 
 ### Gate A：需求澄清
 
-**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出）**
+**Step 1：澄清前并行探索（需求澄清前，同一消息同时发出，最多 10 个）**
 
 spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
 - `code-explore-expert`：项目全景——技术栈、目录结构、已有 Vue 页面/组件、路由配置、状态管理模式
@@ -113,7 +113,7 @@ spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check
 - 模糊时加载 `Skill("idea-refine")`
 - 产出需求文档到 `.jarvis/YYYY-MM-DD/requirements/`，标注 `REQ-XXX`
 
-**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出）**
+**Step 3：澄清后靶向探索（需求确认后，同一消息同时发出，最多 10 个）**
 
 spawn `code-explore-expert` + `external-resource-expert`（spawn 前 `gate_check("read")`）：
 - `code-explore-expert`：需求涉及的特定组件、相关代码路径、依赖链路、可复用 Composables/组件

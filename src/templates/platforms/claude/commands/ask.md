@@ -3,7 +3,7 @@ name: ask
 description: 需求探询指令——4模式(K0需求摄入→K1信息收集→K2分析综合→K3交付产出)，文档驱动，Team/Subagent调度硬约束。支持 --* 标志位指定模式。
 model: inherit
 argument-hint: [--interview|--direct|--consensus|--review] <需求/想法/计划/指令>
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 需求探询（4 模式自适应 · 文档驱动 · Flag 可控）
@@ -59,12 +59,12 @@ Skill("spec-driven-development")
 
 ### 步骤
 
-0. **澄清前并行探索（需求摄入前，同一消息同时发出）**——spawn `code-explore-expert` + `docs-research-expert`：
-   - `code-explore-expert`：项目全景——技术栈、目录结构、已有模块/页面/组件、路由、状态管理模式
-   - `docs-research-expert`：项目 AGENTS.md/README.md/架构决策记录、历史需求文档
-   - 探索结果整理为"项目上下文摘要"，用于后续模式选择和需求澄清
+0. **加载会话上下文（摄入前第一步，不可跳过）**：
+   - `mcp__jarvis-engine__session_context()` — 加载历史会话摘要，检查是否有与此需求相关的未完成事项或历史决策
+   - `mcp__jarvis-engine__jarvis_priority_context({ action: "get" })` — 读取项目关键约束（如"API 端口 3456""用 SQLite 不用 PostgreSQL"）
+   - 若历史会话有相关上下文，整理为"历史参考摘要"，用于后续模式选择和需求澄清
 
-1. **解析 Flag**——从用户输入中提取 `--*` 标志位：
+1. **快速解析用户输入**——扫描 `--*` 标志位并初步评估输入清晰度：
 
    ```
    解析规则：扫描 ARGUMENTS，按第一个匹配的 flag 确定模式。
@@ -76,6 +76,8 @@ Skill("spec-driven-development")
    ```
 
    匹配到 flag 后，将其从提示词中移除，剩余部分作为需求文本。**直接跳到步骤 3 进入对应模式，跳过步骤 2 的自动判定。**
+
+   同时提取用户输入中的关键主题词（如"用户认证""数据库迁移""性能优化"），用于步骤 2.5 的靶向探索。
 
 2. **（仅无 flag 时）解析用户输入**——评估输入清晰度，自动判定模式：
 
@@ -89,20 +91,37 @@ Skill("spec-driven-development")
 
    输出模式判定及一句话理由。
 
-3. **按模式执行 K0 摄入**：
+2.5. **靶向并行探索（模式确定后、摄入前，同一消息同时发出）**——根据实际需要 spawn 探索 Agent（按需派出，最多 10 个）：
+
+   必选（始终派出）：
+   - `code-explore-expert`：基于用户输入中的关键主题词，针对性探索相关代码模块、现有实现模式、依赖关系、可复用组件（而非全项目盲目扫描）
+   - `docs-research-expert`：项目 AGENTS.md/README.md/架构决策记录、与主题相关的历史需求文档
+
+   按需（根据主题判断是否派出）：
+   - `external-resource-expert`：涉及外部技术选型/框架/库/API 时，搜索相关最新文档和最佳实践
+   - 额外 `code-explore-expert`：主题跨多个不相关模块时，每个模块独立派出一个 Agent
+   - 额外 `docs-research-expert`：涉及多个独立子系统/服务时，每个派一个 Agent 调查对应文档
+
+   - spawn 前调用 `mcp__jarvis-engine__gate_check({ operation: "read" })` 确认 Gate K0 允许读取
+   - **靶向原则**：探索范围由步骤 1 提取的关键主题词限定，避免泛泛的全项目扫描；若无明确主题词（如用户只说"帮我看看"），则使用项目全景摘要（技术栈、目录结构、核心模块）
+   - **上限 10 个**：根据主题复杂度和涉及模块数量决定派出几个 Agent，最多 10 个，宁可多探索也不要遗漏关键上下文
+   - 探索结果整理为"靶向上下文摘要"，用于后续模式特定摄入
+
+3. **按模式执行 K0 摄入**（基于步骤 2.5 的靶向上下文）：
 
    **Interview**——苏格拉底式追问（每轮 1-2 问，AskUserQuestion）：
+   - 基于靶向上下文，聚焦关键澄清点
    - 这个功能最终要达成什么目标？
    - 谁会使用？在什么场景下？
    - 有哪些已知约束？
    - 什么明确不在范围内？
    - 若用户拒绝回答或回答模糊，记录为"待澄清"并继续
 
-   **Direct**——直接解析用户输入，提取关键需求点、约束、验收条件
+   **Direct**——直接解析用户输入，结合靶向上下文提取关键需求点、约束、验收条件
 
-   **Consensus**——加载用户提供的现有计划/方案，确认审查范围
+   **Consensus**——加载用户提供的现有计划/方案，结合靶向上下文确认审查范围
 
-   **Review**——加载待优化的指令/流程编排，确认优化目标
+   **Review**——加载待优化的指令/流程编排，结合靶向上下文确认优化目标
 
 4. **产出 K0 文档**（必须写入，作为 Gate 检查依据）：
    - Interview → `.jarvis/YYYY-MM-DD/requirements/problem-space.md`
@@ -120,17 +139,14 @@ Skill("spec-driven-development")
 
 ### Interview 模式——深度代码探索
 
-1. spawn `code-explore-expert`（subagent，只读）：
-   - 当前项目的技术栈和架构
-   - 相关现有模块和代码路径
-   - 可能受影响的区域
-   - **失败处理**：重试 1 次；仍失败则编排者自行 Read 关键文件，记录"探索不完整"标记
+1. 根据 K0 澄清结果和需求范围，按需派出探索 Agent（最多 10 个）：
+   - `code-explore-expert`（subagent，只读）：当前项目的技术栈和架构、相关现有模块和代码路径、可能受影响的区域。涉及多个独立模块时，每个模块派出一个独立 Agent
+   - `external-resource-expert`（subagent，只读，按需）：若涉及外部技术选型/框架/库/API，搜索相关最新文档
+   - **失败处理**：单个 Agent 失败重试 1 次；仍失败则编排者自行 Read 关键文件，记录"探索不完整"标记
 
-2. spawn `external-resource-expert`（subagent，只读，可选）补充领域知识
+2. 所有探索 Agent 在同一消息中并发 spawn（无依赖关系）
 
-3. 两个 subagent 可并行 spawn（同一消息中并发 Agent 调用）
-
-4. 产出 `.jarvis/YYYY-MM-DD/requirements/exploration-report.md`
+3. 产出 `.jarvis/YYYY-MM-DD/requirements/exploration-report.md`
 
 ### Direct 模式——快速上下文确认
 
@@ -372,8 +388,8 @@ Skill("spec-driven-development")
 
 | Gate | 引擎策略 | 调度方式 | 约束 |
 |------|---------|---------|------|
-| K0 | `subagent_only` | 编排者直接执行 | 不 spawn Agent，编排者做模式判定+追问 |
-| K1 | `subagent_only` | `Agent` 工具直接 spawn subagent | 只读，1-2 个 code-explore-expert 可并行；external-resource-expert 可并行 |
+| K0 | `subagent_only` | 编排者主导 + subagent 靶向探索 | 步骤 2.5 按需 spawn 探索 Agent（最多 10 个，只读）；编排者做模式判定+追问 |
+| K1 | `subagent_only` | `Agent` 工具直接 spawn subagent | 只读，按需派出（最多 10 个），同一消息并发；external-resource-expert 按需 |
 | K2 Consensus | `prefer_team` | 首选 TeamCreate + Agent(team_name)；回退 subagent | Architect 并行审查，各只读；Critic 由编排者担任 |
 | K2 其他 | `prefer_team` | 编排者主导，subagent 辅助 | code-explore-expert 只读确认 |
 | K3 | `subagent_only` | 编排者直接产出 | 不 spawn Agent |

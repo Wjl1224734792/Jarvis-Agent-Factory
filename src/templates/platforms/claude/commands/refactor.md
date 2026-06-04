@@ -3,7 +3,7 @@ name: refactor
 description: 重构指令——R1定义边界→R2基线测试→R3执行重构→R4行为漂移检测→R5生成报告，完整5Gate安全网
 model: inherit
 argument-hint: [重构目标描述或文件路径]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "AskUserQuestion", "Agent", "TeamCreate", "SendMessage", "TeamDelete", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context", "WebFetch", "WebSearch"]
 ---
 
 # 代码重构（安全网保护）
@@ -33,11 +33,12 @@ Skill("test-driven-development")
 
 ### 步骤 0：并行信息收集（同一消息同时发出）
 
-在定义重构边界之前，先 spawn 探索 Agent 收集代码上下文：
+在定义重构边界之前，先 spawn 探索 Agent 收集代码上下文（最多 10 个，根据模块数量派出）：
 
 ```
 # 同一消息同时发出（R1 允许 spawn_impl）
 Agent(code-explore-expert, "扫描待重构的目标代码区域，输出：模块结构、依赖关系、代码复杂度热点、重复代码模式、与外部模块的耦合点")
+# 若涉及多个独立模块，每个模块派出独立 code-explore-expert
 ```
 
 探索 Agent 返回后，根据收集到的代码上下文来定义重构边界。

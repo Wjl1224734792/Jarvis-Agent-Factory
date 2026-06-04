@@ -3,7 +3,7 @@ name: research
 description: 深度研究指令——RS0课题定义→RS1信息收集→RS2深度分析→RS3假设验证→RS4研究报告，5Gate深度研究流程
 model: inherit
 argument-hint: [研究课题或问题描述]
-tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status"]
+tools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent", "AskUserQuestion", "WebFetch", "WebSearch", "mcp__jarvis-engine__session_join", "mcp__jarvis-engine__pipeline_guide", "mcp__jarvis-engine__gate_check", "mcp__jarvis-engine__advance_gate", "mcp__jarvis-engine__gate_enforce", "mcp__jarvis-engine__report_status", "mcp__jarvis-engine__session_context", "mcp__jarvis-engine__jarvis_priority_context"]
 ---
 
 # 深度研究
@@ -34,7 +34,7 @@ Skill("documentation-and-adrs")
 
 ### 步骤
 
-0. **澄清前并行探索（课题确认前，同一消息同时发出）**——spawn `code-explore-expert` + `external-resource-expert`：
+0. **澄清前并行探索（课题确认前，同一消息同时发出，最多 10 个）**——spawn `code-explore-expert` + `external-resource-expert`：
    - `code-explore-expert`：项目全景——技术栈、目录结构、与研究课题相关的现有模块和代码路径
    - `external-resource-expert`：研究课题相关的最新文档、社区方案、技术趋势
    - 探索结果整理为"研究上下文摘要"，用于后续课题定义
