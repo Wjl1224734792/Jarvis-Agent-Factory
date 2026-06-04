@@ -630,6 +630,17 @@ Agent(backend-data-expert, "数据模型", task_id=T4)
 # 全部完成后 → 进入 batch 2
 ```
 
+**🔴 同类型 Agent 多实例并行（关键优化）**：
+- 同一 batch 内允许多个同类型 Agent 并行，只要文件路径不重叠
+- 例如：3 个独立 API 模块 → 3 个 `backend-api-expert` 同一消息同发：
+  ```
+  Agent(backend-api-expert, "用户 API", allowed_paths=["src/api/user/"])
+  Agent(backend-api-expert, "订单 API", allowed_paths=["src/api/order/"])
+  Agent(backend-api-expert, "商品 API", allowed_paths=["src/api/product/"])
+  ```
+- 判据：各自 `allowed_paths` 互不重叠 → 可并行；共享 Schema/中间件 → 必须串行
+- planner 的 `parallel_batches` 中，同一 batch 可出现多次相同 `subagent_type`
+
 ### Gate C2: 并行测试
 
 > 引擎策略: `prefer_team`。大任务用 Team 模式并行测试，小任务用 Subagent。

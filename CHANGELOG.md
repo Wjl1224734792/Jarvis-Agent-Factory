@@ -4,6 +4,18 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## v4.7.89 (2026-06-04)
+
+### 变更
+- **编排流程并发缺陷修复 — 同类型 Agent 多实例并行**: 8 个核心文件新增"同类型 Agent 多实例并行（Same-Type Agent Fan-Out）"机制。Agent 类型的约束是文件冲突而非类型本身——多个独立模块可并行 spawn 同类型 Agent（如 3 个独立 API 模块 → 3 个 `backend-api-expert` 同发）。涉及文件：
+  - `skills/concurrency-policy/SKILL.md` — 新增"同类型 Agent 多实例并行"完整章节（判据表/示例/反模式）
+  - `commands/auto.md`、`commands/jarvis.md`、`commands/backend.md`、`commands/frontend.md`、`commands/improve.md` — Gate C-impl/IM3 新增多实例并行示例和规则
+  - `agents/planner.md` — parallel_batches 规则+并发组检查+反合理化表新增同类型多实例条款
+  - `agents/task-design.md` — 任务输出新增"并行提示"字段
+
+### 修复
+- **避免同类型 Agent 串行化**: 之前 3 个独立 API 模块只 spawn 1 个 backend-api-expert 逐个处理，现在可按模块并行 spawn 3 个
+
 ## v4.7.88 (2026-06-04)
 
 ### 修复

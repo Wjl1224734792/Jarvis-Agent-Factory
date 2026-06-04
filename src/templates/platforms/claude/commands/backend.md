@@ -80,6 +80,21 @@ Gate C-impl:
   Batch 4: [perf-test-expert]                           ← 负载/压力测试
 ```
 
+**🔴 多模块场景 — 同类型 Agent 多实例并行**：
+
+```
+# 当有多个独立 API 模块时（如 user/order/product），Batch 1 展开为：
+Batch 1: [
+  backend-api-expert(用户API, allowed_paths=["src/api/user/"]),
+  backend-api-expert(订单API, allowed_paths=["src/api/order/"]),
+  backend-api-expert(商品API, allowed_paths=["src/api/product/"]),
+  backend-data-expert(用户数据模型, allowed_paths=["src/models/user.ts"]),
+  backend-data-expert(订单数据模型, allowed_paths=["src/models/order.ts"]),
+  backend-data-expert(商品数据模型, allowed_paths=["src/models/product.ts"]),
+]
+# 6 个 Agent 同一消息同发，只要各自 allowed_paths 互不重叠
+```
+
 ---
 
 ## Gate 流程（公共编排框架）

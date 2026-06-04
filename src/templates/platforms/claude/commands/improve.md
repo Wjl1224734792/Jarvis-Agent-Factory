@@ -127,8 +127,9 @@ Skill("refactoring")
 
 1. **执行前基准**——运行基准命令，记录当前指标值
 
-2. **并行执行改进**——spawn 实现 Agent（Team 模式）：
+2. **并行执行改进**——spawn 实现 Agent（Team 模式或并行 Subagent）：
    - 按模块分配：每个 Team 成员独占一个模块
+   - **多模块独立改进 → 同类型 Agent 多实例并行**（如 3 个独立模块各 spawn 1 个 backend-dev-expert，同发）
    - 实施计划中的改进
    - 每完成一个模块立即自测
 

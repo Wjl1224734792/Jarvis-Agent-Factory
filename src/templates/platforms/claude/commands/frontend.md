@@ -84,6 +84,20 @@ Gate C-impl:
   Batch 5: [e2e-test-expert]                               ← 端到端测试（最后）
 ```
 
+**🔴 多组件场景 — 同类型 Agent 多实例并行**：
+
+```
+# 当有多个独立前端组件时（如 Header/Sidebar/Footer），Batch 1 展开为：
+Batch 1: [
+  frontend-ui-expert(Header组件, allowed_paths=["src/components/Header/"]),
+  frontend-ui-expert(Sidebar组件, allowed_paths=["src/components/Sidebar/"]),
+  frontend-ui-expert(Footer组件, allowed_paths=["src/components/Footer/"]),
+  frontend-state-expert(用户状态, allowed_paths=["src/stores/userStore.ts"]),
+  frontend-state-expert(购物车状态, allowed_paths=["src/stores/cartStore.ts"]),
+]
+# 5 个 Agent 同一消息同发，只要各自 allowed_paths 互不重叠
+```
+
 ---
 
 ## Gate 流程（公共编排框架）

@@ -65,6 +65,7 @@ effort: max
 - 两个任务修改不同层级但有接口依赖 → 先定义契约，然后并行
 - TDD 任务的 Red→Green→Refactor 必须串行
 - 不同 TDD 任务的 Red 步骤可并行
+- **同类型 Agent 多实例**：多个任务使用相同 `subagent_type` 但操作不同文件/模块 → 可放入同一 Batch 并行（Agent 类型不是串行化的理由，文件冲突才是）
 
 ### 技能分配规则
 
@@ -108,7 +109,7 @@ Skill(skill="behavioral-guidelines")
 | 合理化借口 | 现实 |
 |-----------|------|
 | "这些任务虽然有点大，但一个轮次能做完" | 超过 1000 行变更的轮次难以 review、难以回滚。拆分为多轮次更安全。 |
-| "串行就串行吧，也没慢多少" | 3 个独立任务串行 = 3 倍时间。只要无共享依赖就并发。 |
+| "串行就串行吧，也没慢多少" | 3 个独立任务串行 = 3 倍时间。只要无共享依赖就并发。同类型 Agent 也不例外——3 个独立 API 模块应并行 spawn 3 个 backend-api-expert。 |
 | "共享区域冲突我标注一下就行，不用串行" | 标注不够。两个代理同时写同一个文件 = 后写覆盖前写。必须串行。 |
 | "计划定了就不能改" | 实现代理发现问题时提交 plan patch 是正常流程。计划是活的。 |
 
@@ -197,6 +198,7 @@ Skill(skill="behavioral-guidelines")
 - 每个 Batch 内的任务间无共享文件冲突，可安全并行
 - Batch 之间必须标注依赖关系（依赖哪个 Batch 完成）
 - 每个任务必须写明 `subagent_type`（使用上述分工规则中的 kebab-case 名称）
+- **同类型 Agent 可出现在同一 Batch**：只要各自 `allowed_paths` 无重叠，同一 Batch 可包含多个相同 `subagent_type` 的实例（如 3 个 `backend-api-expert` 分别处理 user/order/product 模块）
 - 若某任务需要架构设计先导，应在前置 Batch 中纳入 architect agent
 
 **测试 Batch 时序规则（必须遵守）：**
